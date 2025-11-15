@@ -51,8 +51,8 @@ Manages the different calls to the different services.
 * **Language:** Java 
 
 ### 5. Database Layer
-* **Primary DB:** AWS RDS (e.g., PostgreSQL)
-* **Vector DB:** e.g., Prisma
+* **Primary DB:** PostgreSQL
+* **Vector DB:** Pinecone
 
 ### 6. Training / ML Pipeline
 * **Purpose:**
