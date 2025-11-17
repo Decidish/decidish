@@ -1,53 +1,82 @@
 import { Button } from '@/components/ui/button';
 import { Icon } from '@/components/ui/icon';
-import { Text } from '@/components/ui/text';
 import {Stack, useRouter} from 'expo-router';
 import { MoonStarIcon, StarIcon, SunIcon } from 'lucide-react-native';
 import { useColorScheme } from 'nativewind';
 import * as React from 'react';
-import { Image, type ImageStyle, View } from 'react-native';
-import {Input} from "@/components/ui/input";
+import {Dimensions, Image, ImageBackground, type ImageStyle, View} from 'react-native';
+import Demo from "@/assets/data/demo.js";
+import styles from "@/assets/styles";
+import { useRef } from "react";
+import Swiper from "react-native-deck-swiper";
+import CardItem from "@/components/carditem";
+import {ExtendedStackNavigationOptions} from "expo-router/build/layouts/StackClient";
 
-const SCREEN_OPTIONS = {
-  title: 'Home',
-  headerTransparent: true,
-  headerRight: () => <ThemeToggle />,
+// Used for our navigation bar at the top of the screen
+const SCREEN_OPTIONS: ExtendedStackNavigationOptions = {
+    title: 'Home',
+    headerTransparent: true,
+    headerRight: () => <ThemeToggle />,
 };
 
-const IMAGE_STYLE: ImageStyle = {
-  height: 76,
-  width: 76,
+const {width: SCTEEN_WIDTH} = Dimensions.get("window")
+
+// TODO: Add proper TypeScript types
+export default function HomePage(){
+    const swiperRef = useRef(null)
+    return (
+        <>
+            <Stack.Screen options={SCREEN_OPTIONS} />
+            <ImageBackground
+                source={require("@/assets/images/bg.jpg")}
+                style={styles.bg}
+                resizeMode="cover"
+            >
+                <View style={styles.containerHome}>
+                    <View style={styles.top}>
+                    </View>
+
+                    <View style={{ flex: 1 ,justifyContent: "flex-start", marginTop: 35}}>
+                        <Swiper
+                            ref={swiperRef}
+                            cards={Demo}
+                            backgroundColor={"transparent"}
+                            stackSize={3}
+                            verticalSwipe={false}
+                            containerStyle={{
+                                backgroundColor: "transparent"
+                            }}
+                            cardStyle={{
+                                width : SCTEEN_WIDTH - 40,
+                                alignSelf : "center",
+                            }}
+                            cardHorizontalMargin={10}
+                            cardVerticalMargin={20}
+                            renderCard={(item) =>
+                                item ? (
+                                    <CardItem
+                                        image={item.image}
+                                        name={item.name}
+                                        description={item.description}
+                                        matches={item.match}
+                                        actions
+                                        // @ts-ignore
+                                        onPressLeft={() => swiperRef.current.swipeLeft()}
+                                        // @ts-ignore
+                                        onPressRight={() => swiperRef.current.swipeRight()}
+                                        status={null}
+                                        variant={null}
+                                    />
+                                ) : null
+                            }
+                        />
+                    </View>
+                </View>
+            </ImageBackground>
+        </>
+
+    );
 };
-
-export default function Screen() {
-    const router = useRouter();
-
-  return (
-    <>
-      <Stack.Screen options={SCREEN_OPTIONS} />
-      <View className="flex-1 items-center justify-center gap-8 p-4">
-          <View className="flex-row gap-2">
-              <Input
-                  placeholder={"enter your postal code"}
-                  keyboardType={"numeric"}
-                  textContentType={"postalCode"}
-              />
-          </View>
-        <View className="flex-row gap-2">
-                <Button onPress={() => router.push('/profile')}>
-                    <Text>Go to Profile Tab</Text>
-                </Button>
-            {/*<Button*/}
-            {/*    onPress={() => {*/}
-            {/*        router.push('/profile');*/}
-            {/*    }}>*/}
-            {/*    <Text>Go to Profile Tab</Text>*/}
-            {/*</Button>*/}
-        </View>
-      </View>
-    </>
-  );
-}
 
 const THEME_ICONS = {
   light: SunIcon,
