@@ -1,6 +1,6 @@
 // client/app/onboarding/step1.tsx
 import React from 'react';
-import { ImageBackground, View } from 'react-native';
+import { ImageBackground, View, Dimensions, Platform } from 'react-native';
 import { Stack, useRouter } from 'expo-router';
 import { Text } from '@/components/ui/text';
 import { Button } from '@/components/ui/button';
@@ -19,12 +19,21 @@ export default function OnboardingStep1() {
     <>
       {/* eliminate the top navigation stuff */}
       <Stack.Screen options={{ headerShown: false }} />
-
+      <View
+        style = {{
+            flex:1,
+            width: '100%',
+            height: '100%',
+        }}
+      >
       <ImageBackground
         // switch to the background images
         source={require('@/assets/images/bg.jpg')}
-        style={{ flex: 1 }}
-        resizeMode="cover"
+        style={{ flex: 1,
+            width: '100%',
+            height: '100%',
+         }}
+        imageStyle={{resizeMode:"cover"}}
       >
         {/* add a semi transparent cover to make the texts more clear */}
         <View className="flex-1 bg-black/40 items-center justify-center px-6">
@@ -69,6 +78,7 @@ export default function OnboardingStep1() {
 
         </View>
       </ImageBackground>
+      </View>
     </>
   );
 }
