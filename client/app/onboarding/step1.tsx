@@ -33,7 +33,7 @@ export default function OnboardingStep1() {
             width: '100%',
             height: '100%',
          }}
-        imageStyle={{resizeMode:"cover"}}
+        resizeMode="cover"
       >
         {/* add a semi transparent cover to make the texts more clear */}
         <View className="flex-1 bg-black/40 items-center justify-center px-6">
