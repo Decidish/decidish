@@ -1,0 +1,167 @@
+services:
+  # ----------------------------------------------------------------
+  # Databases & Cache
+  # ----------------------------------------------------------------
+
+  # PostgreSQL with pgvector
+  postgres:
+    image: pgvector/pgvector:pg16
+    container_name: dev_postgres
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_USER: user
+      POSTGRES_PASSWORD: password
+      POSTGRES_DB: main_db
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./init-scripts:/docker-entrypoint-initdb.d
+    networks:
+      - app-network
+
+  # Redis Cache
+  redis:
+    image: redis:alpine
+    container_name: dev_redis
+    ports:
+      - "6379:6379"
+    networks:
+      - app-network
+
+  # ----------------------------------------------------------------
+  # Application Services
+  # ----------------------------------------------------------------
+
+  # Core Server
+  core-server:
+    build: ./backend/core
+    container_name: dev_java
+    ports:
+      - "8080:8080"
+    volumes:
+      - ./backend/core:/app
+      - ~/.gradle:/home/gradle/.gradle
+    environment:
+      - SPRING_DATASOURCE_URL=jdbc:postgresql://postgres:5432/main_db
+      - REDIS_HOST=redis
+    depends_on:
+      - postgres
+      - redis
+    networks:
+      - app-network
+
+  # Personalization Server
+  personalization-server:
+    build: ./backend/personalization
+    container_name: dev_go
+    ports:
+      - "8082:8082"
+    volumes:
+      - ./backend/personalization:/app
+    environment:
+      - DB_HOST=postgres
+      - REDIS_HOST=redis
+    depends_on:
+      - postgres
+    networks:
+      - app-network
+
+  # MLPipeline
+  mlpipeline:
+    build: ./mlpipeline
+    container_name: dev_python
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./mlpipeline:/app
+    environment:
+      - DATABASE_URL=postgresql://user:password@postgres:5432/main_db
+      - MILVUS_HOST=milvus
+    depends_on:
+      - postgres
+      - milvus
+    networks:
+      - app-network
+
+  # Client: React Native Web
+  client:
+    build: ./client
+    container_name: dev_client
+    ports:
+      - "8081:8081"
+    volumes:
+      - ./client:/app
+      - /app/node_modules
+    environment:
+      - API_JAVA=http://backend-java:8080
+      - API_GO=http://backend-go:8082
+      - API_PYTHON=http://backend-python:8000
+#    depends_on:
+#      - core
+#      - personalization
+#      - mlpipeline
+    networks:
+      - app-network
+
+  # ----------------------------------------------------------------
+  # 3. Milvus Vector DB (Standalone Stack)
+  # ----------------------------------------------------------------
+
+  etcd:
+    image: quay.io/coreos/etcd:v3.5.0
+    container_name: milvus_etcd
+    environment:
+      - ETCD_AUTO_COMPACTION_MODE=revision
+      - ETCD_AUTO_COMPACTION_RETENTION=1000
+      - ETCD_QUOTA_BACKEND_BYTES=4294967296
+      - ETCD_SNAPSHOT_COUNT=50000
+    command: etcd -advertise-client-urls=http://127.0.0.1:2379 -listen-client-urls http://0.0.0.0:2379 --data-dir /etcd
+    volumes:
+      - milvus_etcd_data:/etcd
+    networks:
+      - app-network
+
+  minio:
+    image: minio/minio:RELEASE.2023-03-20T20-16-18Z
+    container_name: milvus_minio
+    environment:
+      MINIO_ACCESS_KEY: minioadmin
+      MINIO_SECRET_KEY: minioadmin
+    command: minio server /minio_data
+    volumes:
+      - milvus_minio_data:/minio_data
+    networks:
+      - app-network
+
+  milvus:
+    image: milvusdb/milvus:v2.3.0
+    container_name: milvus_standalone
+    command: [ "milvus", "run", "standalone" ]
+    environment:
+      ETCD_ENDPOINTS: etcd:2379
+      MINIO_ADDRESS: minio:9000
+      MINIO_ACCESS_KEY: minioadmin
+      MINIO_SECRET_KEY: minioadmin
+    volumes:
+      - milvus_data:/var/lib/milvus
+    ports:
+      - "19530:19530"
+      - "9091:9091"
+    depends_on:
+      - etcd
+      - minio
+    networks:
+      - app-network
+
+# ----------------------------------------------------------------
+# Volumes & Networks
+# ----------------------------------------------------------------
+volumes:
+  postgres_data:
+  milvus_data:
+  milvus_etcd_data:
+  milvus_minio_data:
+
+networks:
+  app-network:
+    driver: bridge
