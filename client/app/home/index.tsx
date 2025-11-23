@@ -26,7 +26,7 @@ const {width: SCTEEN_WIDTH} = Dimensions.get("window")
 
 // TODO: Add proper TypeScript types
 export default function HomePage(){
-    const swiperRef = useRef<Swiper<any>>(null);
+    const swiperRef = useRef(null)
     return (
         <>
             <Stack.Screen options={SCREEN_OPTIONS} />
