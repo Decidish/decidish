@@ -12,6 +12,9 @@ import Swiper from "react-native-deck-swiper";
 import CardItem from "@/components/carditem";
 import {ExtendedStackNavigationOptions} from "expo-router/build/layouts/StackClient";
 
+
+const swiperRef = useRef<Swiper<any>>(null);
+
 // Used for our navigation bar at the top of the screen
 const SCREEN_OPTIONS: ExtendedStackNavigationOptions = {
     title: 'Home',
@@ -23,7 +26,7 @@ const {width: SCTEEN_WIDTH} = Dimensions.get("window")
 
 // TODO: Add proper TypeScript types
 export default function HomePage(){
-    const swiperRef = useRef(null)
+    const swiperRef = useRef<Swiper<any>>(null);
     return (
         <>
             <Stack.Screen options={SCREEN_OPTIONS} />

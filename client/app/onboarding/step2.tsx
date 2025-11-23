@@ -17,8 +17,8 @@ export default function OnboardingStep2() {
   const handleNext = () => {
     if (!canContinue) return;
 
-    // TODO: 在这里把用户输入的 postalCode 存到全局状态 / AsyncStorage / 后端
-    // 例如：await AsyncStorage.setItem('postalCode', postalCode);
+    // TODO: store the user input: postalCode into the global state / AsyncStorage / backend
+    // e.g.：await AsyncStorage.setItem('postalCode', postalCode);
 
     router.push('/onboarding/step3');
   };

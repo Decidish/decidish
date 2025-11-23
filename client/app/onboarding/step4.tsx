@@ -32,7 +32,7 @@ export default function OnboardingStep4() {
 
   const handleNext = () => {
     if (!selected) return;
-    // TODO: 在这里保存 cooking frequency
+    // TODO: store the user's cooking frequency
     // await AsyncStorage.setItem('cookFrequency', selected);
     router.push('/onboarding/step5');
   };

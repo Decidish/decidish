@@ -29,11 +29,11 @@ export default function OnboardingStep6() {
   ];
 
   const handleNext = () => {
-    // TODO: 保存 allergies（可选）
+    // TODO: store allergies（optional）
     // await AsyncStorage.setItem('allergies', JSON.stringify(selected));
 
-    // 这里可以直接去 home，或者去一个 summary / success 页
-    router.replace('/home');
+    // directly jumped to home or somewhere else
+    router.push('/onboarding/step7');
   };
 
   return (

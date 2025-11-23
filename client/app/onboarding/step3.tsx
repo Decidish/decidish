@@ -21,7 +21,7 @@ export default function OnboardingStep3() {
 
   const handleNext = () => {
     if (!selected) return;
-    // TODO: 保存用户预算
+    // TODO: store the user's budget
     // await AsyncStorage.setItem("weeklyBudget", selected);
     router.push("/onboarding/step4");
   };
