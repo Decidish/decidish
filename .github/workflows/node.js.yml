@@ -19,6 +19,7 @@ jobs:
       with:
         node-version: '20.x'
         cache: 'npm'
+        cache-dependency-path: client/package-lock.json
     - run: |
         cd client
         npm ci
