@@ -75,7 +75,7 @@ services:
     volumes:
       - ./mlpipeline:/app
     environment:
-      - DATABASE_URL=postgresql://user:password@postgres:5432/main_db
+      - DATABASE_URL=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
       - MILVUS_HOST=milvus
     depends_on:
       - postgres
@@ -93,9 +93,9 @@ services:
       - ./client:/app
       - /app/node_modules
     environment:
-      - API_JAVA=http://backend-java:8080
-      - API_GO=http://backend-go:8082
-      - API_PYTHON=http://backend-python:8000
+      - API_JAVA=http://core-server:8080
+      - API_GO=http://personalization-server:8082
+      - API_PYTHON=http://mlpipeline:8000
 #    depends_on:
 #      - core
 #      - personalization
