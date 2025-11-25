@@ -6,7 +6,7 @@ WORKDIR /app
 RUN go install github.com/githubnemo/CompileDaemon@latest
 
 COPY go.mod ./
-# COPY go.sum ./ # Uncomment if you have this file
+COPY go.sum ./
 RUN go mod download
 
 COPY . .
