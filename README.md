@@ -13,15 +13,21 @@ The architecture integrates multiple languages (Java, Go, Python, JavaScript) wi
 
 1.  **Clone the repository** (if you haven't already).
 2.  **Navigate** to the project root.
-3.  **Start the environment**:
+3. **Create a .env file** and fill the following:
+    ```bash
+    POSTGRES_USER={DB_USER}
+    POSTGRES_PASSWORD={DB_PASSWORD}
+    POSTGRES_DB={DB_NAME}
+   ```
+4. **Start the environment**:
     ```bash
     docker compose up -d
     ```
-4.  **Check status**:
+5. **Check status**:
     ```bash
     docker compose ps
     ```
-5.  **Stop the environment**:
+6. **Stop the environment**:
     ```bash
     docker compose down
     ```
