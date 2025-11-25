@@ -38,6 +38,6 @@ Run: Start the application. Spring will use the default classpath: paths automat
 
 ### 3. Production / Docker Setup (The "Override" Path)
 
-NEVER build your production Docker image with the test certificates inside. Instead, use the environment variables to point
+NEVER build your production Docker image with the test certificates inside. Instead, use the environment variables to point to your production certificates.
 
-# NEVER PUSH THE CERTIFICATE OR API KEY!!!!!
+**Important Security Note:** Never commit certificates or API keys to version control. Use environment variables to inject them at runtime.
