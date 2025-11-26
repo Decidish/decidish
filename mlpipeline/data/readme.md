@@ -1,6 +1,6 @@
 ## Recipes.csv
 
-* the str.len of `RecipeIngredientQuantities` and `RecipeIngredientParts`, e can consider only
+* the str.len of `RecipeIngredientQuantities` and `RecipeIngredientParts`, we can consider only
   use `RecipeIngredientParts` and discard the quantities of the ingredients.
 
 ## Reviews.csv
