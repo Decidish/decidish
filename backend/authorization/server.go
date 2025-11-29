@@ -1,72 +1,50 @@
 package main
 
 import (
+	"authorization/auth"
+	"authorization/config"
+	"authorization/controller"
 	"authorization/database"
-	"database/sql"
-	"net/http"
+	"log"
 
-	"github.com/gin-gonic/gin" // New dependency
+	"github.com/gin-gonic/gin"
+	"github.com/joho/godotenv"
 )
 
-type LoginRequestBody struct {
-	Username string `json:"username" binding:"required"`
-	Password string `json:"password" binding:"required"`
-}
-
-func handleLoginRequest(body LoginRequestBody, db *sql.DB) error {
-	rows, err := db.Query("SELECT password FROM users WHERE username=$1", body.Username)
-
-	if err != nil {
-		return err
-	}
-
-	defer rows.Close()
-
-	if rows.Next() {
-		var storedPassword string
-		if err := rows.Scan(&storedPassword); err != nil {
-			return err
-		}
-		
-		// Here you would normally compare hashed passwords
-		if storedPassword == body.Password {
-			return nil // Successful login
-		} else {
-			return sql.ErrNoRows // Invalid password
-		}
-	} else {
-		return sql.ErrNoRows // User not found
-	}
-}
-
 func main() {
-    r := gin.Default()
+	err := godotenv.Load()
+	if err != nil {
+		log.Println("Note: Could not find .env file, relying on shell environment.")
+	}
 
-	db := database.ConnectDB()
+	r := gin.Default()
+
+	appConfig := config.ApplicationConfig{}
+
+	appConfig.LoadConfiguration()
+
+	log.Println(appConfig)
+
+	dbDriver := database.DBDriver{
+		MigrationDir:  "migrations",
+		Name:          "postgres",
+		ConnectionUrl: appConfig.DBConnectionUrl,
+	}
+
+	db := dbDriver.ConnectDB()
 
 	// Run defined migrations
-	database.RunMigrations(db)
+	dbDriver.RunMigrations(db)
 
+	authService := auth.AuthenticationService{
+		JWTSecret: appConfig.JWTSecret,
+	}
 
-    r.POST("/login", func(c *gin.Context) {
-		var loginBody LoginRequestBody
+	authController := controller.AuthorizationController{
+		AuthenticationService: authService,
+	}
 
-		err := c.ShouldBindJSON(&loginBody)
+	authController.AddMappings(db, r)
 
-		if err != nil {
-			c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request body"})
-			return
-		}
-		
-		err = handleLoginRequest(loginBody, db)
-		if err != nil {
-			c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid username or password"})
-			return
-		}
-
-        c.JSON(http.StatusOK, gin.H{
-            "message": "Successfully logged in",
-        })
-    })
-    r.Run(":8080") // Listen and serve on 0.0.0.0:8080
+	r.Run(":8083")
 }

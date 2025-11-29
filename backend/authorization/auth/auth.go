@@ -7,9 +7,14 @@ import (
 	"github.com/golang-jwt/jwt/v5"
 )
 
-// Define your secret key (replace this with a strong, complex secret
-// retrieved securely from environment variables or a secret manager).
-var jwtSecret = []byte("your_very_secure_and_long_signing_key_12345")
+type LoginRequestBody struct {
+	Username string `json:"username" binding:"required"`
+	Password string `json:"password" binding:"required"`
+}
+
+type AuthenticationService struct {
+	JWTSecret string
+}
 
 // CustomClaims represents the data we want to embed in the JWT.
 type CustomClaims struct {
@@ -18,7 +23,7 @@ type CustomClaims struct {
 }
 
 // GenerateToken creates a signed JWT for the given user ID.
-func GenerateToken(userID string) (string, error) {
+func (service AuthenticationService) GenerateToken(userID string) (string, error) {
 	expirationTime := time.Now().Add(24 * time.Hour) // Token expires in 24 hours
 
 	claims := &CustomClaims{
@@ -28,8 +33,6 @@ func GenerateToken(userID string) (string, error) {
 			IssuedAt: jwt.NewNumericDate(time.Now()),
 			// Expiration Time
 			ExpiresAt: jwt.NewNumericDate(expirationTime),
-			// Issuer (optional, but good practice)
-			Issuer: "your-auth-server.com",
 		},
 	}
 
@@ -37,7 +40,7 @@ func GenerateToken(userID string) (string, error) {
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
 
 	// Sign the token with the secret key
-	tokenString, err := token.SignedString(jwtSecret)
+	tokenString, err := token.SignedString([]byte(service.JWTSecret))
 	if err != nil {
 		return "", fmt.Errorf("failed to sign token: %w", err)
 	}

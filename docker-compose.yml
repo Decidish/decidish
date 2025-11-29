@@ -45,6 +45,23 @@ services:
   # Application Services
   # ----------------------------------------------------------------
 
+  # Authorization Server
+  authorization-server:
+    build: ./backend/authorization
+    container_name: dev_authorization
+    ports:
+      - "8083:8083"
+    volumes:
+      - ./backend/authorization:/app
+    environment:
+      JWT_SECRET: ${JWT_SECRET}
+      DATABASE_URL: ${DATABASE_URL}
+    depends_on:
+      - db_backend
+      - redis
+    networks:
+      - app-network
+
   # Core Server
   core-server:
     build: ./backend/core
