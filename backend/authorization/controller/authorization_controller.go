@@ -48,6 +48,7 @@ func (controller *AuthorizationController) loginMapping(db *sql.DB, r *gin.Engin
 			Value:    jwtToken,
 			Path:     "/",
 			HttpOnly: true,
+			Secure:   true,
 			SameSite: http.SameSiteNoneMode,
 			Expires:  expiration,
 		}
@@ -77,6 +78,7 @@ func (controller *AuthorizationController) registerMapping(db *sql.DB, r *gin.En
 			c.JSON(http.StatusInternalServerError, gin.H{
 				"error": fmt.Sprintf("Error registering user: %s", registerBody.Username),
 			})
+			return
 		}
 
 		c.JSON(http.StatusOK, gin.H{
@@ -129,12 +131,12 @@ func (controller *AuthorizationController) loginRequestHandler(db *sql.DB, login
 func (controller *AuthorizationController) registerRequestHandler(db *sql.DB, loginBody auth.LoginRequestBody) error {
 	passwordToHash := loginBody.Password
 
-	password, err := bcrypt.GenerateFromPassword([]byte(passwordToHash), bcrypt.MinCost)
+	password, err := bcrypt.GenerateFromPassword([]byte(passwordToHash), bcrypt.DefaultCost)
 	if err != nil {
 		return err
 	}
 
-	_, err = db.Query(
+	_, err = db.Exec(
 		"INSERT INTO users (username, password_hash) VALUES ($1, $2)", loginBody.Username, password)
 	if err != nil {
 		return err

@@ -57,8 +57,7 @@ services:
       JWT_SECRET: ${JWT_SECRET}
       DATABASE_URL: ${DATABASE_URL}
     depends_on:
-      - db_backend
-      - redis
+      - db_authorisation
     networks:
       - app-network
 
