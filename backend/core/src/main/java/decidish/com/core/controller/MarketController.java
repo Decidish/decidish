@@ -7,6 +7,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import decidish.com.core.service.MarketService;
 import lombok.AllArgsConstructor;
+import java.util.List;
 
 @RestController
 @RequestMapping("/markets")
@@ -16,8 +17,8 @@ public class MarketController {
     private final MarketService marketService;
     
     @PostMapping("/search")
-    public String searchMarkets(@RequestBody String plz) {
-        return marketService.getMarkets(plz).toString();
+    public List<String> searchMarkets(@RequestBody String plz) {
+        return marketService.getMarkets(plz);
     }
 
     // TODO: Implement endpoints to get markets and make it more efficient etc.

@@ -1,6 +1,12 @@
 spring:
+  session:
+    store-type: jdbc
+    jdbc:
+      initialize-schema: always
   application:
     name: "core"
+  flyway:
+    enabled: "true"
   ssl:
     bundle:
       pem:

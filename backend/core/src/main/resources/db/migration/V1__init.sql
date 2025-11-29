@@ -12,10 +12,7 @@ CREATE TABLE markets
 ALTER TABLE markets
     ADD CONSTRAINT uc_markets_address UNIQUE (address_id);
 
-ALTER TABLE markets
-    ADD CONSTRAINT FK_MARKETS_ON_ADDRESS FOREIGN KEY (address_id) REFERENCES addresses.address (id);
-
-CREATE TABLE addresses.address
+CREATE TABLE addresses
 (
     id       BIGINT NOT NULL,
     street   VARCHAR(255),
@@ -23,3 +20,6 @@ CREATE TABLE addresses.address
     city     VARCHAR(255),
     CONSTRAINT pk_address PRIMARY KEY (id)
 );
+
+ALTER TABLE markets
+    ADD CONSTRAINT FK_MARKETS_ON_ADDRESS FOREIGN KEY (address_id) REFERENCES addresses(id);

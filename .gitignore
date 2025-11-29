@@ -1,3 +1,6 @@
 .idea
 .vscode
 .env
+kafka
+init-scripts
+**certificates
