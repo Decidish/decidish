@@ -7,12 +7,12 @@ CREATE TABLE categories (
 
 CREATE TABLE ingredients (
     id SERIAL PRIMARY KEY,
-    name VARCHAR(50) UNIQUE NOT NULL
+    name VARCHAR(255) UNIQUE NOT NULL
 );
 
 CREATE TABLE recipes (
     id SERIAL PRIMARY KEY,
-    title TEXT,
+    title TEXT UNIQUE,
     description TEXT,
     instructions TEXT,
     cook_time INT,
