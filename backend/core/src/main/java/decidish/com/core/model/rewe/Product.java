@@ -3,7 +3,10 @@ package decidish.com.core.model.rewe;
 public record Product(
         String id,
         String name,
-        double price,
+        String brand,
+        String grammage, // e.g 500g
+        double currentPrice,
         String category,
-        String imageUrl
+        String imageUrl,
+        boolean isAvailable
 ) {}

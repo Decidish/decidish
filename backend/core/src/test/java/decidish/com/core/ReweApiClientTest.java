@@ -1,119 +1,144 @@
 package decidish.com.core;
 
+import decidish.com.core.configuration.ApiClientConfig;
 import decidish.com.core.model.rewe.MarketDto;
 import decidish.com.core.model.rewe.MarketSearchResponse;
-import decidish.com.core.api.rewe.client.*;
-import org.junit.jupiter.api.BeforeEach;
+import decidish.com.core.api.rewe.client.ReweApiClient;
+// import decidish.com.core.service.MarketService;
+// import com.fasterxml.jackson.databind.ObjectMapper;
+// import okhttp3.mockwebserver.MockResponse;
+// import okhttp3.mockwebserver.MockWebServer;
+// import okhttp3.mockwebserver.RecordedRequest;
+// import org.junit.jupiter.api.AfterEach;
+// import org.junit.jupiter.api.BeforeEach;
+// import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
-import org.springframework.web.client.RestTemplate;
-import org.springframework.test.web.client.MockRestServiceServer;
-import org.springframework.http.MediaType;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.autoconfigure.web.client.RestClientTest;
+import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.context.annotation.Import;
+// import org.springframework.test.context.DynamicPropertyRegistry;
+// import org.springframework.test.context.DynamicPropertySource;
+// import org.springframework.web.client.RestClient;
+// import org.springframework.web.client.support.RestClientAdapter;
+// import org.springframework.web.service.invoker.HttpServiceProxyFactory;
 
-import java.util.List;
+// import java.io.IOException;
+// import java.util.List;
 
-import static org.springframework.test.web.client.match.MockRestRequestMatchers.requestTo;
-import static org.springframework.test.web.client.response.MockRestResponseCreators.withSuccess;
 import static org.junit.jupiter.api.Assertions.*;
 
-/**
- * Unit test for the ReweApiClient. We use MockRestServiceServer to simulate 
- * the external REWE API without making a real HTTP call.
- */
+@SpringBootTest
+// @RestClientTest
+// We import the config to ensure the client beans are created
+@Import(ApiClientConfig.class) 
 class ReweApiClientTest {
 
-    // 1. Setup the tools
-    private RestTemplate restTemplate;
-    private MockRestServiceServer mockServer;
-    private ReweApiClient reweApiClient;
+    // 1. The Real Service (We are testing this)
+    // @Autowired
+    // private MarketService marketService;
 
-    // The base URL for the API (must match what the client uses)
-    private static final String BASE_URL = "https://shop.rewe.de/api";
-
-    // 2. Sample JSON data that the fake server will return
-    private final String SAMPLE_API_RESPONSE_JSON = """
-        {
-            "totalCount": 1,
-            "items": [
-                {
-                    "pickupStation":false,
-                    "wwIdent":"431022",
-                    "displayName":"REWE Markt",
-                    "distance":2666,
-                    "latitude":"48.20215",
-                    "longitude":"11.54287",
-                    "companyName":"REWE Markt GmbH",
-                    "zipCode":"80995",
-                    "street":"Lerchenstr. 7",
-                    "city":"München",
-                    "houseNumber":null,
-                    "signedMapsUrl":"/api/markets/431022/map",
-                    "isPickupStation":false,
-                    "pickupVariant":"Abholservice"
-                }
-            ]
-        }
-    """;
+    // 2. The Mock Server (Simulates REWE)
+    // private MockWebServer mockWebServer;
     
-    // This runs before every test method
-    @BeforeEach
-    void setUp() {
-        // Initialize the RestTemplate
-        restTemplate = new RestTemplate(); 
+    // 3. We need to manually override the Client to point to localhost for the Mock test
+    // private ReweApiClient mockApiClient;
+
+    // @BeforeEach
+    // void setup() throws IOException {
+    //     mockWebServer = new MockWebServer();
+    //     mockWebServer.start();
         
-        // Use the RestTemplate to create a mock server
-        mockServer = MockRestServiceServer.createServer(restTemplate);
+    //     // Manual Setup: Recreate the Client to point to "http://localhost:PORT"
+    //     // instead of "https://mobile-api.rewe.de"
+    //     RestClient restClient = RestClient.builder()
+    //             .baseUrl(mockWebServer.url("/").toString()) // Point to Mock Server
+    //             .build();
+                
+    //     RestClientAdapter adapter = RestClientAdapter.create(restClient);
+    //     mockApiClient = HttpServiceProxyFactory.builderFor(adapter)
+    //             .build()
+    //             .createClient(ReweApiClient.class);
+    // }
+
+    // @AfterEach
+    // void tearDown() throws IOException {
+    //     mockWebServer.shutdown();
+    // }
+
+    // @Test
+    // @DisplayName("Mock Server: Verify Service calls correct URL and parses JSON")
+    // void testMarketSearch_WithMockServer() throws Exception {
+    //     // ARRANGE: Prepare the Fake JSON Response
+    //     String jsonResponse = """
+    //         {
+    //             "totalCount": 1,
+    //             "items": [
+    //                 {
+    //                     "id": "999",
+    //                     "name": "Mock Market",
+    //                     "address": {
+    //                         "street": "Test Way",
+    //                         "houseNumber": "1",
+    //                         "postalCode": "12345",
+    //                         "city": "Test City"
+    //                     },
+    //                     "position": { "lat": 1.0, "lon": 2.0 },
+    //                     "type": "REWE"
+    //                 }
+    //             ]
+    //         }
+    //     """;
         
-        // Initialize the client object with the mock-enabled RestTemplate and the base URL
-        reweApiClient = new ReweApiClientImpl(restTemplate);
-    }
+    //     // Enqueue the response so when the client hits the server, it gets this JSON
+    //     mockWebServer.enqueue(new MockResponse()
+    //             .setBody(jsonResponse)
+    //             .addHeader("Content-Type", "application/json"));
+
+    //     // ACT: Call the Client Method directly
+    //     // (Or call marketService if you have a setter/constructor to inject the mockApiClient)
+    //     MarketSearchResponse response = mockApiClient.searchMarkets("12345");
+
+    //     // ASSERT 1: Check Data Parsing
+    //     assertNotNull(response);
+    //     assertEquals(1, response.items().size());
+    //     assertEquals("Mock Market", response.items().get(0).name());
+
+    //     // ASSERT 2: Check HTTP Request Structure
+    //     RecordedRequest recordedRequest = mockWebServer.takeRequest();
+        
+    //     // Verify method is GET
+    //     assertEquals("GET", recordedRequest.getMethod());
+        
+    //     // Verify URL path matches the REWE API structure
+    //     // Expected: /mobile/markets/market-search?query=12345
+    //     String path = recordedRequest.getPath();
+    //     assertTrue(path.contains("/mobile/markets/market-search"));
+    //     assertTrue(path.contains("query=12345"));
+    // }
 
     @Test
-    @DisplayName("API Client successfully fetches and maps markets")
-    void testSearchMarkets_success() throws Exception {
-        String testPostalCode = "80809";
-        // This URL returns a RAW JSON ARRAY [ {market}, {market}, ... ]
-        String expectedUrl = String.format("%s/marketselection/zipcodes/%s/services/pickup", BASE_URL, testPostalCode);
+    @DisplayName("REAL API: Connect to REWE (Manual Check)")
+    // @Disabled("Only run this manually to verify internet connectivity and URL correctness")
+    void testMarketSearch_RealApi(@Autowired ReweApiClient realClient) {
+        // This uses the 'realClient' injected by Spring, which points to https://mobile-api.rewe.de
         
-        // The JSON array response (Note: this is an array, not an object with an "items" field)
-        // private final String SAMPLE_API_ARRAY_RESPONSE = """
-        //     [
-        //         {
-        //         "pickupStation":false,
-        //         "wwIdent":"431022",
-        //         "displayName":"REWE Markt",
-        //         "distance":2666,
-        //         "zipCode":"80995",
-        //         "street":"Lerchenstr. 7",
-        //         "city":"München",
-        //         "houseNumber":null
-        //         }
-        //     ]
-        // """;
+        String zipCode = "80331"; // Munich
+        MarketSearchResponse response = realClient.searchMarkets(zipCode);
 
+        assertNotNull(response);
+        assertNotNull(response.items());
+        assertFalse(response.items().isEmpty(), "Should find markets in Munich");
 
-        
-        // 1. ARRANGE
-        mockServer.expect(requestTo(expectedUrl))
-                .andRespond(withSuccess(SAMPLE_API_RESPONSE_JSON, MediaType.APPLICATION_JSON));
+        MarketDto firstMarket = response.items().get(0);
+        System.out.println("------------------------------------------------");
+        System.out.println("Real API Result:");
+        System.out.println("Name: " + firstMarket.name());
+        System.out.println("ID:   " + firstMarket.id());
+        System.out.println("City: " + firstMarket.city());
+        System.out.println("------------------------------------------------");
 
-        // 2. ACT: This must call the method that expects a raw array response (e.g., searchMarketsV1)
-        // NOTE: If the method signature is List<MarketDto> searchMarketsV1(String postalCode)
-        // MarketSearchResponse response = reweApiClient.searchMarkets(testPostalCode);
-        List<MarketDto> markets = reweApiClient.getMarketsByPostalCode(testPostalCode);
-
-
-        // 3. ASSERT
-        mockServer.verify();
-        assertFalse(markets.isEmpty(), "Market list should not be empty");
-
-        
-        // assertNotNull(response, "Response list should not be null");
-        // assertFalse(response.items().isEmpty(), "Market list should not be empty");
-        // assertEquals(1, response.totalCount(), "List size should match JSON array size");
-
-        // // Check the data
-        // assertEquals("431022", response.items().get(0).id(), "Market ID must be mapped correctly");
-        // assertEquals("REWE Markt", response.items().get(0).name(), "Market Name must be mapped correctly");
+        assertEquals("80331", firstMarket.zipCode());
     }
 }
