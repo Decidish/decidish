@@ -92,6 +92,8 @@ services:
     environment:
       - DB_HOST=db_backend
       - REDIS_HOST=redis
+      - JWT_SECRET=${JWT_SECRET}
+      - DATABASE_URL=${DATABASE_BACKEND_URL}
     depends_on:
       - db_backend
       - redis
