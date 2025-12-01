@@ -1,0 +1,9 @@
+{
+  "version": "1",
+  "name": "decidish",
+  "type": "collection",
+  "ignore": [
+    "node_modules",
+    ".git"
+  ]
+}
