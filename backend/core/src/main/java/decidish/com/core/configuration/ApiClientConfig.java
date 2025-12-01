@@ -39,6 +39,8 @@ public class ApiClientConfig {
                 .defaultHeader("user-agent", "REWE-Mobile-Client/3.17.1.32270 Android/11 Phone/Google_sdk_gphone_x86_64")
                 .defaultHeader("rd-service-types", "UNKNOWN")
                 .defaultHeader("x-rd-service-types", "UNKNOWN")
+                // .defaultHeader("x-rd-service-types", "PICKUP")
+                // .defaultHeader("x-rd-customer-types", "GUEST")
                 .defaultHeader("rd-is-lsfk", "false")
                 .defaultHeader("a-b-test-groups", "productlist-citrusad")
                 .defaultHeader("Connection", "Keep-Alive")
