@@ -96,29 +96,4 @@ class ReweJsonMappingTest {
         // Check that a timestamp was assigned
         // assertNotNull(entity.getLastUpdated());
     }
-
-    // @Test
-    // @DisplayName("Step 3: ReweApiClient searchMarkets() verification")
-    // void testReweApiClientMapping() {
-    //     // 1. ARRANGE: Create a mock or spy of the ReweApiClient
-    //     ReweApiClient client = new ReweApiClient() {
-    //         @Override
-    //         public MarketSearchResponse searchMarkets(String zipCode) {
-    //             // Mock response for testing
-    //             try {
-    //                 return objectMapper.readValue(SAMPLE_JSON_RESPONSE, MarketSearchResponse.class);
-    //             } catch (Exception e) {
-    //                 return null;
-    //             }
-    //         }
-    //     };
-        
-    //     // 2. ACT: Call the method
-    //     MarketSearchResponse response = client.searchMarkets("80809");
-
-    //     // 3. ASSERT: Verify the response
-    //     assertNotNull(response);
-    //     assertFalse(response.items().isEmpty());
-    //     assertEquals("431022", response.items().get(0).id());
-    // }
 }
