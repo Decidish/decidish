@@ -39,12 +39,13 @@ public class Market implements Serializable{
     
     // Convert DTO to Entity
     public static Market fromDto(MarketDto dto){
-        Long marketId = dto.id() != null ? Long.parseLong(dto.id()) : null;
+        // Long marketId = dto.id() != null ? Long.parseLong(dto.id()) : null;
+        Long marketId = dto.id();
         String name = dto.name();
         Address address = new Address();
-        address.setStreet(dto.street());
-        address.setZipCode(dto.zipCode());
-        address.setCity(dto.city());
+        // address.setStreet(dto.street());
+        // address.setZipCode(dto.zipCode());
+        // address.setCity(dto.city());
 
         return new Market(marketId, name, address
         // ,dto.isOpen()
