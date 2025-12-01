@@ -15,7 +15,7 @@ public class MarketService {
     private MarketRepository marketRepository;
     
     // TODO: Implement method to get markets
-    public List<String> getMarkets(String plz) {
+    public List<Market> getMarkets(String plz) {
         return marketRepository.getMarketsByAddress(plz);
     }
 

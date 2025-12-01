@@ -16,7 +16,7 @@ public interface MarketRepository extends JpaRepository<Market, Long> {
      * Get markets by address PLZ
      */
     @Query("SELECT m FROM Market m")
-    List<String> getMarketsByAddress(@Param("plz") String plz);
+    List<Market> getMarketsByAddress(@Param("plz") String plz);
 
     // TODO: We need to have a certain market structure, schema display
 }
