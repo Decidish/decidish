@@ -54,13 +54,18 @@ class ReweJsonMappingTest {
         MarketDto firstMarket = response.items().get(0);
         
         // Basic fields
-        assertEquals("540945", firstMarket.id());
+        // assertEquals("540945", firstMarket.id());
+        assertEquals("431022", firstMarket.id());
         assertEquals("REWE Markt", firstMarket.name());
         
         // Nested Address check
-        assertNotNull(firstMarket.address());
-        assertEquals("Test Strasse", firstMarket.address().getStreet());
-        assertEquals("80995", firstMarket.address().getZipCode());
+        // assertNotNull(firstMarket.address());
+        // assertEquals("Test Strasse", firstMarket.address().getStreet());
+        // assertEquals("80995", firstMarket.address().getZipCode());
+
+        assertEquals("80995", firstMarket.zipCode());
+        assertEquals("Lerchenstr. 7", firstMarket.street());
+        assertEquals("München", firstMarket.city());
     }
 
     @Test
@@ -75,8 +80,12 @@ class ReweJsonMappingTest {
 
         // 3. ASSERT: Check if the Entity is ready for the Database
         assertNotNull(entity);
-        assertEquals("431022", entity.getId());
+        assertEquals(Long.valueOf(431022), entity.getId());
+        // assertEquals("431022", entity.getId());
         assertEquals("REWE Markt", entity.getName());
+        assertNotNull(entity.getAddress());
+        assertEquals("Lerchenstr. 7", entity.getAddress().getStreet());
+        assertEquals("München", entity.getAddress().getCity());
         
         // // Check the flattening logic (Street + Number combined)
         // assertEquals("Test Strasse 123", entity.getStreet()); 
@@ -87,4 +96,29 @@ class ReweJsonMappingTest {
         // Check that a timestamp was assigned
         // assertNotNull(entity.getLastUpdated());
     }
+
+    // @Test
+    // @DisplayName("Step 3: ReweApiClient searchMarkets() verification")
+    // void testReweApiClientMapping() {
+    //     // 1. ARRANGE: Create a mock or spy of the ReweApiClient
+    //     ReweApiClient client = new ReweApiClient() {
+    //         @Override
+    //         public MarketSearchResponse searchMarkets(String zipCode) {
+    //             // Mock response for testing
+    //             try {
+    //                 return objectMapper.readValue(SAMPLE_JSON_RESPONSE, MarketSearchResponse.class);
+    //             } catch (Exception e) {
+    //                 return null;
+    //             }
+    //         }
+    //     };
+        
+    //     // 2. ACT: Call the method
+    //     MarketSearchResponse response = client.searchMarkets("80809");
+
+    //     // 3. ASSERT: Verify the response
+    //     assertNotNull(response);
+    //     assertFalse(response.items().isEmpty());
+    //     assertEquals("431022", response.items().get(0).id());
+    // }
 }

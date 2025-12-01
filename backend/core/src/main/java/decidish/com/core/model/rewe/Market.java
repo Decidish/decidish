@@ -31,7 +31,7 @@ public class Market implements Serializable{
     public Market(Long id, String name, Address address
         // , boolean isOpen
     ){
-        this.id = id;;
+        this.id = id;
         this.name = name;
         this.address = address;
         // this.isOpen = isOpen;
@@ -39,8 +39,15 @@ public class Market implements Serializable{
     
     // Convert DTO to Entity
     public static Market fromDto(MarketDto dto){
-        return new Market(dto.id(),dto.name(),dto.address()
+        Long marketId = dto.id() != null ? Long.parseLong(dto.id()) : null;
+        String name = dto.name();
+        Address address = new Address();
+        address.setStreet(dto.street());
+        address.setZipCode(dto.zipCode());
+        address.setCity(dto.city());
+
+        return new Market(marketId, name, address
         // ,dto.isOpen()
-    );
+        );
     }
 }
