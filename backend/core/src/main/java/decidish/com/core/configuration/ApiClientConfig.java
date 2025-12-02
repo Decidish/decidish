@@ -5,14 +5,22 @@ import org.springframework.boot.ssl.SslBundle;
 import org.springframework.boot.ssl.SslBundles;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.http.client.ClientHttpResponse;
+import org.springframework.http.client.ClientHttpRequestExecution;
+import org.springframework.http.client.ClientHttpRequestInterceptor;
 import org.springframework.http.client.JdkClientHttpRequestFactory;
 import org.springframework.web.client.RestClient;
 import org.springframework.web.client.support.RestClientAdapter;
 import org.springframework.web.service.invoker.HttpServiceProxyFactory;
+import org.springframework.http.HttpRequest;
+import org.springframework.http.HttpHeaders;
 
+import java.io.IOException;
+import java.io.InputStream;
 import java.net.http.HttpClient;
 import java.time.Duration;
 import java.util.UUID;
+import java.util.zip.GZIPInputStream;
 
 @Configuration
 public class ApiClientConfig {
@@ -52,6 +60,7 @@ public class ApiClientConfig {
                     request.getHeaders().add("Correlation-Id", UUID.randomUUID().toString());
                     return execution.execute(request, body);
                 })
+                .requestInterceptor(new GzipInterceptor())
                 .build();
 
         // 3. Create the Proxy
@@ -59,5 +68,43 @@ public class ApiClientConfig {
         HttpServiceProxyFactory factory = HttpServiceProxyFactory.builderFor(adapter).build();
 
         return factory.createClient(ReweApiClient.class);
+    }
+    
+    /**
+     * Interceptor that unzips the response if the server sent GZIP.
+     */
+    static class GzipInterceptor implements ClientHttpRequestInterceptor {
+        @Override
+        public ClientHttpResponse intercept(HttpRequest request, byte[] body, ClientHttpRequestExecution execution) throws IOException {
+            ClientHttpResponse response = execution.execute(request, body);
+
+            // Check if content is gzipped
+            String encoding = response.getHeaders().getFirst(HttpHeaders.CONTENT_ENCODING);
+            if (encoding != null && encoding.toLowerCase().contains("gzip")) {
+                return new GzipHttpResponse(response);
+            }
+            return response;
+        }
+    }
+
+    /**
+     * Wrapper that forces the InputStream through GZIPInputStream
+     */
+    static class GzipHttpResponse implements ClientHttpResponse {
+        private final ClientHttpResponse response;
+
+        public GzipHttpResponse(ClientHttpResponse response) { this.response = response; }
+
+        @Override
+        public InputStream getBody() throws IOException {
+            return new GZIPInputStream(response.getBody());
+        }
+
+        // Standard delegation for other methods
+        @Override public HttpHeaders getHeaders() { return response.getHeaders(); }
+        @Override public org.springframework.http.HttpStatusCode getStatusCode() throws IOException { return response.getStatusCode(); }
+        @Override public int getRawStatusCode() throws IOException { return response.getRawStatusCode(); }
+        @Override public String getStatusText() throws IOException { return response.getStatusText(); }
+        @Override public void close() { response.close(); }
     }
 }

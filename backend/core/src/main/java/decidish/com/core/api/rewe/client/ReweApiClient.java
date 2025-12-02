@@ -24,4 +24,5 @@ public interface ReweApiClient {
      */
     @GetExchange("/market/search")
     MarketSearchResponse searchMarkets(@RequestParam("search") String zipCode);
+    // String searchMarkets(@RequestParam("search") String zipCode);
 }
