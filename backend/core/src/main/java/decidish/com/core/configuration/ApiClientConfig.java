@@ -40,19 +40,10 @@ public class ApiClientConfig {
         // Build the RestClient with Headers and SSL
         RestClient restClient = builder
                 .requestFactory(requestFactory)
-                // .baseUrl("https://mobile-api.rewe.de")
-                // .baseUrl("https://")
-
+                
                 // --- Static Headers (from your python header dict) ---
-                // .defaultHeader("ruleVersion", "2")
                 .defaultHeader("user-agent", "REWE-Mobile-Client/3.18.5.33032 Android/14 Phone/Google_Pixel_8_Pro")
-                // .defaultHeader("rd-service-types", "UNKNOWN")
                 .defaultHeader("rd-service-types", "PICKUP")
-                // .defaultHeader("x-rd-service-types", "UNKNOWN")
-                // .defaultHeader("x-rd-service-types", "PICKUP")
-                // .defaultHeader("x-rd-customer-types", "GUEST")
-                // .defaultHeader("rd-is-lsfk", "false")
-                // .defaultHeader("a-b-test-groups", "productlist-citrusad")
                 .defaultHeader("Connection", "Keep-Alive")
                 .defaultHeader("Accept-Encoding", "gzip")
 
@@ -105,7 +96,7 @@ public class ApiClientConfig {
         // Standard delegation for other methods
         @Override public HttpHeaders getHeaders() { return response.getHeaders(); }
         @Override public org.springframework.http.HttpStatusCode getStatusCode() throws IOException { return response.getStatusCode(); }
-        @Override public int getRawStatusCode() throws IOException { return response.getRawStatusCode(); }
+        // @Override public int getRawStatusCode() throws IOException { return response.getRawStatusCode(); }
         @Override public String getStatusText() throws IOException { return response.getStatusText(); }
         @Override public void close() { response.close(); }
     }

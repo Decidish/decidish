@@ -11,15 +11,11 @@ import org.springframework.boot.autoconfigure.EnableAutoConfiguration;
 import org.springframework.boot.autoconfigure.flyway.FlywayAutoConfiguration;
 import org.springframework.boot.autoconfigure.jdbc.DataSourceAutoConfiguration;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.test.context.TestPropertySource;
-import org.springframework.web.util.UriComponentsBuilder;
 
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 
-import java.util.function.IntToLongFunction;
 import java.util.List;
-import java.net.URI;
 
 @SpringBootTest(classes = ApiClientConfig.class) // Only load your Config class
 @EnableAutoConfiguration(exclude = {
@@ -29,9 +25,6 @@ import java.net.URI;
 })
 
 class ReweConfigTest {
-
-    private static final String REWE_API_BASE_URL = "https://mobile-api.rewe.de/api/v3";
-    private static final String REWE_CLIENT_API_BASE_URL = "https://mobile-clients-api.rewe.de/api";
 
     @Autowired
     private ReweApiClient client; // Spring injects the bean built by ApiClientConfig
@@ -47,8 +40,7 @@ class ReweConfigTest {
 
         // 2. Test Real Call (using the Zip from your curl command)
         String zipCode = "80809";
-        URI uri = URI.create(REWE_API_BASE_URL + "/market/search");
-        MarketSearchResponse response = client.searchMarkets(uri, zipCode);
+        MarketSearchResponse response = client.searchMarkets(zipCode);
 
 
         // 3. Verify Response
@@ -59,19 +51,19 @@ class ReweConfigTest {
         System.out.println("Connection Successful!");
         System.out.println("Found " + response.markets().size() + " markets.");
         System.out.println("Name: " + response.markets().get(0).name());
-        System.out.println("Name: " + response.markets().get(0).id());
-        System.out.println("Name: " + response.markets().get(0).typeId());
-        System.out.println("Name: " + response.markets().get(0).addressLine1());
-        System.out.println("Name: " + response.markets().get(0).addressLine2());
-        System.out.println("Name: " + response.markets().get(0).location().latitude());
-        System.out.println("Name: " + response.markets().get(0).location().longitude());
-        System.out.println("Name: " + response.markets().get(0).rawValues().postalCode());
-        System.out.println("Name: " + response.markets().get(0).rawValues().city());
+        System.out.println("Id: " + response.markets().get(0).id());
+        System.out.println("Type ID: " + response.markets().get(0).typeId());
+        System.out.println("Address Line 1: " + response.markets().get(0).addressLine1());
+        System.out.println("Address Line 2: " + response.markets().get(0).addressLine2());
+        System.out.println("Latitude: " + response.markets().get(0).location().latitude());
+        System.out.println("Longitude: " + response.markets().get(0).location().longitude());
+        System.out.println("Postal Code: " + response.markets().get(0).rawValues().postalCode());
+        System.out.println("City: " + response.markets().get(0).rawValues().city());
         
         
         // String response = client.searchMarkets(zipCode);
 
-        // System.out.println("✅ Raw Response Received:");
+        // System.out.println("Raw Response Received:");
         // System.out.println("--------------------------------------------------");
         // System.out.println(response); // Print the HTML to see what REWE is saying
         // System.out.println("--------------------------------------------------");
@@ -82,8 +74,7 @@ class ReweConfigTest {
     void testMarketDetailsApiCall() {
         // Use a known market ID for testing
         String marketId = "431022";
-        URI uri = URI.create(REWE_API_BASE_URL + "/market/details");
-        MarketDetailsResponse response = client.getMarketDetails(uri, marketId);
+        MarketDetailsResponse response = client.getMarketDetails(marketId);
 
         // Verify Response
         assertNotNull(response);
@@ -107,7 +98,7 @@ class ReweConfigTest {
 
         // String response = client.searchMarkets(zipCode);
 
-        // System.out.println("✅ Raw Response Received:");
+        // System.out.println("Raw Response Received:");
         // System.out.println("--------------------------------------------------");
         // System.out.println(response); // Print the HTML to see what REWE is saying
         // System.out.println("--------------------------------------------------");
@@ -118,10 +109,8 @@ class ReweConfigTest {
     void testProductsApiCall() {
         // Use a known market ID for testing
         String marketId = "431022";
-        // Long marketId = IntToLongFunction(431022);
         String product = "Kase";
-        URI uri = URI.create(REWE_CLIENT_API_BASE_URL + "/products");
-        ProductSearchResponse response = client.searchProducts(uri,
+        ProductSearchResponse response = client.searchProducts(
             product, "1", "30", 
             marketId);
 
@@ -131,12 +120,12 @@ class ReweConfigTest {
         ProductsSearchInfo info = data.products();
         List<Product> products = info.products();
         System.out.println("Product Details for market " + marketId + ":");
-        System.out.println("Name: " + products.get(4).title());
-        System.out.println("Id: " + products.get(4).productId());
-        System.out.println("imageURL: " + products.get(4).imageURL());
-        System.out.println("articleId: " + products.get(4).articleId());
-        System.out.println("price: " + products.get(4).listing().currentRetailPrice());
-        System.out.println("grammage: " + products.get(4).listing().grammage());
-        System.out.println("discount: " + products.get(4).listing().discount().__typename());
+        System.out.println("Name: " + products.get(0).title());
+        System.out.println("Id: " + products.get(0).productId());
+        System.out.println("imageURL: " + products.get(0).imageURL());
+        System.out.println("articleId: " + products.get(0).articleId());
+        System.out.println("price: " + products.get(0).listing().currentRetailPrice());
+        System.out.println("grammage: " + products.get(0).listing().grammage());
+        System.out.println("discount: " + products.get(0).listing().discount().__typename());
     }
 }
