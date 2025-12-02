@@ -7,6 +7,7 @@ public record Product(
         String title,
         String imageURL,
         ProductAttributes attributes,
+        int orderLimit,
         List<String> categories,
         String articleId,
         ProductPrice listing

@@ -1,8 +1,7 @@
 package decidish.com.core.model.rewe;
 
 import java.io.Serializable;
-
-// import org.yaml.snakeyaml.error.Mark;
+import java.time.LocalDateTime;
 
 import jakarta.persistence.*;
 import lombok.Data;
@@ -10,17 +9,27 @@ import lombok.Data;
 @Entity
 @Table(name = "markets")
 @Data
+// Serializable: helps convert object to bytes, useful for redis cache
 public class Market implements Serializable{
+    // INTERNAL DB ID
     @Id
     @SequenceGenerator(sequenceName = "market_sequence", name = "market_sequence", allocationSize = 1)
     @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "market_sequence")
     private Long id;
+    
+    // EXTERNAL REWE ID
+    @Column(name = "rewe_id", unique = true, nullable = false)
+    private String reweId;
 
     private String name;
 
     @OneToOne
     @JoinColumn(name = "address_id")
     private Address address;
+    
+    // TimeStamp
+    @Column(name = "last_updated")
+    private LocalDateTime lastUpdated;
 
     // boolean isOpen;
     
