@@ -8,5 +8,6 @@ public record Product(
         String imageURL,
         ProductAttributes attributes,
         List<String> categories,
+        String articleId,
         ProductPrice listing
 ) {}

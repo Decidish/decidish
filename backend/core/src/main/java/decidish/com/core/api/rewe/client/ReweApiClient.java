@@ -10,6 +10,7 @@ import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestParam;
 
 import java.util.List;
+import java.net.URI;
 
 // import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.service.annotation.GetExchange;
@@ -18,7 +19,8 @@ import org.springframework.web.service.annotation.HttpExchange;
 /**
  * Maps to the Rewe Mobile API v3
  */
-@HttpExchange("/api/v3")
+// @HttpExchange("/api/v3")
+@HttpExchange
 public interface ReweApiClient {
 
     /**
@@ -31,9 +33,11 @@ public interface ReweApiClient {
     @GetExchange("/market/details")
     MarketDetailsResponse getMarketDetails(@RequestParam("marketId") String marketId);
     // String getMarketDetails(@RequestParam("marketId") String marketId);
-    @GetExchange("/products")
-    ProductSearchResponse searchProducts(@RequestParam("query") String product,
+    
+    @GetExchange
+    ProductSearchResponse searchProducts(URI url,
+                        @RequestParam("query") String product,
                         @RequestParam("page") int page, 
                         @RequestParam("objectsPerPage") int objectPerPage,
-                        Long marketId);
+                        @RequestHeader("rd-market-id") String marketId);
 }
