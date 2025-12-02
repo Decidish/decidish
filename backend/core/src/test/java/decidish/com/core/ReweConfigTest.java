@@ -22,23 +22,6 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
     FlywayAutoConfiguration.class
 })
 
-// @TestPropertySource(properties = {
-//     "rewe.keystore.path=/home/uwu/Github/decidish/backend/core/src/test/resources/rewe-client.p12",
-//     "rewe.keystore.password=changeit", 
-//     "logging.level.org.apache.hc.client5.http=DEBUG"   // Enable logs to see SSL handshake
-// })
-// @TestPropertySource(properties = {
-//     // YAML: spring.ssl.bundle.pem.rewe.keystore.certificate
-//     "spring.ssl.bundle.pem.rewe.keystore.certificate=file:/home/uwu/Github/decidish/backend/core/src/resources/certificates/rewe.pem",
-    
-//     // YAML: spring.ssl.bundle.pem.rewe.keystore.private-key
-//     // IMPORTANT: Point to the PKCS#8 converted key!
-//     "spring.ssl.bundle.pem.rewe.keystore.private-key=file:/home/uwu/Github/decidish/backend/core/src/resources/certificates/rewe.key",
-    
-//     // Enable debug logging to see the handshake
-//     "logging.level.org.springframework.web.client=DEBUG",
-//     "logging.level.org.apache.hc.client5.http=DEBUG"
-// })
 class ReweConfigTest {
 
     @Autowired

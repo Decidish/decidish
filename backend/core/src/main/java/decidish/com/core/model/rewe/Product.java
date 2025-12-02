@@ -1,12 +1,12 @@
 package decidish.com.core.model.rewe;
 
+import java.util.List;
+
 public record Product(
-        String id,
+        Long id,
         String name,
-        String brand,
-        String grammage, // e.g 500g
-        double currentPrice,
-        String category,
-        String imageUrl,
-        boolean isAvailable
+        String imageURL,
+        ProductAttributes attributes,
+        List<String> categories,
+        ProductPrice listing
 ) {}

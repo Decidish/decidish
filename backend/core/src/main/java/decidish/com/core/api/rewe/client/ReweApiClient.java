@@ -2,6 +2,7 @@ package decidish.com.core.api.rewe.client;
 
 import decidish.com.core.model.rewe.MarketDto;
 import decidish.com.core.model.rewe.MarketSearchResponse;
+import decidish.com.core.model.rewe.ProductSearchResponse;
 
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestHeader;
@@ -25,4 +26,9 @@ public interface ReweApiClient {
     @GetExchange("/market/search")
     MarketSearchResponse searchMarkets(@RequestParam("search") String zipCode);
     // String searchMarkets(@RequestParam("search") String zipCode);
+    @GetExchange("/products")
+    ProductSearchResponse searchProducts(@RequestParam("query") String product,
+                        @RequestParam("page") int page, 
+                        @RequestParam("objectsPerPage") int objectPerPage,
+                        Long marketId);
 }
