@@ -2,7 +2,10 @@ package decidish.com.core;
 
 import decidish.com.core.configuration.ApiClientConfig;
 import decidish.com.core.api.rewe.client.ReweApiClient;
+import decidish.com.core.model.rewe.Market;
+import decidish.com.core.model.rewe.MarketDetailsResponse;
 import decidish.com.core.model.rewe.MarketSearchResponse;
+import decidish.com.core.model.rewe.OpeningTime;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -57,6 +60,7 @@ class ReweConfigTest {
         String zipCode = "80809";
         MarketSearchResponse response = client.searchMarkets(zipCode);
 
+
         // 3. Verify Response
         assertNotNull(response);
         assertNotNull(response.markets(), "Markets list should not be null");
@@ -81,5 +85,33 @@ class ReweConfigTest {
         // System.out.println("--------------------------------------------------");
         // System.out.println(response); // Print the HTML to see what REWE is saying
         // System.out.println("--------------------------------------------------");
+    }
+
+    @Test
+    @DisplayName("Test Market Details API Call")
+    void testMarketDetailsApiCall() {
+        // Use a known market ID for testing
+        String marketId = "431022";
+        MarketDetailsResponse response = client.getMarketDetails(marketId);
+
+        // Verify Response
+        assertNotNull(response);
+        assertNotNull(response.marketItem(), "Market item should not be null");
+        assertNotNull(response.openingTimes(), "Opening hours should not be null");
+        assertNotNull(response.specialOpeningTimes(), "Special opening hours should not be null");
+        assertFalse(response.openingTimes().isEmpty(), "Opening hours should not be empty");
+        System.out.println("Market Details for ID " + marketId + ":");
+        System.out.println("Market Name: " + response.marketItem().name());
+        System.out.println("Market Address: " + response.marketItem().addressLine1() + ", " + response.marketItem().rawValues().postalCode() + " " + response.marketItem().rawValues().city());
+        System.out.println("Market Type ID: " + response.marketItem().typeId());
+        System.out.println("Market Location: Lat " + response.marketItem().location().latitude() + ", Lon " + response.marketItem().location().longitude());
+        System.out.println("Market ID: " + response.marketItem().id());
+        System.out.println("Market Opening Times:");
+        for (OpeningTime time : response.openingTimes()) {
+            System.out.println(time.days() + ": " + time.hours());
+        }
+        for (OpeningTime time : response.specialOpeningTimes()) {
+            System.out.println("Special - " + time.days() + ": " + time.hours());
+        }
     }
 }
