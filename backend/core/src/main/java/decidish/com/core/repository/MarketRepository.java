@@ -1,11 +1,13 @@
 package decidish.com.core.repository;
 
 import java.util.List;
+import java.util.Optional;
 
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
+import org.yaml.snakeyaml.error.Mark;
 
 import decidish.com.core.model.rewe.Market;
 
@@ -19,4 +21,7 @@ public interface MarketRepository extends JpaRepository<Market, Long> {
     List<Market> getMarketsByAddress(@Param("plz") String plz);
 
     // TODO: We need to have a certain market structure, schema display
+    
+    // Find by rewe id
+    Optional<Market> findByReweId(String reweId);
 }
