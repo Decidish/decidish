@@ -47,8 +47,8 @@ public interface ReweApiClient {
     ProductSearchResponse searchProducts(
         URI uri, 
         @RequestParam("query") String product,
-        @RequestParam("page") int page, 
-        @RequestParam("objectsPerPage") int objectPerPage, 
-        @RequestParam("marketId") String marketId
+        @RequestParam("page") String page, 
+        @RequestParam("objectsPerPage") String objectPerPage, 
+        @RequestHeader("rd-market-id") String marketId
     );
 }

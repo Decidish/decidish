@@ -44,15 +44,15 @@ public class ApiClientConfig {
                 // .baseUrl("https://")
 
                 // --- Static Headers (from your python header dict) ---
-                .defaultHeader("ruleVersion", "2")
-                .defaultHeader("user-agent", "REWE-Mobile-Client/3.17.1.32270 Android/11 Phone/Google_sdk_gphone_x86_64")
+                // .defaultHeader("ruleVersion", "2")
+                .defaultHeader("user-agent", "REWE-Mobile-Client/3.18.5.33032 Android/14 Phone/Google_Pixel_8_Pro")
                 // .defaultHeader("rd-service-types", "UNKNOWN")
                 .defaultHeader("rd-service-types", "PICKUP")
-                .defaultHeader("x-rd-service-types", "UNKNOWN")
+                // .defaultHeader("x-rd-service-types", "UNKNOWN")
                 // .defaultHeader("x-rd-service-types", "PICKUP")
                 // .defaultHeader("x-rd-customer-types", "GUEST")
-                .defaultHeader("rd-is-lsfk", "false")
-                .defaultHeader("a-b-test-groups", "productlist-citrusad")
+                // .defaultHeader("rd-is-lsfk", "false")
+                // .defaultHeader("a-b-test-groups", "productlist-citrusad")
                 .defaultHeader("Connection", "Keep-Alive")
                 .defaultHeader("Accept-Encoding", "gzip")
 

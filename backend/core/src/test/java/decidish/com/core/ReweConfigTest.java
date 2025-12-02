@@ -2,14 +2,7 @@ package decidish.com.core;
 
 import decidish.com.core.configuration.ApiClientConfig;
 import decidish.com.core.api.rewe.client.ReweApiClient;
-import decidish.com.core.model.rewe.Market;
-import decidish.com.core.model.rewe.MarketDetailsResponse;
-import decidish.com.core.model.rewe.MarketSearchResponse;
 import decidish.com.core.model.rewe.*;
-import decidish.com.core.model.rewe.OpeningTime;
-import decidish.com.core.model.rewe.ProductSearchResponse;
-import decidish.com.core.model.rewe.ProductsData;
-import decidish.com.core.model.rewe.ProductsSearchInfo;
 
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -19,6 +12,7 @@ import org.springframework.boot.autoconfigure.flyway.FlywayAutoConfiguration;
 import org.springframework.boot.autoconfigure.jdbc.DataSourceAutoConfiguration;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.TestPropertySource;
+import org.springframework.web.util.UriComponentsBuilder;
 
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -127,7 +121,9 @@ class ReweConfigTest {
         // Long marketId = IntToLongFunction(431022);
         String product = "Kase";
         URI uri = URI.create(REWE_CLIENT_API_BASE_URL + "/products");
-        ProductSearchResponse response = client.searchProducts(uri,product, 1, 30, marketId);
+        ProductSearchResponse response = client.searchProducts(uri,
+            product, "1", "30", 
+            marketId);
 
         // Verify Response
         assertNotNull(response);
@@ -135,12 +131,12 @@ class ReweConfigTest {
         ProductsSearchInfo info = data.products();
         List<Product> products = info.products();
         System.out.println("Product Details for market " + marketId + ":");
-        System.out.println("Name: " + products.get(0).name());
-        System.out.println("Id: " + products.get(0).id());
-        System.out.println("imageURL: " + products.get(0).imageURL());
-        System.out.println("articleId: " + products.get(0).articleId());
-        System.out.println("price: " + products.get(0).listing().currentRetailPrice());
-        System.out.println("grammage: " + products.get(0).listing().grammage());
-        System.out.println("discount: " + products.get(0).listing().discount().type());
+        System.out.println("Name: " + products.get(4).title());
+        System.out.println("Id: " + products.get(4).productId());
+        System.out.println("imageURL: " + products.get(4).imageURL());
+        System.out.println("articleId: " + products.get(4).articleId());
+        System.out.println("price: " + products.get(4).listing().currentRetailPrice());
+        System.out.println("grammage: " + products.get(4).listing().grammage());
+        System.out.println("discount: " + products.get(4).listing().discount().__typename());
     }
 }
