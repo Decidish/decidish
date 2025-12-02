@@ -18,6 +18,8 @@ import org.springframework.test.context.TestPropertySource;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 
+import java.net.URI;
+
 @SpringBootTest(classes = ApiClientConfig.class) // Only load your Config class
 @EnableAutoConfiguration(exclude = {
     // Exclude DB stuff so the test doesn't crash if you don't have Postgres running
@@ -26,6 +28,8 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 })
 
 class ReweConfigTest {
+
+    private static final String REWE_API_BASE_URL = "https://mobile-api.rewe.de/api/v3";
 
     @Autowired
     private ReweApiClient client; // Spring injects the bean built by ApiClientConfig
@@ -41,7 +45,8 @@ class ReweConfigTest {
 
         // 2. Test Real Call (using the Zip from your curl command)
         String zipCode = "80809";
-        MarketSearchResponse response = client.searchMarkets(zipCode);
+        URI uri = URI.create(REWE_API_BASE_URL + "/market/search");
+        MarketSearchResponse response = client.searchMarkets(uri, zipCode);
 
 
         // 3. Verify Response
@@ -75,7 +80,8 @@ class ReweConfigTest {
     void testMarketDetailsApiCall() {
         // Use a known market ID for testing
         String marketId = "431022";
-        MarketDetailsResponse response = client.getMarketDetails(marketId);
+        URI uri = URI.create(REWE_API_BASE_URL + "/market/details");
+        MarketDetailsResponse response = client.getMarketDetails(uri, marketId);
 
         // Verify Response
         assertNotNull(response);
@@ -96,5 +102,12 @@ class ReweConfigTest {
         for (OpeningTime time : response.specialOpeningTimes()) {
             System.out.println("Special - " + time.days() + ": " + time.hours());
         }
+
+        // String response = client.searchMarkets(zipCode);
+
+        // System.out.println("✅ Raw Response Received:");
+        // System.out.println("--------------------------------------------------");
+        // System.out.println(response); // Print the HTML to see what REWE is saying
+        // System.out.println("--------------------------------------------------");
     }
 }

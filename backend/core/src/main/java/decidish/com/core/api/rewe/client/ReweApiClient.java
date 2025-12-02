@@ -5,6 +5,8 @@ import decidish.com.core.model.rewe.MarketSearchResponse;
 import decidish.com.core.model.rewe.MarketDetailsResponse;
 import decidish.com.core.model.rewe.ProductSearchResponse;
 
+import org.hibernate.validator.constraints.URL;
+import org.springframework.messaging.handler.annotation.Headers;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -15,25 +17,37 @@ import java.util.List;
 import org.springframework.web.service.annotation.GetExchange;
 import org.springframework.web.service.annotation.HttpExchange;
 
+import java.net.URI;
+
 /**
  * Maps to the Rewe Mobile API v3
  */
-@HttpExchange("/api/v3")
+// @HttpExchange("/api/v3")
+@HttpExchange
 public interface ReweApiClient {
 
     /**
      * url = "https://..." + "/api/v3/market/search?search=" + str(zip_code)
      */
-    @GetExchange("/market/search")
-    MarketSearchResponse searchMarkets(@RequestParam("search") String zipCode);
-    // String searchMarkets(@RequestParam("search") String zipCode);
 
-    @GetExchange("/market/details")
-    MarketDetailsResponse getMarketDetails(@RequestParam("marketId") String marketId);
-    // String getMarketDetails(@RequestParam("marketId") String marketId);
-    @GetExchange("/products")
-    ProductSearchResponse searchProducts(@RequestParam("query") String product,
-                        @RequestParam("page") int page, 
-                        @RequestParam("objectsPerPage") int objectPerPage,
-                        Long marketId);
+    @GetExchange
+    MarketSearchResponse searchMarkets(
+        URI uri,
+        @RequestParam("search") String zipCode
+    );
+
+    @GetExchange
+    MarketDetailsResponse getMarketDetails(
+        URI uri, 
+        @RequestParam("marketId") String marketId
+    );
+
+    @GetExchange
+    ProductSearchResponse searchProducts(
+        URI uri, 
+        @RequestParam("query") String product,
+        @RequestParam("page") int page, 
+        @RequestParam("objectsPerPage") int objectPerPage, 
+        @RequestParam("marketId") Long marketId
+    );
 }

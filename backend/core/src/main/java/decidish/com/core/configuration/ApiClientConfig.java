@@ -40,7 +40,8 @@ public class ApiClientConfig {
         // Build the RestClient with Headers and SSL
         RestClient restClient = builder
                 .requestFactory(requestFactory)
-                .baseUrl("https://mobile-api.rewe.de")
+                // .baseUrl("https://mobile-api.rewe.de")
+                // .baseUrl("https://")
 
                 // --- Static Headers (from your python header dict) ---
                 .defaultHeader("ruleVersion", "2")
