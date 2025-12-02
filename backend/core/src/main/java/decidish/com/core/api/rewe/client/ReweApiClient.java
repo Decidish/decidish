@@ -49,6 +49,6 @@ public interface ReweApiClient {
         @RequestParam("query") String product,
         @RequestParam("page") int page, 
         @RequestParam("objectsPerPage") int objectPerPage, 
-        @RequestParam("marketId") Long marketId
+        @RequestParam("marketId") String marketId
     );
 }

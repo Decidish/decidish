@@ -37,6 +37,7 @@ import java.net.URI;
 class ReweConfigTest {
 
     private static final String REWE_API_BASE_URL = "https://mobile-api.rewe.de/api/v3";
+    private static final String REWE_CLIENT_API_BASE_URL = "https://mobile-clients-api.rewe.de/api";
 
     @Autowired
     private ReweApiClient client; // Spring injects the bean built by ApiClientConfig
@@ -125,8 +126,8 @@ class ReweConfigTest {
         String marketId = "431022";
         // Long marketId = IntToLongFunction(431022);
         String product = "Kase";
-        URI url = URI.create("https://mobile-clients-api.rewe.de/api/products");
-        ProductSearchResponse response = client.searchProducts(url,product, 1, 30, marketId);
+        URI uri = URI.create(REWE_CLIENT_API_BASE_URL + "/products");
+        ProductSearchResponse response = client.searchProducts(uri,product, 1, 30, marketId);
 
         // Verify Response
         assertNotNull(response);
