@@ -4,7 +4,7 @@ CREATE EXTENSION vector;
 
 CREATE TABLE recipe_embeddings (
     id SERIAL PRIMARY KEY,
-    recipe_id references recipes(id)
+    recipe_id INT references recipes(id),
     embedding vector(10)
 );
 
@@ -16,5 +16,5 @@ SET hnsw.ef_search = 128;
 
 -- +goose Down
 -- +goose StatementBegin
-SELECT 'down SQL query';
+DROP INDEX IF EXISTS 
 -- +goose StatementEnd
