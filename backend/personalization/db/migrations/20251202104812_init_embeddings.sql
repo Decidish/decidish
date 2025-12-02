@@ -16,5 +16,5 @@ SET hnsw.ef_search = 128;
 
 -- +goose Down
 -- +goose StatementBegin
-DROP INDEX IF EXISTS 
+DROP INDEX IF EXISTS
 -- +goose StatementEnd
