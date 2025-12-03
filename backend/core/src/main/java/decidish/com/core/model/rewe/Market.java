@@ -29,8 +29,8 @@ public class Market implements Serializable{
 
     private String name;
 
-    @OneToOne(cascade = CascadeType.ALL) // So it also saves the new created address
-    @JoinColumn(name = "address_id")
+    // @OneToOne(cascade = CascadeType.ALL) // So it also saves the new created address
+    // @JoinColumn(name = "address_id")
     private Address address;
     
     // TimeStamp
@@ -43,7 +43,8 @@ public class Market implements Serializable{
     public Market() {}
     
     // Standard Constructor
-    public Market(String reweId, String name, Address address
+    public Market(String reweId, String name
+        , Address address
         // , boolean isOpen
     ){
         this.reweId = reweId;
@@ -66,7 +67,8 @@ public class Market implements Serializable{
         address.setZipCode(dto.rawValues().postalCode());
         address.setCity(dto.rawValues().city());
 
-        return new Market(marketId, name, address
+        return new Market(marketId, name
+            , address
         // ,dto.isOpen()
         );
     }
