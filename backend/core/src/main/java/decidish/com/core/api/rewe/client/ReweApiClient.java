@@ -26,6 +26,9 @@ public interface ReweApiClient {
     MarketSearchResponse searchMarkets(
         @RequestParam("search") String zipCode
     );
+    // String searchMarkets(
+    //     @RequestParam("search") String zipCode
+    // );
 
     // e.g.,
     // https://mobile-api.rewe.de/api/v3/market/details?marketId=431022

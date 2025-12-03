@@ -3,20 +3,19 @@ package decidish.com.core.service;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.concurrent.TimeUnit;
+import java.util.Optional;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 // import org.springframework.data.redis.core.RedisTemplate;
 
 import decidish.com.core.api.rewe.client.ReweApiClient;
+import decidish.com.core.model.rewe.Address;
 import decidish.com.core.model.rewe.Market;
 import decidish.com.core.model.rewe.MarketSearchResponse;
 import decidish.com.core.model.rewe.MarketDto;
-// import decidish.com.core.model.rewe.MarketSearchResponse;
 import decidish.com.core.repository.MarketRepository;
 import jakarta.transaction.Transactional;
-import lombok.AllArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -49,8 +48,9 @@ public class MarketService {
         // 2. Check DB
         List<Market> dbMarkets = marketRepository.getMarketsByAddress(plz);
         
+        //! Comment for testing updates
         if(!dbMarkets.isEmpty() 
-            //&& isDataFresh(dbMarkets.get(0))
+            && isDataFresh(dbMarkets.get(0)) //? This could be better
         ){
             log.info("DB Hit", plz);
             // cacheResults(cacheKey,dbMarkets);
@@ -60,28 +60,66 @@ public class MarketService {
         // 3. Fetch from API
         log.info("Fetching from external API for ", plz);
         MarketSearchResponse apiResponse = apiClient.searchMarkets(plz);
+        System.out.println("API Response: " + apiResponse);        
         
         if(apiResponse == null || apiResponse.markets() == null){
             return List.of();
         }
-        
+            
         // 4. Store in DB
         List<Market> savedMarkets = new ArrayList<>();
         for(MarketDto dto : apiResponse.markets()){
-            Market market = Market.fromDto(dto);
-            
-        //     // Update if it exists
-        //     marketRepository.findByReweId(market.getReweId()).ifPresent(existing -> {
-        //         market.setId(existing.getId());
-        //         market.getAddress().setId(existing.getAddress().getId());
-        //     });
-            savedMarkets.add(marketRepository.save(market));
-        }
+            Market marketFromApi = Market.fromDto(dto);
         
+            // Update if it exists
+            // marketRepository.findByReweId(marketFromApi.getReweId()).ifPresent(existing -> {
+            //     marketFromApi.setId(existing.getId());
+            //     marketFromApi.getAddress().setId(existing.getAddress().getId());
+            // });
+            // savedMarkets.add(marketRepository.save(marketFromApi));
+
+            // 1. Find the existing Market by its unique ID (reweId)
+            Market marketToSave = marketRepository.findByReweId(marketFromApi.getReweId())
+                .map(existingMarket -> {
+                    // --- CASE 1: MARKET EXISTS (UPDATE LOGIC) ---
+
+                    System.out.println("Market exists in DB. Updating: " + existingMarket.getReweId() + "(" + existingMarket.getName() + ")");
+                        
+                    // a. Transfer new data to the existing entity
+                    existingMarket.setName(marketFromApi.getName());
+                    existingMarket.setLastUpdated(LocalDateTime.now()); // Update timestamp if needed
+                        
+                    // b. Transfer new address data to the EXISTING address entity
+                    //    (This assumes Market.fromDto() creates an address with updated fields)
+                    Address existingAddress = existingMarket.getAddress();
+                    Address apiAddress = marketFromApi.getAddress();
+                        
+                    existingAddress.setStreet(apiAddress.getStreet());
+                    existingAddress.setZipCode(apiAddress.getZipCode());
+                    existingAddress.setCity(apiAddress.getCity());
+                        
+                    // Since the relationship is cascaded, saving 'existingMarket' will automatically 
+                    // update 'existingAddress'.
+                        
+                    return existingMarket;
+                })
+                .orElseGet(() -> {
+                    // --- CASE 2: MARKET DOES NOT EXIST (INSERT LOGIC) ---
+                    // Return the new object created from the DTO
+                    return marketFromApi;
+                });
+            savedMarkets.add(marketRepository.save(marketToSave));
+        }
+            
         // 5. Update Cache
         // cacheResults(cacheKey, savedMarkets);
 
         return savedMarkets;
+    }
+
+    //! Expose repository for testing purposes
+    public MarketRepository getRepo() {
+        return marketRepository;
     }
 
     // TODO: We need to implement more efficient market retrieval methods use caching and also call the externals APIs if needed.
@@ -93,8 +131,8 @@ public class MarketService {
     //     }
     // }
     
-    // private boolean isDataFresh(Market market) {
-    //     return market.getLastUpdated() != null && 
-    //            market.getLastUpdated().isAfter(LocalDateTime.now().minusHours(24));
-    // }
+    private boolean isDataFresh(Market market) {
+        return market.getLastUpdated() != null && 
+               market.getLastUpdated().isAfter(LocalDateTime.now().minusHours(24));
+    }
 }

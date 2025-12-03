@@ -3,8 +3,6 @@ package decidish.com.core.model.rewe;
 import java.io.Serializable;
 import java.time.LocalDateTime;
 
-import org.yaml.snakeyaml.error.Mark;
-
 import jakarta.persistence.*;
 import lombok.Data;
 import lombok.Getter;
@@ -29,8 +27,8 @@ public class Market implements Serializable{
 
     private String name;
 
-    // @OneToOne(cascade = CascadeType.ALL) // So it also saves the new created address
-    // @JoinColumn(name = "address_id")
+    @OneToOne(cascade = CascadeType.ALL) // So it also saves the new created address
+    @JoinColumn(name = "address_id")
     private Address address;
     
     // TimeStamp
@@ -50,6 +48,7 @@ public class Market implements Serializable{
         this.reweId = reweId;
         this.name = name;
         this.address = address;
+        this.lastUpdated = LocalDateTime.now();
         // this.isOpen = isOpen;
     }
     
@@ -59,7 +58,6 @@ public class Market implements Serializable{
     
     // Convert DTO to Entity
     public static Market fromDto(MarketDto dto){
-        // Long marketId = dto.id() != null ? Long.parseLong(dto.id()) : null;
         String marketId = dto.id();
         String name = dto.name();
         Address address = new Address();

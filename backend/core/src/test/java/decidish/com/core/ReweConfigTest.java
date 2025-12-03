@@ -40,8 +40,8 @@ class ReweConfigTest {
 
         // 2. Test Real Call (using the Zip from your curl command)
         String zipCode = "80809";
+        // String zipCode = "10115";
         MarketSearchResponse response = client.searchMarkets(zipCode);
-
 
         // 3. Verify Response
         assertNotNull(response);
