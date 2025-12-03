@@ -29,10 +29,10 @@ export default function OnboardingStep6() {
   ];
 
   const handleNext = () => {
+    if (selected.length === 0) return;
     // TODO: store allergies（optional）
     // await AsyncStorage.setItem('allergies', JSON.stringify(selected));
 
-    // directly jumped to home or somewhere else
     router.push('/onboarding/step7');
   };
 
