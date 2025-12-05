@@ -132,24 +132,6 @@ services:
     networks:
       - app-network
 
-  # ----------------------------------------------------------------
-  # Dedicated Test Database for Unit/Integration Tests
-  # ----------------------------------------------------------------
-  db_test:
-    image: pgvector/pgvector:pg16
-    container_name: dev_test_postgres
-    # Map a new, unique host port (e.g., 5434) to the container's standard port (5432)
-    ports:
-      - "5434:5432"
-    environment:
-      # Set simple, known credentials for testing
-      POSTGRES_USER: testuser
-      POSTGRES_PASSWORD: testpassword
-      POSTGRES_DB: testdb
-    volumes:
-      - db_test_data:/var/lib/postgresql/data
-    networks:
-      - app-network
 
 # ----------------------------------------------------------------
 # Volumes & Networks
@@ -157,7 +139,6 @@ services:
 volumes:
   db_backend_data:
   db_authorisation_data:
-  db_test_data:
 
 networks:
   app-network:
