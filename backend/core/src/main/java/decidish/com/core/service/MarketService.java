@@ -6,6 +6,7 @@ import java.util.List;
 import java.util.Optional;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 // import org.springframework.data.redis.core.RedisTemplate;
 
@@ -32,21 +33,22 @@ public class MarketService {
     private ReweApiClient apiClient;
     // private final RedisTemplate<String, Object> redisTemplate;
     
+    /**
+     * This method handles the caching logic.
+     * 1. Check Redis for "markets_id::{reweId}"
+     * 2. If missing, call marketRepository.findByReweId()
+     * 3. Save result to Redis (unless reweId is '2')
+     */
+    // @Cacheable(value = "markets_id", key = "#reweId", unless = "#reweId == '2'")
+    // public Optional<Market> findByReweId(String reweId) {
+    //     return marketRepository.findByReweId(reweId);
+    // }
+    
     // TODO: Implement method to get markets
-    @Transactional
+    // @Transactional
     public List<Market> getMarkets(String plz) {
-        // String cacheKey = "markets:zip:" + plz;
-        // 1. Check Redis
-        // try{
-        //     List<Market> cachedMarkets = (List<Market>) redisTemplate.opsForValue().get(cacheKey);
-        //     if(cachedMarkets != null && !cachedMarkets.isEmpty()){
-        //         log.info("Cache Hit for ",plz);
-        //         return cachedMarkets;
-        //     }
-        // } catch(Exception e){}
-        
-        // 2. Check DB
-        List<Market> dbMarkets = marketRepository.getMarketsByAddress(plz);
+        // 1. Check DB
+        List<Market> dbMarkets = marketRepository.getMarketsByAddress(plz).orElse(List.of());
         
         //! Comment for testing updates
         if(!dbMarkets.isEmpty() 
@@ -57,7 +59,7 @@ public class MarketService {
             return dbMarkets;
         }
         
-        // 3. Fetch from API
+        // 2. Fetch from API
         log.info("Fetching from external API for ", plz);
         MarketSearchResponse apiResponse = apiClient.searchMarkets(plz);
         System.out.println("API Response: " + apiResponse);        
@@ -66,18 +68,11 @@ public class MarketService {
             return List.of();
         }
             
-        // 4. Store in DB
+        // 3. Store in DB
         List<Market> savedMarkets = new ArrayList<>();
         for(MarketDto dto : apiResponse.markets()){
             Market marketFromApi = Market.fromDto(dto);
         
-            // Update if it exists
-            // marketRepository.findByReweId(marketFromApi.getReweId()).ifPresent(existing -> {
-            //     marketFromApi.setId(existing.getId());
-            //     marketFromApi.getAddress().setId(existing.getAddress().getId());
-            // });
-            // savedMarkets.add(marketRepository.save(marketFromApi));
-
             // 1. Find the existing Market by its unique ID (reweId)
             Market marketToSave = marketRepository.findByReweId(marketFromApi.getReweId())
                 .map(existingMarket -> {
@@ -87,7 +82,7 @@ public class MarketService {
                         
                     // a. Transfer new data to the existing entity
                     existingMarket.setName(marketFromApi.getName());
-                    existingMarket.setLastUpdated(LocalDateTime.now()); // Update timestamp if needed
+                    existingMarket.setLastUpdated(LocalDateTime.now()); // Update timestamp 
                         
                     // b. Transfer new address data to the EXISTING address entity
                     //    (This assumes Market.fromDto() creates an address with updated fields)
@@ -111,9 +106,6 @@ public class MarketService {
             savedMarkets.add(marketRepository.save(marketToSave));
         }
             
-        // 5. Update Cache
-        // cacheResults(cacheKey, savedMarkets);
-
         return savedMarkets;
     }
 
@@ -123,16 +115,11 @@ public class MarketService {
     }
 
     // TODO: We need to implement more efficient market retrieval methods use caching and also call the externals APIs if needed.
-    // private void cacheResults(String key, List<Market> markets) {
-    //     try {
-    //         redisTemplate.opsForValue().set(key, markets, 12, TimeUnit.HOURS);
-    //     } catch (Exception e) {
-    //         log.error("Failed to write to Redis", e);
-    //     }
-    // }
     
     private boolean isDataFresh(Market market) {
+        //? Check in case they open a new market or move it / change timetable etc
+        int ttl = 1; // Time to live
         return market.getLastUpdated() != null && 
-               market.getLastUpdated().isAfter(LocalDateTime.now().minusHours(24));
+               market.getLastUpdated().isAfter(LocalDateTime.now().minusWeeks(ttl));
     }
 }

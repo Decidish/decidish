@@ -31,7 +31,8 @@ public class MarketController {
             return ResponseEntity.badRequest().build();
         }
         
-        List<Market> markets = marketService.getMarkets(plz);
+        // List<Market> markets = marketService.getMarkets(plz);
+        List<Market> markets = List.of();
         return ResponseEntity.ok(markets);
     }
 }

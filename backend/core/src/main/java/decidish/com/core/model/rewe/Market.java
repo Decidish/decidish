@@ -5,12 +5,14 @@ import java.time.LocalDateTime;
 
 import jakarta.persistence.*;
 import lombok.Data;
+import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.Setter;
 
 @Entity
 @Table(name = "markets")
 @Data
+@EqualsAndHashCode 
 @Getter @Setter
 // Serializable: helps convert object to bytes, useful for redis cache
 public class Market implements Serializable{
@@ -51,10 +53,6 @@ public class Market implements Serializable{
         this.lastUpdated = LocalDateTime.now();
         // this.isOpen = isOpen;
     }
-    
-    // public Market(MarketDto dto){
-    //     fromDto(dto);
-    // }
     
     // Convert DTO to Entity
     public static Market fromDto(MarketDto dto){
