@@ -5,3 +5,5 @@ kafka
 init-scripts
 **certificates
 /bin/
+*.p12
+main
