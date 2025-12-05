@@ -1,0 +1,23 @@
+meta {
+  name: login_success
+  type: http
+  seq: 2
+}
+
+post {
+  url: http://localhost:8083/login
+  body: json
+  auth: inherit
+}
+
+body:json {
+  {
+    "username": "sarps",
+    "password": "admin123"
+  }
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}
