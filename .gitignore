@@ -6,3 +6,5 @@ init-scripts
 **certificates
 /bin/
 *.un~
+*.p12
+main

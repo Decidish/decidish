@@ -92,9 +92,13 @@ services:
     environment:
       - DB_HOST=db_backend
       - REDIS_HOST=redis
+      - JWT_SECRET=${JWT_SECRET}
+      - DATABASE_URL=${DATABASE_BACKEND_URL}
+      - KAFKA_CONNECTION_URL=${KAFKA_CONNECTION_URL}
     depends_on:
       - db_backend
       - redis
+      - kafka-ui
     networks:
       - app-network
 
@@ -132,22 +136,58 @@ services:
     networks:
       - app-network
 
-  # ----------------------------------------------------------------
-  # Dedicated Test Database for Unit/Integration Tests
-  # ----------------------------------------------------------------
-  db_test:
-    image: pgvector/pgvector:pg16
-    container_name: dev_test_postgres
-    # Map a new, unique host port (e.g., 5434) to the container's standard port (5432)
+
+# ----------------------------------------------------------------
+# Kafka & Streaming
+# ----------------------------------------------------------------
+
+  kafka:
+    image: bitnamilegacy/kafka:latest
+    container_name: kafka
     ports:
-      - "5434:5432"
+      - "9092:9092" # External Port
+    networks:
+      - app-network
     environment:
-      # Set simple, known credentials for testing
-      POSTGRES_USER: testuser
-      POSTGRES_PASSWORD: testpassword
-      POSTGRES_DB: testdb
+      # KRaft Basic Settings
+      - KAFKA_CFG_NODE_ID=0
+      - KAFKA_CFG_PROCESS_ROLES=controller,broker
+      - KAFKA_CFG_CONTROLLER_QUORUM_VOTERS=0@kafka:9093
+
+      # LISTENER CONFIGURATION (The Critical Part)
+      # Define 3 listeners:
+      #   - CONTROLLER: Internal management
+      #   - EXTERNAL:   For your laptop (localhost:9092)
+      #   - INTERNAL:   For Docker containers (kafka:29092)
+      - KAFKA_CFG_LISTENERS=PLAINTEXT://:9092,CONTROLLER://:9093,INTERNAL://:29092
+
+      # Advertise the correct address based on who is asking
+      - KAFKA_CFG_ADVERTISED_LISTENERS=PLAINTEXT://localhost:9092,INTERNAL://kafka:29092
+
+      # Map the security protocols
+      - KAFKA_CFG_LISTENER_SECURITY_PROTOCOL_MAP=CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT,INTERNAL:PLAINTEXT
+
+      # Tell Kafka that internal broker communication happens on the INTERNAL listener
+      - KAFKA_CFG_INTER_BROKER_LISTENER_NAME=INTERNAL
+      - KAFKA_CFG_CONTROLLER_LISTENER_NAMES=CONTROLLER
+
+      # 3. FIX FOR "ERROR 3" (Unknown Topic)
+      - KAFKA_CFG_AUTO_CREATE_TOPICS_ENABLE=true
+
     volumes:
-      - db_test_data:/var/lib/postgresql/data
+      - kafka_data:/bitnami/kafka
+
+  # Optional: Web UI to visualize your data
+  kafka-ui:
+    image: provectuslabs/kafka-ui:latest
+    container_name: kafka-ui
+    ports:
+      - "8090:8080"
+    environment:
+      - KAFKA_CLUSTERS_0_NAME=local
+      - KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS=kafka:29092
+    depends_on:
+      - kafka
     networks:
       - app-network
 
@@ -157,7 +197,7 @@ services:
 volumes:
   db_backend_data:
   db_authorisation_data:
-  db_test_data:
+  kafka_data:
 
 networks:
   app-network:

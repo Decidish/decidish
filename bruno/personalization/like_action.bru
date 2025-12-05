@@ -1,0 +1,28 @@
+meta {
+  name: like_action
+  type: http
+  seq: 1
+}
+
+post {
+  url: http://localhost:8082/api/v1/user/action
+  body: json
+  auth: none
+}
+
+headers {
+  Cookie: auth_token=[AUTH-TOKEN-HERE]
+}
+
+body:json {
+  {
+    "recipe_id": "1234",
+    "action": "like",
+    "timestamp": 126351273512
+  }
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}
