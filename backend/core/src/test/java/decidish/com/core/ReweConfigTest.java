@@ -14,6 +14,7 @@ import org.springframework.boot.test.context.SpringBootTest;
 
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.mockito.ArgumentMatchers.nullable;
 
 import java.util.List;
 
@@ -108,10 +109,10 @@ class ReweConfigTest {
     @DisplayName("Test Products API Call")
     void testProductsApiCall() {
         // Use a known market ID for testing
-        String marketId = "431022";
+        Long marketId = 431022L;
         String product = "Kase";
         ProductSearchResponse response = client.searchProducts(
-            product, "1", "30", 
+            product, 1, 30, 
             marketId);
 
         // Verify Response
@@ -126,6 +127,8 @@ class ReweConfigTest {
         System.out.println("articleId: " + products.get(0).articleId());
         System.out.println("price: " + products.get(0).listing().currentRetailPrice());
         System.out.println("grammage: " + products.get(0).listing().grammage());
-        System.out.println("discount: " + products.get(0).listing().discount().__typename());
+        if(products.get(0).listing().discount() != null){
+            System.out.println("discount: " + products.get(0).listing().discount().__typename());
+        }
     }
 }

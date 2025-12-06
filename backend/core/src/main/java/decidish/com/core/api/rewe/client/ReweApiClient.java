@@ -42,8 +42,8 @@ public interface ReweApiClient {
     @GetExchange(REWE_CLIENT_API_BASE_URL + PRODUCT_SEARCH_PATH)
     ProductSearchResponse searchProducts(
         @RequestParam("query") String product,
-        @RequestParam(name = "page") String page, 
-        @RequestParam(name = "objectsPerPage") String objectsPerPage,
-        @RequestHeader("rd-market-id") String marketId
+        @RequestParam(name = "page") int page, 
+        @RequestParam(name = "objectsPerPage") int objectsPerPage,
+        @RequestHeader("rd-market-id") Long marketId
     );
 }
