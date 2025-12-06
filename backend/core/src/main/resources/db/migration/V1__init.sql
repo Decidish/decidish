@@ -1,16 +1,32 @@
-CREATE SEQUENCE IF NOT EXISTS market_sequence START WITH 1 INCREMENT BY 1;
-
 CREATE TABLE markets
 (
-    id         BIGINT  NOT NULL,
+    id         VARCHAR(255) NOT NULL,
     name       VARCHAR(255),
     address_id BIGINT,
-    is_open    BOOLEAN NOT NULL,
+    last_updated TIMESTAMP,
     CONSTRAINT pk_markets PRIMARY KEY (id)
 );
 
 ALTER TABLE markets
     ADD CONSTRAINT uc_markets_address UNIQUE (address_id);
+
+CREATE TABLE products
+(
+    id         BIGINT  NOT NULL,
+    name       VARCHAR(255),
+    market_id  BIGINT,
+    price      INT,
+    image_url  VARCHAR(255),
+    grammage   VARCHAR(255),
+    last_updated TIMESTAMP,
+    CONSTRAINT pk_products PRIMARY KEY (id)
+);
+
+ALTER TABLE products
+    ADD CONSTRAINT uc_products_market (market_id);
+
+ALTER TABLE products
+    ADD CONSTRAINT FK_PRODUCTS_ON_MARKET FOREIGN KEY (market_id) REFERENCES markets(id);
 
 CREATE TABLE addresses
 (

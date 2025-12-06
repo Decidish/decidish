@@ -6,7 +6,7 @@ spring:
   application:
     name: "core"
   flyway:
-    enabled: "true"
+    enabled: "false"
   ssl:
     bundle:
       pem:

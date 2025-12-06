@@ -118,7 +118,7 @@ class ReweConfigTest {
         assertNotNull(response);
         ProductsData data = response.data();
         ProductsSearchInfo info = data.products();
-        List<Product> products = info.products();
+        List<ProductDto> products = info.products();
         System.out.println("Product Details for market " + marketId + ":");
         System.out.println("Name: " + products.get(0).title());
         System.out.println("Id: " + products.get(0).productId());

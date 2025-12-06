@@ -1,8 +1,8 @@
 package decidish.com.core.model.rewe;
 
 public record ProductPrice (
-    Long currentRetailPrice,
-    Long totalRefundPrice,
+    int currentRetailPrice,
+    int totalRefundPrice,
     String grammage,
     Discount discount,
     String loyaltyBonus 
