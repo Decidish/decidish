@@ -6,6 +6,3 @@ init-scripts
 **certificates
 node_modules/
 .expo/
-/bin/
-*.un~
-*.p12
