@@ -13,7 +13,10 @@ import lombok.Setter;
 import lombok.ToString;
 
 @Entity
-@Table(name = "products")
+// @Table(name = "products")
+@Table(name = "products", uniqueConstraints = {
+    @UniqueConstraint(columnNames = {"market_id", "rewe_id"}) // <--- CRITICAL
+})
 @Data
 @EqualsAndHashCode 
 @Getter @Setter

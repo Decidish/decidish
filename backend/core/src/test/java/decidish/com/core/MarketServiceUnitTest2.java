@@ -20,6 +20,7 @@ import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -127,5 +128,49 @@ class MarketServiceUnitTest2 {
         
         // Check 4: Relationship integrity
         assertEquals(savedMarket, p2.getMarket(), "New product should be linked to market");
+    }
+    
+    @Test
+    @DisplayName("getAllProducts: Should handle duplicate items in API response")
+    void testGetAllProducts_RemovesApiDuplicates() {
+        // ... setup market ...
+        Long marketReweId = 540L;
+        Market dbMarket = new Market(marketReweId,"M1",new Address());
+        // Market.builder().reweId(marketReweId).build();
+        when(marketRepository.findByReweId(marketReweId)).thenReturn(Optional.of(dbMarket));
+
+        // --- SETUP DIRTY API DATA ---
+        // The API sends "Cheese" TWICE with the same ID
+        ProductDto cheese1 = new ProductDto(
+            1L,"Cheese","img1",
+            new ProductAttributesDto(
+                true,true,true,true,true,true,true,true,true,true,true,true
+            ),10,List.of(),
+            "uwu",new ProductPrice(199, 30, "100g", null, null));
+        ProductDto cheese2 = new ProductDto(
+            1L,"Cheese","img1",
+            new ProductAttributesDto(
+                true,true,true,true,true,true,true,true,true,true,true,true
+            ),10,List.of(),
+            "uwu",new ProductPrice(199, 30, "100g", null, null));
+        
+        ProductSearchResponse apiResponse = new ProductSearchResponse( 
+            new ProductsData( new ProductsSearchInfo(new Pagination(1,1,1,1), 
+            List.of(cheese1,cheese2)))
+        );
+
+        when(apiClient.searchProducts("",1,250,marketReweId)).thenReturn(apiResponse);
+
+        // --- EXECUTE ---
+        marketService.getAllProducts(540L);
+
+        // --- VERIFY ---
+        ArgumentCaptor<Market> captor = ArgumentCaptor.forClass(Market.class);
+        verify(marketRepository).save(captor.capture());
+
+        // CRITICAL ASSERTION:
+        // Input list size was 2.
+        // Expected DB size is 1.
+        assertEquals(1, captor.getValue().getProducts().size(), "Should verify duplicates were merged");
     }
 }

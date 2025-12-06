@@ -1,14 +1,17 @@
 package decidish.com.core.service;
 
+import java.net.URI;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 // import org.springframework.data.redis.core.RedisTemplate;
+import org.springframework.web.util.UriComponentsBuilder;
 
 import decidish.com.core.api.rewe.client.ReweApiClient;
 import decidish.com.core.model.rewe.Address;
@@ -182,6 +185,57 @@ public class MarketService {
         marketRepository.save(savedProducts);
         return savedProducts;
     }
+    
+    //TODO This is probably more efficient
+    // @Transactional
+    // public Market getAllProducts(Long reweIdLong) {
+    //     String reweId = String.valueOf(reweIdLong);
+
+    //     Market market = marketRepository.findByReweId(reweId)
+    //             .orElseThrow(() -> new RuntimeException("Market not found"));
+
+    //     // 1. Fetch from API
+    //     URI uri = UriComponentsBuilder.fromHttpUrl("...").build().toUri();
+    //     ProductSearchResponse response = apiClient.searchProducts(uri, reweId, "*", 1);
+
+    //     if (response == null || response.products() == null) return market;
+
+    //     // 2. Load Existing Products into a Map for fast lookup
+    //     // Key: Product ReweID, Value: Product Entity
+    //     Map<String, Product> existingMap = market.getProducts().stream()
+    //             .collect(Collectors.toMap(Product::getReweId, Function.identity()));
+
+    //     // 3. Process API items
+    //     for (MobileProduct apiProd : response.products()) {
+            
+    //         // This handles the update logic
+    //         if (existingMap.containsKey(apiProd.id())) {
+    //             // --- UPDATE ---
+    //             Product p = existingMap.get(apiProd.id());
+    //             p.setName(apiProd.name());
+    //             p.setPrice(apiProd.currentPrice());
+    //             p.setLastUpdated(LocalDateTime.now());
+    //         } else {
+    //             // --- INSERT ---
+    //             // Only create if we haven't processed this ID yet in this loop
+    //             // (The Map check implicitly protects us if the API sends the same ID twice,
+    //             // BUT to be extra safe against "Double Insert" in one batch:)
+                
+    //             Product newProduct = Product.builder()
+    //                     .reweId(apiProd.id())
+    //                     .name(apiProd.name())
+    //                     .price(apiProd.currentPrice())
+    //                     .market(market)
+    //                     .build();
+                
+    //             market.addProduct(newProduct);
+    //             // Add to map so if it appears again in this loop, we update instead of insert!
+    //             existingMap.put(apiProd.id(), newProduct); 
+    //         }
+    //     }
+
+    //     return marketRepository.save(market);
+    // }
     
     /**
      * @brief Query a certain product for a given market
