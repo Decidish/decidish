@@ -9,14 +9,14 @@ type RecommenderRepository struct {
 	db *sql.DB
 }
 
-func (repo RecommenderRepository) GetRecommendedRecipesForUser(user_id string) ([]migrations.Recipe, error) {
-	var user_vector string
-	
+func (repo RecommenderRepository) GetRecommendedRecipesForUser(userId string) ([]migrations.Recipe, error) {
+	var userVector []float64
+
 	err := repo.db.QueryRow(`
 	SELECT embedding
 	FROM user_embeddings
 	WHERE user_id = $1
-	`, user_id).Scan(&user_vector)
+	`, userId).Scan(&userVector)
 
 	if err != nil {
 		return nil, err
@@ -25,7 +25,7 @@ func (repo RecommenderRepository) GetRecommendedRecipesForUser(user_id string) (
 	_, err = repo.db.Query(`
 	SELECT r.embedding <=> $1::vector
 	FROM recipe_embeddings r
-	`, user_vector)
+	`, userVector)
 
 	// return rows, nil
 	// TODO: Create recipe objects here to return and unmarshal even for client

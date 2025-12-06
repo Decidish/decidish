@@ -13,7 +13,7 @@ type UserActionController struct {
 	events.UserInteractionProducer
 }
 
-// Creates the mappings for the controller
+// AddMappings Creates the mappings for the controller
 func (controller UserActionController) AddMappings(r *gin.RouterGroup) {
 	r.POST("/user/action", controller.postUserAction)
 }

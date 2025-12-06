@@ -1,6 +1,7 @@
 package main
 
 import (
+	"database/sql"
 	"log"
 	"personalization/db/driver"
 	"personalization/middleware"
@@ -23,10 +24,12 @@ func main() {
 	// Connect to the database
 	db := connectDB(appConfig)
 
-	defer db.Close()
+	defer func(db *sql.DB) {
+		_ = db.Close()
+	}(db)
 
 	// Run database migrations
-	dbDriver.RunMigrations(db)
+	dbDriver.RunMigrations(appConfig, db)
 
 	CreateTopic(appConfig.KafkaConnectionUrl, "user-interactions")
 	kafkaWriter := setupKafkaWriter(appConfig)

@@ -35,7 +35,7 @@ func UpSeedRecipesTable(db *sql.DB) error {
 		return errors.New("no transaction could be established")
 	}
 
-	f, err := os.Open("data/recipes.jsonl")
+	f, err := os.Open(LocalFilename)
 
 	if err != nil {
 		return err

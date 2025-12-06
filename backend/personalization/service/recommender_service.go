@@ -11,11 +11,11 @@ type RecommenderService struct {
 }
 
 func (service RecommenderService) RecommendRecipeForUser(ctx *gin.Context) {
-	user_id := ctx.GetString("user_id")
+	userId := ctx.GetString("user_id")
 
-	if user_id == "" {
+	if userId == "" {
 		panic("no user id found")
 	}
 
-	service.RecommenderRepository.GetRecommendedRecipesForUser(user_id)
+	service.RecommenderRepository.GetRecommendedRecipesForUser(userId)
 }
