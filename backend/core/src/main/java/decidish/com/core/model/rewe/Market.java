@@ -19,12 +19,12 @@ import com.fasterxml.jackson.annotation.JsonManagedReference;
 @EqualsAndHashCode 
 @Getter @Setter
 // Serializable: helps convert object to bytes, useful for redis cache
-public class Market implements Serializable, Persistable<String>{
+public class Market implements Serializable, Persistable<Long>{
 
     // EXTERNAL REWE ID
     @Id
     // @Column(name = "rewe_id", unique = true, nullable = false)
-    private String reweId;
+    private Long reweId;
 
     private String name;
 
@@ -59,7 +59,7 @@ public class Market implements Serializable, Persistable<String>{
     }
 
     @Override
-    public String getId() {
+    public Long getId() {
         return reweId;
     }
 
@@ -73,7 +73,7 @@ public class Market implements Serializable, Persistable<String>{
     public Market() {}
     
     // Standard Constructor
-    public Market(String reweId, String name
+    public Market(Long reweId, String name
         , Address address
         // , boolean isOpen
     ){
@@ -95,7 +95,7 @@ public class Market implements Serializable, Persistable<String>{
     
     // Convert DTO to Entity
     public static Market fromDto(MarketDto dto){
-        String marketId = dto.id();
+        Long marketId = dto.id();
         String name = dto.name();
         Address address = new Address();
         address.setStreet(dto.addressLine1());

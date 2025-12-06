@@ -42,12 +42,12 @@ class MarketRespositoryIntegrationTest {
         address1.setZipCode("12345");
         Address address2 = new Address();
         address2.setZipCode("54321");
-        marketRepository.save(new Market("1","m1",address1));
-        marketRepository.save(new Market("2","m2",address2));
+        marketRepository.save(new Market(1L,"m1",address1));
+        marketRepository.save(new Market(2L,"m2",address2));
 
         Address address = new Address();
         address.setZipCode("11111");
-        Market market = new Market("3", "m3", address);
+        Market market = new Market(3L, "m3", address);
         Product product1 = new Product(100L, "Product1", 100, "url1", "500g");
         Product product2 = new Product(101L, "Product2", 200, "url2", "1kg");
         market.addProduct(product1);
@@ -55,7 +55,7 @@ class MarketRespositoryIntegrationTest {
         marketRepository.save(market);
     }
     
-    private Optional<Market> getCachedMarket(String reweId){
+    private Optional<Market> getCachedMarket(Long reweId){
         return Optional.ofNullable(cacheManager.getCache("markets_id")).map(c -> c.get(reweId,Market.class));
     }
 
@@ -66,16 +66,16 @@ class MarketRespositoryIntegrationTest {
     @Test
     void givenMarketThatShouldBeCached_whenFindByReweId_thenResultShouldBePutInCache() {
         // Optional<Market> m1 = marketService.findByReweId("1");
-        Optional<Market> m1 = marketRepository.findByReweId("1");
+        Optional<Market> m1 = marketRepository.findByReweId(1L);
 
-        assertEquals(m1, getCachedMarket("1"));
+        assertEquals(m1, getCachedMarket(1L));
     }
 
     @Test
     void givenMarketThatShouldNotBeCached_whenFindByReweId_thenResultShouldNotBePutInCache() {
-        marketRepository.findByReweId("2");
+        marketRepository.findByReweId(2L);
 
-        assertEquals(Optional.empty(), getCachedMarket("2"));
+        assertEquals(Optional.empty(), getCachedMarket(2L));
     }
     
     @Test
@@ -102,13 +102,13 @@ class MarketRespositoryIntegrationTest {
         assertEquals(true, marketsOpt.isPresent());
         List<Market> markets = marketsOpt.get();
         assertEquals(1, markets.size());
-        assertEquals("1", markets.get(0).getReweId());
+        assertEquals(1L, markets.get(0).getReweId());
     }
 
     // Test query findByReweId
     @Test
     void whenFindByReweId_thenReturnCorrectMarket() {
-        Optional<Market> marketOpt = marketRepository.findByReweId("2");
+        Optional<Market> marketOpt = marketRepository.findByReweId(2L);
         assertEquals(true, marketOpt.isPresent());
         Market market = marketOpt.get();
         assertEquals("m2", market.getName());
@@ -117,7 +117,7 @@ class MarketRespositoryIntegrationTest {
     // Test query findByIdWithProducts
     @Test
     void whenFindByIdWithProducts_thenReturnMarketWithProducts() {
-        Optional<Market> marketOpt = marketRepository.findByIdWithProducts("3");
+        Optional<Market> marketOpt = marketRepository.findByIdWithProducts(3L);
         assertEquals(true, marketOpt.isPresent());
         Market fetchedMarket = marketOpt.get();
         assertEquals(2, fetchedMarket.getProducts().size());

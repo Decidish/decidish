@@ -186,8 +186,8 @@ import decidish.com.core.service.MarketService;
 class MarketServiceIntegrationTest {
 
     private final String TEST_PLZ = "80331";
-    private final String NEW_MARKET_ID = "540945";
-    private final String OLD_MARKET_ID = "540946";
+    private final Long NEW_MARKET_ID = 540945L;
+    private final Long OLD_MARKET_ID = 540946L;
 
     // --- Components to be tested together ---
     @Autowired

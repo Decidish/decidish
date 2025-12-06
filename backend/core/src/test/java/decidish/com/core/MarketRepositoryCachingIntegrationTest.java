@@ -25,8 +25,8 @@ import static org.mockito.Mockito.*;
 @ExtendWith(SpringExtension.class)
 public class MarketRepositoryCachingIntegrationTest {
 
-    private static final Market M1 = new Market("1","m1",new Address());
-    private static final Market M2 = new Market("2","m2",new Address());
+    private static final Market M1 = new Market(1L,"m1",new Address());
+    private static final Market M2 = new Market(2L,"m2",new Address());
 
     private MarketRepository mock;
 
@@ -55,31 +55,31 @@ public class MarketRepositoryCachingIntegrationTest {
 
         reset(mock);
 
-        when(mock.findByReweId(eq("2")))
+        when(mock.findByReweId(eq(2L)))
                 .thenReturn(Optional.of(M2));
 
-        when(mock.findByReweId(eq("1")))
+        when(mock.findByReweId(eq(1L)))
                 .thenReturn(Optional.of(M1))
                 .thenThrow(new RuntimeException("Market should be cached!"));
     }
     
     @Test
     void givenCachedMarket_whenFindByReweId_thenRepositoryShouldNotBeHit() {
-        assertEquals(Optional.of(M1), marketRepository.findByReweId("1"));
-        verify(mock).findByReweId("1");
+        assertEquals(Optional.of(M1), marketRepository.findByReweId(1L));
+        verify(mock).findByReweId(1L);
 
-        assertEquals(Optional.of(M1), marketRepository.findByReweId("1"));
-        assertEquals(Optional.of(M1), marketRepository.findByReweId("1"));
+        assertEquals(Optional.of(M1), marketRepository.findByReweId(1L));
+        assertEquals(Optional.of(M1), marketRepository.findByReweId(1L));
 
         verifyNoMoreInteractions(mock);
     }
     
     @Test
     void givenNotCachedMarket_whenFindByReweId_thenRepositoryShouldBeHit() {
-        assertEquals(Optional.of(M2), marketRepository.findByReweId("2"));
-        assertEquals(Optional.of(M2), marketRepository.findByReweId("2"));
-        assertEquals(Optional.of(M2), marketRepository.findByReweId("2"));
+        assertEquals(Optional.of(M2), marketRepository.findByReweId(2L));
+        assertEquals(Optional.of(M2), marketRepository.findByReweId(2L));
+        assertEquals(Optional.of(M2), marketRepository.findByReweId(2L));
 
-        verify(mock, times(3)).findByReweId("2");
+        verify(mock, times(3)).findByReweId(2L);
     }
 }
