@@ -11,8 +11,6 @@ import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.ToString;
-import decidish.com.core.model.rewe.ProductAttributes;
-import decidish.com.core.model.rewe.ProductDto;
 
 @Entity
 @Table(name = "products")
@@ -41,7 +39,9 @@ public class Product implements Serializable{
 
     private String grammage;
 
-    // private ProductAttributes attributes;
+    @OneToOne(cascade = CascadeType.ALL)
+    @JoinColumn(name = "attributes_id", referencedColumnName = "id")
+    private ProductAttributes attributes;
     
     // TimeStamp
     @Column(name = "last_updated")

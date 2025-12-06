@@ -44,6 +44,15 @@ class MarketRespositoryIntegrationTest {
         address2.setZipCode("54321");
         marketRepository.save(new Market("1","m1",address1));
         marketRepository.save(new Market("2","m2",address2));
+
+        Address address = new Address();
+        address.setZipCode("11111");
+        Market market = new Market("3", "m3", address);
+        Product product1 = new Product(100L, "Product1", 100, "url1", "500g");
+        Product product2 = new Product(101L, "Product2", 200, "url2", "1kg");
+        market.addProduct(product1);
+        market.addProduct(product2);
+        marketRepository.save(market);
     }
     
     private Optional<Market> getCachedMarket(String reweId){
@@ -82,5 +91,35 @@ class MarketRespositoryIntegrationTest {
         marketRepository.getMarketsByAddress("54321");
 
         assertEquals(Optional.empty(), getCachedMarkets("54321"));
+    }
+
+    // NON-CACHED TESTS BELOW
+
+    // Test query getMarketsByAddress
+    @Test
+    void whenGetMarketsByAddress_thenReturnCorrectMarkets() {
+        Optional<List<Market>> marketsOpt = marketRepository.getMarketsByAddress("12345");
+        assertEquals(true, marketsOpt.isPresent());
+        List<Market> markets = marketsOpt.get();
+        assertEquals(1, markets.size());
+        assertEquals("1", markets.get(0).getReweId());
+    }
+
+    // Test query findByReweId
+    @Test
+    void whenFindByReweId_thenReturnCorrectMarket() {
+        Optional<Market> marketOpt = marketRepository.findByReweId("2");
+        assertEquals(true, marketOpt.isPresent());
+        Market market = marketOpt.get();
+        assertEquals("m2", market.getName());
+    }
+
+    // Test query findByIdWithProducts
+    @Test
+    void whenFindByIdWithProducts_thenReturnMarketWithProducts() {
+        Optional<Market> marketOpt = marketRepository.findByIdWithProducts("3");
+        assertEquals(true, marketOpt.isPresent());
+        Market fetchedMarket = marketOpt.get();
+        assertEquals(2, fetchedMarket.getProducts().size());
     }
 }
