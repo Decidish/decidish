@@ -45,12 +45,11 @@ public class MarketService {
     // }
     
     // TODO: Implement method to get markets
-    // @Transactional
+    @Transactional
     public List<Market> getMarkets(String plz) {
         // 1. Check DB
         List<Market> dbMarkets = marketRepository.getMarketsByAddress(plz).orElse(List.of());
         
-        //! Comment for testing updates
         if(!dbMarkets.isEmpty() 
             && isDataFresh(dbMarkets.get(0)) //? This could be better
         ){
@@ -79,19 +78,21 @@ public class MarketService {
                     // --- CASE 1: MARKET EXISTS (UPDATE LOGIC) ---
 
                     System.out.println("Market exists in DB. Updating: " + existingMarket.getReweId() + "(" + existingMarket.getName() + ")");
+
+                    existingMarket.updateFromDto(dto);
                         
                     // a. Transfer new data to the existing entity
-                    existingMarket.setName(marketFromApi.getName());
-                    existingMarket.setLastUpdated(LocalDateTime.now()); // Update timestamp 
+                    // existingMarket.setName(marketFromApi.getName());
+                    // existingMarket.setLastUpdated(LocalDateTime.now()); // Update timestamp 
                         
-                    // b. Transfer new address data to the EXISTING address entity
-                    //    (This assumes Market.fromDto() creates an address with updated fields)
-                    Address existingAddress = existingMarket.getAddress();
-                    Address apiAddress = marketFromApi.getAddress();
+                    // // b. Transfer new address data to the EXISTING address entity
+                    // //    (This assumes Market.fromDto() creates an address with updated fields)
+                    // Address existingAddress = existingMarket.getAddress();
+                    // Address apiAddress = marketFromApi.getAddress();
                         
-                    existingAddress.setStreet(apiAddress.getStreet());
-                    existingAddress.setZipCode(apiAddress.getZipCode());
-                    existingAddress.setCity(apiAddress.getCity());
+                    // existingAddress.setStreet(apiAddress.getStreet());
+                    // existingAddress.setZipCode(apiAddress.getZipCode());
+                    // existingAddress.setCity(apiAddress.getCity());
                         
                     // Since the relationship is cascaded, saving 'existingMarket' will automatically 
                     // update 'existingAddress'.
@@ -109,10 +110,6 @@ public class MarketService {
         return savedMarkets;
     }
 
-    //! Expose repository for testing purposes
-    public MarketRepository getRepo() {
-        return marketRepository;
-    }
 
     // TODO: We need to implement more efficient market retrieval methods use caching and also call the externals APIs if needed.
     

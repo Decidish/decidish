@@ -6,11 +6,6 @@ import java.util.ArrayList;
 import java.util.List;
 
 import jakarta.persistence.*;
-import lombok.Data;
-import lombok.EqualsAndHashCode;
-import lombok.Getter;
-import lombok.Setter;
-import lombok.ToString;
 
 import org.springframework.data.domain.Persistable;
 import lombok.*;
@@ -87,6 +82,15 @@ public class Market implements Serializable, Persistable<String>{
         this.address = address;
         this.lastUpdated = LocalDateTime.now();
         // this.isOpen = isOpen;
+    }
+
+    public void updateFromDto(MarketDto dto) {
+        this.name = dto.name();
+        this.lastUpdated = LocalDateTime.now();
+
+        this.address.setStreet(dto.addressLine1());
+        this.address.setZipCode(dto.rawValues().postalCode());
+        this.address.setCity(dto.rawValues().city());
     }
     
     // Convert DTO to Entity
