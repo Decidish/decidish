@@ -71,5 +71,14 @@ public class Product implements Serializable{
 
         return new Product(productId, name, price, imageUrl, grammage);
     }
+    
+    
+    public void updateFromDto(ProductDto dto) {
+        this.name = dto.title();
+        this.lastUpdated = LocalDateTime.now();
+        this.imageUrl = dto.imageURL();
+        this.price = dto.listing().currentRetailPrice();
+        this.grammage = dto.listing().grammage();
+    }
 }
 

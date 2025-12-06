@@ -32,4 +32,17 @@ public interface MarketRepository extends JpaRepository<Market, Long> {
     @Query("SELECT m FROM Market m LEFT JOIN FETCH m.products WHERE m.reweId = :reweId")
     @Cacheable(value = "markets_id_with_products", unless = "#a0==2L")
     Optional<Market> findByIdWithProducts(@Param("reweId") Long reweId);
+    
+    /**
+     * Finds a specific Product within a specific Market.
+     * @param marketId The external ID of the market (e.g. 540945)
+     * @param productId The external ID of the product
+     * @return The Product entity (eagerly loaded)
+     */
+    @Query("SELECT p FROM Market m JOIN m.products p WHERE m.reweId = :marketId AND p.reweId = :productId")
+    @Cacheable(value = "market_products", key = "#marketId + '-' + #productId")
+    Optional<Product> findProductByMarketAndId(
+        @Param("marketId") Long marketId, 
+        @Param("productId") Long productId
+    );
 }

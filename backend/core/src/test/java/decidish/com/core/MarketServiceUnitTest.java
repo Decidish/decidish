@@ -176,4 +176,175 @@ class MarketServiceUnitTest {
         verify(apiClient, times(1)).searchMarkets(TEST_PLZ);
         verify(marketRepository, never()).save(any());
     }
+
+//     @Test
+//     @DisplayName("getAllProducts: Should update existing products, add new ones, and save to DB")
+//     void testGetAllProducts_MergesAndSaves() {
+//         // --- 1. SETUP: Existing Database State ---
+//         String marketReweId = "540945";
+//         Long marketDbId = 100L;
+
+//         // Existing Product in DB (Price is 1.00)
+//         Product existingProduct = Product.builder()
+//                 .reweId("PROD-1")
+//                 .name("Old Milk Name")
+//                 .price(1.00)
+//                 .build();
+
+//         Market dbMarket = Market.builder()
+//                 .id(marketDbId)
+//                 .reweId(marketReweId)
+//                 .products(new ArrayList<>(List.of(existingProduct))) // Mutable list
+//                 .build();
+        
+//         // Link bidirectional
+//         existingProduct.setMarket(dbMarket);
+
+//         // Mock Repo to return this market
+//         when(marketRepository.findByReweId(marketReweId))
+//                 .thenReturn(Optional.of(dbMarket));
+
+//         // --- 2. SETUP: API Response (Fresh Data) ---
+        
+//         // Update for PROD-1 (Price changed to 1.50)
+//         MobileProduct apiUpdate = new MobileProduct(
+//             "PROD-1", "New Milk Name", "Brand", "1L", 1.50, "1,50 €", 1.0, "", null, true
+//         );
+
+//         // New Item PROD-2
+//         MobileProduct apiNew = new MobileProduct(
+//             "PROD-2", "Butter", "Brand", "250g", 2.99, "2,99 €", 10.0, "", null, true
+//         );
+
+//         ProductSearchResponse apiResponse = new ProductSearchResponse(
+//             List.of(apiUpdate, apiNew), 2, 1, 1
+//         );
+
+//         // Mock API to return these products
+//         when(apiClient.searchProducts(any(URI.class), eq(marketReweId), any(), any()))
+//                 .thenReturn(apiResponse);
+
+//         // --- 3. EXECUTE ---
+//         marketService.getAllProducts(Long.parseLong(marketReweId));
+
+//         // --- 4. VERIFY (The Crucial Part) ---
+        
+//         // Capture what was sent to the DB
+//         ArgumentCaptor<Market> marketCaptor = ArgumentCaptor.forClass(Market.class);
+        
+//         // Verify save was called exactly once
+//         verify(marketRepository).save(marketCaptor.capture());
+
+//         Market savedMarket = marketCaptor.getValue();
+
+//         // Check 1: We should now have 2 products
+//         assertEquals(2, savedMarket.getProducts().size(), "Should have 2 products (1 updated + 1 new)");
+
+//         // Check 2: Verify Update Logic (PROD-1)
+//         Product p1 = savedMarket.getProducts().stream()
+//                 .filter(p -> p.getReweId().equals("PROD-1")).findFirst().get();
+//         assertEquals(1.50, p1.getPrice(), "Existing product price should be updated");
+//         assertEquals("New Milk Name", p1.getName(), "Existing product name should be updated");
+
+//         // Check 3: Verify Insert Logic (PROD-2)
+//         Product p2 = savedMarket.getProducts().stream()
+//                 .filter(p -> p.getReweId().equals("PROD-2")).findFirst().get();
+//         assertEquals("Butter", p2.getName());
+//         assertEquals(2.99, p2.getPrice());
+        
+//         // Check 4: Relationship integrity
+//         assertEquals(savedMarket, p2.getMarket(), "New product should be linked to market");
+//     }
 }
+
+// @ExtendWith(MockitoExtension.class) // Pure Unit Test (Fast, no Spring Context)
+// class MarketServiceTest {
+
+//     @Mock
+//     private MarketRepository marketRepository;
+
+//     @Mock
+//     private ReweApiClient apiClient;
+
+//     @InjectMocks
+//     private MarketService marketService;
+
+//     @Test
+//     @DisplayName("getAllProducts: Should update existing products, add new ones, and save to DB")
+//     void testGetAllProducts_MergesAndSaves() {
+//         // --- 1. SETUP: Existing Database State ---
+//         String marketReweId = "540945";
+//         Long marketDbId = 100L;
+
+//         // Existing Product in DB (Price is 1.00)
+//         Product existingProduct = Product.builder()
+//                 .reweId("PROD-1")
+//                 .name("Old Milk Name")
+//                 .price(1.00)
+//                 .build();
+
+//         Market dbMarket = Market.builder()
+//                 .id(marketDbId)
+//                 .reweId(marketReweId)
+//                 .products(new ArrayList<>(List.of(existingProduct))) // Mutable list
+//                 .build();
+        
+//         // Link bidirectional
+//         existingProduct.setMarket(dbMarket);
+
+//         // Mock Repo to return this market
+//         when(marketRepository.findByReweId(marketReweId))
+//                 .thenReturn(Optional.of(dbMarket));
+
+//         // --- 2. SETUP: API Response (Fresh Data) ---
+        
+//         // Update for PROD-1 (Price changed to 1.50)
+//         MobileProduct apiUpdate = new MobileProduct(
+//             "PROD-1", "New Milk Name", "Brand", "1L", 1.50, "1,50 €", 1.0, "", null, true
+//         );
+
+//         // New Item PROD-2
+//         MobileProduct apiNew = new MobileProduct(
+//             "PROD-2", "Butter", "Brand", "250g", 2.99, "2,99 €", 10.0, "", null, true
+//         );
+
+//         ProductSearchResponse apiResponse = new ProductSearchResponse(
+//             List.of(apiUpdate, apiNew), 2, 1, 1
+//         );
+
+//         // Mock API to return these products
+//         when(apiClient.searchProducts(any(URI.class), eq(marketReweId), any(), any()))
+//                 .thenReturn(apiResponse);
+
+//         // --- 3. EXECUTE ---
+//         marketService.getAllProducts(Long.parseLong(marketReweId));
+
+//         // --- 4. VERIFY (The Crucial Part) ---
+        
+//         // Capture what was sent to the DB
+//         ArgumentCaptor<Market> marketCaptor = ArgumentCaptor.forClass(Market.class);
+        
+//         // Verify save was called exactly once
+//         verify(marketRepository).save(marketCaptor.capture());
+
+//         Market savedMarket = marketCaptor.getValue();
+
+//         // Check 1: We should now have 2 products
+//         assertEquals(2, savedMarket.getProducts().size(), "Should have 2 products (1 updated + 1 new)");
+
+//         // Check 2: Verify Update Logic (PROD-1)
+//         Product p1 = savedMarket.getProducts().stream()
+//                 .filter(p -> p.getReweId().equals("PROD-1")).findFirst().get();
+//         assertEquals(1.50, p1.getPrice(), "Existing product price should be updated");
+//         assertEquals("New Milk Name", p1.getName(), "Existing product name should be updated");
+
+//         // Check 3: Verify Insert Logic (PROD-2)
+//         Product p2 = savedMarket.getProducts().stream()
+//                 .filter(p -> p.getReweId().equals("PROD-2")).findFirst().get();
+//         assertEquals("Butter", p2.getName());
+//         assertEquals(2.99, p2.getPrice());
+        
+//         // Check 4: Relationship integrity
+//         assertEquals(savedMarket, p2.getMarket(), "New product should be linked to market");
+//     }
+// }

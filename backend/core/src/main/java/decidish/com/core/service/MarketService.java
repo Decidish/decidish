@@ -14,6 +14,9 @@ import decidish.com.core.api.rewe.client.ReweApiClient;
 import decidish.com.core.model.rewe.Address;
 import decidish.com.core.model.rewe.Market;
 import decidish.com.core.model.rewe.MarketSearchResponse;
+import decidish.com.core.model.rewe.Product;
+import decidish.com.core.model.rewe.ProductDto;
+import decidish.com.core.model.rewe.ProductSearchResponse;
 import decidish.com.core.model.rewe.MarketDto;
 import decidish.com.core.repository.MarketRepository;
 import jakarta.transaction.Transactional;
@@ -119,4 +122,72 @@ public class MarketService {
         return market.getLastUpdated() != null && 
                market.getLastUpdated().isAfter(LocalDateTime.now().minusWeeks(ttl));
     }
+    
+    /**
+     * @brief Get all products from a given market. Should be called sparely
+     */
+    public Market getAllProducts(Long reweId){
+        // // 1. Check DB
+        // Market dbProducts = marketRepository.findByIdWithProducts(reweId).orElse(null);
+
+        // if(dbProducts == null
+        //     // && isDataFresh(dbMarkets.get(0)) //? This could be better
+        // ){
+        //     log.info("DB Hit", reweId);
+        //     return dbProducts;
+        // }
+        
+        // 1. Fetch from API
+        log.info("Fetching from external API for ", reweId);
+        ProductSearchResponse apiResponse = apiClient.searchProducts("", 1, 250, reweId);
+        System.out.println("API Response: " + apiResponse);        
+        
+        if(apiResponse == null || apiResponse.data() == null){
+            return null;
+        }
+        
+        int numberPages = apiResponse.data().products().pagination().pageCount();
+            
+        // 3. Store in DB
+        Market savedProducts = marketRepository.findByReweId(reweId).orElse(null);
+        savedProducts.setProducts(new ArrayList<>());
+        int i = 0;
+        do {
+            for(ProductDto dto : apiResponse.data().products().products()){
+                Product productFromApi = Product.fromDto(dto);
+            
+                // 1. Find the existing Product by its unique ID (productId)
+                Product productToSave = marketRepository.findProductByMarketAndId(reweId, productFromApi.getId())
+                    .map(existingProduct -> {
+                        // --- CASE 1: PRODUCT EXISTS (UPDATE LOGIC) ---
+                        System.out.println("Product exists in DB. Updating: " + existingProduct.getId() + "(" + existingProduct.getName() + ")");
+                        existingProduct.updateFromDto(dto);
+                        return existingProduct;
+                    })
+                    .orElseGet(() -> {
+                        // --- CASE 2: MARKET DOES NOT EXIST (INSERT LOGIC) ---
+                        // Return the new object created from the DTO
+                        return productFromApi;
+                    });
+                savedProducts.addProduct(productToSave);
+            }
+            ++i;
+            if(i < numberPages){ // Still pages left
+                log.info("Fetching from external API for ", reweId);
+                apiResponse = apiClient.searchProducts("", i, 250, reweId);
+                System.out.println("API Response: " + apiResponse);        
+            }
+        }while(i<numberPages); //? Maybe refactor this with just a for, numberPages = 1 ini and then update
+            
+        marketRepository.save(savedProducts);
+        return savedProducts;
+    }
+    
+    /**
+     * @brief Query a certain product for a given market
+     */
+    // public List<Product> getProduct(Long marketId, String product){
+    //     // 1. Check DB
+    //     Market dbProducts = marketRepository.getMarketsByAddress(plz).orElse(List.of());
+    // }
 }

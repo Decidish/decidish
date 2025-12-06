@@ -130,5 +130,10 @@ class ReweConfigTest {
         if(products.get(0).listing().discount() != null){
             System.out.println("discount: " + products.get(0).listing().discount().__typename());
         }
+        Pagination pagination = info.pagination();
+        System.out.println("objetctsPerPage: " + pagination.objectsPerPage());
+        System.out.println("currentPage: " + pagination.currentPage());
+        System.out.println("pageCount: " + pagination.pageCount());
+        System.out.println("objectCount: " + pagination.objectCount());
     }
 }
