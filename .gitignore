@@ -4,3 +4,5 @@
 kafka
 init-scripts
 **certificates
+node_modules/
+.expo/

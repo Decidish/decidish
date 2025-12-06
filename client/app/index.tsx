@@ -9,7 +9,7 @@ export default function Index(){
     useEffect(()=>{
         async function checkOnboarding() {
             const value = await AsyncStorage.getItem('onboardingCompleted');
-            setCompleted(value === 'true'); //call setcomplete to uupdate the value of complete
+            setCompleted(value === 'true'); //call setcomplete to update the value of complete
             setReady(true);
         }
         checkOnboarding();
