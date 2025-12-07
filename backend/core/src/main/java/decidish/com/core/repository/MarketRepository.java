@@ -18,7 +18,7 @@ public interface MarketRepository extends JpaRepository<Market, Long> {
     /**
      * Get markets by address PLZ
      */
-    @Query("SELECT m FROM Market m JOIN m.address a WHERE a.zip_code = :plz")
+    @Query("SELECT m FROM Market m JOIN m.address a WHERE a.zipCode = :plz")
     // @Cacheable(value = "markets", unless = "#a0=='54321'") // For testing
     @Cacheable(value = "markets")
     Optional<List<Market>> getMarketsByAddress(@Param("plz") String plz);
@@ -42,7 +42,8 @@ public interface MarketRepository extends JpaRepository<Market, Long> {
      * @param productId The external ID of the product
      * @return The Product entity (eagerly loaded)
      */
-    @Query("SELECT p FROM Market m JOIN m.products p WHERE m.id = :marketId AND p.id = :productId")
+    // @Query("SELECT p FROM Market m JOIN m.products p WHERE m.id = :marketId AND p.id = :productId")
+    @Query("SELECT p FROM Product p JOIN p.market m WHERE m.id = :marketId AND p.id = :productId")
     @Cacheable(value = "market_products", key = "#marketId + '-' + #productId")
     Optional<Product> findProductByMarketAndId(
         @Param("marketId") Long marketId, 

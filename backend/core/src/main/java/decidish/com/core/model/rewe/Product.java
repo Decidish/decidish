@@ -4,7 +4,10 @@ import java.io.Serializable;
 import java.time.LocalDateTime;
 import java.util.Objects;
 
+import org.springframework.data.domain.Persistable;
+
 import com.fasterxml.jackson.annotation.JsonBackReference;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 
 import jakarta.persistence.*;
 import lombok.Data;
@@ -22,7 +25,7 @@ import lombok.ToString;
 // @EqualsAndHashCode 
 @Getter @Setter
 // Serializable: helps convert object to bytes, useful for redis cache
-public class Product implements Serializable{
+public class Product implements Serializable, Persistable<Long>{
 
     @Id
     private Long id;
@@ -101,6 +104,22 @@ public class Product implements Serializable{
     public int hashCode() {
         // Return a constant to be safe with Hibernate proxies
         return getClass().hashCode();
+    }
+    
+    // --- Persistable Implementation ---
+    @Transient
+    @JsonIgnore
+    private boolean isNew = true;
+
+    @Override
+    public boolean isNew() {
+        return isNew;
+    }
+
+    @PostLoad
+    @PostPersist
+    void markNotNew() {
+        this.isNew = false;
     }
 }
 

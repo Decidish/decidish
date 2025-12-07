@@ -27,7 +27,7 @@ import static org.junit.jupiter.api.Assertions.*;
 // @AutoConfigureTestDatabase(replace = AutoConfigureTestDatabase.Replace.NONE)
 @Tag("integration") // Useful to skip this test in CI builds
 @Transactional
-class MarketServiceLiveTest {
+class MarketServiceIntegrationTest {
 
     @Autowired
     private MarketService marketService;
