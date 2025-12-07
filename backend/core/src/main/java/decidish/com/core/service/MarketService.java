@@ -248,7 +248,7 @@ public class MarketService {
          return finalBatch;
     }
     
-    // --- Helper for the Merge Logic (Keeps the main method clean) ---
+    // // --- Helper for the Merge Logic (Keeps the main method clean) ---
     // private List<Market> mergeApiWithDb(List<MarketDto> apiDtos) {
     //      List<Long> apiIds = apiDtos.stream().map(MarketDto::id).toList();
     //      Map<Long, Market> marketMap = getMarketsFromCacheOrDb(apiIds);
