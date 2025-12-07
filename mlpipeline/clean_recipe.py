@@ -44,14 +44,18 @@ def generate_new_json(data: Dict) -> Dict:
         description = v.get("description") or ''
         recipes = category + "\n" + description + "\n" + ingridients
         result[k]["recipes"] = recipes
+        embed = []
         for i in preferences:
             result[k][i] = 0
+            embed.append(0)
         keywords = v.get("keywords")
         if keywords is not None:
-            for key in keywords:
+            for idx, key in enumerate(keywords):
                 label = keyword_preference_map.get(key)
                 if label is not None:
                     result[k][label] = 1
+                    embed[idx] = 1
+        result[k]["embed"] = embed
     return result
 
 
