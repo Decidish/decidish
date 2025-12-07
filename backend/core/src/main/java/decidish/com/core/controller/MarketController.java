@@ -65,6 +65,8 @@ public class MarketController {
             return ResponseEntity.ok(updatedMarket);
         } catch (RuntimeException e) {
             // Handle case where market is not found (Service throws RuntimeException)
+             System.err.println("Controller Error for ID " + marketId + ": " + e.getMessage());
+            e.printStackTrace();
             return ResponseEntity.notFound().build();
         }
     }

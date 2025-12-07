@@ -215,7 +215,7 @@ public class MarketService {
             if(i < numberPages){ // Still pages left
                 log.info("Fetching from external API for ", reweId);
                 response = apiClient.searchProducts("", i, DEFAULT_OBJECTS_PER_PAGE, reweId);
-                System.out.println("API Response: " + response);        
+                // System.out.println("API Response: " + response);        
             }
         }while(i<numberPages); //? Maybe refactor this with just a for, numberPages = 1 ini and then update
 
