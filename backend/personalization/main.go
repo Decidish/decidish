@@ -27,7 +27,6 @@ func main() {
 	defer func(db *sql.DB) {
 		_ = db.Close()
 	}(db)
-
 	// Run database migrations
 	dbDriver.RunMigrations(appConfig, db)
 

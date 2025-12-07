@@ -2,13 +2,17 @@ package migrations
 
 import (
 	"bufio"
+	"bytes"
 	"database/sql"
 	"encoding/json"
 	"errors"
+	"fmt"
+	"net/http"
 	"os"
 	"regexp"
 	"strconv"
 	"strings"
+	"time"
 )
 
 type Nutrients struct {
@@ -33,6 +37,29 @@ type Recipe struct {
 
 	Title  string `json:"title"`
 	Yields string `json:"yields"`
+}
+
+func (r Recipe) String() string {
+	ingredientsStr := strings.Join(r.Ingredients, ", ")
+
+	keywordsStr := strings.Join(r.KeyWords, ", ")
+
+	// We explicitly label each part so the model understands the context.
+	return fmt.Sprintf(
+		"Title: %s. Description: %s. Category: %s. Ingredients: %s. Instructions: %s. Keywords: %s. Nutrition: %s calories per %s. Time: %d minutes total (%d prep, %d cook). Yields: %s.",
+		r.Title,
+		r.Description,
+		r.Category,
+		ingredientsStr,
+		r.Instructions,
+		keywordsStr,
+		r.Nutrients.Calories,
+		r.Nutrients.ServingSize,
+		r.TotalTime,
+		r.PrepTime,
+		r.CookTime,
+		r.Yields,
+	)
 }
 
 func SaveRecipe(recipe *Recipe, tx *sql.Tx) (int, error) {
@@ -185,6 +212,9 @@ func UpSeedRecipesTable(db *sql.DB) error {
 	scanner := bufio.NewScanner(f)
 	recipeCount := 1
 
+	var recipeIds []int
+	var recipeStr []string
+
 	for scanner.Scan() {
 
 		line := scanner.Bytes()
@@ -222,6 +252,8 @@ func UpSeedRecipesTable(db *sql.DB) error {
 			return err
 		}
 
+		recipeIds = append(recipeIds, recipeId)
+		recipeStr = append(recipeStr, recipe.String())
 		recipeCount++
 	}
 
@@ -229,6 +261,29 @@ func UpSeedRecipesTable(db *sql.DB) error {
 	if err != nil {
 		return err
 	}
+
+	// Create embedding request to the mlpipeline
+	go func() {
+		start := time.Now()
+
+		type EmbedRequest struct {
+			RecipeIds  []int    `json:"recipe_ids"`
+			RecipeStrs []string `json:"recipe_strs"`
+		}
+		jsonBody, err := json.Marshal(EmbedRequest{recipeIds, recipeStr})
+		if err != nil {
+			return
+		}
+		resp, err := http.Post("http://localhost:8000/process_batch", "application/json", bytes.NewBuffer(jsonBody))
+		if err != nil {
+			fmt.Println("Error:", err)
+			return
+		}
+		defer resp.Body.Close()
+
+		end := time.Now()
+		fmt.Println("Async request status:", resp.Status, end.Sub(start))
+	}()
 
 	return nil
 }

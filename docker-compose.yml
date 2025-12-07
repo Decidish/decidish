@@ -120,7 +120,6 @@ services:
       - DATABASE_URL=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
     depends_on:
       - db_backend
-      - personalization-server
     networks:
       - app-network
 

@@ -7,6 +7,7 @@ import (
 	"log"
 	"os"
 	"personalization/config"
+	"time"
 
 	"github.com/minio/minio-go/v7"
 	"github.com/minio/minio-go/v7/pkg/credentials"
@@ -54,7 +55,9 @@ func DownloadRecipesIfNotPresent(config config.ApplicationConfig) error {
 }
 
 func ExecuteGoMigrations(config config.ApplicationConfig, db *sql.DB) error {
-	goVersions := []string{"20251130150754"}
+	goVersions := []string{"20251207182955"}
+
+	start := time.Now()
 
 	var existingId string
 	err := db.QueryRow(
@@ -80,11 +83,15 @@ func ExecuteGoMigrations(config config.ApplicationConfig, db *sql.DB) error {
 	_, err = db.Exec(`
 	INSERT INTO decidish.public.goose_db_version (version_id, is_applied)
 	VALUES ($1, $2)	
-	`, "20251130150754", true)
+	`, "20251207182955", true)
 
 	if err != nil {
 		return err
 	}
+
+	end := time.Now()
+
+	log.Printf("Migration took %s", end.Sub(start))
 
 	return nil
 }

@@ -3,7 +3,7 @@
 CREATE TABLE user_embeddings (
     id SERIAL PRIMARY KEY,
     user_id INT,
-    embedding vector(10)
+    embedding vector(384)
 );
 
 CREATE INDEX ON user_embeddings USING hnsw (embedding vector_cosine_ops)

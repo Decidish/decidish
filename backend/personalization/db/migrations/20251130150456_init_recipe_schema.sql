@@ -31,22 +31,22 @@ CREATE TABLE recipes (
 );
 
 CREATE TABLE recipe_keywords (
-    recipe_id INT,
-    keyword_id INT,
+    recipe_id INT references recipes(id) ON DELETE CASCADE,
+    keyword_id INT references keywords(id),
 
     PRIMARY KEY (recipe_id, keyword_id)
 );
 
 CREATE TABLE recipe_categories (
-    recipe_id INT,
-    category_id INT,
+    recipe_id INT references recipes(id) ON DELETE CASCADE,
+    category_id INT references categories(id),
 
     PRIMARY KEY (recipe_id, category_id)
 );
 
 CREATE TABLE recipe_ingredients (
-    recipe_id INT,
-    ingredient_id INT,
+    recipe_id INT references recipes(id) ON DELETE CASCADE,
+    ingredient_id INT references ingredients(id),
     quantity DECIMAL(8, 2),
     unit VARCHAR(50),
 

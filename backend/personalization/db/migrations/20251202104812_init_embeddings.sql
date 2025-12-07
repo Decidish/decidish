@@ -4,8 +4,8 @@ CREATE EXTENSION vector;
 
 CREATE TABLE recipe_embeddings (
     id SERIAL PRIMARY KEY,
-    recipe_id INT references recipes(id),
-    embedding vector(10)
+    recipe_id INT references recipes(id) ON DELETE CASCADE,
+    embedding vector(384)
 );
 
 CREATE INDEX ON recipe_embeddings USING hnsw (embedding vector_cosine_ops)
