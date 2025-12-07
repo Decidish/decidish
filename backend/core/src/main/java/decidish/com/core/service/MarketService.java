@@ -1,22 +1,15 @@
 package decidish.com.core.service;
 
-import java.net.URI;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
-import java.util.stream.Collectors;
 
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
-// import org.springframework.data.redis.core.RedisTemplate;
-import org.springframework.web.util.UriComponentsBuilder;
 
 import decidish.com.core.api.rewe.client.ReweApiClient;
-import decidish.com.core.model.rewe.Address;
 import decidish.com.core.model.rewe.Market;
 import decidish.com.core.model.rewe.MarketSearchResponse;
 import decidish.com.core.model.rewe.Product;
@@ -35,6 +28,8 @@ import org.slf4j.LoggerFactory;
 public class MarketService {
 
     private static final Logger log = LoggerFactory.getLogger(MarketService.class);
+    private final int TTL_WEEKS = 1; // Default Time to live for cache freshness
+    private final int DEFAULT_OBJECTS_PER_PAGE = 250; // Default number of objects per page from REWE API
 
     @Autowired
     private MarketRepository marketRepository;
@@ -118,15 +113,14 @@ public class MarketService {
     
     private boolean isDataFresh(Market market) {
         //? Check in case they open a new market or move it / change timetable etc
-        int ttl = 1; // Time to live
+        int ttl = TTL_WEEKS; // Time to live
         return market.getLastUpdated() != null && 
                market.getLastUpdated().isAfter(LocalDateTime.now().minusWeeks(ttl));
     }
     
     //TODO This is maybe more efficient
     // @Transactional
-    // public Market getAllProducts(Long reweIdLong) {
-    //     String reweId = String.valueOf(reweIdLong);
+    // public Market getAllProductsEfficient(Long reweId) {
 
     //     Market market = marketRepository.findByReweId(reweId)
     //             .orElseThrow(() -> new RuntimeException("Market not found"));
@@ -173,18 +167,18 @@ public class MarketService {
 
     //     return marketRepository.save(market);
     // }
-    
+
     /**
-     * @brief Get all products from a given market. Should be called sparely
+     * @brief Query a certain product for a given market. Set number of pages to fetch.
      */
     @Transactional
     //? Probably make void in the future
-    public Market getAllProducts(Long reweId) {
+    private Market getProducts(Long reweId, String query, int numPages) {
         Market market = marketRepository.findByReweId(reweId)
                 .orElseThrow(() -> new RuntimeException("Market not found"));
 
-        // 1. Fetch from API
-        ProductSearchResponse response = apiClient.searchProducts("", 1, 250, reweId);
+        // 1. Fetch from API (first page to get pagination info)
+        ProductSearchResponse response = apiClient.searchProducts(query, 1, DEFAULT_OBJECTS_PER_PAGE, reweId);
         if (response == null || response.data() == null) return market;
 
         // 2. Create Lookup Map (Sanitized)
@@ -194,7 +188,9 @@ public class MarketService {
             existingMap.put(p.getId(), p);
         }
 
-        int numberPages = response.data().products().pagination().pageCount();
+        int queryPages = response.data().products().pagination().pageCount();
+
+        int numberPages = Math.min(numPages, queryPages);
         // 3. Process API items
         int i = 0;
         do {
@@ -218,23 +214,32 @@ public class MarketService {
             ++i;
             if(i < numberPages){ // Still pages left
                 log.info("Fetching from external API for ", reweId);
-                response = apiClient.searchProducts("", i, 250, reweId);
+                response = apiClient.searchProducts("", i, DEFAULT_OBJECTS_PER_PAGE, reweId);
                 System.out.println("API Response: " + response);        
             }
         }while(i<numberPages); //? Maybe refactor this with just a for, numberPages = 1 ini and then update
 
         // 4. Save
+        // save() is smart enough to handle both INSERTS and UPDATES in one go.
         Market savedMarket = marketRepository.save(market);
         // Does not work: Force Hibernate to fetch the products BEFORE the transaction closes
         Hibernate.initialize(savedMarket.getProducts());
         return savedMarket;
     }
-    
+
     /**
-     * @brief Query a certain product for a given market
+     * @brief Query a certain product for a given market. Only first page.
      */
-    // public List<Product> getProduct(Long marketId, String product){
-    //     // 1. Check DB
-    //     Market dbProducts = marketRepository.getMarketsByAddress(plz).orElse(List.of());
-    // }
+    @Transactional
+    public Market getProductsQuery(Long marketId, String query) {
+        return getProducts(marketId, query, 1);  
+    }
+
+    /**
+     * @brief Get all products from a given market. Should be called sparely.
+     */
+    @Transactional
+    public Market getAllProducts(Long reweId) {
+        return getProducts(reweId, "", Integer.MAX_VALUE);  
+    }
 }

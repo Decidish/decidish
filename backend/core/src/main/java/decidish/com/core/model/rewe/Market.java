@@ -40,7 +40,6 @@ public class Market implements Serializable, Persistable<Long>{
 
     @OneToMany(mappedBy = "market", cascade = CascadeType.ALL, fetch = FetchType.LAZY, orphanRemoval = true)
     @JsonManagedReference
-    @Builder.Default
     @ToString.Exclude
     private List<Product> products = new ArrayList<>();
 
