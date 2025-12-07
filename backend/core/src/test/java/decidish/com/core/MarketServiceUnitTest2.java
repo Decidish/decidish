@@ -89,7 +89,7 @@ class MarketServiceUnitTest2 {
         when(marketRepository.save(any(Market.class)))
             .thenAnswer(invocation -> invocation.getArgument(0));
         // --- 3. EXECUTE ---
-        marketService.getAllProducts(marketDbId);
+        marketService.getAllProductsAPI(marketDbId);
 
         // --- 4. VERIFY (The Crucial Part) ---
         
@@ -155,7 +155,7 @@ class MarketServiceUnitTest2 {
             .thenAnswer(invocation -> invocation.getArgument(0));
 
         // --- EXECUTE ---
-        marketService.getAllProducts(540L);
+        marketService.getAllProductsAPI(540L);
 
         // --- VERIFY ---
         ArgumentCaptor<Market> captor = ArgumentCaptor.forClass(Market.class);

@@ -59,13 +59,13 @@ class MarketControllerUnitTest {
         mockMarket.setReweId(marketId);
         mockMarket.setName("REWE with Products");
 
-        when(marketService.getAllProducts(marketId)).thenReturn(mockMarket);
+        when(marketService.getAllProductsAPI(marketId)).thenReturn(mockMarket);
 
         // Act & Assert
         mockMvc.perform(get("/markets/{id}/products", marketId))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.name").value("REWE with Products"));
         
-        verify(marketService).getAllProducts(marketId);
+        verify(marketService).getAllProductsAPI(marketId);
     }
 }
