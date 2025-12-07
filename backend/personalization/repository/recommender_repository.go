@@ -6,28 +6,40 @@ import (
 )
 
 type RecommenderRepository struct {
-	db *sql.DB
+	Db *sql.DB
 }
 
 func (repo RecommenderRepository) GetRecommendedRecipesForUser(userId string) ([]migrations.Recipe, error) {
-	var userVector []float64
+	query, err := repo.Db.Query(`
+		WITH recommender AS ( 
+		    SELECT re.recipe_id, r.embedding <=> re.embedding as dist 
+			FROM recipe_embeddings re, (SELECT embedding
+		    FROM user_embeddings
+		    WHERE user_id = $1) r
+			ORDER BY dist
+			LIMIT 20
+		 )
+		SELECT re.*
+		FROM recommender r, recipes re
+		WHERE r.recipe_id = re.id`, userId)
 
-	err := repo.db.QueryRow(`
-	SELECT embedding
-	FROM user_embeddings
-	WHERE user_id = $1
-	`, userId).Scan(&userVector)
+	defer query.Close()
 
 	if err != nil {
 		return nil, err
 	}
 
-	_, err = repo.db.Query(`
-	SELECT r.embedding <=> $1::vector
-	FROM recipe_embeddings r
-	`, userVector)
+	var recipes []migrations.Recipe
 
-	// return rows, nil
-	// TODO: Create recipe objects here to return and unmarshal even for client
-	return nil, nil
+	for query.Next() {
+		var recipe migrations.Recipe
+
+		if err := query.Scan(&recipe); err != nil {
+			return nil, err
+		}
+
+		recipes = append(recipes, recipe)
+	}
+
+	return recipes, nil
 }

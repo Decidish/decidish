@@ -8,15 +8,22 @@ import (
 	"personalization/controller"
 	"personalization/db/driver"
 	"personalization/events"
+	"personalization/repository"
+	"personalization/service"
 	"strconv"
 	"time"
 
 	"github.com/gin-gonic/gin"
+	"github.com/joho/godotenv"
 	"github.com/segmentio/kafka-go"
 )
 
-
 func setupAppConfig() config.ApplicationConfig {
+	err := godotenv.Load()
+	if err != nil {
+		log.Println("Note: Could not find .env file, relying on shell environment.")
+	}
+
 	appConfig := config.ApplicationConfig{}
 
 	appConfig.LoadConfiguration()
@@ -104,5 +111,17 @@ func createUserActionMappings(r *gin.RouterGroup, kafkaWriter *kafka.Writer) {
 }
 
 func createRecommendRecipesMappings(r *gin.RouterGroup, db *sql.DB) {
-	
+	recipeRepo := repository.RecommenderRepository{
+		Db: db,
+	}
+
+	recipeService := service.RecommenderService{
+		RecommenderRepository: recipeRepo,
+	}
+
+	recipeController := controller.RecommenderController{
+		RecommenderService: recipeService,
+	}
+
+	recipeController.AddMappings(r)
 }

@@ -1,6 +1,7 @@
 package service
 
 import (
+	"net/http"
 	"personalization/repository"
 
 	"github.com/gin-gonic/gin"
@@ -17,5 +18,10 @@ func (service RecommenderService) RecommendRecipeForUser(ctx *gin.Context) {
 		panic("no user id found")
 	}
 
-	service.RecommenderRepository.GetRecommendedRecipesForUser(userId)
+	recipes, err := service.RecommenderRepository.GetRecommendedRecipesForUser(userId)
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+	}
+
+	ctx.JSON(http.StatusOK, recipes)
 }

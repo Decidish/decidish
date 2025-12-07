@@ -13,11 +13,10 @@ import (
 )
 
 const (
-	LocalFilename = "recipes.jsonl" // The name of the file to save locally
+	LocalFilename = "db/scripts/recipes.jsonl" // The name of the file to save locally
 )
 
 func DownloadRecipesIfNotPresent(config config.ApplicationConfig) error {
-	// 1. Check if the file already exists locally.
 	if _, err := os.Stat(LocalFilename); err == nil {
 		log.Printf("File %s already exists locally. Skipping download.", LocalFilename)
 		return nil
@@ -57,16 +56,11 @@ func DownloadRecipesIfNotPresent(config config.ApplicationConfig) error {
 func ExecuteGoMigrations(config config.ApplicationConfig, db *sql.DB) error {
 	goVersions := []string{"20251130150754"}
 
-	err := DownloadRecipesIfNotPresent(config)
-
-	if err != nil {
-		return err
-	}
-
 	var existingId string
-	err = db.QueryRow(
+	err := db.QueryRow(
 		`SELECT version_id FROM goose_db_version WHERE version_id = $1`,
 		goVersions[0]).Scan(&existingId)
+
 	if !errors.Is(err, sql.ErrNoRows) {
 		return err
 	}
@@ -75,6 +69,8 @@ func ExecuteGoMigrations(config config.ApplicationConfig, db *sql.DB) error {
 		log.Printf("Found existing goose_db_version %s.", existingId)
 		return nil
 	}
+
+	err = DownloadRecipesIfNotPresent(config)
 
 	err = UpSeedRecipesTable(db)
 	if err != nil {

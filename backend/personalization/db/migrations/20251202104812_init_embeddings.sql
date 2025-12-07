@@ -16,5 +16,6 @@ SET hnsw.ef_search = 128;
 
 -- +goose Down
 -- +goose StatementBegin
-DROP INDEX IF EXISTS
+DROP INDEX IF EXISTS recipe_embeddings_embedding_idx;
+DROP TABLE recipe_embeddings;
 -- +goose StatementEnd

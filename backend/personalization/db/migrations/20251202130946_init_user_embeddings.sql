@@ -12,4 +12,6 @@ WITH (m = 16, ef_construction = 200);
 
 -- +goose Down
 -- +goose StatementBegin
+DROP INDEX IF EXISTS user_embeddings_embedding_idx;
+DROP TABLE user_embeddings;
 -- +goose StatementEnd

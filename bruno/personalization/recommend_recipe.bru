@@ -1,0 +1,20 @@
+meta {
+  name: recommend_recipe
+  type: http
+  seq: 2
+}
+
+get {
+  url: http://localhost:8082/api/v1/recipes/recommend
+  body: none
+  auth: inherit
+}
+
+headers {
+  Cookie: auth_token=[AUTH-TOKEN-HERE]
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}

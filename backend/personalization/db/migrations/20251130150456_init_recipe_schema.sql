@@ -5,6 +5,11 @@ CREATE TABLE categories (
     name VARCHAR(50) UNIQUE NOT NULL
 );
 
+CREATE TABLE keywords (
+    id SERIAL PRIMARY KEY,
+    name VARCHAR(50) UNIQUE NOT NULL
+);
+
 CREATE TABLE ingredients (
     id SERIAL PRIMARY KEY,
     name VARCHAR(255) UNIQUE NOT NULL
@@ -17,8 +22,19 @@ CREATE TABLE recipes (
     instructions TEXT,
     cook_time INT,
     prep_time INT,
+    total_time INT,
     image VARCHAR(255),
-    yields TEXT
+    rating FLOAT,
+    serving_size VARCHAR(50),
+    calories VARCHAR(10),
+    yields VARCHAR(20)
+);
+
+CREATE TABLE recipe_keywords (
+    recipe_id INT,
+    keyword_id INT,
+
+    PRIMARY KEY (recipe_id, keyword_id)
 );
 
 CREATE TABLE recipe_categories (
@@ -43,7 +59,9 @@ CREATE TABLE recipe_ingredients (
 -- +goose StatementBegin
 DROP TABLE recipe_ingredients;
 DROP TABLE recipe_categories;
+DROP TABLE recipe_keywords;
 DROP TABLE recipes;
 DROP TABLE ingredients;
 DROP TABLE categories;
+DROP TABLE keywords;
 -- +goose StatementEnd

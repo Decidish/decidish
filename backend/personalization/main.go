@@ -51,6 +51,7 @@ func main() {
 	protected.Use(middleware.AuthMiddleware(appConfig))
 	{
 		createUserActionMappings(protected, kafkaWriter)
+		createRecommendRecipesMappings(protected, db)
 	}
 
 	if err := r.Run(":8082"); err != nil {
