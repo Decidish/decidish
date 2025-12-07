@@ -119,6 +119,134 @@ public class MarketService {
             
         return savedMarkets;
     }
+    
+    // @Transactional 
+    // public List<Market> getMarkets(String plz) {
+    //     // 1. Check DB
+    //     List<Market> dbMarkets = marketRepository.getMarketsByAddress(plz).orElse(List.of());
+    //     if (!dbMarkets.isEmpty() && isDataFresh(dbMarkets.get(0))) {
+    //         return dbMarkets;
+    //     }
+
+    //     // 2. Fetch from API
+    //     MarketSearchResponse apiResponse = apiClient.searchMarkets(plz);
+    //     if (apiResponse == null || apiResponse.markets() == null) return List.of();
+
+    //     // --- SEPARATION LOGIC ---
+
+    //     // A. Get IDs to find existing entries
+    //     List<String> apiIds = apiResponse.markets().stream()
+    //             .map(dto -> String.valueOf(dto.id()))
+    //             .toList();
+
+    //     // B. Load existing markets (Managed Entities)
+    //     List<Market> existingMarkets = marketRepository.findByReweIdIn(apiIds);
+    //     Map<String, Market> existingMap = existingMarkets.stream()
+    //             .collect(Collectors.toMap(Market::getReweId, Function.identity()));
+
+    //     // C. Buckets for separation
+    //     List<Market> marketsToReturn = new ArrayList<>();
+    //     List<Market> marketsToInsert = new ArrayList<>();
+
+    //     for (MarketDto dto : apiResponse.markets()) {
+    //         String reweId = String.valueOf(dto.id());
+
+    //         if (existingMap.containsKey(reweId)) {
+    //             // --- UPDATE PATH ---
+    //             Market existing = existingMap.get(reweId);
+                
+    //             // 1. Modify the object
+    //             // Since this object is "Managed" by Hibernate (fetched in this transaction),
+    //             // Hibernate detects these changes and auto-generates an UPDATE SQL at the end.
+    //             existing.setName(dto.getName());
+    //             existing.setLastUpdated(LocalDateTime.now());
+    //             // existing.getAddress().setStreet(...) 
+                
+    //             // 2. Add to return list
+    //             // WE DO NOT CALL repository.save(existing) HERE!
+    //             marketsToReturn.add(existing);
+                
+    //         } else {
+    //             // --- INSERT PATH ---
+    //             Market newMarket = Market.fromDto(dto);
+    //             newMarket.setId(dto.id()); // Manual ID
+                
+    //             // Add to the "Insert Queue"
+    //             marketsToInsert.add(newMarket);
+    //         }
+    //     }
+
+    //     // D. Batch Insert ONLY the new ones
+    //     if (!marketsToInsert.isEmpty()) {
+            
+    //         // This generates INSERT statements
+    //         List<Market> savedNewMarkets = marketRepository.saveAll(marketsToInsert);
+            
+    //         // Add them to the final list
+    //         marketsToReturn.addAll(savedNewMarkets);
+    //     }
+
+    //     // E. Transaction Commit happens here
+    //     // Hibernate sees the "marketsToReturn" that were modified in the loop 
+    //     // and generates UPDATE statements for them automatically.
+        
+    //     return marketsToReturn;
+    // }
+    
+    //TODO this is probably more efficient
+    // @Transactional
+    // public List<Market> getMarkets(String plz) {
+    //     // 1. Check DB (Cache) first
+    //     List<Market> dbMarkets = marketRepository.getMarketsByAddress(plz).orElse(List.of());
+    //     if (!dbMarkets.isEmpty() && isDataFresh(dbMarkets.get(0))) {
+    //         return dbMarkets;
+    //     }
+
+    //     // 2. Fetch from API
+    //     MarketSearchResponse apiResponse = apiClient.searchMarkets(plz);
+    //     if (apiResponse == null || apiResponse.markets() == null) return List.of();
+
+    //     // --- EFFICIENT MERGE LOGIC START ---
+
+    //     // A. Collect all IDs from the API response
+    //     List<Long> apiIds = new ArrayList<>();
+    //     for (MarketDto dto : apiResponse.markets()) {
+    //         apiIds.add(dto.id());
+    //     }
+
+    //     // B. Fetch ALL existing markets from DB in ONE query
+    //     // This tells us exactly which markets we already have (to update) vs new ones (to insert)
+    //     List<Market> existingMarkets = marketRepository.findByReweIdIn(apiIds);
+
+    //     List<Market> batchToSave = new ArrayList<>();
+
+    //     // C. Loop through API data and decide: Update or Insert?
+    //     for (MarketDto dto : apiResponse.markets()) {
+    //         String currentId = String.valueOf(dto.id());
+
+    //         // Try to find this ID in our existing list
+    //         Market market = existingMarkets.stream()
+    //                 .filter(m -> m.getReweId().equals(currentId))
+    //                 .findFirst()
+    //                 .orElse(null);
+
+    //         if (market != null) {
+    //             // CASE 1: UPDATE
+    //             // We modify the EXISTING object. Hibernate sees the ID matches and updates the row.
+    //             market.updateFromDto(dto);
+    //         } else {
+    //             // CASE 2: INSERT
+    //             // We create a NEW object.
+    //             market = Market.fromDto(dto);
+    //             // market.setId(dto.id()); // CRITICAL: Set Manual ID for Persistable
+    //         }
+
+    //         batchToSave.add(market);
+    //     }
+
+    //     // D. Save everything in one go
+    //     return marketRepository.saveAll(batchToSave);
+    // }
 
 
     // TODO: We need to implement more efficient market retrieval methods use caching and also call the externals APIs if needed.

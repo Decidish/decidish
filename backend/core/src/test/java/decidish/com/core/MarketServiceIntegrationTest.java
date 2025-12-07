@@ -161,12 +161,15 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.jdbc.AutoConfigureTestDatabase;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.test.context.ActiveProfiles;
 
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
@@ -176,6 +179,8 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import decidish.com.core.service.MarketService;
+import jakarta.persistence.EntityManager;
+import jakarta.transaction.Transactional;
 
 // Ensure Spring Boot context is loaded for autowiring and transactional boundary
 @SpringBootTest
@@ -183,6 +188,8 @@ import decidish.com.core.service.MarketService;
 @ActiveProfiles("test") 
 // Use Replace.NONE if you are using Testcontainers to connect to a real instance
 @AutoConfigureTestDatabase(replace = AutoConfigureTestDatabase.Replace.NONE) 
+@Transactional
+@DirtiesContext(classMode = DirtiesContext.ClassMode.AFTER_EACH_TEST_METHOD)
 class MarketServiceIntegrationTest {
 
     private final String TEST_PLZ = "80331";
@@ -196,6 +203,8 @@ class MarketServiceIntegrationTest {
     // Use the real repository to interact with the test DB
     @Autowired
     private MarketRepository marketRepository;
+
+    @Autowired private EntityManager entityManager;
 
     // Mock the external API
     @MockBean
@@ -233,6 +242,7 @@ class MarketServiceIntegrationTest {
     void tearDown() {
         // Clean up after each test
         marketRepository.deleteAll();
+        marketRepository.flush();
     }
 
     // ----------------------------------------------------------------------
@@ -253,6 +263,16 @@ class MarketServiceIntegrationTest {
 
         // Act
         List<Market> result = marketService.getMarkets(TEST_PLZ);
+        // Force Hibernate to execute the INSERT statements pending in memory
+        marketRepository.flush();
+        
+        assertFalse(result.isEmpty());
+        // 3. FORCE DB SYNC 
+        // This forces Hibernate to run the INSERT statements right now.
+        // If there is a DB error (like nulls or constraints), it will crash HERE.
+        entityManager.flush(); 
+        // This clears the Java memory cache. The next query MUST go to the DB.
+        entityManager.clear(); 
 
         // Assert
         assertEquals(2, result.size());
@@ -265,6 +285,8 @@ class MarketServiceIntegrationTest {
         verify(apiClient, times(1)).searchMarkets(TEST_PLZ);
         
         // Assert the new market was saved correctly
+         // Force Hibernate to execute the INSERT statements pending in memory
+        marketRepository.flush();
         Optional<Market> market1 = marketRepository.findByReweId(NEW_MARKET_ID);
         assertTrue(market1.isPresent());
         assertEquals("REWE New Market", market1.get().getName());
@@ -286,6 +308,8 @@ class MarketServiceIntegrationTest {
 
         // Act
         List<Market> result = marketService.getMarkets(TEST_PLZ);
+        // Force Hibernate to execute the INSERT statements pending in memory
+        marketRepository.flush();
 
         // Assert
         assertEquals(1, result.size());
