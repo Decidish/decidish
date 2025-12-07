@@ -126,4 +126,43 @@ class MarketControllerIntegrationTest {
         assertEquals(1, updatedMarket.getProducts().size());
         assertEquals("Integration Milk", updatedMarket.getProducts().get(0).getName());
     }
+
+    @Test
+    @DisplayName("GET /markets/{id}/query?query=... -> Fetches Products with Query, Updates DB, Returns JSON")
+    void testGetAllProductsWithQuery_EndToEnd() throws Exception {
+        // --- 1. ARRANGE: Pre-seed Database ---
+        Market dbMarket = new Market();
+        dbMarket.setReweId(MARKET_ID1);
+        dbMarket.setName("Market Before Query Products");
+        marketRepository.save(dbMarket);
+
+        // --- 2. ARRANGE: Mock Product API ---
+        String query = "bread";
+        ProductDto prodDto = new ProductDto(
+            456L, "Integration Bread", "img_url", null, 10, List.of(), "articleId2", 
+            new ProductPrice(299, 100, "100g",null,null)
+        );
+        ProductSearchResponse productResponse = new ProductSearchResponse(
+            new ProductsData(new ProductsSearchInfo(new Pagination(1,1,1,1), List.of(prodDto)))
+        );  
+
+        when(apiClient.searchProducts(eq(query), anyInt(), anyInt(), eq(MARKET_ID1)))
+                .thenReturn(productResponse);
+        
+        // --- 3. ACT ---
+        mockMvc.perform(get("/markets/{id}/query", MARKET_ID1)
+                        .param("query", query))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.reweId").value(MARKET_ID1))
+                // Verify products are in the JSON response
+                .andExpect(jsonPath("$.products", hasSize(1)))
+                .andExpect(jsonPath("$.products[0].name").value("Integration Bread"))
+                .andExpect(jsonPath("$.products[0].price").value(299));
+        
+        // --- 4. ASSERT: Database Verification ---
+        Market updatedMarket = marketRepository.findByReweId(MARKET_ID1).get();
+        assertEquals(1, updatedMarket.getProducts().size());
+        assertEquals("Integration Bread", updatedMarket.getProducts().get(0).getName());
+        assertEquals(299, updatedMarket.getProducts().get(0).getPrice());   
+    }
 }
