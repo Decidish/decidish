@@ -5,6 +5,7 @@ import decidish.com.core.repository.MarketRepository;
 import decidish.com.core.api.rewe.client.ReweApiClient;
 import decidish.com.core.service.MarketService;
 
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -36,6 +37,11 @@ class MarketServiceUnitTest2 {
 
     @InjectMocks
     private MarketService marketService;
+    
+    @BeforeEach
+    void setup(){
+        marketService.setSelf(marketService);
+    }
 
     @Test
     @DisplayName("getAllProducts: Should update existing products, add new ones, and save to DB")

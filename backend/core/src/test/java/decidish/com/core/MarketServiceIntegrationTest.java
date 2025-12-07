@@ -40,6 +40,7 @@ class MarketServiceIntegrationTest {
     void setup() {
         // Clear DB to ensure we are actually persisting fresh data
         marketRepository.deleteAll();
+        marketService.setSelf(marketService); 
     }
 
     @Test
