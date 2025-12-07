@@ -28,7 +28,8 @@ import org.slf4j.LoggerFactory;
 public class MarketService {
 
     private static final Logger log = LoggerFactory.getLogger(MarketService.class);
-    private final int TTL_WEEKS = 1; // Default Time to live for cache freshness
+    private final int TTL_WEEKS_MARKET = 1;
+    private final int TTL_WEEKS_PRODUCTS = 4;
     private final int DEFAULT_OBJECTS_PER_PAGE = 250; // Default number of objects per page from REWE API
 
     @Autowired
@@ -43,7 +44,7 @@ public class MarketService {
         // 1. Check DB (Cache) first
         List<Market> dbMarkets = marketRepository.getMarketsByAddress(plz).orElse(List.of());
         
-        if (!dbMarkets.isEmpty() && isDataFresh(dbMarkets.get(0))) {
+        if (!dbMarkets.isEmpty() && isMarketFresh(dbMarkets.get(0))) {
             log.info("DB Hit for PLZ: {}", plz);
             return dbMarkets;
         }
@@ -108,72 +109,71 @@ public class MarketService {
 
         return List.of();
     }
-    
+
+    /**
+     * @brief Get products from database only. No API call.
+     */
+    @Transactional
+    public Market getDBProducts(Long reweId) {
+        Market market = marketRepository.findByReweId(reweId)
+                .orElseThrow(() -> new RuntimeException("Market not found"));
+        
+        return market;
+    }
+
+    /**
+     * @brief Query a certain product for a given market. Only first page. One API call.
+     */
+    @Transactional
+    public Market getProductsQuery(Long marketId, String query) {
+        return getProductsAPI(marketId, query, 1);  
+    }
+
+    /**
+     * @brief Get all products from a given market. Should be called sparely (40 API calls).
+     */
+    @Transactional
+    public Market getAllProductsAPI(Long reweId) {
+        return getProductsAPI(reweId, "", Integer.MAX_VALUE);  
+    }
+
+    /**
+     * @brief Get all products from a given market. First try to fetch from DB only. If no products or data not fresh, call API.
+     */
+    public Market getAllProducts(Long reweId) {
+        Market market = marketRepository.findByReweId(reweId)
+                .orElseThrow(() -> new RuntimeException("Market not found"));
+
+        // Check if products are fresh
+        if (!market.getProducts().isEmpty() && isProductFresh(market.getProducts().get(0))) {
+            log.info("DB Hit for Products of Market ID: {}", reweId);
+            return market;
+        }
+
+        return getAllProductsAPI(reweId);
+    }
+
     // TODO: We need to implement more efficient market retrieval methods use caching and also call the externals APIs if needed.
     
-    private boolean isDataFresh(Market market) {
+    private boolean isMarketFresh(Market market) {
         //? Check in case they open a new market or move it / change timetable etc
-        int ttl = TTL_WEEKS; // Time to live
-        return market.getLastUpdated() != null && 
-               market.getLastUpdated().isAfter(LocalDateTime.now().minusWeeks(ttl));
+        LocalDateTime lastUpdated = market.getLastUpdated();
+        return lastUpdated != null && 
+               lastUpdated.isAfter(LocalDateTime.now().minusWeeks(TTL_WEEKS_MARKET));
     }
-    
-    //TODO This is maybe more efficient
-    // @Transactional
-    // public Market getAllProductsEfficient(Long reweId) {
 
-    //     Market market = marketRepository.findByReweId(reweId)
-    //             .orElseThrow(() -> new RuntimeException("Market not found"));
-
-    //     // 1. Fetch from API
-    //     URI uri = UriComponentsBuilder.fromHttpUrl("...").build().toUri();
-    //     ProductSearchResponse response = apiClient.searchProducts(uri, reweId, "*", 1);
-
-    //     if (response == null || response.products() == null) return market;
-
-    //     // 2. Load Existing Products into a Map for fast lookup
-    //     // Key: Product ReweID, Value: Product Entity
-    //     Map<String, Product> existingMap = market.getProducts().stream()
-    //             .collect(Collectors.toMap(Product::getReweId, Function.identity()));
-
-    //     // 3. Process API items
-    //     for (MobileProduct apiProd : response.products()) {
-            
-    //         // This handles the update logic
-    //         if (existingMap.containsKey(apiProd.id())) {
-    //             // --- UPDATE ---
-    //             Product p = existingMap.get(apiProd.id());
-    //             p.setName(apiProd.name());
-    //             p.setPrice(apiProd.currentPrice());
-    //             p.setLastUpdated(LocalDateTime.now());
-    //         } else {
-    //             // --- INSERT ---
-    //             // Only create if we haven't processed this ID yet in this loop
-    //             // (The Map check implicitly protects us if the API sends the same ID twice,
-    //             // BUT to be extra safe against "Double Insert" in one batch:)
-                
-    //             Product newProduct = Product.builder()
-    //                     .reweId(apiProd.id())
-    //                     .name(apiProd.name())
-    //                     .price(apiProd.currentPrice())
-    //                     .market(market)
-    //                     .build();
-                
-    //             market.addProduct(newProduct);
-    //             // Add to map so if it appears again in this loop, we update instead of insert!
-    //             existingMap.put(apiProd.id(), newProduct); 
-    //         }
-    //     }
-
-    //     return marketRepository.save(market);
-    // }
+    private boolean isProductFresh(Product product) {
+        LocalDateTime lastUpdated = product.getLastUpdated();
+        return lastUpdated != null && 
+               lastUpdated.isAfter(LocalDateTime.now().minusWeeks(TTL_WEEKS_PRODUCTS));
+    }
 
     /**
      * @brief Query a certain product for a given market. Set number of pages to fetch.
      */
     @Transactional
     //? Probably make void in the future
-    private Market getProducts(Long reweId, String query, int numPages) {
+    private Market getProductsAPI(Long reweId, String query, int numPages) {
         Market market = marketRepository.findByReweId(reweId)
                 .orElseThrow(() -> new RuntimeException("Market not found"));
 
@@ -227,19 +227,53 @@ public class MarketService {
         return savedMarket;
     }
 
-    /**
-     * @brief Query a certain product for a given market. Only first page.
-     */
-    @Transactional
-    public Market getProductsQuery(Long marketId, String query) {
-        return getProducts(marketId, query, 1);  
-    }
+    //TODO This is maybe more efficient
+    // @Transactional
+    // public Market getAllProductsEfficient(Long reweId) {
 
-    /**
-     * @brief Get all products from a given market. Should be called sparely.
-     */
-    @Transactional
-    public Market getAllProducts(Long reweId) {
-        return getProducts(reweId, "", Integer.MAX_VALUE);  
-    }
+    //     Market market = marketRepository.findByReweId(reweId)
+    //             .orElseThrow(() -> new RuntimeException("Market not found"));
+
+    //     // 1. Fetch from API
+    //     URI uri = UriComponentsBuilder.fromHttpUrl("...").build().toUri();
+    //     ProductSearchResponse response = apiClient.searchProducts(uri, reweId, "*", 1);
+
+    //     if (response == null || response.products() == null) return market;
+
+    //     // 2. Load Existing Products into a Map for fast lookup
+    //     // Key: Product ReweID, Value: Product Entity
+    //     Map<String, Product> existingMap = market.getProducts().stream()
+    //             .collect(Collectors.toMap(Product::getReweId, Function.identity()));
+
+    //     // 3. Process API items
+    //     for (MobileProduct apiProd : response.products()) {
+            
+    //         // This handles the update logic
+    //         if (existingMap.containsKey(apiProd.id())) {
+    //             // --- UPDATE ---
+    //             Product p = existingMap.get(apiProd.id());
+    //             p.setName(apiProd.name());
+    //             p.setPrice(apiProd.currentPrice());
+    //             p.setLastUpdated(LocalDateTime.now());
+    //         } else {
+    //             // --- INSERT ---
+    //             // Only create if we haven't processed this ID yet in this loop
+    //             // (The Map check implicitly protects us if the API sends the same ID twice,
+    //             // BUT to be extra safe against "Double Insert" in one batch:)
+                
+    //             Product newProduct = Product.builder()
+    //                     .reweId(apiProd.id())
+    //                     .name(apiProd.name())
+    //                     .price(apiProd.currentPrice())
+    //                     .market(market)
+    //                     .build();
+                
+    //             market.addProduct(newProduct);
+    //             // Add to map so if it appears again in this loop, we update instead of insert!
+    //             existingMap.put(apiProd.id(), newProduct); 
+    //         }
+    //     }
+
+    //     return marketRepository.save(market);
+    // }
 }
