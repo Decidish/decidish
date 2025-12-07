@@ -55,69 +55,135 @@ public class MarketService {
     // }
     
     // TODO: Implement method to get markets
+    // @Transactional
+    // public List<Market> getMarkets(String plz) {
+    //     // 1. Check DB
+    //     List<Market> dbMarkets = marketRepository.getMarketsByAddress(plz).orElse(List.of());
+        
+    //     if(!dbMarkets.isEmpty() 
+    //         && isDataFresh(dbMarkets.get(0)) //? This could be better
+    //     ){
+    //         log.info("DB Hit", plz);
+    //         // cacheResults(cacheKey,dbMarkets);
+    //         return dbMarkets;
+    //     }
+        
+    //     // 2. Fetch from API
+    //     log.info("Fetching from external API for ", plz);
+    //     MarketSearchResponse apiResponse = apiClient.searchMarkets(plz);
+    //     System.out.println("API Response: " + apiResponse);        
+        
+    //     if(apiResponse == null || apiResponse.markets() == null){
+    //         return List.of();
+    //     }
+            
+    //     // 3. Store in DB
+    //     List<Market> savedMarkets = new ArrayList<>();
+    //     for(MarketDto dto : apiResponse.markets()){
+    //         Market marketFromApi = Market.fromDto(dto);
+        
+    //         // 1. Find the existing Market by its unique ID (reweId)
+    //         Market marketToSave = marketRepository.findByReweId(marketFromApi.getReweId())
+    //             .map(existingMarket -> {
+    //                 // --- CASE 1: MARKET EXISTS (UPDATE LOGIC) ---
+
+    //                 System.out.println("Market exists in DB. Updating: " + existingMarket.getReweId() + "(" + existingMarket.getName() + ")");
+
+    //                 existingMarket.updateFromDto(dto);
+                        
+    //                 // a. Transfer new data to the existing entity
+    //                 // existingMarket.setName(marketFromApi.getName());
+    //                 // existingMarket.setLastUpdated(LocalDateTime.now()); // Update timestamp 
+                        
+    //                 // // b. Transfer new address data to the EXISTING address entity
+    //                 // //    (This assumes Market.fromDto() creates an address with updated fields)
+    //                 // Address existingAddress = existingMarket.getAddress();
+    //                 // Address apiAddress = marketFromApi.getAddress();
+                        
+    //                 // existingAddress.setStreet(apiAddress.getStreet());
+    //                 // existingAddress.setZipCode(apiAddress.getZipCode());
+    //                 // existingAddress.setCity(apiAddress.getCity());
+                        
+    //                 // Since the relationship is cascaded, saving 'existingMarket' will automatically 
+    //                 // update 'existingAddress'.
+                        
+    //                 return existingMarket;
+    //             })
+    //             .orElseGet(() -> {
+    //                 // --- CASE 2: MARKET DOES NOT EXIST (INSERT LOGIC) ---
+    //                 // Return the new object created from the DTO
+    //                 return marketFromApi;
+    //             });
+    //         savedMarkets.add(marketRepository.save(marketToSave));
+    //     }
+            
+    //     return savedMarkets;
+    // }
+    
     @Transactional
     public List<Market> getMarkets(String plz) {
-        // 1. Check DB
+        // 1. Check DB (Cache) first
         List<Market> dbMarkets = marketRepository.getMarketsByAddress(plz).orElse(List.of());
         
-        if(!dbMarkets.isEmpty() 
-            && isDataFresh(dbMarkets.get(0)) //? This could be better
-        ){
-            log.info("DB Hit", plz);
-            // cacheResults(cacheKey,dbMarkets);
+        if (!dbMarkets.isEmpty() && isDataFresh(dbMarkets.get(0))) {
+            log.info("DB Hit for PLZ: {}", plz);
             return dbMarkets;
         }
-        
+
         // 2. Fetch from API
-        log.info("Fetching from external API for ", plz);
+        log.info("DB Miss/Stale. Fetching API...");
         MarketSearchResponse apiResponse = apiClient.searchMarkets(plz);
-        System.out.println("API Response: " + apiResponse);        
         
-        if(apiResponse == null || apiResponse.markets() == null){
-            return List.of();
-        }
-            
-        // 3. Store in DB
-        List<Market> savedMarkets = new ArrayList<>();
-        for(MarketDto dto : apiResponse.markets()){
-            Market marketFromApi = Market.fromDto(dto);
-        
-            // 1. Find the existing Market by its unique ID (reweId)
-            Market marketToSave = marketRepository.findByReweId(marketFromApi.getReweId())
-                .map(existingMarket -> {
-                    // --- CASE 1: MARKET EXISTS (UPDATE LOGIC) ---
+        if (apiResponse == null || apiResponse.markets() == null) return List.of();
 
-                    System.out.println("Market exists in DB. Updating: " + existingMarket.getReweId() + "(" + existingMarket.getName() + ")");
+        // --- OPTIMIZED MERGE LOGIC ---
 
-                    existingMarket.updateFromDto(dto);
-                        
-                    // a. Transfer new data to the existing entity
-                    // existingMarket.setName(marketFromApi.getName());
-                    // existingMarket.setLastUpdated(LocalDateTime.now()); // Update timestamp 
-                        
-                    // // b. Transfer new address data to the EXISTING address entity
-                    // //    (This assumes Market.fromDto() creates an address with updated fields)
-                    // Address existingAddress = existingMarket.getAddress();
-                    // Address apiAddress = marketFromApi.getAddress();
-                        
-                    // existingAddress.setStreet(apiAddress.getStreet());
-                    // existingAddress.setZipCode(apiAddress.getZipCode());
-                    // existingAddress.setCity(apiAddress.getCity());
-                        
-                    // Since the relationship is cascaded, saving 'existingMarket' will automatically 
-                    // update 'existingAddress'.
-                        
-                    return existingMarket;
-                })
-                .orElseGet(() -> {
-                    // --- CASE 2: MARKET DOES NOT EXIST (INSERT LOGIC) ---
-                    // Return the new object created from the DTO
-                    return marketFromApi;
-                });
-            savedMarkets.add(marketRepository.save(marketToSave));
+        // A. Collect IDs from API response
+        List<Long> apiIds = new ArrayList<>();
+        for (MarketDto dto : apiResponse.markets()) {
+            apiIds.add(dto.id()); // Assuming DTO ID is Long
         }
-            
-        return savedMarkets;
+
+        // B. Fetch ALL relevant markets from DB (One Query)
+        // This finds them even if they didn't match the Address query earlier
+        List<Market> knownMarkets = marketRepository.findAllByIds(apiIds);
+
+        // C. Convert to Map for instant lookup
+        // Key: ID, Value: The Hibernate-Attached Entity
+        Map<Long, Market> marketMap = new HashMap<>();
+        for (Market m : knownMarkets) {
+            marketMap.put(m.getId(), m);
+        }
+
+        List<Market> finalBatch = new ArrayList<>();
+
+        // D. Iterate & Merge
+        for (MarketDto dto : apiResponse.markets()) {
+            Long id = dto.id();
+
+            if (marketMap.containsKey(id)) {
+                // --- UPDATE EXISTING ---
+                // We reuse the OBJECT from the map. This is the "Associated" object.
+                // Modifying it updates the DB automatically at end of transaction.
+                Market existing = marketMap.get(id);
+                existing.updateFromDto(dto); 
+                // existing.setLastUpdated(LocalDateTime.now());
+                
+                finalBatch.add(existing);
+            } else {
+                // --- INSERT NEW ---
+                // This ID is definitely not in the Session, so it's safe to create new.
+                Market newMarket = Market.fromDto(dto);
+                // newMarket.setId(id); // Set Manual ID
+                // newMarket.setLastUpdated(LocalDateTime.now());
+                
+                finalBatch.add(newMarket);
+            }
+        }
+
+        // E. Save All (Batched)
+        // saveAll() is smart: it merges existing ones and persists new ones.
+        return marketRepository.saveAll(finalBatch);
     }
     
     // @Transactional 

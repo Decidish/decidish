@@ -24,6 +24,7 @@ import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -143,7 +144,7 @@ class MarketServiceUnitTest {
             .thenAnswer(invocation -> invocation.getArgument(0));
 
         // Act
-        List<Market> result = marketService.getMarkets(TEST_PLZ);
+        List<Market> result = marketService.getMarkets(eq(TEST_PLZ));
 
         // Assert
         assertEquals(2, result.size());

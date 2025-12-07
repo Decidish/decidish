@@ -34,7 +34,7 @@ public interface ReweApiClient {
     // https://mobile-api.rewe.de/api/v3/market/details?marketId=431022
     @GetExchange(REWE_API_BASE_URL + MARKET_DETAILS_PATH)   
     MarketDetailsResponse getMarketDetails(
-        @RequestParam("marketId") String marketId
+        @RequestParam("marketId") Long marketId
     );
 
     // e.g.,

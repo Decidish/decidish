@@ -74,7 +74,7 @@ class ReweConfigTest {
     @DisplayName("Test Market Details API Call")
     void testMarketDetailsApiCall() {
         // Use a known market ID for testing
-        String marketId = "431022";
+        Long marketId = 431022L;
         MarketDetailsResponse response = client.getMarketDetails(marketId);
 
         // Verify Response
