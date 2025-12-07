@@ -68,4 +68,25 @@ class MarketControllerUnitTest {
         
         verify(marketService).getAllProducts(marketId);
     }
+
+    @Test
+    @DisplayName("GET /markets/{id}/query?query={query} returns 200 and updated market")
+    void testGetAllProductsWithQuery() throws Exception {
+        // Arrange
+        Long marketId = 540945L;
+        String query = "milk";
+        Market mockMarket = new Market();
+        mockMarket.setReweId(marketId);
+        mockMarket.setName("REWE with Milk Products");
+        
+        when(marketService.getProductsQuery(marketId, query)).thenReturn(mockMarket);
+
+        // Act & Assert
+        mockMvc.perform(get("/markets/{id}/query", marketId)
+                        .param("query", query))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.name").value("REWE with Milk Products"));
+
+        verify(marketService).getProductsQuery(marketId, query);
+    }
 }
