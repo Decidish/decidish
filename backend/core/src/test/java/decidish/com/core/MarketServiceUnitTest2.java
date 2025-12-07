@@ -5,7 +5,6 @@ import decidish.com.core.repository.MarketRepository;
 import decidish.com.core.api.rewe.client.ReweApiClient;
 import decidish.com.core.service.MarketService;
 
-import org.apache.kafka.common.message.ProduceRequestDataJsonConverter;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -44,18 +43,8 @@ class MarketServiceUnitTest2 {
 
         // Existing Product in DB (Price is 1.00)
         Product existingProduct = new Product(1L,"Old Milk Name",100,"img1","100g");
-        // Product.builder()
-        //         .reweId("PROD-1")
-        //         .name("Old Milk Name")
-        //         .price(1.00)
-        //         .build();
 
         Market dbMarket = new Market(marketDbId,"Rewe Market",new Address());
-        // Market.builder()
-        //         .id(marketDbId)
-        //         .reweId(marketReweId)
-        //         .products(new ArrayList<>(List.of(existingProduct))) // Mutable list
-        //         .build();
         
         // Link bidirectional
         existingProduct.setMarket(dbMarket);
@@ -66,7 +55,7 @@ class MarketServiceUnitTest2 {
 
         // --- 2. SETUP: API Response (Fresh Data) ---
         
-        // Update for PROD-1 (Price changed to 1.50)
+        // Update for 1 (Price changed to 1.50)
         ProductDto apiUpdate = new ProductDto(
             1L,"New Milk Name","img1",
             new ProductAttributesDto(
@@ -75,7 +64,7 @@ class MarketServiceUnitTest2 {
             "uwu",new ProductPrice(150, 30, "100g", null, null)
         );
 
-        // New Item PROD-2
+        // New Item 2
         ProductDto apiNew = new ProductDto(
             2L,"Butter","img2",
             new ProductAttributesDto(
@@ -98,6 +87,9 @@ class MarketServiceUnitTest2 {
         // when(apiClient.searchProducts(any(URI.class), eq(marketReweId), any(), any()))
         //         .thenReturn(apiResponse);
 
+        // Tell Mockito: "When save is called, return the market object I gave you"
+        when(marketRepository.save(any(Market.class)))
+            .thenAnswer(invocation -> invocation.getArgument(0));
         // --- 3. EXECUTE ---
         marketService.getAllProducts(marketDbId);
 
@@ -160,6 +152,9 @@ class MarketServiceUnitTest2 {
         );
 
         when(apiClient.searchProducts("",1,250,marketReweId)).thenReturn(apiResponse);
+        // Tell Mockito: "When save is called, return the market object I gave you"
+        when(marketRepository.save(any(Market.class)))
+            .thenAnswer(invocation -> invocation.getArgument(0));
 
         // --- EXECUTE ---
         marketService.getAllProducts(540L);
