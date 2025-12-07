@@ -87,6 +87,10 @@ public class Market implements Serializable, Persistable<Long>{
         this.name = dto.name();
         this.lastUpdated = LocalDateTime.now();
 
+        if(this.address == null){
+            this.address = new Address();
+        }
+
         this.address.setStreet(dto.addressLine1());
         this.address.setZipCode(dto.rawValues().postalCode());
         this.address.setCity(dto.rawValues().city());
