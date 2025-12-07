@@ -1,6 +1,7 @@
 package decidish.com.core;
 
 import decidish.com.core.repository.MarketRepository;
+import decidish.com.core.service.MarketService;
 import decidish.com.core.api.rewe.client.ReweApiClient;
 import decidish.com.core.model.rewe.*;
 
@@ -18,10 +19,12 @@ import org.springframework.cache.annotation.EnableCaching;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.cache.Cache;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -41,6 +44,9 @@ class MarketRepositoryCacheTest {
 
     @Autowired
     private EntityManager entityManager;
+
+    @Autowired
+    private MarketService marketService;
 
     @MockitoBean
     private ReweApiClient apiClient;
@@ -197,5 +203,26 @@ class MarketRepositoryCacheTest {
         
         assertThat(cache.get(expectedKey)).isNotNull();
         assertThat(cache.get(expectedKey).get()).isEqualTo(p1.get());
+    }
+    
+    @Test
+    void testEfficientListCaching() {
+        // 1. Pre-warm cache with ID 1 (simulating a previous single fetch)
+        Cache cache = cacheManager.getCache("markets_id");
+        cache.put(1L, new Market(1L, "Cached Name", null));
+
+        // 2. Request ID 1 (Cached) and ID 2 (Not Cached)
+        List<Long> requestedIds = List.of(1L, 2L);
+        
+        // We expect the repo to be called ONLY for ID 2
+        Map<Long,Market> results = marketService.getMarketsFromCacheOrDb(requestedIds);
+
+        // 3. Verify Results
+        assertThat(results).hasSize(2);
+        
+        // 4. Verify DB was hit only for the missing ID
+        // Note: You can verify this by mocking the repo in a Unit test, 
+        // or checking Hibernate stats (should be 1 query with WHERE id IN (2))
+        assertThat(hibernateStats.getQueryExecutionCount()).isEqualTo(1); 
     }
 }
