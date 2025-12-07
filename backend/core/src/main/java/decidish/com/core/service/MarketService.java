@@ -3,7 +3,9 @@ package decidish.com.core.service;
 import java.net.URI;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
@@ -23,6 +25,8 @@ import decidish.com.core.model.rewe.ProductSearchResponse;
 import decidish.com.core.model.rewe.MarketDto;
 import decidish.com.core.repository.MarketRepository;
 import jakarta.transaction.Transactional;
+
+import org.hibernate.Hibernate;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -129,62 +133,62 @@ public class MarketService {
     /**
      * @brief Get all products from a given market. Should be called sparely
      */
-    public Market getAllProducts(Long reweId){
-        // // 1. Check DB
-        // Market dbProducts = marketRepository.findByIdWithProducts(reweId).orElse(null);
+    // public Market getAllProducts(Long reweId){
+    //     // // 1. Check DB
+    //     // Market dbProducts = marketRepository.findByIdWithProducts(reweId).orElse(null);
 
-        // if(dbProducts == null
-        //     // && isDataFresh(dbMarkets.get(0)) //? This could be better
-        // ){
-        //     log.info("DB Hit", reweId);
-        //     return dbProducts;
-        // }
+    //     // if(dbProducts == null
+    //     //     // && isDataFresh(dbMarkets.get(0)) //? This could be better
+    //     // ){
+    //     //     log.info("DB Hit", reweId);
+    //     //     return dbProducts;
+    //     // }
         
-        // 1. Fetch from API
-        log.info("Fetching from external API for ", reweId);
-        ProductSearchResponse apiResponse = apiClient.searchProducts("", 1, 250, reweId);
-        System.out.println("API Response: " + apiResponse);        
+    //     // 1. Fetch from API
+    //     log.info("Fetching from external API for ", reweId);
+    //     ProductSearchResponse apiResponse = apiClient.searchProducts("", 1, 250, reweId);
+    //     System.out.println("API Response: " + apiResponse);        
         
-        if(apiResponse == null || apiResponse.data() == null){
-            return null;
-        }
+    //     if(apiResponse == null || apiResponse.data() == null){
+    //         return null;
+    //     }
         
-        int numberPages = apiResponse.data().products().pagination().pageCount();
+    //     int numberPages = apiResponse.data().products().pagination().pageCount();
             
-        // 3. Store in DB
-        Market savedProducts = marketRepository.findByReweId(reweId).orElse(null);
-        savedProducts.setProducts(new ArrayList<>());
-        int i = 0;
-        do {
-            for(ProductDto dto : apiResponse.data().products().products()){
-                Product productFromApi = Product.fromDto(dto);
+    //     // 3. Store in DB
+    //     Market savedProducts = marketRepository.findByReweId(reweId).orElse(null);
+    //     savedProducts.setProducts(new ArrayList<>());
+    //     int i = 0;
+    //     do {
+    //         for(ProductDto dto : apiResponse.data().products().products()){
+    //             Product productFromApi = Product.fromDto(dto);
             
-                // 1. Find the existing Product by its unique ID (productId)
-                Product productToSave = marketRepository.findProductByMarketAndId(reweId, productFromApi.getId())
-                    .map(existingProduct -> {
-                        // --- CASE 1: PRODUCT EXISTS (UPDATE LOGIC) ---
-                        System.out.println("Product exists in DB. Updating: " + existingProduct.getId() + "(" + existingProduct.getName() + ")");
-                        existingProduct.updateFromDto(dto);
-                        return existingProduct;
-                    })
-                    .orElseGet(() -> {
-                        // --- CASE 2: MARKET DOES NOT EXIST (INSERT LOGIC) ---
-                        // Return the new object created from the DTO
-                        return productFromApi;
-                    });
-                savedProducts.addProduct(productToSave);
-            }
-            ++i;
-            if(i < numberPages){ // Still pages left
-                log.info("Fetching from external API for ", reweId);
-                apiResponse = apiClient.searchProducts("", i, 250, reweId);
-                System.out.println("API Response: " + apiResponse);        
-            }
-        }while(i<numberPages); //? Maybe refactor this with just a for, numberPages = 1 ini and then update
+    //             // 1. Find the existing Product by its unique ID (productId)
+    //             Product productToSave = marketRepository.findProductByMarketAndId(reweId, productFromApi.getId())
+    //                 .map(existingProduct -> {
+    //                     // --- CASE 1: PRODUCT EXISTS (UPDATE LOGIC) ---
+    //                     System.out.println("Product exists in DB. Updating: " + existingProduct.getId() + "(" + existingProduct.getName() + ")");
+    //                     existingProduct.updateFromDto(dto);
+    //                     return existingProduct;
+    //                 })
+    //                 .orElseGet(() -> {
+    //                     // --- CASE 2: MARKET DOES NOT EXIST (INSERT LOGIC) ---
+    //                     // Return the new object created from the DTO
+    //                     return productFromApi;
+    //                 });
+    //             savedProducts.addProduct(productToSave);
+    //         }
+    //         ++i;
+    //         if(i < numberPages){ // Still pages left
+    //             log.info("Fetching from external API for ", reweId);
+    //             apiResponse = apiClient.searchProducts("", i, 250, reweId);
+    //             System.out.println("API Response: " + apiResponse);        
+    //         }
+    //     }while(i<numberPages); //? Maybe refactor this with just a for, numberPages = 1 ini and then update
             
-        marketRepository.save(savedProducts);
-        return savedProducts;
-    }
+    //     marketRepository.save(savedProducts);
+    //     return savedProducts;
+    // }
     
     //TODO This is probably more efficient
     // @Transactional
@@ -236,6 +240,59 @@ public class MarketService {
 
     //     return marketRepository.save(market);
     // }
+    
+    @Transactional
+    //? Probably make void in the future
+    public Market getAllProducts(Long reweId) {
+        Market market = marketRepository.findByReweId(reweId)
+                .orElseThrow(() -> new RuntimeException("Market not found"));
+
+        // 1. Fetch from API
+        ProductSearchResponse response = apiClient.searchProducts("", 1, 250, reweId);
+        if (response == null || response.data() == null) return market;
+
+        // 2. Create Lookup Map (Sanitized)
+        // We use a Map to ensure we find existing products quickly
+        Map<Long, Product> existingMap = new HashMap<>();
+        for (Product p : market.getProducts()) {
+            existingMap.put(p.getId(), p);
+        }
+
+        int numberPages = response.data().products().pagination().pageCount();
+        // 3. Process API items
+        int i = 0;
+        do {
+            for (ProductDto apiProd : response.data().products().products()) {
+                Long apiId = apiProd.productId(); // Ensure this matches reweId format
+                
+                if (existingMap.containsKey(apiId)) {
+                    // --- UPDATE ---
+                    // We modify the EXISTING object instance.
+                    // We do NOT create a new one. We do NOT add it to the list again.
+                    Product p = existingMap.get(apiId);
+                    p.updateFromDto(apiProd);
+                } else {
+                    // --- INSERT ---
+                    // Only create if it truly doesn't exist
+                    Product newProduct = Product.fromDto(apiProd);
+                    market.addProduct(newProduct); // Add to list
+                    existingMap.put(apiId, newProduct);   // Add to Map so we don't insert duplicate in same loop
+                }
+            }
+            ++i;
+            if(i < numberPages){ // Still pages left
+                log.info("Fetching from external API for ", reweId);
+                response = apiClient.searchProducts("", i, 250, reweId);
+                System.out.println("API Response: " + response);        
+            }
+        }while(i<numberPages); //? Maybe refactor this with just a for, numberPages = 1 ini and then update
+
+        // 4. Save
+        Market savedMarket = marketRepository.save(market);
+        // Does not work: Force Hibernate to fetch the products BEFORE the transaction closes
+        Hibernate.initialize(savedMarket.getProducts());
+        return savedMarket;
+    }
     
     /**
      * @brief Query a certain product for a given market

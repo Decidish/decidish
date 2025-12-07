@@ -5,5 +5,5 @@ public record ProductPrice (
     int totalRefundPrice,
     String grammage,
     Discount discount,
-    String loyaltyBonus 
+    LoyaltyBonus loyaltyBonus 
 ){}

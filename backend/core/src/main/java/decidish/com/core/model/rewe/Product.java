@@ -2,6 +2,7 @@ package decidish.com.core.model.rewe;
 
 import java.io.Serializable;
 import java.time.LocalDateTime;
+import java.util.Objects;
 
 import com.fasterxml.jackson.annotation.JsonBackReference;
 
@@ -15,10 +16,10 @@ import lombok.ToString;
 @Entity
 // @Table(name = "products")
 @Table(name = "products", uniqueConstraints = {
-    @UniqueConstraint(columnNames = {"market_id", "rewe_id"}) // <--- CRITICAL
+    @UniqueConstraint(columnNames = {"market_id", "id"}) // <--- CRITICAL
 })
-@Data
-@EqualsAndHashCode 
+// @Data
+// @EqualsAndHashCode 
 @Getter @Setter
 // Serializable: helps convert object to bytes, useful for redis cache
 public class Product implements Serializable{
@@ -82,6 +83,24 @@ public class Product implements Serializable{
         this.imageUrl = dto.imageURL();
         this.price = dto.listing().currentRetailPrice();
         this.grammage = dto.listing().grammage();
+        this.lastUpdated = LocalDateTime.now();
+    }
+    
+    // Only compare based on the Database ID (or Business Key reweId)
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        Product product = (Product) o;
+        // If IDs are present, use them. Otherwise match by REWE ID.
+        if (id != null && product.id != null) return Objects.equals(id, product.id);
+        return Objects.equals(id, product.id);
+    }
+
+    @Override
+    public int hashCode() {
+        // Return a constant to be safe with Hibernate proxies
+        return getClass().hashCode();
     }
 }
 

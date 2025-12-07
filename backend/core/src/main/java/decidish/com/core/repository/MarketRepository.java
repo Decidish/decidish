@@ -29,7 +29,7 @@ public interface MarketRepository extends JpaRepository<Market, Long> {
     Optional<Market> findByReweId(Long reweId);
 
     // Find by rewe id with products (returns market with products eagerly loaded)
-    @Query("SELECT m FROM Market m LEFT JOIN FETCH m.products WHERE m.reweId = :reweId")
+    @Query("SELECT m FROM Market m LEFT JOIN FETCH m.products WHERE m.id = :reweId")
     @Cacheable(value = "markets_id_with_products", unless = "#a0==2L")
     Optional<Market> findByIdWithProducts(@Param("reweId") Long reweId);
     
@@ -39,7 +39,7 @@ public interface MarketRepository extends JpaRepository<Market, Long> {
      * @param productId The external ID of the product
      * @return The Product entity (eagerly loaded)
      */
-    @Query("SELECT p FROM Market m JOIN m.products p WHERE m.reweId = :marketId AND p.reweId = :productId")
+    @Query("SELECT p FROM Market m JOIN m.products p WHERE m.id = :marketId AND p.id = :productId")
     @Cacheable(value = "market_products", key = "#marketId + '-' + #productId")
     Optional<Product> findProductByMarketAndId(
         @Param("marketId") Long marketId, 

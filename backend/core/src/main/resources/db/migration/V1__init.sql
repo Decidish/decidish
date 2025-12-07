@@ -12,7 +12,7 @@ CREATE INDEX idx_addresses_zip_code ON addresses (zip_code);
 
 CREATE TABLE markets
 (
-    id           VARCHAR(255) NOT NULL,
+    id           BIGINT NOT NULL,
     name         VARCHAR(255),
     address_id   BIGINT NOT NULL, -- Changed to NOT NULL as every market must have an address
     last_updated TIMESTAMP,
@@ -52,7 +52,7 @@ CREATE TABLE products
     image_url     VARCHAR(255),
     grammage      VARCHAR(255),
     last_updated  TIMESTAMP,
-    attributes_id BIGINT,
+    attributes_id BIGINT NOT NULL,
     CONSTRAINT pk_products PRIMARY KEY (id),
     -- Foreign Key to markets table
     CONSTRAINT fk_products_on_market FOREIGN KEY (market_id) REFERENCES markets(id),
