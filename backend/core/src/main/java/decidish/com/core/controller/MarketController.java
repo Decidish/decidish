@@ -56,7 +56,7 @@ public class MarketController {
 
     /**
      * Endpoint to fetch products for a specific market based on a search query.
-     * Usage: GET /api/markets/{marketId}/query?query=milk
+     * Usage: GET /markets/{marketId}/query?query=milk
      */
     @GetMapping("/{marketId}/query")
     public ResponseEntity<Market> getProductsQuery(@RequestParam("query") String query, @PathVariable("marketId") Long marketId) {

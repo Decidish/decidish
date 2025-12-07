@@ -1,4 +1,7 @@
 spring:
+# Turn off Spring Banner
+  main:
+    banner-mode: off
   datasource:
     url: jdbc:postgresql://localhost:5433/decidish
     username: user
@@ -10,7 +13,17 @@ spring:
     hibernate:
       # Ensure a clean database for every test: drops and recreates schema
       ddl-auto: create-drop
-    show-sql: true
+    # show-sql: true
+    # 1. Stop printing SQL statements to the console
+    show-sql: false 
+    properties:
+      hibernate:
+        # 2. Stop printing the "Session Metrics" block at end of transaction
+        generate_statistics: false
+        # 3. Stop adding comments to generated SQL
+        use_sql_comments: false
+        # 4. Stop generic formatting
+        format_sql: false
   sql:
     init:
       # Disable any manual data.sql scripts
@@ -32,3 +45,16 @@ spring:
             # The syntax ${ENV_VAR:default} works in YAML too.
             certificate: "${REWE_CERT_PATH:classpath:certificates/rewe.pem}"
             private-key: "${REWE_KEY_PATH:classpath:certificates/rewe.key}"
+# Mute standard logging
+logging:
+  level:
+    root: ERROR
+    org.springframework: ERROR
+    # Your app package
+    decidish.com: INFO
+    # Database connection pool noise
+    com.zaxxer: ERROR
+    # 5. The Nuclear Option: Turn off all Hibernate logging
+    org.hibernate: OFF
+    # Specifically mute SQL binding parameters (just in case)
+    org.hibernate.type.descriptor.sql: OFF
