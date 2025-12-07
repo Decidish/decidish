@@ -5,9 +5,15 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.cache.CacheManager;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.CachePut;
+import org.springframework.cache.annotation.Cacheable;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Service;
 import org.springframework.cache.Cache;
 
@@ -43,74 +49,225 @@ public class MarketService {
 
     @Autowired
     private ReweApiClient apiClient;
+
+    // We inject the context to allow self-invocation (calling methods via proxy)
+    // Alternatively, move saveAndRefresh to a separate component.
+    @Autowired
+    @Lazy
+    private MarketService self; 
+    
+    // For Unit Testing support
+    public void setSelf(MarketService self) {
+        this.self = self;
+    }
     
     // TODO: Implement method to get markets
-    @Transactional
-    public List<Market> getMarkets(String plz) {
-        // 1. Check DB (Cache) first
-        List<Market> dbMarkets = marketRepository.getMarketsByAddress(plz).orElse(List.of());
+    // @Transactional
+    // @Cacheable(value = "markets", key = "#plz")
+    // public List<Market> getMarkets(String plz) {
+    //     // 1. Check DB (Cache) first
+    //     List<Market> dbMarkets = marketRepository.getMarketsByAddress(plz).orElse(List.of());
         
+    //     if (!dbMarkets.isEmpty() && isMarketFresh(dbMarkets.get(0))) {
+    //         log.info("DB Hit for PLZ: {}", plz);
+    //         return dbMarkets;
+    //     }
+        
+    //     if(dbMarkets.isEmpty()){
+    //         log.info("Repo is empty");
+    //     }else log.info("Data is not fresh");
+
+    //     // 2. Fetch from API
+    //     log.info("DB Miss/Stale. Fetching API...");
+    //     MarketSearchResponse apiResponse = apiClient.searchMarkets(plz);
+        
+    //     if (apiResponse == null || apiResponse.markets() == null) return List.of();
+
+    //     // A. Collect IDs from API
+    //     List<Long> apiIds = apiResponse.markets().stream().map(MarketDto::id).toList();
+
+    //     // B. Check Cache vs DB (The Optimization)
+    //     // We try to get everything from cache first, and only hit DB for the delta
+    //     Map<Long, Market> marketMap = getMarketsFromCacheOrDb(apiIds);
+
+    //     List<Market> finalBatch = new ArrayList<>();
+
+    //     // D. Iterate & Merge
+    //     for (MarketDto dto : apiResponse.markets()) {
+    //         Long id = dto.id();
+
+    //         if (marketMap.containsKey(id)) {
+    //             // --- UPDATE EXISTING ---
+    //             // We reuse the OBJECT from the map. This is the "Associated" object.
+    //             // Modifying it updates the DB automatically at end of transaction.
+    //             Market existing = marketMap.get(id);
+    //             existing.updateFromDto(dto); 
+    //             // existing.setLastUpdated(LocalDateTime.now());
+                
+    //             finalBatch.add(existing);
+    //         } else {
+    //             // --- INSERT NEW ---
+    //             // This ID is definitely not in the Session, so it's safe to create new.
+    //             Market newMarket = Market.fromDto(dto);
+    //             // newMarket.setId(id); // Set Manual ID
+    //             // newMarket.setLastUpdated(LocalDateTime.now());
+                
+    //             finalBatch.add(newMarket);
+    //         }
+    //     }
+
+    //     // E. Save All (Batched)
+    //     // saveAll() is smart: it merges existing ones and persists new ones.
+    //     // Only save if we actually have something to save
+    //     if (!finalBatch.isEmpty()) {
+    //         List<Market> savedMarkets = marketRepository.saveAll(finalBatch);
+        
+    //         // Manually update the individual cache for next time
+    //         // This ensures findByReweId(1) will be fast later.
+    //         for (Market m : savedMarkets) {
+    //             Cache cache = cacheManager.getCache("markets_id");
+    //             if (cache != null) cache.put(m.getReweId(), m);
+    //         }
+    //         return savedMarkets;
+    //     }
+
+    //     return List.of();
+    // }
+    
+
+    /**
+     * READ PATH (Hot)
+     * 1. Checks Cache ("markets::12345").
+     * 2. If Hit: Returns instantly.
+     * 3. If Miss: Runs the method body (DB Check -> API Fetch -> Save).
+     */
+    @Transactional
+    @Cacheable(value = "markets", key = "#plz")
+    public List<Market> getMarkets(String plz) {
+        
+        // --- A. DB CHECK (Warm Path) ---
+        List<Market> dbMarkets = marketRepository.getMarketsByAddress(plz).orElse(List.of());
+
+        // Check freshness (Only runs on Cache Miss)
         if (!dbMarkets.isEmpty() && isMarketFresh(dbMarkets.get(0))) {
-            log.info("DB Hit for PLZ: {}", plz);
-            return dbMarkets;
+            log.info("DB Hit (Fresh) for PLZ: {}", plz);
+            // We return here, and Spring automatically puts this result into Redis
+            return dbMarkets; 
         }
 
-        // 2. Fetch from API
-        log.info("DB Miss/Stale. Fetching API...");
+        log.info(dbMarkets.isEmpty() ? "Repo is empty" : "Data is not fresh");
+
+        // --- B. API FETCH (Cold Path) ---
+        log.info("Fetching API...");
         MarketSearchResponse apiResponse = apiClient.searchMarkets(plz);
         
         if (apiResponse == null || apiResponse.markets() == null) return List.of();
 
-        // A. Collect IDs from API
-        List<Long> apiIds = apiResponse.markets().stream().map(MarketDto::id).toList();
+        // --- C. MERGE LOGIC ---
+        // (Logic extracted to helper for readability)
+        List<Market> marketsToSave = mergeApiWithDb(apiResponse.markets());
 
-        // B. Check Cache vs DB (The Optimization)
-        // We try to get everything from cache first, and only hit DB for the delta
-        Map<Long, Market> marketMap = getMarketsFromCacheOrDb(apiIds);
+        if (marketsToSave.isEmpty()) return List.of();
 
-        List<Market> finalBatch = new ArrayList<>();
+        // --- D. SAVE & UPDATE CACHE ---
+        // We call the method on 'self' (the Spring Proxy) so @CachePut works!
+        return self.saveAndRefresh(marketsToSave, plz);
+    }
 
-        // D. Iterate & Merge
-        for (MarketDto dto : apiResponse.markets()) {
-            Long id = dto.id();
+    /**
+     * WRITE PATH
+     * 1. Saves to Database.
+     * 2. @CachePut: Takes the return value and FORCES it into the 'markets' cache.
+     * This ensures the cache is now perfectly in sync with the DB.
+     */
+    @Transactional
+    @CachePut(value = "markets", key = "#plz")
+    public List<Market> saveAndRefresh(List<Market> markets, String plz) {
+        List<Market> savedMarkets = marketRepository.saveAll(markets);
 
-            if (marketMap.containsKey(id)) {
-                // --- UPDATE EXISTING ---
-                // We reuse the OBJECT from the map. This is the "Associated" object.
-                // Modifying it updates the DB automatically at end of transaction.
-                Market existing = marketMap.get(id);
-                existing.updateFromDto(dto); 
-                // existing.setLastUpdated(LocalDateTime.now());
-                
+        // --- E. HANDLE INDIVIDUAL ID CACHES ---
+        // Spring Annotations cannot easily split a List<Market> return 
+        // into 20 different cache keys (markets_id::1, markets_id::2...).
+        // We must handle this manually or using a loop of evictions.
+        
+        for (Market m : savedMarkets) {
+            // Option 1: Manually PUT (Fastest for read-heavy)
+            // cacheManager.getCache("markets_id").put(m.getReweId(), m);
+            Cache cache = cacheManager.getCache("markets_id");
+            if (cache != null) {
+                cache.put(m.getReweId(), m);
+            }
+            
+            // Option 2: Evict (Safer, ensures next fetch is fresh from DB)
+            // self.evictSingleCache(m.getReweId());
+        }
+
+        return savedMarkets;
+    }
+
+    /**
+     * Helper to evict individual ID caches.
+     * Uses @CacheEvict to remove specific entries.
+     */
+    @CacheEvict(value = "markets_id", key = "#reweId")
+    public void evictSingleCache(Long reweId) {
+        // Method body is empty, the annotation does the work.
+        log.debug("Evicting market_id cache for: {}", reweId);
+    }
+    
+    private List<Market> mergeApiWithDb(List<MarketDto> apiDtos) {
+         List<Long> apiIds = apiDtos.stream().map(MarketDto::id).toList();
+         
+         // --- THE FIX ---
+         // OLD: Map<Long, Market> marketMap = getMarketsFromCacheOrDb(apiIds);
+         // PROBLEM: This returned stale Cached objects.
+         
+         // NEW: Fetch fresh entities directly from DB for the update.
+         // We ignore the cache here because we need the latest @Version for locking.
+         List<Market> dbEntities = marketRepository.findAllById(apiIds);
+         
+         // Convert to Map for fast lookup
+         Map<Long, Market> marketMap = dbEntities.stream()
+            .collect(Collectors.toMap(Market::getId, Function.identity()));
+
+         // ... rest of the logic is exactly the same ...
+         List<Market> finalBatch = new ArrayList<>();
+
+         for (MarketDto dto : apiDtos) {
+            if (marketMap.containsKey(dto.id())) {
+                Market existing = marketMap.get(dto.id());
+                existing.updateFromDto(dto); // Updates the MANAGED entity
+                // existing.setLastUpdated(LocalDateTime.now()); 
                 finalBatch.add(existing);
             } else {
-                // --- INSERT NEW ---
-                // This ID is definitely not in the Session, so it's safe to create new.
                 Market newMarket = Market.fromDto(dto);
-                // newMarket.setId(id); // Set Manual ID
                 // newMarket.setLastUpdated(LocalDateTime.now());
-                
                 finalBatch.add(newMarket);
             }
-        }
-
-        // E. Save All (Batched)
-        // saveAll() is smart: it merges existing ones and persists new ones.
-        // Only save if we actually have something to save
-        if (!finalBatch.isEmpty()) {
-            List<Market> savedMarkets = marketRepository.saveAll(finalBatch);
-        
-            // Manually update the individual cache for next time
-            // This ensures findByReweId(1) will be fast later.
-            for (Market m : savedMarkets) {
-                Cache cache = cacheManager.getCache("markets_id");
-                if (cache != null) cache.put(m.getReweId(), m);
-            }
-            return savedMarkets;
-        }
-
-        return List.of();
+         }
+         return finalBatch;
     }
+    
+    // // --- Helper for the Merge Logic (Keeps the main method clean) ---
+    // private List<Market> mergeApiWithDb(List<MarketDto> apiDtos) {
+    //      List<Long> apiIds = apiDtos.stream().map(MarketDto::id).toList();
+    //      Map<Long, Market> marketMap = getMarketsFromCacheOrDb(apiIds);
+    //      List<Market> finalBatch = new ArrayList<>();
+
+    //      for (MarketDto dto : apiDtos) {
+    //         if (marketMap.containsKey(dto.id())) {
+    //             Market existing = marketMap.get(dto.id());
+    //             existing.updateFromDto(dto);
+    //             // existing.setLastUpdated(LocalDateTime.now()); // Set Freshness!
+    //             finalBatch.add(existing);
+    //         } else {
+    //             Market newMarket = Market.fromDto(dto);
+    //             // newMarket.setLastUpdated(LocalDateTime.now()); // Set Freshness!
+    //             finalBatch.add(newMarket);
+    //         }
+    //      }
+    //      return finalBatch;
+    // }
 
     /**
      * @brief Get products from database only. No API call.
@@ -215,7 +372,7 @@ public class MarketService {
             }
             ++i;
             if(i < numberPages){ // Still pages left
-                log.info("Fetching from external API for ", reweId);
+                // log.info("Fetching from external API for ", reweId);
                 response = apiClient.searchProducts("", i, DEFAULT_OBJECTS_PER_PAGE, reweId);
                 // System.out.println("API Response: " + response);        
             }
@@ -225,7 +382,7 @@ public class MarketService {
         // save() is smart enough to handle both INSERTS and UPDATES in one go.
         Market savedMarket = marketRepository.save(market);
         // Does not work: Force Hibernate to fetch the products BEFORE the transaction closes
-        Hibernate.initialize(savedMarket.getProducts());
+        // Hibernate.initialize(savedMarket.getProducts());
         return savedMarket;
     }
     

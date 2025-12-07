@@ -61,6 +61,8 @@ class MarketServiceUnitTest {
         staleMarket.setName("Old Name");
         staleMarket.setAddress(new Address());
         staleMarket.setLastUpdated(LocalDateTime.now().minusWeeks(10));
+        
+        marketService.setSelf(marketService);
     }
     
     /**
@@ -113,7 +115,7 @@ class MarketServiceUnitTest {
 
         // 3. Batch Lookup Mock (Return the stale market so we test the UPDATE logic)
         // This simulates finding ID 540946 in the DB
-        when(marketRepository.findAllByIds(anyList()))
+        when(marketRepository.findAllById(anyList()))
             .thenReturn(List.of(staleMarket));
 
         // 4. Batch Save Mock (Crucial Fix)
