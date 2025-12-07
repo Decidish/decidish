@@ -62,79 +62,6 @@ public class MarketService {
     }
     
     // TODO: Implement method to get markets
-    // @Transactional
-    // @Cacheable(value = "markets", key = "#plz")
-    // public List<Market> getMarkets(String plz) {
-    //     // 1. Check DB (Cache) first
-    //     List<Market> dbMarkets = marketRepository.getMarketsByAddress(plz).orElse(List.of());
-        
-    //     if (!dbMarkets.isEmpty() && isMarketFresh(dbMarkets.get(0))) {
-    //         log.info("DB Hit for PLZ: {}", plz);
-    //         return dbMarkets;
-    //     }
-        
-    //     if(dbMarkets.isEmpty()){
-    //         log.info("Repo is empty");
-    //     }else log.info("Data is not fresh");
-
-    //     // 2. Fetch from API
-    //     log.info("DB Miss/Stale. Fetching API...");
-    //     MarketSearchResponse apiResponse = apiClient.searchMarkets(plz);
-        
-    //     if (apiResponse == null || apiResponse.markets() == null) return List.of();
-
-    //     // A. Collect IDs from API
-    //     List<Long> apiIds = apiResponse.markets().stream().map(MarketDto::id).toList();
-
-    //     // B. Check Cache vs DB (The Optimization)
-    //     // We try to get everything from cache first, and only hit DB for the delta
-    //     Map<Long, Market> marketMap = getMarketsFromCacheOrDb(apiIds);
-
-    //     List<Market> finalBatch = new ArrayList<>();
-
-    //     // D. Iterate & Merge
-    //     for (MarketDto dto : apiResponse.markets()) {
-    //         Long id = dto.id();
-
-    //         if (marketMap.containsKey(id)) {
-    //             // --- UPDATE EXISTING ---
-    //             // We reuse the OBJECT from the map. This is the "Associated" object.
-    //             // Modifying it updates the DB automatically at end of transaction.
-    //             Market existing = marketMap.get(id);
-    //             existing.updateFromDto(dto); 
-    //             // existing.setLastUpdated(LocalDateTime.now());
-                
-    //             finalBatch.add(existing);
-    //         } else {
-    //             // --- INSERT NEW ---
-    //             // This ID is definitely not in the Session, so it's safe to create new.
-    //             Market newMarket = Market.fromDto(dto);
-    //             // newMarket.setId(id); // Set Manual ID
-    //             // newMarket.setLastUpdated(LocalDateTime.now());
-                
-    //             finalBatch.add(newMarket);
-    //         }
-    //     }
-
-    //     // E. Save All (Batched)
-    //     // saveAll() is smart: it merges existing ones and persists new ones.
-    //     // Only save if we actually have something to save
-    //     if (!finalBatch.isEmpty()) {
-    //         List<Market> savedMarkets = marketRepository.saveAll(finalBatch);
-        
-    //         // Manually update the individual cache for next time
-    //         // This ensures findByReweId(1) will be fast later.
-    //         for (Market m : savedMarkets) {
-    //             Cache cache = cacheManager.getCache("markets_id");
-    //             if (cache != null) cache.put(m.getReweId(), m);
-    //         }
-    //         return savedMarkets;
-    //     }
-
-    //     return List.of();
-    // }
-    
-
     /**
      * READ PATH (Hot)
      * 1. Checks Cache ("markets::12345").
@@ -170,7 +97,7 @@ public class MarketService {
         if (marketsToSave.isEmpty()) return List.of();
 
         // --- D. SAVE & UPDATE CACHE ---
-        // We call the method on 'self' (the Spring Proxy) so @CachePut works!
+        // We call the method on 'self' (the Spring Proxy) so @CachePut works
         return self.saveAndRefresh(marketsToSave, plz);
     }
 
@@ -218,11 +145,7 @@ public class MarketService {
     private List<Market> mergeApiWithDb(List<MarketDto> apiDtos) {
          List<Long> apiIds = apiDtos.stream().map(MarketDto::id).toList();
          
-         // --- THE FIX ---
-         // OLD: Map<Long, Market> marketMap = getMarketsFromCacheOrDb(apiIds);
-         // PROBLEM: This returned stale Cached objects.
-         
-         // NEW: Fetch fresh entities directly from DB for the update.
+         // Fetch fresh entities directly from DB for the update.
          // We ignore the cache here because we need the latest @Version for locking.
          List<Market> dbEntities = marketRepository.findAllById(apiIds);
          
@@ -248,30 +171,10 @@ public class MarketService {
          return finalBatch;
     }
     
-    // // --- Helper for the Merge Logic (Keeps the main method clean) ---
-    // private List<Market> mergeApiWithDb(List<MarketDto> apiDtos) {
-    //      List<Long> apiIds = apiDtos.stream().map(MarketDto::id).toList();
-    //      Map<Long, Market> marketMap = getMarketsFromCacheOrDb(apiIds);
-    //      List<Market> finalBatch = new ArrayList<>();
-
-    //      for (MarketDto dto : apiDtos) {
-    //         if (marketMap.containsKey(dto.id())) {
-    //             Market existing = marketMap.get(dto.id());
-    //             existing.updateFromDto(dto);
-    //             // existing.setLastUpdated(LocalDateTime.now()); // Set Freshness!
-    //             finalBatch.add(existing);
-    //         } else {
-    //             Market newMarket = Market.fromDto(dto);
-    //             // newMarket.setLastUpdated(LocalDateTime.now()); // Set Freshness!
-    //             finalBatch.add(newMarket);
-    //         }
-    //      }
-    //      return finalBatch;
-    // }
-
     /**
      * @brief Get products from database only. No API call.
      */
+    //? Mark for removal
     @Transactional
     public Market getDBProducts(Long reweId) {
         Market market = marketRepository.findByReweId(reweId)
@@ -285,15 +188,17 @@ public class MarketService {
      */
     @Transactional
     public Market getProductsQuery(Long marketId, String query) {
-        return getProductsAPI(marketId, query, 1);  
+        Market market = marketRepository.findByReweId(marketId)
+                .orElseThrow(() -> new RuntimeException("Market not found"));
+        return getProductsAPI(market, query, 1);  
     }
 
     /**
      * @brief Get all products from a given market. Should be called sparely (40 API calls).
      */
     @Transactional
-    public Market getAllProductsAPI(Long reweId) {
-        return getProductsAPI(reweId, "", Integer.MAX_VALUE);  
+    public Market getAllProductsAPI(Market market) {
+        return getProductsAPI(market, "", Integer.MAX_VALUE);  
     }
 
     /**
@@ -309,7 +214,7 @@ public class MarketService {
             return market;
         }
 
-        return getAllProductsAPI(reweId);
+        return getAllProductsAPI(market);
     }
 
     // TODO: We need to implement more efficient market retrieval methods use caching and also call the externals APIs if needed.
@@ -332,12 +237,9 @@ public class MarketService {
      */
     @Transactional
     //? Probably make void in the future
-    private Market getProductsAPI(Long reweId, String query, int numPages) {
-        Market market = marketRepository.findByReweId(reweId)
-                .orElseThrow(() -> new RuntimeException("Market not found"));
-
+    private Market getProductsAPI(Market market, String query, int numPages) {
         // 1. Fetch from API (first page to get pagination info)
-        ProductSearchResponse response = apiClient.searchProducts(query, 1, DEFAULT_OBJECTS_PER_PAGE, reweId);
+        ProductSearchResponse response = apiClient.searchProducts(query, 1, DEFAULT_OBJECTS_PER_PAGE, market.getReweId());
         if (response == null || response.data() == null) return market;
 
         // 2. Create Lookup Map (Sanitized)
@@ -373,7 +275,7 @@ public class MarketService {
             ++i;
             if(i < numberPages){ // Still pages left
                 // log.info("Fetching from external API for ", reweId);
-                response = apiClient.searchProducts("", i, DEFAULT_OBJECTS_PER_PAGE, reweId);
+                response = apiClient.searchProducts("", i, DEFAULT_OBJECTS_PER_PAGE, market.getReweId());
                 // System.out.println("API Response: " + response);        
             }
         }while(i<numberPages); //? Maybe refactor this with just a for, numberPages = 1 ini and then update
@@ -385,84 +287,4 @@ public class MarketService {
         // Hibernate.initialize(savedMarket.getProducts());
         return savedMarket;
     }
-    
-    //! public for testing
-    public Map<Long, Market> getMarketsFromCacheOrDb(List<Long> ids) {
-        Map<Long, Market> result = new HashMap<>();
-        List<Long> missingIds = new ArrayList<>();
-        Cache cache = cacheManager.getCache("markets_id");
-
-        // 1. Try Cache
-        for (Long id : ids) {
-            // We use the wrapper to handle nulls safely
-            Market cached = (cache != null) ? cache.get(id, Market.class) : null;
-            if (cached != null) {
-                result.put(id, cached);
-            } else {
-                missingIds.add(id);
-            }
-        }
-
-        // 2. Batch Fetch Missing from DB
-        if (!missingIds.isEmpty()) {
-            List<Market> dbHits = marketRepository.findAllByIds(missingIds);
-            for (Market m : dbHits) {
-                result.put(m.getReweId(), m);
-                // Optional: Put back in cache now, or wait for saveAll()
-                 if (cache != null) cache.put(m.getReweId(), m);
-            }
-        }
-        
-        return result;
-    }
-
-    //TODO This is maybe more efficient
-    // @Transactional
-    // public Market getAllProductsEfficient(Long reweId) {
-
-    //     Market market = marketRepository.findByReweId(reweId)
-    //             .orElseThrow(() -> new RuntimeException("Market not found"));
-
-    //     // 1. Fetch from API
-    //     URI uri = UriComponentsBuilder.fromHttpUrl("...").build().toUri();
-    //     ProductSearchResponse response = apiClient.searchProducts(uri, reweId, "*", 1);
-
-    //     if (response == null || response.products() == null) return market;
-
-    //     // 2. Load Existing Products into a Map for fast lookup
-    //     // Key: Product ReweID, Value: Product Entity
-    //     Map<String, Product> existingMap = market.getProducts().stream()
-    //             .collect(Collectors.toMap(Product::getReweId, Function.identity()));
-
-    //     // 3. Process API items
-    //     for (MobileProduct apiProd : response.products()) {
-            
-    //         // This handles the update logic
-    //         if (existingMap.containsKey(apiProd.id())) {
-    //             // --- UPDATE ---
-    //             Product p = existingMap.get(apiProd.id());
-    //             p.setName(apiProd.name());
-    //             p.setPrice(apiProd.currentPrice());
-    //             p.setLastUpdated(LocalDateTime.now());
-    //         } else {
-    //             // --- INSERT ---
-    //             // Only create if we haven't processed this ID yet in this loop
-    //             // (The Map check implicitly protects us if the API sends the same ID twice,
-    //             // BUT to be extra safe against "Double Insert" in one batch:)
-                
-    //             Product newProduct = Product.builder()
-    //                     .reweId(apiProd.id())
-    //                     .name(apiProd.name())
-    //                     .price(apiProd.currentPrice())
-    //                     .market(market)
-    //                     .build();
-                
-    //             market.addProduct(newProduct);
-    //             // Add to map so if it appears again in this loop, we update instead of insert!
-    //             existingMap.put(apiProd.id(), newProduct); 
-    //         }
-    //     }
-
-    //     return marketRepository.save(market);
-    // }
 }

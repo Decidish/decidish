@@ -20,8 +20,6 @@ public interface MarketRepository extends JpaRepository<Market, Long> {
      * Get markets by address PLZ
      */
     @Query("SELECT m FROM Market m JOIN m.address a WHERE a.zipCode = :plz")
-    // @Cacheable(value = "markets", unless = "#a0=='54321'") // For testing
-    // @Cacheable(value = "markets", key = "#plz")
     Optional<List<Market>> getMarketsByAddress(@Param("plz") String plz);
 
     // TODO: We need to have a certain market structure, schema display
@@ -30,28 +28,4 @@ public interface MarketRepository extends JpaRepository<Market, Long> {
     // @Cacheable(value = "markets_id", unless = "#a0==2L") // For testing
     @Cacheable(value = "markets_id")
     Optional<Market> findByReweId(Long reweId);
-
-    // Find by rewe id with products (returns market with products eagerly loaded)
-    @Query("SELECT m FROM Market m LEFT JOIN FETCH m.products WHERE m.id = :reweId")
-    // @Cacheable(value = "markets_id_with_products", unless = "#a0==2L") // For testing
-    @Cacheable(value = "markets_id_with_products")
-    Optional<Market> findByIdWithProducts(@Param("reweId") Long reweId);
-    
-    /**
-     * Finds a specific Product within a specific Market.
-     * @param marketId The external ID of the market (e.g. 540945)
-     * @param productId The external ID of the product
-     * @return The Product entity (eagerly loaded)
-     */
-    // @Query("SELECT p FROM Market m JOIN m.products p WHERE m.id = :marketId AND p.id = :productId")
-    @Query("SELECT p FROM Product p JOIN p.market m WHERE m.id = :marketId AND p.id = :productId")
-    @Cacheable(value = "market_products", key = "#marketId + '-' + #productId")
-    Optional<Product> findProductByMarketAndId(
-        @Param("marketId") Long marketId, 
-        @Param("productId") Long productId
-    );
-    
-    // Fetch multiple markets by their Primary Key (id) in one go
-    @Query("SELECT m FROM Market m WHERE m.id IN :ids")
-    List<Market> findAllByIds(@Param("ids") List<Long> ids);
 }
