@@ -229,7 +229,8 @@ public class MarketService {
         return savedMarket;
     }
     
-    private Map<Long, Market> getMarketsFromCacheOrDb(List<Long> ids) {
+    //! public for testing
+    public Map<Long, Market> getMarketsFromCacheOrDb(List<Long> ids) {
         Map<Long, Market> result = new HashMap<>();
         List<Long> missingIds = new ArrayList<>();
         Cache cache = cacheManager.getCache("markets_id");

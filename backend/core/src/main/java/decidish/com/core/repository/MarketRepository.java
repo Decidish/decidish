@@ -19,21 +19,21 @@ public interface MarketRepository extends JpaRepository<Market, Long> {
      * Get markets by address PLZ
      */
     @Query("SELECT m FROM Market m JOIN m.address a WHERE a.zipCode = :plz")
-    @Cacheable(value = "markets", unless = "#a0=='54321'") // For testing
-    // @Cacheable(value = "markets")
+    // @Cacheable(value = "markets", unless = "#a0=='54321'") // For testing
+    @Cacheable(value = "markets")
     Optional<List<Market>> getMarketsByAddress(@Param("plz") String plz);
 
     // TODO: We need to have a certain market structure, schema display
     
     // Find by rewe id
-    @Cacheable(value = "markets_id", unless = "#a0==2L") // For testing
-    // @Cacheable(value = "markets_id")
+    // @Cacheable(value = "markets_id", unless = "#a0==2L") // For testing
+    @Cacheable(value = "markets_id")
     Optional<Market> findByReweId(Long reweId);
 
     // Find by rewe id with products (returns market with products eagerly loaded)
     @Query("SELECT m FROM Market m LEFT JOIN FETCH m.products WHERE m.id = :reweId")
-    @Cacheable(value = "markets_id_with_products", unless = "#a0==2L") // For testing
-    // @Cacheable(value = "markets_id_with_products")
+    // @Cacheable(value = "markets_id_with_products", unless = "#a0==2L") // For testing
+    @Cacheable(value = "markets_id_with_products")
     Optional<Market> findByIdWithProducts(@Param("reweId") Long reweId);
     
     /**
