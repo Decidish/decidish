@@ -4,7 +4,7 @@ CREATE EXTENSION vector;
 
 CREATE TABLE recipe_embeddings (
     id SERIAL PRIMARY KEY,
-    recipe_id INT references recipes(id) ON DELETE CASCADE,
+    recipe_id INT UNIQUE references recipes(id) ON DELETE CASCADE,
     embedding vector(384)
 );
 

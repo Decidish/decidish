@@ -14,10 +14,10 @@ ml_models = {}
 db_pool = None
 
 # DATABASE CONFIG
-DB_DSN = os.getenv("DATABASE_URL", "postgresql://user:password@localhost:5432/mydb")
+DB_DSN = os.getenv("DATABASE_URL", "postgresql://user:1234@localhost:5433/decidish")
 
 @asynccontextmanager
-async def lifespan():
+async def lifespan(app):
     print("Startup: Loading resources...")
 
     try:
@@ -28,12 +28,17 @@ async def lifespan():
 
     # 2. Connect to Database
     try:
+        async def init_connection(conn):
+            # This is the line that registers the adapter on the async connection
+            await register_vector(conn)
+
         global db_pool
-        db_pool = await asyncpg.create_pool(DB_DSN, min_size=1, max_size=10)
+        db_pool = await asyncpg.create_pool(DB_DSN, min_size=1, max_size=10, init=init_connection)
 
         print("Database Connected")
     except Exception as e:
         print(f"Failed to connect to DB: {e}")
+        exit(1)
 
     yield
 
@@ -59,15 +64,13 @@ async def process_batch(request: EmbedRequest):
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"AI Generation failed: {e}")
 
-    data_pairs = list(zip(request.recipeIds, vectors))
+    data_pairs = list(zip(request.recipe_ids, vectors))
 
     try:
         async with db_pool.acquire() as conn:
             query = """
                     INSERT INTO recipe_embeddings (recipe_id, embedding)
                     VALUES ($1, $2)
-                    ON CONFLICT (recipe_id)
-                    DO UPDATE SET embedding = EXCLUDED.embedding
                     """
 
             await conn.executemany(query, data_pairs)
@@ -82,4 +85,4 @@ async def process_batch(request: EmbedRequest):
     }
 
 if __name__ == "__main__":
-    uvicorn.run("main:app", host="0.0.0.0", port=8000, reload=True)
+    uvicorn.run("app:app", host="0.0.0.0", port=8000, reload=True)
