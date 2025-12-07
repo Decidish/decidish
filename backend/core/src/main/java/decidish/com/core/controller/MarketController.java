@@ -21,31 +21,14 @@ public class MarketController {
 
     private final MarketService marketService;
     
-    // @PostMapping("/search")
-    // public List<String> searchMarkets(@RequestBody String plz) {
-    //     return marketService.getMarkets(plz);
-    // }
-
     // TODO: Implement endpoints to get markets and make it more efficient etc.
-    // @PostMapping("/search")
-    // public ResponseEntity<List<Market>> searchMarkets(@RequestBody String plz) {
-    //     // Handle errors (i.e. wrong postal code)
-    //     if(plz == null || plz.length() != 5){
-    //         return ResponseEntity.badRequest().build();
-    //     }
-        
-    //     // List<Market> markets = marketService.getMarkets(plz);
-    //     List<Market> markets = List.of();
-    //     return ResponseEntity.ok(markets);
-    // }
-    
     /**
      * Endpoint to search markets by Postal Code.
-     * Usage: GET /api/markets?plz=80331
+     * Usage: GET /markets?plz=80331
      */
     @GetMapping
     public ResponseEntity<List<Market>> searchMarkets(@RequestParam("plz") String zipCode) {
-        if (zipCode == null || zipCode.length() < 3) {
+        if (zipCode == null || zipCode.length() != 5) {
             return ResponseEntity.badRequest().build();
         }
         
@@ -55,7 +38,7 @@ public class MarketController {
 
     /**
      * Endpoint to fetch (and update) all products for a specific market.
-     * Usage: GET /api/markets/540945/products
+     * Usage: GET /markets/540945/products
      */
     @GetMapping("/{marketId}/products")
     public ResponseEntity<Market> getAllProducts(@PathVariable("marketId") Long marketId) {

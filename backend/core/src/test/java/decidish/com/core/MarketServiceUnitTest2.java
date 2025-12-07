@@ -12,6 +12,7 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.cache.CacheManager;
 
 import java.util.List;
 import java.util.Optional;
@@ -26,6 +27,9 @@ class MarketServiceUnitTest2 {
 
     @Mock
     private MarketRepository marketRepository;
+
+    @Mock
+    private CacheManager cacheManager;
 
     @Mock
     private ReweApiClient apiClient;

@@ -7,7 +7,9 @@ import java.util.List;
 import java.util.Map;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.cache.CacheManager;
 import org.springframework.stereotype.Service;
+import org.springframework.cache.Cache;
 
 import decidish.com.core.api.rewe.client.ReweApiClient;
 import decidish.com.core.model.rewe.Market;
@@ -18,19 +20,23 @@ import decidish.com.core.model.rewe.ProductSearchResponse;
 import decidish.com.core.model.rewe.MarketDto;
 import decidish.com.core.repository.MarketRepository;
 import jakarta.transaction.Transactional;
+import lombok.RequiredArgsConstructor;
 
 import org.hibernate.Hibernate;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 @Service
-// @AllArgsConstructor
+// @RequiredArgsConstructor
 public class MarketService {
 
     private static final Logger log = LoggerFactory.getLogger(MarketService.class);
     private final int TTL_WEEKS_MARKET = 1;
     private final int TTL_WEEKS_PRODUCTS = 4;
     private final int DEFAULT_OBJECTS_PER_PAGE = 250; // Default number of objects per page from REWE API
+                                                      
+    @Autowired
+    private CacheManager cacheManager;
 
     @Autowired
     private MarketRepository marketRepository;
@@ -55,24 +61,12 @@ public class MarketService {
         
         if (apiResponse == null || apiResponse.markets() == null) return List.of();
 
-        // --- OPTIMIZED MERGE LOGIC ---
+        // A. Collect IDs from API
+        List<Long> apiIds = apiResponse.markets().stream().map(MarketDto::id).toList();
 
-        // A. Collect IDs from API response
-        List<Long> apiIds = new ArrayList<>();
-        for (MarketDto dto : apiResponse.markets()) {
-            apiIds.add(dto.id()); // Assuming DTO ID is Long
-        }
-
-        // B. Fetch ALL relevant markets from DB (One Query)
-        // This finds them even if they didn't match the Address query earlier
-        List<Market> knownMarkets = marketRepository.findAllByIds(apiIds);
-
-        // C. Convert to Map for instant lookup
-        // Key: ID, Value: The Hibernate-Attached Entity
-        Map<Long, Market> marketMap = new HashMap<>();
-        for (Market m : knownMarkets) {
-            marketMap.put(m.getId(), m);
-        }
+        // B. Check Cache vs DB (The Optimization)
+        // We try to get everything from cache first, and only hit DB for the delta
+        Map<Long, Market> marketMap = getMarketsFromCacheOrDb(apiIds);
 
         List<Market> finalBatch = new ArrayList<>();
 
@@ -104,7 +98,15 @@ public class MarketService {
         // saveAll() is smart: it merges existing ones and persists new ones.
         // Only save if we actually have something to save
         if (!finalBatch.isEmpty()) {
-            return marketRepository.saveAll(finalBatch);
+            List<Market> savedMarkets = marketRepository.saveAll(finalBatch);
+        
+            // Manually update the individual cache for next time
+            // This ensures findByReweId(1) will be fast later.
+            for (Market m : savedMarkets) {
+                Cache cache = cacheManager.getCache("markets_id");
+                if (cache != null) cache.put(m.getReweId(), m);
+            }
+            return savedMarkets;
         }
 
         return List.of();
@@ -225,6 +227,35 @@ public class MarketService {
         // Does not work: Force Hibernate to fetch the products BEFORE the transaction closes
         Hibernate.initialize(savedMarket.getProducts());
         return savedMarket;
+    }
+    
+    private Map<Long, Market> getMarketsFromCacheOrDb(List<Long> ids) {
+        Map<Long, Market> result = new HashMap<>();
+        List<Long> missingIds = new ArrayList<>();
+        Cache cache = cacheManager.getCache("markets_id");
+
+        // 1. Try Cache
+        for (Long id : ids) {
+            // We use the wrapper to handle nulls safely
+            Market cached = (cache != null) ? cache.get(id, Market.class) : null;
+            if (cached != null) {
+                result.put(id, cached);
+            } else {
+                missingIds.add(id);
+            }
+        }
+
+        // 2. Batch Fetch Missing from DB
+        if (!missingIds.isEmpty()) {
+            List<Market> dbHits = marketRepository.findAllByIds(missingIds);
+            for (Market m : dbHits) {
+                result.put(m.getReweId(), m);
+                // Optional: Put back in cache now, or wait for saveAll()
+                 if (cache != null) cache.put(m.getReweId(), m);
+            }
+        }
+        
+        return result;
     }
 
     //TODO This is maybe more efficient

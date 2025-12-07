@@ -10,6 +10,7 @@ import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.cache.CacheManager;
 import org.springframework.test.context.ActiveProfiles; // If you use application-test.properties
 
 import java.util.List;
@@ -24,7 +25,6 @@ import static org.junit.jupiter.api.Assertions.*;
 @Tag("integration") // Useful to skip this test in CI builds
 @Transactional
 class MarketServiceIntegrationTest {
-
     @Autowired
     private MarketService marketService;
 
@@ -44,6 +44,7 @@ class MarketServiceIntegrationTest {
 
     @Test
     @DisplayName("LIVE API: Fetch Markets -> Persist to Postgres -> Verify Update")
+    //! If this fails is probably because you forgot to change the @Cacheable in MarketRepository (use the non-testing ones)
     void testSearchMarkets_Live() {
         // --- STEP 1: EXECUTE LIVE FETCH ---
         System.out.println("Calling Real REWE API (This may take a few seconds)...");
