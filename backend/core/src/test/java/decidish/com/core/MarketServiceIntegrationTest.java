@@ -19,7 +19,7 @@ import static org.junit.jupiter.api.Assertions.*;
 
 @SpringBootTest
 @ActiveProfiles("test") // Use manual settings
-// 1. Use Real Containers (Postgres + Redis)
+// Use Real Containers (Postgres + Redis)
 // @Import(TestcontainersConfiguration.class)
 // @AutoConfigureTestDatabase(replace = AutoConfigureTestDatabase.Replace.NONE)
 @Tag("integration") // Useful to skip this test in CI builds

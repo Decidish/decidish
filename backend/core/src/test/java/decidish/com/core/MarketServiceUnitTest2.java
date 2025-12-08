@@ -195,7 +195,10 @@ class MarketServiceUnitTest2 {
         existingProduct.setMarket(dbMarket);
 
         // Mock Repo to return this market
-        when(marketRepository.findByReweId(marketDbId))
+        // when(marketRepository.findByReweId(marketDbId))
+        //         .thenReturn(Optional.of(dbMarket));
+
+        when(marketRepository.findByIdWithProducts(marketDbId))
                 .thenReturn(Optional.of(dbMarket));
 
         // --- 2. SETUP: API Response (Fresh Data) ---

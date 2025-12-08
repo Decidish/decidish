@@ -1,4 +1,11 @@
 spring:
+  cache:
+    type: redis
+    redis:
+      time-to-live: 60m # Global default (60 minutes)
+      cache-null-values: false
+      key-prefix: "decidish:"
+      use-key-prefix: true
 # Turn off Spring Banner
   main:
     banner-mode: off
