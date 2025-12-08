@@ -7,22 +7,27 @@ import { Button } from '@/components/ui/button';
 import { Icon } from '@/components/ui/icon';
 import { Wallet } from 'lucide-react-native';
 
+import { useOnboarding } from './context';
+
 export default function OnboardingStep3() {
   const router = useRouter();
+  const { data, updateData } = useOnboarding();
 
-  const [selected, setSelected] = useState<string | null>(null);
+  const budgets = ["Under $50", "$50-$100", "$100-$150", "$150+"];
 
-  const budgets = [
-    "Under $50",
-    "$50-$100",
-    "$100-$150",
-    "$150+",
-  ];
+  // Initialize: Convert saved Number back to String, or null
+  const [selected, setSelected] = useState<string | null>(
+    data.budget ? budgets[data.budget - 1] : null
+  );
 
   const handleNext = () => {
     if (!selected) return;
-    // TODO: store the user's budget
-    // await AsyncStorage.setItem("weeklyBudget", selected);
+    
+    // Save: Convert String to Number (Index + 1)
+    // "Under $50" -> 1, "$50-$100" -> 2
+    const budgetIndex = budgets.indexOf(selected) + 1;
+    updateData({ budget: budgetIndex });
+
     router.push("/onboarding/step4");
   };
 

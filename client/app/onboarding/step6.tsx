@@ -7,10 +7,13 @@ import { Button } from '@/components/ui/button';
 import { Icon } from '@/components/ui/icon';
 import { AlertTriangle } from 'lucide-react-native';
 
+import { useOnboarding } from './context';
+
 export default function OnboardingStep6() {
   const router = useRouter();
-  const [selected, setSelected] = useState<string[]>([]);
+  const { data, updateData } = useOnboarding();
 
+  const [selected, setSelected] = useState<string[]>(data.allergies || []);
 
   const toggle = (item: string) => {
     setSelected((prev) =>
@@ -18,22 +21,10 @@ export default function OnboardingStep6() {
     );
   };
 
-  const options = [
-    'Dairy',
-    'Eggs',
-    'Nuts',
-    'Peanuts',
-    'Shellfish',
-    'Soy',
-    'Wheat',
-    'Gluten',
-  ];
+  const options = ['Dairy', 'Eggs', 'Nuts', 'Peanuts', 'Shellfish', 'Soy', 'Wheat', 'Gluten'];
 
   const handleNext = () => {
-    // TODO: store allergies（optional）
-    // await AsyncStorage.setItem('allergies', JSON.stringify(selected));
-
-    // directly jumped to home or somewhere else
+    updateData({ allergies: selected });
     router.push('/onboarding/step7');
   };
 

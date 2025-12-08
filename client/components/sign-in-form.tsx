@@ -1,91 +1,139 @@
-import {Button} from '@/components/ui/button';
-import {Card, CardContent, CardDescription, CardHeader, CardTitle,} from '@/components/ui/card';
-import {Input} from '@/components/ui/input';
-import {Label} from '@/components/ui/label';
-import {Text} from '@/components/ui/text';
-import * as React from 'react';
-import {Pressable, type TextInput, View} from 'react-native';
-import {useRouter} from "expo-router";
+import React, { useRef, useState } from 'react';
+import { View, TextInput, TouchableOpacity, KeyboardAvoidingView, Platform, ScrollView } from 'react-native';
+import { Stack, useRouter } from 'expo-router';
+// Icons
+import { Mail, Lock, ArrowRight, User } from 'lucide-react-native';
+// UI Components
+import { Text } from '@/components/ui/text';
+import { Button } from '@/components/ui/button'; // Assuming this is your wrapper or Paper button
+import { Input } from '@/components/ui/input'; 
 
 export function SignInForm() {
-    const router = useRouter()
-    const passwordInputRef = React.useRef<TextInput>(null);
+  const router = useRouter();
+  const passwordInputRef = useRef<TextInput>(null);
+  
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
 
-    function onEmailSubmitEditing() {
-        passwordInputRef.current?.focus();
-    }
+  const canSubmit = email.length > 0 && password.length > 0;
 
-    function onSubmit() {
-        router.push('/onboarding/step2')
-        // TODO: Submit form and navigate to protected screen if successful
-    }
+  function onSubmit() {
+    if (!canSubmit) return;
+    // TODO: Auth logic here
+    router.push('/swiper'); // Navigate to swiper if login successful
+  }
 
-    return (
-        <View className="gap-6">
-            <Card className="border-border/0 sm:border-border shadow-none sm:shadow-sm sm:shadow-black/5">
-                <CardHeader>
-                    <CardTitle className="text-center text-xl sm:text-left">Sign in to your app</CardTitle>
-                    <CardDescription className="text-center sm:text-left">
-                        Welcome back! Please sign in to continue
-                    </CardDescription>
-                </CardHeader>
-                <CardContent className="gap-6">
-                    <View className="gap-6">
-                        <View className="gap-1.5">
-                            <Label htmlFor="email">Email</Label>
-                            <Input
-                                id="email"
-                                placeholder="m@example.com"
-                                keyboardType="email-address"
-                                autoComplete="email"
-                                autoCapitalize="none"
-                                onSubmitEditing={onEmailSubmitEditing}
-                                returnKeyType="next"
-                                submitBehavior="submit"
-                            />
-                        </View>
-                        <View className="gap-1.5">
-                            <View className="flex-row items-center">
-                                <Label htmlFor="password">Password</Label>
-                                <Button
-                                    variant="link"
-                                    size="sm"
-                                    className="web:h-fit ml-auto h-4 px-1 py-0 sm:h-4"
-                                    onPress={() => {
-                                        // TODO: Navigate to forgot password screen
-                                    }}>
-                                    <Text className="font-normal leading-4">Forgot your password?</Text>
-                                </Button>
-                            </View>
-                            <Input
-                                ref={passwordInputRef}
-                                id="password"
-                                secureTextEntry
-                                returnKeyType="send"
-                                onSubmitEditing={onSubmit}
-                            />
-                        </View>
-                        <Button className="w-full" onPress={onSubmit}>
-                            <Text>Continue</Text>
-                        </Button>
-                    </View>
-                    <Text className="text-center text-sm">
-                        Don&apos;t have an account?{' '}
-                        <Pressable
-                            onPress={() => {
-                                router.push("/login/signup")
-                            }}>
-                            <Text className="text-sm underline underline-offset-4">Sign up</Text>
-                        </Pressable>
-                    </Text>
-                    {/*<View className="flex-row items-center">*/}
-                    {/*  <Separator className="flex-1" />*/}
-                    {/*  <Text className="text-muted-foreground px-4 text-sm">or</Text>*/}
-                    {/*  <Separator className="flex-1" />*/}
-                    {/*</View>*/}
-                    {/*<SocialConnections />*/}
-                </CardContent>
-            </Card>
+  return (
+    <>
+    <Stack.Screen options={{ headerShown: false }} />
+    <KeyboardAvoidingView 
+      behavior={Platform.OS === "ios" ? "padding" : "height"}
+      className="flex-1 bg-slate-50"
+    >
+      <ScrollView 
+      keyboardShouldPersistTaps="handled"
+      keyboardDismissMode="interactive"
+      contentContainerStyle={{ flexGrow: 1, justifyContent: 'center' }} 
+      className="px-6 flex-1 bg-teal-50">
+        
+        {/* === MAIN CARD === */}
+        <View className="w-full max-w-md mx-auto bg-white rounded-3xl shadow-lg p-8">
+          
+          {/* Header Section */}
+          <View className="items-center mb-8">
+            <View className="w-16 h-16 bg-teal-50 rounded-full items-center justify-center mb-4">
+              <User size={32} color="#0d9488" />
+            </View>
+            <Text className="text-2xl font-bold text-gray-900 text-center mb-2">
+              Welcome Back
+            </Text>
+            <Text className="text-gray-500 text-center">
+              Sign in to continue planning your meals
+            </Text>
+          </View>
+
+          {/* Form Fields */}
+          <View className="gap-5">
+            {/* Email Field */}
+            <View>
+              <Text className="text-xs font-bold text-gray-700 uppercase tracking-wider mb-2 ml-1">
+                Email Address
+              </Text>
+              <View className="relative">
+                <View className="absolute left-4 top-4 z-10">
+                  <Mail size={20} color="#9ca3af" />
+                </View>
+                <TextInput
+                  placeholder="jane.roe@example.com"
+                  value={email}
+                  onChangeText={setEmail}
+                  className="w-full pl-12 pr-4 py-4 border-2 border-gray-100 rounded-xl text-base bg-gray-50 focus:border-teal-500 focus:bg-white"
+                  placeholderTextColor="#9CA3AF"
+                  keyboardType="email-address"
+                  autoCapitalize="none"
+                  returnKeyType="next"
+                  onSubmitEditing={() => passwordInputRef.current?.focus()}
+                />
+              </View>
+            </View>
+
+            {/* Password Field */}
+            <View>
+              <View className="flex-row justify-between items-center mb-2 ml-1">
+                <Text className="text-xs font-bold text-gray-700 uppercase tracking-wider">
+                  Password
+                </Text>
+                <TouchableOpacity onPress={() => {/* Forgot Password Logic */}}>
+                  <Text className="text-xs font-bold text-teal-600">Forgot?</Text>
+                </TouchableOpacity>
+              </View>
+              
+              <View className="relative">
+                <View className="absolute left-4 top-4 z-10">
+                  <Lock size={20} color="#9ca3af" />
+                </View>
+                <TextInput
+                  ref={passwordInputRef}
+                  placeholder="Enter your password"
+                  value={password}
+                  onChangeText={setPassword}
+                  className="w-full pl-12 pr-4 py-4 border-2 border-gray-100 rounded-xl text-base bg-gray-50 focus:border-teal-500 focus:bg-white"
+                  placeholderTextColor="#9CA3AF"
+                  secureTextEntry
+                  returnKeyType="go"
+                  onSubmitEditing={onSubmit}
+                />
+              </View>
+            </View>
+
+            {/* Submit Button */}
+            <TouchableOpacity
+              onPress={onSubmit}
+              disabled={!canSubmit}
+              className={`w-full rounded-xl py-4 flex-row justify-center items-center gap-2 mt-4 shadow-sm ${
+                canSubmit 
+                  ? 'bg-teal-600 active:bg-teal-700' 
+                  : 'bg-gray-200'
+              }`}
+            >
+              <Text className={`text-base font-bold ${canSubmit ? 'text-white' : 'text-gray-400'}`}>
+                Sign In
+              </Text>
+              {canSubmit && <ArrowRight size={20} color="white" />}
+            </TouchableOpacity>
+          </View>
+
+          {/* Footer Link */}
+          <View className="mt-8 flex-row justify-center items-center">
+            <Text className="text-gray-500 text-sm">Don't have an account? </Text>
+            <TouchableOpacity onPress={() => router.push("/login/signup")}>
+              <Text className="text-teal-600 font-bold text-sm">Sign Up</Text>
+            </TouchableOpacity>
+          </View>
+
         </View>
-    );
+      </ScrollView>
+    </KeyboardAvoidingView>
+    </>
+  );
 }

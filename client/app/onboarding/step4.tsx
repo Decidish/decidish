@@ -7,33 +7,31 @@ import { Button } from '@/components/ui/button';
 import { Icon } from '@/components/ui/icon';
 import { Sun, CalendarDays, Clock } from 'lucide-react-native';
 
+import { useOnboarding } from './context';
+
 export default function OnboardingStep4() {
   const router = useRouter();
-  const [selected, setSelected] = useState<string | null>(null);
+  const { data, updateData } = useOnboarding();
 
   const options = [
-    {
-      label: 'Every day',
-      icon: Sun,
-    },
-    {
-      label: '4–6 times a week',
-      icon: CalendarDays,
-    },
-    {
-      label: '2–3 times a week',
-      icon: CalendarDays,
-    },
-    {
-      label: 'Occasionally',
-      icon: Clock,
-    },
+    { label: 'Every day', icon: Sun },
+    { label: '4–6 times a week', icon: CalendarDays },
+    { label: '2–3 times a week', icon: CalendarDays },
+    { label: 'Occasionally', icon: Clock },
   ];
+
+  // Initialize from context number (1-4) back to label string
+  const [selected, setSelected] = useState<string | null>(
+    data.cookFrequency ? options[data.cookFrequency - 1]?.label : null
+  );
 
   const handleNext = () => {
     if (!selected) return;
-    // TODO: store the user's cooking frequency
-    // await AsyncStorage.setItem('cookFrequency', selected);
+    
+    // Save as Number
+    const freqIndex = options.findIndex(opt => opt.label === selected) + 1;
+    updateData({ cookFrequency: freqIndex });
+
     router.push('/onboarding/step5');
   };
 

@@ -5,41 +5,32 @@ import { Stack, useRouter } from 'expo-router';
 import { Text } from '@/components/ui/text';
 import { Button } from '@/components/ui/button';
 import { Icon } from '@/components/ui/icon';
-
 // Icons
 import { Leaf, Utensils, Flame, Apple, Vegan, Heart } from 'lucide-react-native';
 
+import { useOnboarding } from './context';
+
 export default function OnboardingStep5() {
   const router = useRouter();
+  const { data, updateData } = useOnboarding();
 
-  const [selected, setSelected] = useState<string[]>([]);
+  const [selected, setSelected] = useState<string[]>(data.dietaryPreferences || []);
+  const NO_RESTRICTIONS = "No Restrictions";
 
   const toggle = (option: string) => {
+    // ... (Your existing toggle logic is good, keep it here)
     if (option === NO_RESTRICTIONS) {
-      if (selected.includes(NO_RESTRICTIONS)) {
-        setSelected([]);
-      } else {
-        setSelected([NO_RESTRICTIONS]);
-      }
+      if (selected.includes(NO_RESTRICTIONS)) setSelected([]);
+      else setSelected([NO_RESTRICTIONS]);
       return;
     }
-
     let newSelection = selected.filter(item => item !== NO_RESTRICTIONS);
-
-    if (newSelection.includes(option)) {
-      newSelection = newSelection.filter(item => item !== option);
-    } else {
-      newSelection.push(option);
-    }
-
-    if (newSelection.length === 0) {
-      newSelection = [NO_RESTRICTIONS];
-    }
-
+    if (newSelection.includes(option)) newSelection = newSelection.filter(item => item !== option);
+    else newSelection.push(option);
+    if (newSelection.length === 0) newSelection = [NO_RESTRICTIONS];
     setSelected(newSelection);
   };
 
-  const NO_RESTRICTIONS = "No Restrictions";
   const options = [
     { label: 'No Restrictions', icon: Utensils },
     { label: 'Vegetarian', icon: Leaf },
@@ -50,12 +41,12 @@ export default function OnboardingStep5() {
   ];
 
   const handleNext = () => {
-    if (selected.length === 0) return;
-
-    // TODO: save selected dietary preferences
-    // await AsyncStorage.setItem("dietPreferences", JSON.stringify(selected));
+    // Allow empty selection (implies no restrictions)
+    const finalSelection = selected.length === 0 ? [NO_RESTRICTIONS] : selected;
+    updateData({ dietaryPreferences: finalSelection });
     router.push('/onboarding/step6');
   };
+
 
   return (
     <>

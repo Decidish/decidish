@@ -7,41 +7,44 @@ import { Button } from '@/components/ui/button';
 import { Icon } from '@/components/ui/icon';
 import { Search } from 'lucide-react-native';
 
+import { useOnboarding } from './context';
+
 export default function OnboardingStep7() {
   const router = useRouter();
+  const { data, updateData } = useOnboarding();
 
-  const [servings, setServings] = useState<string | null>(null);
-  const [skill, setSkill] = useState<string | null>(null);
+  // Initialize
+  const [servings, setServings] = useState<string | null>(
+    data.servingPerMeal ? data.servingPerMeal.toString() : null // Simplistic reverse map
+  );
+  const [skill, setSkill] = useState<string | null>(data.cookingSkill || null);
 
   const servingsOptions = ['1', '2', '3-4', '5+'];
-
   const skillOptions = [
-    {
-      label: 'Beginner',
-      description: 'Simple recipes',
-    },
-    {
-      label: 'Mid level',
-      description: 'Moderate complexity',
-    },
-    {
-      label: 'Advanced',
-      description: 'Complex recipes',
-    },
+    { label: 'Beginner', description: 'Simple recipes' },
+    { label: 'Mid level', description: 'Moderate complexity' },
+    { label: 'Advanced', description: 'Complex recipes' },
   ];
 
   const canComplete = servings !== null && skill !== null;
 
-  const handleComplete = () => {
+  const handleComplete = async () => {
     if (!canComplete) return;
 
-    // TODO: save servings + skill levels
-    // await AsyncStorage.setItem("servings", servings)
-    // await AsyncStorage.setItem("skillLevel", skill)
+    // Map Servings String to Number
+    let servingsNum = 2;
+    if (servings === '1') servingsNum = 1;
+    if (servings === '3-4') servingsNum = 3;
+    if (servings === '5+') servingsNum = 5;
 
-    router.push('/swiper'); // jump to the home page after finish
+    updateData({ 
+        servingPerMeal: servingsNum,
+        cookingSkill: skill!
+    });
+
+    // Navigate to the Recipe Swiper 
+    router.push('/swiper'); 
   };
-
   return (
     <>
       <Stack.Screen options={{ headerShown: false }} />

@@ -7,21 +7,27 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Icon } from '@/components/ui/icon';
 import { MapPin } from 'lucide-react-native';
+import { useOnboarding } from './context';
 
 export default function OnboardingStep2() {
   const router = useRouter();
-  const [postalCode, setPostalCode] = useState('');
+  // 2. Get data and updater
+  const { data, updateData } = useOnboarding();
+
+  // 3. Initialize state from Context (so it remembers if you go back)
+  const [postalCode, setPostalCode] = useState(data.postalCode || '');
 
   const canContinue = postalCode.trim().length > 0;
 
   const handleNext = () => {
     if (!canContinue) return;
 
-    // TODO: store the user input: postalCode into the global state / AsyncStorage / backend
-    // e.g.：await AsyncStorage.setItem('postalCode', postalCode);
+    // 4. Save to Context
+    updateData({ postalCode });
     
     router.push('/onboarding/step3');
   };
+
 
   return (
     <>
