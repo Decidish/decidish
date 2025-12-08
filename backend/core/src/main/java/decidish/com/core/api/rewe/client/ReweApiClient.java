@@ -34,7 +34,7 @@ public interface ReweApiClient {
     // https://mobile-api.rewe.de/api/v3/market/details?marketId=431022
     @GetExchange(REWE_API_BASE_URL + MARKET_DETAILS_PATH)   
     MarketDetailsResponse getMarketDetails(
-        @RequestParam("marketId") String marketId
+        @RequestParam("marketId") Long marketId
     );
 
     // e.g.,
@@ -42,8 +42,8 @@ public interface ReweApiClient {
     @GetExchange(REWE_CLIENT_API_BASE_URL + PRODUCT_SEARCH_PATH)
     ProductSearchResponse searchProducts(
         @RequestParam("query") String product,
-        @RequestParam(name = "page") String page, 
-        @RequestParam(name = "objectsPerPage") String objectsPerPage,
-        @RequestHeader("rd-market-id") String marketId
+        @RequestParam(name = "page") int page, 
+        @RequestParam(name = "objectsPerPage") int objectsPerPage,
+        @RequestHeader("rd-market-id") Long marketId
     );
 }

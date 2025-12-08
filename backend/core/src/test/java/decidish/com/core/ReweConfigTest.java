@@ -73,7 +73,7 @@ class ReweConfigTest {
     @DisplayName("Test Market Details API Call")
     void testMarketDetailsApiCall() {
         // Use a known market ID for testing
-        String marketId = "431022";
+        Long marketId = 431022L;
         MarketDetailsResponse response = client.getMarketDetails(marketId);
 
         // Verify Response
@@ -108,17 +108,17 @@ class ReweConfigTest {
     @DisplayName("Test Products API Call")
     void testProductsApiCall() {
         // Use a known market ID for testing
-        String marketId = "431022";
+        Long marketId = 431022L;
         String product = "Kase";
         ProductSearchResponse response = client.searchProducts(
-            product, "1", "30", 
+            product, 1, 30, 
             marketId);
 
         // Verify Response
         assertNotNull(response);
         ProductsData data = response.data();
         ProductsSearchInfo info = data.products();
-        List<Product> products = info.products();
+        List<ProductDto> products = info.products();
         System.out.println("Product Details for market " + marketId + ":");
         System.out.println("Name: " + products.get(0).title());
         System.out.println("Id: " + products.get(0).productId());
@@ -126,6 +126,13 @@ class ReweConfigTest {
         System.out.println("articleId: " + products.get(0).articleId());
         System.out.println("price: " + products.get(0).listing().currentRetailPrice());
         System.out.println("grammage: " + products.get(0).listing().grammage());
-        System.out.println("discount: " + products.get(0).listing().discount().__typename());
+        if(products.get(0).listing().discount() != null){
+            System.out.println("discount: " + products.get(0).listing().discount().__typename());
+        }
+        Pagination pagination = info.pagination();
+        System.out.println("objetctsPerPage: " + pagination.objectsPerPage());
+        System.out.println("currentPage: " + pagination.currentPage());
+        System.out.println("pageCount: " + pagination.pageCount());
+        System.out.println("objectCount: " + pagination.objectCount());
     }
 }

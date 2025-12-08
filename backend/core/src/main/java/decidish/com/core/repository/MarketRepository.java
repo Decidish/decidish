@@ -17,13 +17,15 @@ public interface MarketRepository extends JpaRepository<Market, Long> {
     /**
      * Get markets by address PLZ
      */
-    @Query("SELECT m FROM Market m")
-    @Cacheable(value = "markets", unless = "#a0=='54321'")
+    @Query("SELECT m FROM Market m JOIN m.address a WHERE a.zipCode = :plz")
     Optional<List<Market>> getMarketsByAddress(@Param("plz") String plz);
 
-    // TODO: We need to have a certain market structure, schema display
     
     // Find by rewe id
-    @Cacheable(value = "markets_id", unless = "#a0=='2'")
-    Optional<Market> findByReweId(String reweId);
+    // @Cacheable(value = "markets_id", unless = "#a0==2L") // For testing
+    @Cacheable(value = "markets_id")
+    Optional<Market> findByReweId(Long reweId);
+
+    @Query("SELECT m FROM Market m LEFT JOIN FETCH m.products WHERE m.id = :id")
+    Optional<Market> findByIdWithProducts(@Param("id")Long id);
 }

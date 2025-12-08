@@ -9,5 +9,3 @@ node_modules/
 /bin/
 *.un~
 *.p12
-main
-**recipes.jsonl

@@ -1,243 +1,178 @@
-// package decidish.com.core;
+package decidish.com.core;
 
-// import decidish.com.core.model.rewe.*;
-// import decidish.com.core.repository.MarketRepository;
-// import decidish.com.core.service.MarketService;
-// import decidish.com.core.api.rewe.client.ReweApiClient;
-// import org.junit.jupiter.api.BeforeEach;
-// import org.junit.jupiter.api.DisplayName;
-// import org.junit.jupiter.api.Test;
-// import org.springframework.beans.factory.annotation.Autowired;
-// import org.springframework.boot.test.context.SpringBootTest;
-// import org.springframework.boot.test.autoconfigure.jdbc.AutoConfigureTestDatabase;
-// import org.springframework.boot.test.mock.mockito.MockBean;
-// import org.springframework.cache.annotation.EnableCaching;
+import decidish.com.core.model.rewe.*;
+import decidish.com.core.service.MarketService;
+import jakarta.transaction.Transactional;
+import decidish.com.core.repository.MarketRepository;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Tag;
+import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.test.context.ActiveProfiles; // If you use application-test.properties
 
-// import java.util.List;
-// import java.util.Optional;
+import java.util.List;
 
-// import static org.junit.jupiter.api.Assertions.*;
-// import static org.mockito.ArgumentMatchers.any;
-// import static org.mockito.Mockito.*;
+import static org.junit.jupiter.api.Assertions.*;
 
-// // @SpringBootTest
-// @SpringBootTest(classes = CoreApplication.class)
-// @AutoConfigureTestDatabase(replace = AutoConfigureTestDatabase.Replace.NONE) // Use Testcontainers Postgres
-// @EnableCaching
-// class MarketServiceIntegrationTest {
+@SpringBootTest
+@ActiveProfiles("test") // Use manual settings
+// Use Real Containers (Postgres + Redis)
+// @Import(TestcontainersConfiguration.class)
+// @AutoConfigureTestDatabase(replace = AutoConfigureTestDatabase.Replace.NONE)
+@Tag("integration") // Useful to skip this test in CI builds
+@Transactional
+class MarketServiceIntegrationTest {
+    @Autowired
+    private MarketService marketService;
 
-//     @Autowired
-//     private MarketService marketService;
+    @Autowired
+    private MarketRepository marketRepository;
 
-//     @Autowired
-//     private MarketRepository marketRepository;
+    // A real, valid REWE Market ID (e.g., REWE City Munich)
+    // You can find this ID in the URL on the rewe website
+    private final Long VALID_MARKET_ID = 431022L; 
+    private final String PLZ = "80809";
 
-//     // @Autowired
-//     // private RedisTemplate<String, Object> redisTemplate;
+    @BeforeEach
+    void setup() {
+        // Clear DB to ensure we are actually persisting fresh data
+        marketRepository.deleteAll();
+        marketService.setSelf(marketService); 
+    }
 
-//     @MockBean
-//     private ReweApiClient apiClient;
+    @Test
+    @DisplayName("LIVE API: Fetch Markets -> Persist to Postgres -> Verify Update")
+    //! If this fails is probably because you forgot to change the @Cacheable in MarketRepository (use the non-testing ones)
+    void testSearchMarkets_Live() {
+        // --- STEP 1: EXECUTE LIVE FETCH ---
+        System.out.println("Calling Real REWE API (This may take a few seconds)...");
+        List<Market> markets = marketService.getMarkets(PLZ);
 
-//     @BeforeEach
-//     void setup() {
-//         // Clear DB and Redis before every test to ensure a clean state
-//         marketRepository.deleteAll();
-//         // redisTemplate.getConnectionFactory().getConnection().serverCommands().flushAll();
-//     }
-
-//     @Test
-//     @DisplayName("Full Flow: API Fetch -> Save DB -> Cache Redis -> Cache Hit -> DB Fallback")
-//     void testMarketCachingFlow() {
-//         String zipCode = "80331";
-//         // String redisKey = "markets:zip:" + zipCode;
-
-//         // =================================================================
-//         // STEP 1: PREPARE MOCK DATA (What the API *would* return)
-//         // =================================================================
-//         MarketDto mockMarketDto = new MarketDto(
-//             "540945", "REWE Mock City", "MARKET", 
-//             "Theatinerstr.", "14", 
-//             new Location(48.1, 11.5),
-//             new RawValues("80331", "Munich")
-//         );
-//         MarketSearchResponse mockResponse = new MarketSearchResponse(List.of(mockMarketDto));
-
-//         // When the service calls searchMarkets, return our mock data
-//         when(apiClient.searchMarkets(zipCode)).thenReturn(mockResponse);
-
-//         // =================================================================
-//         // STEP 2: COLD START (Cache Empty, DB Empty)
-//         // =================================================================
-//         System.out.println("--- Step 2: Cold Start ---");
-//         List<Market> result1 = marketService.getMarkets(zipCode);
-
-//         // ASSERTIONS:
-//         assertEquals(1, result1.size());
-//         assertEquals("REWE Mock City", result1.get(0).getName());
-
-//         // 1. Verify API was called and data is in Postgres (existing)
-//         verify(apiClient, times(1)).searchMarkets(zipCode);
-//         assertEquals(1, marketRepository.count(), "Should have 1 row in DB");
-
-//         // 2. Verify Data is in Postgres
-//         assertEquals(1, marketRepository.count(), "Should have 1 row in DB");
-
-//         // 3. Verify Data is in Redis
-//         // assertTrue(redisTemplate.hasKey(redisKey), "Data should be cached in Redis");
-
-//         // 4. NEW: VERIFY MARKET DATA INTEGRITY
-//         Market savedMarket = result1.get(0);
-//         assertEquals("540945", savedMarket.getReweId(), "Rewe ID must be saved.");
-//         assertNotNull(savedMarket.getId(), "Market must have a generated ID.");
-//         assertNotNull(savedMarket.getAddress(), "Address object must not be null.");
-
-
-//         // 5. NEW: VERIFY ADDRESS DATA INTEGRITY (FOREIGN KEY CHECK)
-//         Address savedAddress = savedMarket.getAddress();
-
-//         // Check FK relationship IDs
-//         assertNotNull(savedAddress.getId(), "Address must have a generated ID.");
-//         assertNotNull(savedMarket.getAddress().getId(), "Market's address ID must be set.");
-//         assertEquals(savedAddress.getId(), savedMarket.getAddress().getId(), "Market FK must match Address PK.");
-
-//         // Check Address data fields
-//         assertEquals("80331", savedAddress.getZipCode(), "ZIP code must be correct.");
-//         assertEquals("Munich", savedAddress.getCity(), "City must be correct.");
-//         assertEquals("Theatinerstr.", savedAddress.getStreet(), "Street must be correct.");
-
-//         // 6. NEW: VERIFY DB SEARCH (Make sure the market is searchable by its ID)
-//         Optional<Market> foundMarket = marketRepository.findById(savedMarket.getId());
-//         assertTrue(foundMarket.isPresent(), "Market should be retrievable by its ID.");
-
-//         // =================================================================
-//         // STEP 3: CACHE HIT (Redis has data)
-//         // =================================================================
-//         // System.out.println("--- Step 3: Cache Hit ---");
-//         // // Call service again
-//         // List<Market> result2 = marketService.getMarkets(zipCode);
-
-//         // // ASSERTIONS:
-//         // assertEquals(1, result2.size());
-//         // // CRITICAL: Verify API was NOT called again (times is still 1)
-//         // verify(apiClient, times(1)).searchMarkets(any());
-
-//         // =================================================================
-//         // STEP 4: DB FALLBACK (Redis cleared, but DB has data)
-//         // =================================================================
-//         System.out.println("--- Step 4: DB Fallback ---");
-//         // Manually delete from Redis to simulate cache eviction
-//         // redisTemplate.delete(redisKey);
-//         // assertFalse(redisTemplate.hasKey(redisKey));
-
-//         // Call service again
-//         List<Market> result3 = marketService.getMarkets(zipCode);
-
-//         // ASSERTIONS:
-//         assertEquals("REWE Mock City", result3.get(0).getName());
+        // --- STEP 2: VERIFY PERSISTENCE ---
+        assertNotNull(markets);
+        System.out.println("Found " + markets.size() + " products.");
         
-//         // CRITICAL: API was still NOT called (times is still 1) because DB had data
-//         verify(apiClient, times(1)).searchMarkets(any());
+        // Basic Sanity Checks
+        assertFalse(markets.isEmpty(), "Real API should return products (unless searching for '*') returns nothing on Web API");
         
-//         // Verify Redis was repopulated from DB
-//         // assertTrue(redisTemplate.hasKey(redisKey), "Redis should be repopulated from DB");
-//     }
-
-//     @Test
-//     @DisplayName("DB Check No Duplicate on Multiple Fetches")
-//     void testNoDuplicate() {
-//         String zipCode = "80331";
-
-//         MarketDto mockMarketDto = new MarketDto(
-//             "540945", "REWE Mock City", "MARKET", 
-//             "Theatinerstr.", "14", 
-//             new Location(48.1, 11.5),
-//             new RawValues("80331", "Munich")
-//         );
-//         MarketSearchResponse mockResponse = new MarketSearchResponse(List.of(mockMarketDto));
-//         when(apiClient.searchMarkets(zipCode)).thenReturn(mockResponse);
-
-//         // First Call
-//         marketService.getMarkets(zipCode);
-//         long countAfterFirst = marketRepository.count();
-
-//         assertTrue(countAfterFirst > 0, "DB should have entries after first fetch.");
-
-//         // Second Call
-//         marketService.getMarkets(zipCode);
-//         long countAfterSecond = marketRepository.count();
-
-//         // ASSERTIONS:
-//         assertEquals(countAfterFirst, countAfterSecond, "DB count should remain the same after multiple fetches.");
-//     }
-
-//     //! IMPORTANT: Don't forget to comment if(!db.empty()) in MarketService to test this properly!
-
-//     @Test
-//     @DisplayName("Upsert Test: New API Data Updates Existing DB Record and Address")
-//     void testMarketUpdateLogic() {
-//         String zipCode = "80331";
-//         String reweId = "540945";
-
-//         // 1. Initial Insert Data
-//         MarketDto initialDto = new MarketDto(
-//             reweId, "REWE Mock City", "MARKET", 
-//             "Theatinerstr.", "14", 
-//             new Location(48.1, 11.5),
-//             new RawValues("80331", "Munich")
-//         );
-
-//         // 2. Updated Data
-//         MarketDto updatedDto = new MarketDto(
-//             reweId,
-//             "REWE Markt UPDATED Branch",
-//             "MARKET",
-//             "New Address 100",
-//             "99999 New City / New Area",
-//             new Location(52.6, 13.5),
-//             new RawValues("99999", "New City")
-//         );
-
-//         // --- PHASE 1: COLD START INSERT ---
-//         // API returns initial data
-//         when(apiClient.searchMarkets(zipCode)).thenReturn(new MarketSearchResponse(List.of(initialDto)));
-//         marketService.getMarkets(zipCode);
-
-//         // Verify initial state
-//         assertEquals(1, marketRepository.count(), "DB must have exactly 1 market.");
-//         Market firstSave = marketRepository.findByReweId(reweId).orElseThrow();
-//         Long marketId = firstSave.getId();
-//         Long addressId = firstSave.getAddress().getId();
-
-//         // --- PHASE 2: UPDATE (call service again) ---
-//         // API now returns updated data
-//         when(apiClient.searchMarkets(zipCode)).thenReturn(new MarketSearchResponse(List.of(updatedDto)));
-//         marketService.getMarkets(zipCode);
-//         System.out.println("Number of markets in repo: " + marketRepository.count());
-
-//         // --- ASSERTIONS AFTER UPDATE ---
-
-//         // 1. CRITICAL: COUNT CHECK
-//         assertEquals(1, marketRepository.count(), "Should still have exactly 1 market (no duplicate insert).");
+        Market firstMarket = markets.get(0);
+        System.out.println("   Sample: " + firstMarket.getName() + " - " + firstMarket.getAddress().getZipCode() + "cents");
         
-//         // 2. CHECK UPDATED DATA
-//         Market finalMarket = marketRepository.findByReweId(reweId).orElseThrow();
+        // assertEquals(firstMarket.getAddress().getZipCode(), PLZ);
+        assertNotNull(firstMarket.getId(), "Product must have an external ID");
+        assertNotNull(firstMarket.getName(), "Product must have a name");
 
-//         System.out.println("Final Market Name: " + finalMarket.getName());
-//         System.out.println("Final Market Address City: " + finalMarket.getAddress().getCity());
-//         System.out.println("Final Market Address Street: " + finalMarket.getAddress().getStreet());
+        // --- STEP 4: VERIFY IDEMPOTENCY (Update Logic) ---
+        System.out.println("Running 2nd Fetch (Should update, not duplicate)...");
+        
+        // Call it again
+        List<Market> reUpdatedMarket = marketService.getMarkets(PLZ);
+        
+        // Assertions
+        assertEquals(markets.size(), reUpdatedMarket.size(), 
+            "Market count should remain stable (no duplicates created)");
+            
+        // Verify DB Row Count
+        long dbMarketCount = marketRepository.findAll().size();
+        assertEquals(markets.size(), dbMarketCount, "Database rows match in-memory list");
+    }
 
-//         // 3. CHECK IDS (Ensure the same row was updated)
-//         assertEquals(marketId, finalMarket.getId(), "Market ID must not have changed.");
-//         assertEquals(addressId, finalMarket.getAddress().getId(), "Address ID must not have changed (same row updated).");  
+    @Test
+    @DisplayName("LIVE API: Fetch Products -> Persist to Postgres -> Verify Update")
+    void testGetAllProducts_Live() {
+        // --- STEP 1: PRE-CONDITION ---
+        // The Service requires the Market to exist in DB before adding products
+        Market initialMarket = new Market(VALID_MARKET_ID,"REWE Test Market",new Address());
+        
+        marketRepository.save(initialMarket);
+        System.out.println("Market " + VALID_MARKET_ID + " seeded in DB.");
 
-//         // 4. CHECK FIELD UPDATES
+        // --- STEP 2: EXECUTE LIVE FETCH ---
+        System.out.println("Calling Real REWE API (This may take a few seconds)...");
+        Market updatedMarket = marketRepository.findByReweId(VALID_MARKET_ID).orElse(null);
+        
+        assertNotNull(updatedMarket, "Market should exist in DB before fetching products");
+        updatedMarket = marketService.getAllProductsAPI(updatedMarket);
 
-//         System.out.println("Number of markets in repo: " + marketRepository.count());
-//         assertEquals("REWE Markt UPDATED Branch", finalMarket.getName(), "Market name must be updated.");
-//         assertEquals("New City", finalMarket.getAddress().getCity(), "Address city must be updated.");
-//         assertEquals("New Address 100", finalMarket.getAddress().getStreet(), "Address street must be updated.");
+        // --- STEP 3: VERIFY PERSISTENCE ---
+        assertNotNull(updatedMarket);
+        List<Product> products = updatedMarket.getProducts();
+        
+        System.out.println("Found " + products.size() + " products.");
+        
+        // Basic Sanity Checks
+        assertFalse(products.isEmpty(), "Real API should return products (unless searching for '*') returns nothing on Web API");
+        
+        Product firstProduct = products.get(0);
+        System.out.println("   Sample: " + firstProduct.getName() + " - " + firstProduct.getPrice() + "cents");
+        
+        assertNotNull(firstProduct.getId(), "Product must have an external ID");
+        assertNotNull(firstProduct.getName(), "Product must have a name");
 
-//         // CRITICAL: Ensure API was called twice total (one for each phase)
-//         verify(apiClient, times(2)).searchMarkets(zipCode);
-//     }
-// }
+        // --- STEP 4: VERIFY IDEMPOTENCY (Update Logic) ---
+        System.out.println("Running 2nd Fetch (Should update, not duplicate)...");
+
+        Market reUpdatedMarket = marketRepository.findByReweId(VALID_MARKET_ID).orElse(null);
+
+        assertNotNull(reUpdatedMarket, "Market should exist in DB before re-fetching products");
+        
+        // Call it again
+        reUpdatedMarket = marketService.getAllProductsAPI(reUpdatedMarket);
+        
+        // Assertions
+        assertEquals(products.size(), reUpdatedMarket.getProducts().size(), 
+            "Product count should remain stable (no duplicates created)");
+            
+        // Verify DB Row Count
+        long dbProductCount = marketRepository.findById(VALID_MARKET_ID).get().getProducts().size();
+        assertEquals(products.size(), dbProductCount, "Database rows match in-memory list");
+    }
+
+    @Test
+    @DisplayName("LIVE API: Fetch Products with Query -> Persist to Postgres -> Verify Update")
+    void testGetProductsWithQuery_Live() {
+        // --- STEP 1: PRE-CONDITION ---
+
+        // The Service requires the Market to exist in DB before adding products
+        Market initialMarket = new Market(VALID_MARKET_ID,"REWE Test Market",new Address());
+        marketRepository.save(initialMarket);
+        System.out.println("Market " + VALID_MARKET_ID + " seeded in DB.");
+        String query = "Apfel";
+        
+        // --- STEP 2: EXECUTE LIVE FETCH ---
+        System.out.println("Calling Real REWE API (This may take a few seconds)...");
+        Market updatedMarket = marketService.getProductsQuery(VALID_MARKET_ID, query);  
+
+        // --- STEP 3: VERIFY PERSISTENCE ---
+        assertNotNull(updatedMarket);
+        List<Product> products = updatedMarket.getProducts();
+
+        // Check number of products is less or equal to 250 (default page size)
+        assertTrue(products.size() <= 250, "Product count should be less or equal to 250 for query '" + query + "'");
+        System.out.println("Found " + products.size() + " products for query '" + query + "'.");
+
+        // Basic Sanity Checks
+        assertFalse(products.isEmpty(), "Real API should return products for query '" + query + "'");
+        Product firstProduct = products.get(0);
+        System.out.println("   Sample: " + firstProduct.getName() + " - " + firstProduct.getPrice() + " cents");
+        assertNotNull(firstProduct.getId(), "Product must have an external ID");
+        assertNotNull(firstProduct.getName(), "Product must have a name");
+
+
+        // --- STEP 4: VERIFY IDEMPOTENCY (Update Logic) ---
+        System.out.println("Running 2nd Fetch (Should update, not duplicate)...");
+
+        // Call it again
+        Market reUpdatedMarket = marketService.getProductsQuery(VALID_MARKET_ID, query);
+
+        // Assertions
+        assertEquals(products.size(), reUpdatedMarket.getProducts().size(), 
+            "Product count should remain stable (no duplicates created)");
+
+        // Verify DB Row Count
+        long dbProductCount = marketRepository.findById(VALID_MARKET_ID).get().getProducts().size();
+        assertEquals(products.size(), dbProductCount, "Database rows match in-memory list");
+    }
+}

@@ -2,12 +2,16 @@ package decidish.com.core.model.rewe;
 
 import java.io.Serializable;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
 
 import jakarta.persistence.*;
-import lombok.Data;
-import lombok.EqualsAndHashCode;
-import lombok.Getter;
-import lombok.Setter;
+
+import org.springframework.data.domain.Persistable;
+import lombok.*;
+
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonManagedReference;
 
 @Entity
 @Table(name = "markets")
@@ -15,17 +19,12 @@ import lombok.Setter;
 @EqualsAndHashCode 
 @Getter @Setter
 // Serializable: helps convert object to bytes, useful for redis cache
-public class Market implements Serializable{
-    // INTERNAL DB ID
-    @Id
-    //@SequenceGenerator(sequenceName = "market_sequence", name = "market_sequence", allocationSize = 1)
-    //@GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "market_sequence")
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
-    
+public class Market implements Serializable, Persistable<Long>{
+
     // EXTERNAL REWE ID
-    @Column(name = "rewe_id", unique = true, nullable = false)
-    private String reweId;
+    @Id
+    // @Column(name = "rewe_id", unique = true, nullable = false)
+    private Long reweId;
 
     private String name;
 
@@ -38,12 +37,42 @@ public class Market implements Serializable{
     private LocalDateTime lastUpdated;
 
     // boolean isOpen;
+
+    @OneToMany(mappedBy = "market", cascade = CascadeType.ALL, fetch = FetchType.LAZY, orphanRemoval = true)
+    @JsonManagedReference
+    @ToString.Exclude
+    private List<Product> products = new ArrayList<>();
+
+    public void addProduct(Product product){
+        products.add(product);
+        product.setMarket(this);
+    }
     
+    @Transient
+    @JsonIgnore
+    private boolean isNew = true;
+
+    @Override
+    public boolean isNew() {
+        return isNew;
+    }
+
+    @Override
+    public Long getId() {
+        return reweId;
+    }
+
+    @PostLoad
+    @PostPersist
+    public void markNotNew() {
+        this.isNew = false;
+    }
+
     // Empty Constructor
     public Market() {}
     
     // Standard Constructor
-    public Market(String reweId, String name
+    public Market(Long reweId, String name
         , Address address
         // , boolean isOpen
     ){
@@ -53,10 +82,27 @@ public class Market implements Serializable{
         this.lastUpdated = LocalDateTime.now();
         // this.isOpen = isOpen;
     }
+
+    public void updateFromDto(MarketDto dto) {
+        this.name = dto.name();
+        this.lastUpdated = LocalDateTime.now();
+        
+        if(this.address == null){
+            this.address = new Address();
+        }
+
+        if(this.address == null){
+            this.address = new Address();
+        }
+
+        this.address.setStreet(dto.addressLine1());
+        this.address.setZipCode(dto.rawValues().postalCode());
+        this.address.setCity(dto.rawValues().city());
+    }
     
     // Convert DTO to Entity
     public static Market fromDto(MarketDto dto){
-        String marketId = dto.id();
+        Long marketId = dto.id();
         String name = dto.name();
         Address address = new Address();
         address.setStreet(dto.addressLine1());
