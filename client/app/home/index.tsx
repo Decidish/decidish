@@ -15,7 +15,7 @@ export default function OnboardingStep1() {
         router.push('/login/signin')
         // router.push('/onboarding/step2');
     };
-
+    
     return (
         <>
             <Stack.Screen options={{headerShown: false}}/>

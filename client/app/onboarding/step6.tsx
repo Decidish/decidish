@@ -11,6 +11,7 @@ export default function OnboardingStep6() {
   const router = useRouter();
   const [selected, setSelected] = useState<string[]>([]);
 
+
   const toggle = (item: string) => {
     setSelected((prev) =>
       prev.includes(item) ? prev.filter((i) => i !== item) : [...prev, item]

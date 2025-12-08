@@ -14,12 +14,32 @@ export default function OnboardingStep5() {
 
   const [selected, setSelected] = useState<string[]>([]);
 
-  const toggle = (item: string) => {
-    setSelected((prev) =>
-      prev.includes(item) ? prev.filter((i) => i !== item) : [...prev, item]
-    );
+  const toggle = (option: string) => {
+    if (option === NO_RESTRICTIONS) {
+      if (selected.includes(NO_RESTRICTIONS)) {
+        setSelected([]);
+      } else {
+        setSelected([NO_RESTRICTIONS]);
+      }
+      return;
+    }
+
+    let newSelection = selected.filter(item => item !== NO_RESTRICTIONS);
+
+    if (newSelection.includes(option)) {
+      newSelection = newSelection.filter(item => item !== option);
+    } else {
+      newSelection.push(option);
+    }
+
+    if (newSelection.length === 0) {
+      newSelection = [NO_RESTRICTIONS];
+    }
+
+    setSelected(newSelection);
   };
 
+  const NO_RESTRICTIONS = "No Restrictions";
   const options = [
     { label: 'No Restrictions', icon: Utensils },
     { label: 'Vegetarian', icon: Leaf },

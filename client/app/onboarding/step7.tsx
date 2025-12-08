@@ -21,7 +21,7 @@ export default function OnboardingStep7() {
       description: 'Simple recipes',
     },
     {
-      label: 'Intermediate',
+      label: 'Mid level',
       description: 'Moderate complexity',
     },
     {
@@ -39,7 +39,7 @@ export default function OnboardingStep7() {
     // await AsyncStorage.setItem("servings", servings)
     // await AsyncStorage.setItem("skillLevel", skill)
 
-    router.push('/home'); // jump to the home page after finish
+    router.push('/swiper'); // jump to the home page after finish
   };
 
   return (
