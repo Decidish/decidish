@@ -92,7 +92,10 @@ class MarketServiceIntegrationTest {
 
         // --- STEP 2: EXECUTE LIVE FETCH ---
         System.out.println("Calling Real REWE API (This may take a few seconds)...");
-        Market updatedMarket = marketService.getAllProductsAPI(VALID_MARKET_ID);
+        Market updatedMarket = marketRepository.findByReweId(VALID_MARKET_ID).orElse(null);
+        
+        assertNotNull(updatedMarket, "Market should exist in DB before fetching products");
+        updatedMarket = marketService.getAllProductsAPI(updatedMarket);
 
         // --- STEP 3: VERIFY PERSISTENCE ---
         assertNotNull(updatedMarket);
@@ -111,9 +114,13 @@ class MarketServiceIntegrationTest {
 
         // --- STEP 4: VERIFY IDEMPOTENCY (Update Logic) ---
         System.out.println("Running 2nd Fetch (Should update, not duplicate)...");
+
+        Market reUpdatedMarket = marketRepository.findByReweId(VALID_MARKET_ID).orElse(null);
+
+        assertNotNull(reUpdatedMarket, "Market should exist in DB before re-fetching products");
         
         // Call it again
-        Market reUpdatedMarket = marketService.getAllProductsAPI(VALID_MARKET_ID);
+        reUpdatedMarket = marketService.getAllProductsAPI(reUpdatedMarket);
         
         // Assertions
         assertEquals(products.size(), reUpdatedMarket.getProducts().size(), 

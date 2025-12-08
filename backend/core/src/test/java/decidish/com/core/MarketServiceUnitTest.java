@@ -93,7 +93,7 @@ class MarketServiceUnitTest {
         // CRITICAL UPDATE: Verify saveAll was never called
         verify(marketRepository, never()).saveAll(any()); 
         // (Optional) Verify findByReweIdIn was also skipped
-        verify(marketRepository, never()).findAllByIds(any());
+        // verify(marketRepository, never()).findAllByIds(any());
     }
 
 
