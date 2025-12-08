@@ -6,6 +6,7 @@ from torch import nn
 import torch.nn.functional as F
 from typing import Optional, Tuple, List
 from dataclasses import dataclass
+from sentence_transformers import SentenceTransformer
 
 
 def mean_pool_embeddings(
@@ -22,22 +23,19 @@ def mean_pool_embeddings(
 class UserEncoderConfig:
     user_input_dim: int
     hidden_dim: int = 128
-    output_dim = 64
+    output_dim = 384
     num_layers: int = 2
     dropout: float = 0.1
 
 
 @dataclass
 class RecipeEncoderConfig:
-    vocab_size: int
-    pad_idx: int = 0
-    emb_dim: int = 128
-    hidden_dim: int = 256
-    num_layers: int = 2
-    n_heads: int = 4
-    max_len: int = 256
-    output_dim: int = 64
+    st_model_name: str = "sentence-transformers/all-MiniLM-L6-v2"
+    hidden_dim: int = 512
+    num_layers: int = 3
+    output_dim: int = 384
     dropout: float = 0.1
+    freeze_base: bool = True
 
 
 class UserEncoder(nn.Module):
@@ -61,54 +59,62 @@ class UserEncoder(nn.Module):
         return z
 
 
+class RecipeMLPBlock(nn.Module):
+    def __init__(self, out_dim: int = 384, hidden_dim: int = 512, dropout: float = 0.1):
+        super().__init__()
+        self.mapping = nn.Sequential(
+            nn.LayerNorm(out_dim),
+            nn.Linear(in_features=out_dim, out_features=hidden_dim),
+            nn.ReLU(),
+            nn.Dropout(dropout),
+            nn.Linear(in_features=hidden_dim, out_features=out_dim)
+        )
+        # self.ln = nn.LayerNorm(out_dim)
+        # self.linear1 = nn.Linear(in_features=out_dim, out_features=hidden_dim)
+        # self.act = nn.ReLU()
+        # self.dropout = nn.Dropout(dropout)
+        # self.linear = nn.Linear(in_features=hidden_dim, out_features=out_dim)
+
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        return self.mapping(x) + x
+
+
 class RecipeEncoder(nn.Module):
     def __init__(self, cfg: RecipeEncoderConfig):
         super().__init__()
         self.cfg = cfg
+        self.base_model = SentenceTransformer(cfg.st_model_name)
+        base_dim = self.base_model.get_sentence_embedding_dimension()
 
-        self.token_embedding = nn.Embedding(
-            num_embeddings=cfg.vocab_size,
-            embedding_dim=cfg.emb_dim,
-            padding_idx=cfg.pad_idx,
-        )
+        if base_dim != cfg.output_dim:
+            print(f"Attention!!! the sentence transformer output dim is not equal to the out_dim")
+            cfg.output_dim = base_dim
 
-        self.pos_embedding = nn.Embedding(
-            num_embeddings=cfg.max_len,
-            embedding_dim=cfg.emb_dim,
-        )
+        if cfg.freeze_base:
+            for p in self.base_model.parameters():
+                p.requires_grad = False
 
-        encoder_layer = nn.TransformerEncoderLayer(
-            d_model=cfg.emb_dim,
-            nhead=cfg.n_heads,
-            dim_feedforward=cfg.hidden_dim,
-            dropout=cfg.dropout,
-            batch_first=True,
-        )
+        blocks = []
+        for _ in range(cfg.num_layers):
+            blocks.append(RecipeMLPBlock(
+                out_dim=cfg.output_dim,
+                hidden_dim=cfg.hidden_dim,
+                dropout=cfg.dropout
+            ))
+        self.mlp = nn.Sequential(*blocks)
 
-        self.transformer = nn.TransformerEncoder(
-            encoder_layer,
-            num_layers=cfg.num_layers,
-        )
+    def forward(self, x):
+        with torch.no_grad():
+            emb = self.base_model.encode(
+                x,
+                convert_to_tensor=True,
+                show_progress_bar=False,
+            )  # [B,D]
 
-        self.proj = nn.Linear(cfg.emb_dim, cfg.output_dim)
+        device = next(self.mlp.parameters()).device
+        emb = emb.to(device)
+        out = self.mlp(emb)
 
-    def forward(self, token_ids: torch.Tensor) -> torch.Tensor:
-        B, L = token_ids.shape
-        device = token_ids.device
-
-        token_emb = self.token_embedding(token_ids)
-        pos_ids = torch.arange(L, device=device).unsqueeze(0).expand(B, L)
-        pos_emb = self.pos_embedding(pos_ids)
-
-        x = token_emb + pos_emb
-
-        pad_mask = (token_ids == self.cfg.pad_idx)
-        feat = self.transformer(x, src_key_padding_mask=pad_mask)
-
-        valid_mask = (token_ids != self.cfg.pad_idx).long()
-        pooled = mean_pool_embeddings(feat, valid_mask)
-
-        out = self.proj(pooled)
         z = F.normalize(out, dim=-1)
         return z
 
