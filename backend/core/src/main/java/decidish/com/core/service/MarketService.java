@@ -80,7 +80,8 @@ public class MarketService {
         if (!dbMarkets.isEmpty() && isMarketFresh(dbMarkets.get(0))) {
             log.info("DB Hit (Fresh) for PLZ: {}", plz);
             // We return here, and Spring automatically puts this result into Redis
-            return sanitizeForCache(dbMarkets);
+            return dbMarkets;
+            // return sanitizeForCache(dbMarkets);
         }
 
         log.info(dbMarkets.isEmpty() ? "Repo is empty" : "Data is not fresh");
@@ -273,7 +274,7 @@ public class MarketService {
      * @brief Get all products from a given market. Should be called sparely (40 API calls).
      */
     @Transactional
-    // @CachePut(value = "market_products", key = "#market.id")
+    @CachePut(value = "market_products", key = "#market.id")
     public Market getAllProductsAPI(Market market) {
         return getProductsAPI(market, "", Integer.MAX_VALUE);  
     }
@@ -281,7 +282,7 @@ public class MarketService {
     /**
      * @brief Get all products from a given market. First try to fetch from DB only. If no products or data not fresh, call API.
      */
-    // @Cacheable(value = "market_products", key = "#reweId")
+    @Cacheable(value = "market_products", key = "#reweId")
     public Market getAllProducts(Long reweId) {
         // Market market = marketRepository.findByReweId(reweId)
         //         .orElseThrow(() -> new RuntimeException("Market not found"));

@@ -251,7 +251,7 @@ class BenchmarkingSuite {
 
         printTime("Get All Products (Warm)", startTime, endTime);
 
-        // Should hit DB, but typically much faster than API call
+        // Should hit DB
         assertThat(hibernateStats.getQueryExecutionCount()).isGreaterThan(0);
     }
 
