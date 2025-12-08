@@ -15,6 +15,7 @@ type ApplicationConfig struct {
 	MinioUseSSL            bool
 	MinioRecipesBucket     string
 	MinioRecipesObjectName string
+	EmbedderServerUrl      string
 }
 
 func (config *ApplicationConfig) LoadConfiguration() {
@@ -70,4 +71,9 @@ func (config *ApplicationConfig) LoadConfiguration() {
 		panic(errors.New("MINIO_RECIPES_OBJECT environment variable is required"))
 	}
 
+	config.EmbedderServerUrl = os.Getenv("EMBEDDER_SERVER_URL")
+
+	if config.EmbedderServerUrl == "" {
+		panic(errors.New("EMBEDDER_SERVER_URL environment variable is required"))
+	}
 }

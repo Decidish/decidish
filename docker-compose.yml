@@ -15,6 +15,7 @@ services:
       POSTGRES_DB: ${POSTGRES_DB}
     volumes:
       - db_backend_data:/var/lib/postgresql/data
+      - ./init_db:/docker-entrypoint-initdb.d
     networks:
       - app-network
 
@@ -94,6 +95,7 @@ services:
       - REDIS_HOST=redis
       - JWT_SECRET=${JWT_SECRET}
       - DATABASE_URL=${DATABASE_BACKEND_URL}
+      - EMBEDDER_SERVER_URL=${EMBEDDER_SERVER_URL}
       - KAFKA_CONNECTION_URL=${KAFKA_CONNECTION_URL}
       - MINIO_ENDPOINT=${MINIO_ENDPOINT}
       - MINIO_ACCESS_KEY=${MINIO_ACCESS_KEY}
@@ -105,6 +107,7 @@ services:
       - db_backend
       - redis
       - kafka-ui
+      - rabbitmq
     networks:
       - app-network
 
@@ -117,9 +120,11 @@ services:
     volumes:
       - ./mlpipeline:/app
     environment:
-      - DATABASE_URL=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
+      - DATABASE_URL=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db_backend:5432/${POSTGRES_DB}
     depends_on:
       - db_backend
+      - kafka-ui
+      - rabbitmq
     networks:
       - app-network
 
@@ -146,6 +151,25 @@ services:
 # ----------------------------------------------------------------
 # Kafka & Streaming
 # ----------------------------------------------------------------
+  rabbitmq:
+    image: rabbitmq:3-management
+    container_name: rabbitmq-broker
+    restart: always
+    environment:
+      # Credentials for the default user
+      RABBITMQ_DEFAULT_USER: guest
+      RABBITMQ_DEFAULT_PASS: guest
+      RABBITMQ_DEFAULT_VHOST: /
+    ports:
+      # AMQP port
+      - "5672:5672"
+      # Management UI port
+      - "15672:15672"
+    volumes:
+      # Persistent storage for message data and configurations
+      - rabbitmq_data:/var/lib/rabbitmq/mnesia
+    networks:
+      - app-network
 
   kafka:
     image: bitnamilegacy/kafka:latest
@@ -177,7 +201,6 @@ services:
       - KAFKA_CFG_INTER_BROKER_LISTENER_NAME=INTERNAL
       - KAFKA_CFG_CONTROLLER_LISTENER_NAMES=CONTROLLER
 
-      # 3. FIX FOR "ERROR 3" (Unknown Topic)
       - KAFKA_CFG_AUTO_CREATE_TOPICS_ENABLE=true
 
     volumes:
@@ -204,6 +227,7 @@ volumes:
   db_backend_data:
   db_authorisation_data:
   kafka_data:
+  rabbitmq_data:
 
 networks:
   app-network:

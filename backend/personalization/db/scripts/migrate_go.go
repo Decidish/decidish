@@ -75,7 +75,7 @@ func ExecuteGoMigrations(config config.ApplicationConfig, db *sql.DB) error {
 
 	err = DownloadRecipesIfNotPresent(config)
 
-	err = UpSeedRecipesTable(db)
+	err = UpSeedRecipesTable(config, db)
 	if err != nil {
 		return err
 	}

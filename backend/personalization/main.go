@@ -51,6 +51,7 @@ func main() {
 	{
 		createUserActionMappings(protected, kafkaWriter)
 		createRecommendRecipesMappings(protected, db)
+		createOnboardingMappings(appConfig, protected, db)
 	}
 
 	if err := r.Run(":8082"); err != nil {

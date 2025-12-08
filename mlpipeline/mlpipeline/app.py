@@ -1,4 +1,5 @@
 import os
+import time
 from contextlib import asynccontextmanager
 from typing import List
 
@@ -53,6 +54,35 @@ class EmbedRequest(BaseModel):
     recipe_ids: List[int]
     recipe_strs: List[str]
 
+class UserFeatureRequest(BaseModel):
+    user_id: int
+    user_str: str
+
+@app.post("/process_user_feature")
+async def process_user_feature(request: UserFeatureRequest):
+    model = ml_models.get("embedding_model")
+    if not model or not db_pool:
+        raise HTTPException(status_code=503, detail="System not ready")
+
+    try:
+        vector = model.encode(request.user_str)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Inference failed: {e}")
+
+    try:
+        async with db_pool.acquire() as conn:
+            query = """
+            INSERT INTO user_embeddings (user_id, embedding) 
+            VALUES ($1, $2) 
+            """
+            await conn.execute(query, request.user_id, vector)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Database insert failed: {e}")
+    return {
+        "status": "success",
+        "user_id": request.user_id
+    }
+
 @app.post("/process_batch")
 async def process_batch(request: EmbedRequest):
     model = ml_models.get("embedding_model")
@@ -62,7 +92,7 @@ async def process_batch(request: EmbedRequest):
     try:
         vectors = model.encode(request.recipe_strs, convert_to_numpy=True).tolist()
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"AI Generation failed: {e}")
+        raise HTTPException(status_code=500, detail=f"Inference failed: {e}")
 
     data_pairs = list(zip(request.recipe_ids, vectors))
 
@@ -74,10 +104,8 @@ async def process_batch(request: EmbedRequest):
                     """
 
             await conn.executemany(query, data_pairs)
-
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Database insert failed: {e}")
-
     return {
         "status": "success",
         "processed_count": len(vectors),

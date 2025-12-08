@@ -11,6 +11,7 @@ require (
 	github.com/minio/minio-go/v7 v7.0.97
 	github.com/pressly/goose/v3 v3.26.0
 	github.com/segmentio/kafka-go v0.4.49
+	github.com/streadway/amqp v1.1.0
 )
 
 require (
