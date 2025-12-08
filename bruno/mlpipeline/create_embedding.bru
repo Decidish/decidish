@@ -1,0 +1,23 @@
+meta {
+  name: create_embedding
+  type: http
+  seq: 1
+}
+
+post {
+  url: http://localhost:8000/process_batch
+  body: json
+  auth: inherit
+}
+
+body:json {
+  {
+    "recipe_ids": [1],
+    "recipe_strs": ["{'author':'REWE','canonical_url':'https://www.rewe.de/rezepte/rucola-feigen-salat-speck-croutons/','category':'Abendessen, Hauptspeise, Vorspeise, Salate, Mittagessen','description':'Nussiger Rucola trifft auf süße Feigen. Dieses REWE Rezept für einen Nussigen Rucola-Feigen-Salat mit Speck, Brotcroûtons und Balsamico Dressing ist ein echtes Geschmackserlebnis!','equipment':[],'host':'rewe.de','image':'https://c.rewe-static.de/34582239/2/34582239.png?impolicy=recipe-detail-page-header','ingredient_groups':[{'ingredients':['250.0 g Rucolasalat','4.0 frische Feigen','40.0 g Pekannüsse','1.0 EL REWE Bio Ahornsirup','50.0 ml REWE Feine Welt Lesvos g.g.A. mildes Olivenöl','25.0 ml REWE Feine Welt Aceto Balsamico di Modena I.G.P.','1.0 TL REWE Bio Vielblütenhonig','REWE Feine Welt Rosa Kristallsalz','REWE Bio Pfeffer a. d. Mühle','100.0 g Bauchspeck in Scheiben','2.0 Scheibe(n) Roggenbrot','30.0 g ja! Butter'],'purpose':None}],'ingredients':['250.0 g Rucolasalat','4.0 frische Feigen','40.0 g Pekannüsse','1.0 EL REWE Bio Ahornsirup','50.0 ml REWE Feine Welt Lesvos g.g.A. mildes Olivenöl','25.0 ml REWE Feine Welt Aceto Balsamico di Modena I.G.P.','1.0 TL REWE Bio Vielblütenhonig','REWE Feine Welt Rosa Kristallsalz','REWE Bio Pfeffer a. d. Mühle','100.0 g Bauchspeck in Scheiben','2.0 Scheibe(n) Roggenbrot','30.0 g ja! Butter'],'instructions':'Den Rucolasalat waschen und trocken schleudern. Die Feigen waschen, trocken tupfen und vierteln. Pekannüsse mit Ahornsirup mischen und auf einem mit Backpapier ausgelegten Blech im vorgeheizten Ofen bei 160 °C für 5 Minuten rösten.\nFür das Dressing Olivenöl, Aceto Balsamico, Honig, Salz und Pfeffer gut miteinander verrühren. Den Speck in feine Streifen schneiden und in einer Pfanne ohne Öl knusprig ausgehen lassen. Die Brotscheiben in kleine Würfel schneiden. Speckstreifen herausnehmen, auf einem Küchenkrepp kurz auskühlen lassen. Butter zum Speckfett geben, schmelzen lassen. Brotwürfel darin unter Wenden knusprig braten.\nDen Rucolasalat mit Feigen, Pekannüssen und Dressing mischen und auf flachen Tellern anrichten. Brotcroûtons und Speck auf dem Salat verteilen und etwas frisch gemahlenen Pfeffer darüber streuen.','instructions_list':['Den Rucolasalat waschen und trocken schleudern. Die Feigen waschen, trocken tupfen und vierteln. Pekannüsse mit Ahornsirup mischen und auf einem mit Backpapier ausgelegten Blech im vorgeheizten Ofen bei 160 °C für 5 Minuten rösten.','Für das Dressing Olivenöl, Aceto Balsamico, Honig, Salz und Pfeffer gut miteinander verrühren. Den Speck in feine Streifen schneiden und in einer Pfanne ohne Öl knusprig ausgehen lassen. Die Brotscheiben in kleine Würfel schneiden. Speckstreifen herausnehmen, auf einem Küchenkrepp kurz auskühlen lassen. Butter zum Speckfett geben, schmelzen lassen. Brotwürfel darin unter Wenden knusprig braten.','Den Rucolasalat mit Feigen, Pekannüssen und Dressing mischen und auf flachen Tellern anrichten. Brotcroûtons und Speck auf dem Salat verteilen und etwas frisch gemahlenen Pfeffer darüber streuen.'],'keywords':['Low Carb','Laktosefrei','Herbst','Winter','Weihnachten','Frische Rezepte','gesund'],'language':'de','nutrients':{'servingSize':'4 Personen','calories':'555 kcal'},'ratings':4.1,'ratings_count':41,'site_name':'Rewe.de','title':'Nussiger Rucola-Feigen-Salat mit Speck und Brotcroûtons','total_time':30,'yields':'4 servings'}"]
+  }
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}

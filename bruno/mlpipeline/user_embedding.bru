@@ -1,0 +1,23 @@
+meta {
+  name: user_embedding
+  type: http
+  seq: 2
+}
+
+post {
+  url: http://localhost:8000/process_user_feature
+  body: json
+  auth: inherit
+}
+
+body:json {
+  {
+    "user_id": 1,
+    "user_str": "I like food"
+  }
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}
