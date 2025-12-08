@@ -1,11 +1,9 @@
 package decidish.com.core;
 
-import decidish.com.core.model.rewe.Address;
 import decidish.com.core.model.rewe.Market;
 import decidish.com.core.model.rewe.Product;
 import decidish.com.core.model.rewe.ProductAttributesDto;
 import decidish.com.core.repository.MarketRepository;
-import decidish.com.core.api.rewe.client.ReweApiClient;
 import jakarta.persistence.EntityManagerFactory;
 
 import org.hibernate.SessionFactory;
@@ -138,13 +136,6 @@ class BenchmarkingSuite {
     void benchmarkSearchMarkets_Warm() throws Exception {
         // 1. Prepare: Save data to DB so we don't hit API
         marketRepository.deleteAllInBatch();
-        // Market m = new Market();
-        // m.setReweId(999L);
-        // m.setName("DB Market");
-        // m.setLastUpdated(LocalDateTime.now());
-        // Address address = new Address();
-        // address.setZipCode(PLZ); // Must match the search param
-        // m.setAddress(address);   // Link them
         
         // marketRepository.save(m); // DB is now full
         mockMvc.perform(get("/markets").param("plz", PLZ)).andExpect(status().isOk());
@@ -176,15 +167,15 @@ class BenchmarkingSuite {
         marketRepository.deleteAllInBatch();
         // 1. Warm up the cache
         mockMvc.perform(get("/markets").param("plz", PLZ)).andExpect(status().isOk());
-        // // 2. Did it save to DB?
-        // long dbCount = marketRepository.count();
-        // System.out.println("Items in DB: " + dbCount);
+        // 2. Did it save to DB?
+        long dbCount = marketRepository.count();
+        System.out.println("Items in DB: " + dbCount);
 
-        // // 3. Did it save to Cache?
-        // var cache = cacheManager.getCache("markets");
-        // var cachedValue = cache.get(PLZ); // Look it up by the key
-        // boolean isInCache = (cachedValue != null);
-        // System.out.println("Is in Cache: " + isInCache);
+        // 3. Did it save to Cache?
+        var cache = cacheManager.getCache("markets");
+        var cachedValue = cache.get(PLZ); // Look it up by the key
+        boolean isInCache = (cachedValue != null);
+        System.out.println("Is in Cache: " + isInCache);
         hibernateStats.clear();
 
         System.out.println("\n[SEARCH HOT] Fetching from Cache...");

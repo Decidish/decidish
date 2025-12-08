@@ -1,7 +1,7 @@
 package decidish.com.core;
 
 import decidish.com.core.repository.MarketRepository;
-import decidish.com.core.service.MarketService;
+// import decidish.com.core.service.MarketService;
 import decidish.com.core.api.rewe.client.ReweApiClient;
 import decidish.com.core.model.rewe.*;
 
@@ -19,15 +19,14 @@ import org.springframework.cache.annotation.EnableCaching;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.cache.Cache;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
-import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.junit.jupiter.api.Assertions.assertEquals;
+
+//! DEPRECATED
 
 @ExtendWith(SpringExtension.class)
 @SpringBootTest // Loads the full context (needed for Cache proxies + DB)
@@ -45,8 +44,8 @@ class MarketRepositoryCacheTest {
     @Autowired
     private EntityManager entityManager;
 
-    @Autowired
-    private MarketService marketService;
+    // @Autowired
+    // private MarketService marketService;
 
     @MockitoBean
     private ReweApiClient apiClient;

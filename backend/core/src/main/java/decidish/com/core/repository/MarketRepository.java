@@ -20,7 +20,6 @@ public interface MarketRepository extends JpaRepository<Market, Long> {
     @Query("SELECT m FROM Market m JOIN m.address a WHERE a.zipCode = :plz")
     Optional<List<Market>> getMarketsByAddress(@Param("plz") String plz);
 
-    // // TODO: We need to have a certain market structure, schema display
     
     // Find by rewe id
     // @Cacheable(value = "markets_id", unless = "#a0==2L") // For testing
