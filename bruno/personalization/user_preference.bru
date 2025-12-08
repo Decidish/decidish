@@ -1,0 +1,38 @@
+meta {
+  name: user_preference
+  type: http
+  seq: 3
+}
+
+post {
+  url: http://localhost:8082/api/v1/onboarding
+  body: json
+  auth: inherit
+}
+
+headers {
+  Cookie: auth_token=[auth_token]
+}
+
+body:json {
+  {
+      "postal_code": "80331",
+      "weekly_budget": 75.50,
+      "cook_frequency": 4,
+      "diet_preferences": [
+          "vegan",
+          "low-sugar"
+      ],
+      "allergies": [
+          "shellfish",
+          "kiwi"
+      ],
+      "serving_per_meal": 2,
+      "cooking_skill": "advanced"
+  }
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}
