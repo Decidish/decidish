@@ -10,6 +10,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.jdbc.AutoConfigureTestDatabase;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.data.redis.connection.RedisConnectionFactory;
+import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.http.MediaType;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
@@ -17,6 +19,7 @@ import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.Objects;
 
 import static org.hamcrest.Matchers.hasSize;
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -42,6 +45,11 @@ class MarketControllerIntegrationTest {
 
     @MockitoBean
     private ReweApiClient apiClient;
+    
+    // @Autowired
+    // private RedisTemplate<String, Object> redisTemplate;
+    // @Autowired
+    // private RedisConnectionFactory connectionFactory;
 
     private final String PLZ = "80331";
     private final Long MARKET_ID1 = 540945L;
@@ -53,6 +61,15 @@ class MarketControllerIntegrationTest {
         // but explicit delete is safe if Transactional is disabled.
         marketRepository.deleteAll();
         marketRepository.flush(); // Force the delete SQL to execute NOW
+        
+        // Wipe Redis
+        // Objects.requireNonNull(redisTemplate.getConnectionFactory())
+        //        .getConnection()
+        //        .serverCommands()
+        //        .flushAll();
+    
+        // System.out.println(">>> CONNECTED TO REDIS: " + 
+        //     connectionFactory.getConnection().toString());
     }
 
     @Test
@@ -93,7 +110,6 @@ class MarketControllerIntegrationTest {
         // --- 1. ARRANGE: Pre-seed Database ---
         // The service requires the market to exist before fetching products
         Market dbMarket = new Market();
-        dbMarket.setReweId(MARKET_ID2); // Internal ID (same as reweId for simplicity here)
         dbMarket.setReweId(MARKET_ID2);
         dbMarket.setName("Market Before Products");
         marketRepository.save(dbMarket);

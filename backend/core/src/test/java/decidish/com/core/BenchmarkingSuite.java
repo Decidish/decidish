@@ -24,6 +24,8 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.cache.CacheManager;
 import org.springframework.cache.annotation.EnableCaching;
 import org.springframework.core.annotation.Order;
+import org.springframework.data.redis.core.RedisTemplate;
+import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.http.MediaType;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.context.ActiveProfiles;
@@ -63,6 +65,9 @@ class BenchmarkingSuite {
     @Autowired
     private JdbcTemplate jdbcTemplate;
 
+    @Autowired
+    private StringRedisTemplate redisTemplate;
+
     private Statistics hibernateStats;
 
     // Test Data Constants
@@ -84,6 +89,11 @@ class BenchmarkingSuite {
         cacheManager.getCacheNames().forEach(name -> 
             cacheManager.getCache(name).clear()
         );
+        // WIPE REDIS CLEAN
+        redisTemplate.getConnectionFactory()
+                     .getConnection()
+                     .serverCommands()
+                     .flushAll();
     }
     
     @AfterEach
@@ -169,15 +179,15 @@ class BenchmarkingSuite {
         marketRepository.deleteAllInBatch();
         // 1. Warm up the cache
         mockMvc.perform(get("/markets").param("plz", PLZ)).andExpect(status().isOk());
-        // 2. Did it save to DB?
-        long dbCount = marketRepository.count();
-        System.out.println("Items in DB: " + dbCount);
+        // // 2. Did it save to DB?
+        // long dbCount = marketRepository.count();
+        // System.out.println("Items in DB: " + dbCount);
 
-        // 3. Did it save to Cache?
-        var cache = cacheManager.getCache("markets");
-        var cachedValue = cache.get(PLZ); // Look it up by the key
-        boolean isInCache = (cachedValue != null);
-        System.out.println("Is in Cache: " + isInCache);
+        // // 3. Did it save to Cache?
+        // var cache = cacheManager.getCache("markets");
+        // var cachedValue = cache.get(PLZ); // Look it up by the key
+        // boolean isInCache = (cachedValue != null);
+        // System.out.println("Is in Cache: " + isInCache);
         hibernateStats.clear();
 
         System.out.println("\n[SEARCH HOT] Fetching from Cache...");

@@ -25,7 +25,8 @@ import decidish.com.core.model.rewe.ProductDto;
 import decidish.com.core.model.rewe.ProductSearchResponse;
 import decidish.com.core.model.rewe.MarketDto;
 import decidish.com.core.repository.MarketRepository;
-import jakarta.transaction.Transactional;
+// import jakarta.transaction.Transactional;
+import org.springframework.transaction.annotation.Transactional;
 import lombok.RequiredArgsConstructor;
 
 import org.hibernate.Hibernate;
@@ -79,7 +80,7 @@ public class MarketService {
         if (!dbMarkets.isEmpty() && isMarketFresh(dbMarkets.get(0))) {
             log.info("DB Hit (Fresh) for PLZ: {}", plz);
             // We return here, and Spring automatically puts this result into Redis
-            return dbMarkets; 
+            return sanitizeForCache(dbMarkets);
         }
 
         log.info(dbMarkets.isEmpty() ? "Repo is empty" : "Data is not fresh");
@@ -107,29 +108,101 @@ public class MarketService {
      * 2. @CachePut: Takes the return value and FORCES it into the 'markets' cache.
      * This ensures the cache is now perfectly in sync with the DB.
      */
+    // @Transactional
+    // @CachePut(value = "markets", key = "#plz")
+    // public List<Market> saveAndRefresh(List<Market> markets, String plz) {
+    //     List<Market> savedMarkets = marketRepository.saveAll(markets);
+
+    //     // --- E. HANDLE INDIVIDUAL ID CACHES ---
+    //     // Spring Annotations cannot easily split a List<Market> return 
+    //     // into 20 different cache keys (markets_id::1, markets_id::2...).
+    //     // We must handle this manually or using a loop of evictions.
+        
+    //     for (Market m : savedMarkets) {
+    //         // Option 1: Manually PUT (Fastest for read-heavy)
+    //         // cacheManager.getCache("markets_id").put(m.getReweId(), m);
+    //         Cache cache = cacheManager.getCache("markets_id");
+    //         if (cache != null) {
+    //             cache.put(m.getReweId(), m);
+    //         }
+            
+    //         // Option 2: Evict (Safer, ensures next fetch is fresh from DB)
+    //         // self.evictSingleCache(m.getReweId());
+    //     }
+
+    //     return savedMarkets;
+    // }
     @Transactional
     @CachePut(value = "markets", key = "#plz")
     public List<Market> saveAndRefresh(List<Market> markets, String plz) {
         List<Market> savedMarkets = marketRepository.saveAll(markets);
 
-        // --- E. HANDLE INDIVIDUAL ID CACHES ---
-        // Spring Annotations cannot easily split a List<Market> return 
-        // into 20 different cache keys (markets_id::1, markets_id::2...).
-        // We must handle this manually or using a loop of evictions.
+        // --- THE FIX ---
+        // Hibernate returns "PersistentBag" lists. We must unwrap them into
+        // plain "ArrayLists" before passing them to the Redis Serializer.
+        List<Market> sanitizedMarkets = new ArrayList<>();
         
         for (Market m : savedMarkets) {
-            // Option 1: Manually PUT (Fastest for read-heavy)
-            // cacheManager.getCache("markets_id").put(m.getReweId(), m);
-            Cache cache = cacheManager.getCache("markets_id");
-            if (cache != null) {
-                cache.put(m.getReweId(), m);
+            // 1. Initialize the list (loads from DB if lazy)
+            Hibernate.initialize(m.getProducts());
+            
+            // 2. Replace the Hibernate Bag with a plain ArrayList
+            if (m.getProducts() != null) {
+                // This creates a "dumb" list that Jackson loves
+                List<Product> plainList = new ArrayList<>(m.getProducts());
+                m.setProducts(plainList);
             }
             
-            // Option 2: Evict (Safer, ensures next fetch is fresh from DB)
-            // self.evictSingleCache(m.getReweId());
+            sanitizedMarkets.add(m);
+            
+            // Handle eviction logic...
+            self.evictSingleCache(m.getReweId());
         }
 
-        return savedMarkets;
+        return sanitizedMarkets;
+    }
+    
+    private List<Market> sanitizeForCache(List<Market> markets) {
+        List<Market> cleanList = new ArrayList<>();
+        
+        for (Market m : markets) {
+            // Force load the products
+            Hibernate.initialize(m.getProducts());
+            
+            // Swap Hibernate Bag for Java ArrayList
+            if (m.getProducts() != null) {
+                m.setProducts(new ArrayList<>(m.getProducts()));
+            }
+            cleanList.add(m);
+        }
+        return cleanList;
+    }
+    
+    // @Cacheable(value = "markets_id", key = "#reweId")
+    // public Market getMarketByReweId(Long reweId) {
+    //     // 1. Fetch from DB
+    //     Market market = marketRepository.findByReweId(reweId).orElse(null);
+        
+    //     if (market != null) {
+    //         // 2. SANITIZE: Unwrap Hibernate Bag -> ArrayList
+    //         // This prevents the SerializationException in Redis
+    //         if (market.getProducts() != null) {
+    //             // Initialize if lazy
+    //             Hibernate.initialize(market.getProducts()); 
+    //             // Replace with plain list
+    //             market.setProducts(new ArrayList<>(market.getProducts())); 
+    //         }
+    //     }
+    //     return market;
+    // }
+
+    @Cacheable(value = "markets_id", key = "#id")
+    @Transactional(readOnly = true) // Good practice for Fetch queries
+    public Market getMarket(Long id) {
+        // We use the new method instead of findById
+        // This ensures 'products' are inside the object BEFORE it goes to Redis
+        return marketRepository.findByIdWithProducts(id)
+                .orElseThrow(() -> new RuntimeException("Market not found"));
     }
 
     /**
@@ -177,9 +250,10 @@ public class MarketService {
     //? Mark for removal
     @Transactional
     public Market getDBProducts(Long reweId) {
-        Market market = marketRepository.findByReweId(reweId)
-                .orElseThrow(() -> new RuntimeException("Market not found"));
+        // Market market = marketRepository.findByReweId(reweId)
+        //         .orElseThrow(() -> new RuntimeException("Market not found"));
         
+        Market market = getMarket(reweId);
         return market;
     }
 
@@ -188,8 +262,10 @@ public class MarketService {
      */
     @Transactional
     public Market getProductsQuery(Long marketId, String query) {
-        Market market = marketRepository.findByReweId(marketId)
-                .orElseThrow(() -> new RuntimeException("Market not found"));
+        // Market market = marketRepository.findByReweId(reweId)
+        //         .orElseThrow(() -> new RuntimeException("Market not found"));
+        
+        Market market = getMarket(marketId);
         return getProductsAPI(market, query, 1);  
     }
 
@@ -197,7 +273,7 @@ public class MarketService {
      * @brief Get all products from a given market. Should be called sparely (40 API calls).
      */
     @Transactional
-    @CachePut(value = "market_products", key = "#market.id")
+    // @CachePut(value = "market_products", key = "#market.id")
     public Market getAllProductsAPI(Market market) {
         return getProductsAPI(market, "", Integer.MAX_VALUE);  
     }
@@ -205,10 +281,11 @@ public class MarketService {
     /**
      * @brief Get all products from a given market. First try to fetch from DB only. If no products or data not fresh, call API.
      */
-    @Cacheable(value = "market_products", key = "#reweId")
+    // @Cacheable(value = "market_products", key = "#reweId")
     public Market getAllProducts(Long reweId) {
-        Market market = marketRepository.findByReweId(reweId)
-                .orElseThrow(() -> new RuntimeException("Market not found"));
+        // Market market = marketRepository.findByReweId(reweId)
+        //         .orElseThrow(() -> new RuntimeException("Market not found"));
+        Market market = getMarket(reweId);
 
         // Check if products are fresh
         if (!market.getProducts().isEmpty() && isProductFresh(market.getProducts().get(0))) {
