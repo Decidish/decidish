@@ -1,6 +1,9 @@
 package decidish.com.core;
 
 import decidish.com.core.model.rewe.Market;
+import decidish.com.core.model.rewe.ProductAttributesDto;
+import decidish.com.core.model.rewe.ProductDto;
+import decidish.com.core.model.rewe.ProductPrice;
 import decidish.com.core.service.MarketService;
 import decidish.com.core.controller.MarketController;
 import org.junit.jupiter.api.DisplayName;
@@ -51,41 +54,68 @@ class MarketControllerUnitTest {
     }
 
     @Test
-    @DisplayName("GET /markets/{id}/products returns 200 and updated market")
+    @DisplayName("GET /markets/{id}/products returns 200 and list of products")
     void testGetAllProducts() throws Exception {
         // Arrange
         Long marketId = 540945L;
-        Market mockMarket = new Market();
-        mockMarket.setReweId(marketId);
-        mockMarket.setName("REWE with Products");
+        
+        // Create dummy products for the mock
+        ProductAttributesDto attributes = new ProductAttributesDto(false,false,false,false,false,false,false,false,false,false,false,false);
+        ProductPrice price1 = new ProductPrice(199,0,"",null,null);
+        ProductPrice price2 = new ProductPrice(99,0,"",null,null);
+        ProductDto p1 = new ProductDto(1L, "Apples", "",attributes,0,null,"",price1);
+        ProductDto p2 = new ProductDto(2L, "Bananas", "",attributes,0,null,"",price2);
 
-        when(marketService.getAllProducts(marketId)).thenReturn(mockMarket);
+        // Mock the service to return the LIST, not the Market
+        when(marketService.getAllProducts(marketId)).thenReturn(List.of(p1, p2));
 
         // Act & Assert
         mockMvc.perform(get("/markets/{id}/products", marketId))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.name").value("REWE with Products"));
+                // 1. Check that the root ($) is an Array
+                .andExpect(jsonPath("$").isArray())
+                // 2. Check the size of the array
+                .andExpect(jsonPath("$.length()").value(2))
+                // 3. Verify the first product's name
+                .andExpect(jsonPath("$[0].title").value("Apples"))
+                // 4. Verify the second product's price
+                .andExpect(jsonPath("$[1].listing.currentRetailPrice").value(99));
         
         verify(marketService).getAllProducts(marketId);
     }
 
     @Test
-    @DisplayName("GET /markets/{id}/query?query={query} returns 200 and updated market")
+    @DisplayName("GET /markets/{id}/query?query={query} returns 200 and list of matching products")
     void testGetAllProductsWithQuery() throws Exception {
         // Arrange
         Long marketId = 540945L;
         String query = "milk";
-        Market mockMarket = new Market();
-        mockMarket.setReweId(marketId);
-        mockMarket.setName("REWE with Milk Products");
+
+        // Create a dummy ProductDto (using nulls for fields we don't care about in this test)
+        ProductDto milkProduct = new ProductDto(
+            101L, 
+            "Fresh Milk 3.5%",  // title
+            null, // image
+            null, // attributes
+            10,   // limit
+            List.of("Dairy"), 
+            "123-MILK", 
+            null  // price/listing
+        );
         
-        when(marketService.getProductsQuery(marketId, query)).thenReturn(mockMarket);
+        // Mock the service to return a LIST containing our product
+        when(marketService.getProductsQuery(marketId, query)).thenReturn(List.of(milkProduct));
 
         // Act & Assert
         mockMvc.perform(get("/markets/{id}/query", marketId)
                         .param("query", query))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.name").value("REWE with Milk Products"));
+                // 1. Verify it is an Array
+                .andExpect(jsonPath("$").isArray())
+                // 2. Verify we got 1 result
+                .andExpect(jsonPath("$.length()").value(1))
+                // 3. Verify the PRODUCT TITLE (not Market name)
+                .andExpect(jsonPath("$[0].title").value("Fresh Milk 3.5%"));
 
         verify(marketService).getProductsQuery(marketId, query);
     }

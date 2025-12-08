@@ -3,6 +3,7 @@ package decidish.com.core;
 import decidish.com.core.model.rewe.Address;
 import decidish.com.core.model.rewe.Market;
 import decidish.com.core.model.rewe.Product;
+import decidish.com.core.model.rewe.ProductAttributesDto;
 import decidish.com.core.repository.MarketRepository;
 import decidish.com.core.api.rewe.client.ReweApiClient;
 import jakarta.persistence.EntityManagerFactory;
@@ -321,7 +322,8 @@ class BenchmarkTests {
 
         List<Product> products = new ArrayList<>();
         for (int i = 0; i < count; i++) {
-            Product p = new Product(Long.valueOf(i),productNameBase + " " + i,100,"img","100g");
+            Product p = new Product(Long.valueOf(i),productNameBase + " " + i,100,"img","100g", 
+            new ProductAttributesDto(false,false,false,false,false,false,false,false,false,false,false,false));
             p.setMarket(m);
             products.add(p);
         }

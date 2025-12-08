@@ -50,7 +50,7 @@ class MarketServiceUnitTest2 {
         Long marketDbId = 540945L;
 
         // Existing Product in DB (Price is 1.00)
-        Product existingProduct = new Product(1L,"Old Milk Name",100,"img1","100g");
+        Product existingProduct = new Product(1L,"Old Milk Name",100,"img1","100g", new ProductAttributesDto(false, false, false, false, false, false, false, false, false, false, false, false));
 
         Market dbMarket = new Market(marketDbId,"Rewe Market",new Address());
         
@@ -187,7 +187,7 @@ class MarketServiceUnitTest2 {
         String query = "milk";
 
         // Existing Product in DB (Price is 1.00)
-        Product existingProduct = new Product(1L,"Old Milk Name",100,"img1","100g");
+        Product existingProduct = new Product(1L,"Old Milk Name",100,"img1","100g",new ProductAttributesDto(false, false, false, false, false, false, false, false, false, false, false, false));
 
         Market dbMarket = new Market(marketDbId,"Rewe Market",new Address());
         

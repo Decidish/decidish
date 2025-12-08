@@ -25,9 +25,15 @@ CREATE TABLE markets
 -- but a non-unique index on 'name' is often useful for searching.
 CREATE INDEX idx_markets_name ON markets (name);
 
-CREATE TABLE product_attributes
+CREATE TABLE products
 (
-    id                 BIGINT NOT NULL,
+    id            BIGINT NOT NULL,
+    name          VARCHAR(255),
+    market_id     VARCHAR(255) NOT NULL,
+    price         INT,
+    image_url     VARCHAR(255),
+    grammage      VARCHAR(255),
+    last_updated  TIMESTAMP,
     is_bulky_good      BOOLEAN,
     is_organic         BOOLEAN,
     is_vegan           BOOLEAN,
@@ -40,32 +46,14 @@ CREATE TABLE product_attributes
     is_new             BOOLEAN,
     is_lowest_price    BOOLEAN,
     is_tobacco         BOOLEAN,
-    CONSTRAINT pk_product_attributes PRIMARY KEY (id)
-);
-
-CREATE TABLE products
-(
-    id            BIGINT NOT NULL,
-    name          VARCHAR(255),
-    market_id     VARCHAR(255) NOT NULL,
-    price         INT,
-    image_url     VARCHAR(255),
-    grammage      VARCHAR(255),
-    last_updated  TIMESTAMP,
-    attributes_id BIGINT NOT NULL,
     CONSTRAINT pk_products PRIMARY KEY (id),
     -- Foreign Key to markets table
-    CONSTRAINT fk_products_on_market FOREIGN KEY (market_id) REFERENCES markets(id),
-    -- Foreign Key to product_attributes table
-    CONSTRAINT fk_products_on_product_attributes FOREIGN KEY (attributes_id) REFERENCES product_attributes(id)
+    CONSTRAINT fk_products_on_market FOREIGN KEY (market_id) REFERENCES markets(id)
 );
 
 -- Indexes for efficient lookups/joins:
 -- 1. Index on market_id (Crucial for getting all products in a market)
 CREATE INDEX idx_products_market_id ON products (market_id);
-
--- 2. Index on attributes_id (Useful for querying products by their attributes)
-CREATE INDEX idx_products_attributes_id ON products (attributes_id);
 
 -- 3. Index on name (Useful for product searching)
 CREATE INDEX idx_products_name ON products (name);

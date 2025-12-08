@@ -11,6 +11,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import decidish.com.core.service.MarketService;
 import decidish.com.core.model.rewe.Market;
+import decidish.com.core.model.rewe.ProductDto;
 import lombok.AllArgsConstructor;
 import java.util.List;
 
@@ -41,11 +42,11 @@ public class MarketController {
      * Usage: GET /markets/540945/products
      */
     @GetMapping("/{marketId}/products")
-    public ResponseEntity<Market> getAllProducts(@PathVariable("marketId") Long marketId) {
+    public ResponseEntity<List<ProductDto>> getAllProducts(@PathVariable("marketId") Long marketId) {
         try {
             // This service method returns the fully updated Market entity with its products
-            Market updatedMarket = marketService.getAllProducts(marketId);
-            return ResponseEntity.ok(updatedMarket);
+            List<ProductDto> products = marketService.getAllProducts(marketId);
+            return ResponseEntity.ok(products);
         } catch (RuntimeException e) {
             // Handle case where market is not found (Service throws RuntimeException)
              System.err.println("Controller Error for ID " + marketId + ": " + e.getMessage());
@@ -59,11 +60,11 @@ public class MarketController {
      * Usage: GET /markets/{marketId}/query?query=milk
      */
     @GetMapping("/{marketId}/query")
-    public ResponseEntity<Market> getProductsQuery(@RequestParam("query") String query, @PathVariable("marketId") Long marketId) {
+    public ResponseEntity<List<ProductDto>> getProductsQuery(@RequestParam("query") String query, @PathVariable("marketId") Long marketId) {
         try {
             // This service method returns the fully updated Market entity with its products
-            Market updatedMarket = marketService.getProductsQuery(marketId, query);
-            return ResponseEntity.ok(updatedMarket);
+            List<ProductDto> products = marketService.getProductsQuery(marketId, query);
+            return ResponseEntity.ok(products);
         } catch (RuntimeException e) {
             // Handle case where market is not found (Service throws RuntimeException)
              System.err.println("Controller Error for ID " + marketId + ": " + e.getMessage());

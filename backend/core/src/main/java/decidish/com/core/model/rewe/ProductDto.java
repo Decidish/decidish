@@ -1,5 +1,6 @@
 package decidish.com.core.model.rewe;
 
+import java.io.Serializable;
 import java.util.List;
 
 public record ProductDto(
@@ -11,4 +12,4 @@ public record ProductDto(
         List<String> categories,
         String articleId,
         ProductPrice listing
-) {}
+) implements Serializable {}

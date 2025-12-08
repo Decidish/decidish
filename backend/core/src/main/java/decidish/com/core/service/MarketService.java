@@ -219,7 +219,7 @@ public class MarketService {
      * @brief Query a certain product for a given market. Only first page. One API call.
      */
     @Transactional
-    public Market getProductsQuery(Long marketId, String query) {
+    public List<ProductDto> getProductsQuery(Long marketId, String query) {
         // Market market = marketRepository.findByReweId(reweId)
         //         .orElseThrow(() -> new RuntimeException("Market not found"));
         
@@ -232,7 +232,7 @@ public class MarketService {
      */
     @Transactional
     @CachePut(value = "market_products", key = "#market.id")
-    public Market getAllProductsAPI(Market market) {
+    public List<ProductDto> getAllProductsAPI(Market market) {
         return getProductsAPI(market, "", Integer.MAX_VALUE);  
     }
 
@@ -240,7 +240,7 @@ public class MarketService {
      * @brief Get all products from a given market. First try to fetch from DB only. If no products or data not fresh, call API.
      */
     @Cacheable(value = "market_products", key = "#reweId")
-    public Market getAllProducts(Long reweId) {
+    public List<ProductDto> getAllProducts(Long reweId) {
         // Market market = marketRepository.findByReweId(reweId)
         //         .orElseThrow(() -> new RuntimeException("Market not found"));
         Market market = getMarket(reweId);
@@ -248,7 +248,12 @@ public class MarketService {
         // Check if products are fresh
         if (!market.getProducts().isEmpty() && isProductFresh(market.getProducts().get(0))) {
             log.info("DB Hit for Products of Market ID: {}", reweId);
-            return market;
+            List<ProductDto> dtos = new ArrayList<>(); 
+            for(Product product : market.getProducts()){
+                dtos.add(Product.toDto(product));
+            }
+            return dtos;
+            // return market;
         }
 
         return getAllProductsAPI(market);
@@ -273,12 +278,13 @@ public class MarketService {
      * @brief Query a certain product for a given market. Set number of pages to fetch.
      */
     @Transactional
-    //? Probably make void in the future
-    private Market getProductsAPI(Market market, String query, int numPages) {
+    private List<ProductDto> getProductsAPI(Market market, String query, int numPages) {
         // 1. Fetch from API (first page to get pagination info)
         log.info("Fetching API...");
         ProductSearchResponse response = apiClient.searchProducts(query, 1, DEFAULT_OBJECTS_PER_PAGE, market.getReweId());
-        if (response == null || response.data() == null) return market;
+        if (response == null || response.data() == null) 
+            // return market;
+            return List.of();
 
         // 2. Create Lookup Map 
         // We use a Map to ensure we find existing products quickly
@@ -290,10 +296,12 @@ public class MarketService {
         int queryPages = response.data().products().pagination().pageCount();
 
         int numberPages = Math.min(numPages, queryPages);
+        List<ProductDto> dtos = new ArrayList<>();
         // 3. Process API items
         int i = 0;
         do {
             for (ProductDto apiProd : response.data().products().products()) {
+                dtos.add(apiProd);
                 Long apiId = apiProd.productId();
                 
                 if (existingMap.containsKey(apiId)) {
@@ -318,6 +326,7 @@ public class MarketService {
         Market savedMarket = marketRepository.save(market);
         // Does not work: Force Hibernate to fetch the products BEFORE the transaction closes
         // Hibernate.initialize(savedMarket.getProducts());
-        return savedMarket;
+        // return savedMarket;
+        return dtos;
     }
 }

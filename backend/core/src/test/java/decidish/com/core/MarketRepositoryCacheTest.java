@@ -1,3 +1,4 @@
+//! Deprecated
 package decidish.com.core;
 
 import decidish.com.core.repository.MarketRepository;
@@ -84,7 +85,7 @@ class MarketRepositoryCacheTest {
         
         // You must actually save a Product for Market 3
         // assuming Product has a constructor like (name, market) or setters
-        Product p1 = new Product(100L,"Oranges",100,"img","100g");
+        Product p1 = new Product(100L,"Oranges",100,"img","100g",new ProductAttributesDto(false, false, false, false, false, false, false, false, false, false, false, false));
         p1.setMarket(market3); // Link the relationship
         market3.setProducts(new ArrayList<>(List.of(p1))); // Ensure consistency if bidirectional
 

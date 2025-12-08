@@ -45,9 +45,12 @@ public class Product implements Serializable, Persistable<Long>{
 
     private String grammage;
 
-    @OneToOne(cascade = CascadeType.ALL)
-    @JoinColumn(name = "attributes_id", referencedColumnName = "id")
-    private ProductAttributes attributes;
+    // @OneToOne(cascade = CascadeType.ALL)
+    // @JoinColumn(name = "attributes_id", referencedColumnName = "id")
+    // private ProductAttributes attributes;
+    //? Maybe use bitmasking in the future (but 12 bools shouldnt be a problem)
+    @Embedded
+    private ProductAttributesDto attributes;
     
     // TimeStamp
     @Column(name = "last_updated")
@@ -57,14 +60,14 @@ public class Product implements Serializable, Persistable<Long>{
     public Product() {}
     
     // Standard Constructor
-    public Product(Long id, String name, int price, String imageUrl, String grammage) {
+    public Product(Long id, String name, int price, String imageUrl, String grammage, ProductAttributesDto attributes) {
         this.id = id;
         this.name = name;
         this.price = price;
         this.imageUrl = imageUrl;
         this.grammage = grammage;
         this.lastUpdated = LocalDateTime.now();
-        // this.attributes = attributes;
+        this.attributes = attributes;
     }
     
     // Convert DTO to Entity
@@ -75,7 +78,22 @@ public class Product implements Serializable, Persistable<Long>{
         int price = dto.listing().currentRetailPrice();
         String grammage = dto.listing().grammage();
 
-        return new Product(productId, name, price, imageUrl, grammage);
+        return new Product(productId, name, price, imageUrl, grammage,dto.attributes());
+    }
+
+    // Convert Entity to DTO
+    public static ProductDto toDto(Product product){
+        Long productId = product.getId();
+        String name = product.getName();
+        String imageUrl = product.getImageUrl();
+        int price = product.getPrice();
+        String grammage = product.getGrammage();
+        ProductPrice listing = new ProductPrice(price, 0, 
+            grammage, null, null);
+
+        ProductDto dto = new ProductDto(productId,name,imageUrl,product.getAttributes(),
+                    0,null,"",listing);
+        return dto;
     }
     
     
@@ -85,6 +103,7 @@ public class Product implements Serializable, Persistable<Long>{
         this.imageUrl = dto.imageURL();
         this.price = dto.listing().currentRetailPrice();
         this.grammage = dto.listing().grammage();
+        this.attributes = dto.attributes();
         this.lastUpdated = LocalDateTime.now();
     }
     
@@ -105,7 +124,7 @@ public class Product implements Serializable, Persistable<Long>{
         return getClass().hashCode();
     }
     
-    // --- Persistable Implementation ---
+    // ersistable Implementation
     @Transient
     @JsonIgnore
     private boolean isNew = true;

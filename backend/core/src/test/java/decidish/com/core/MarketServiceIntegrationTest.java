@@ -84,6 +84,29 @@ class MarketServiceIntegrationTest {
     @DisplayName("LIVE API: Fetch Products -> Persist to Postgres -> Verify Update")
     void testGetAllProducts_Live() {
         // --- STEP 1: PRE-CONDITION ---
+        if (marketRepository.existsById(VALID_MARKET_ID)) {
+            marketRepository.deleteById(VALID_MARKET_ID);
+            marketRepository.flush(); // Force the SQL DELETE to run now
+        }
+        // 1. Check if the Market entity exists by its primary key (VALID_MARKET_ID)
+        marketRepository.findById(VALID_MARKET_ID).ifPresent(existingMarket -> {
+            System.out.println("Cleaning up old products by fetching and clearing the collection...");
+            
+            // 2. FORCING the Cascade Delete: 
+            // We get the *managed* entity, clear its product list, save, and then delete.
+            // This ensures Hibernate detects the collection changes and triggers orphanRemoval.
+            
+            // a. Clear the collection to mark children for deletion
+            existingMarket.getProducts().clear(); 
+            
+            // b. Save the market with the empty collection to trigger orphan removal first
+            marketRepository.save(existingMarket); 
+            
+            // c. Delete the Market entity itself
+            marketRepository.delete(existingMarket);
+        });
+
+        marketRepository.flush();
         // The Service requires the Market to exist in DB before adding products
         Market initialMarket = new Market(VALID_MARKET_ID,"REWE Test Market",new Address());
         
@@ -95,22 +118,22 @@ class MarketServiceIntegrationTest {
         Market updatedMarket = marketRepository.findByReweId(VALID_MARKET_ID).orElse(null);
         
         assertNotNull(updatedMarket, "Market should exist in DB before fetching products");
-        updatedMarket = marketService.getAllProductsAPI(updatedMarket);
+        List<ProductDto> products = marketService.getAllProductsAPI(updatedMarket);
 
         // --- STEP 3: VERIFY PERSISTENCE ---
-        assertNotNull(updatedMarket);
-        List<Product> products = updatedMarket.getProducts();
+        assertNotNull(products);
+        // List<Product> products = updatedMarket.getProducts();
         
         System.out.println("Found " + products.size() + " products.");
         
         // Basic Sanity Checks
         assertFalse(products.isEmpty(), "Real API should return products (unless searching for '*') returns nothing on Web API");
         
-        Product firstProduct = products.get(0);
-        System.out.println("   Sample: " + firstProduct.getName() + " - " + firstProduct.getPrice() + "cents");
+        ProductDto firstProduct = products.get(0);
+        System.out.println("   Sample: " + firstProduct.title() + " - " + firstProduct.listing().currentRetailPrice() + "cents");
         
-        assertNotNull(firstProduct.getId(), "Product must have an external ID");
-        assertNotNull(firstProduct.getName(), "Product must have a name");
+        assertNotNull(firstProduct.productId(), "Product must have an external ID");
+        assertNotNull(firstProduct.title(), "Product must have a name");
 
         // --- STEP 4: VERIFY IDEMPOTENCY (Update Logic) ---
         System.out.println("Running 2nd Fetch (Should update, not duplicate)...");
@@ -120,10 +143,10 @@ class MarketServiceIntegrationTest {
         assertNotNull(reUpdatedMarket, "Market should exist in DB before re-fetching products");
         
         // Call it again
-        reUpdatedMarket = marketService.getAllProductsAPI(reUpdatedMarket);
+        List<ProductDto> reUpdateProducts = marketService.getAllProductsAPI(reUpdatedMarket);
         
         // Assertions
-        assertEquals(products.size(), reUpdatedMarket.getProducts().size(), 
+        assertEquals(products.size(), reUpdateProducts.size(), 
             "Product count should remain stable (no duplicates created)");
             
         // Verify DB Row Count
@@ -144,11 +167,10 @@ class MarketServiceIntegrationTest {
         
         // --- STEP 2: EXECUTE LIVE FETCH ---
         System.out.println("Calling Real REWE API (This may take a few seconds)...");
-        Market updatedMarket = marketService.getProductsQuery(VALID_MARKET_ID, query);  
+        List<ProductDto> products = marketService.getProductsQuery(VALID_MARKET_ID, query);  
 
         // --- STEP 3: VERIFY PERSISTENCE ---
-        assertNotNull(updatedMarket);
-        List<Product> products = updatedMarket.getProducts();
+        assertNotNull(products);
 
         // Check number of products is less or equal to 250 (default page size)
         assertTrue(products.size() <= 250, "Product count should be less or equal to 250 for query '" + query + "'");
@@ -156,20 +178,20 @@ class MarketServiceIntegrationTest {
 
         // Basic Sanity Checks
         assertFalse(products.isEmpty(), "Real API should return products for query '" + query + "'");
-        Product firstProduct = products.get(0);
-        System.out.println("   Sample: " + firstProduct.getName() + " - " + firstProduct.getPrice() + " cents");
-        assertNotNull(firstProduct.getId(), "Product must have an external ID");
-        assertNotNull(firstProduct.getName(), "Product must have a name");
+        ProductDto firstProduct = products.get(0);
+        System.out.println("   Sample: " + firstProduct.title() + " - " + firstProduct.listing().currentRetailPrice()+ " cents");
+        assertNotNull(firstProduct.productId(), "Product must have an external ID");
+        assertNotNull(firstProduct.title(), "Product must have a name");
 
 
         // --- STEP 4: VERIFY IDEMPOTENCY (Update Logic) ---
         System.out.println("Running 2nd Fetch (Should update, not duplicate)...");
 
         // Call it again
-        Market reUpdatedMarket = marketService.getProductsQuery(VALID_MARKET_ID, query);
+        List<ProductDto> reUpdatedProduct = marketService.getProductsQuery(VALID_MARKET_ID, query);
 
         // Assertions
-        assertEquals(products.size(), reUpdatedMarket.getProducts().size(), 
+        assertEquals(products.size(), reUpdatedProduct.size(), 
             "Product count should remain stable (no duplicates created)");
 
         // Verify DB Row Count
