@@ -6,7 +6,9 @@ import (
 	"authorization/controller"
 	"authorization/database"
 	"log"
+	"time"
 
+	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 	"github.com/joho/godotenv"
 )
@@ -43,6 +45,14 @@ func main() {
 	authController := controller.AuthorizationController{
 		AuthenticationService: authService,
 	}
+
+	r.Use(cors.New(cors.Config{
+		AllowOrigins:     []string{"http://localhost:8081"},
+		AllowMethods:     []string{"PUT", "PATCH", "POST", "GET", "OPTIONS"},
+		AllowHeaders:     []string{"Origin", "Content-Type", "Authorization"},
+		AllowCredentials: true,
+		MaxAge:           12 * time.Hour,
+	}))
 
 	authController.AddMappings(db, r)
 

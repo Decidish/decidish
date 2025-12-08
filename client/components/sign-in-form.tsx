@@ -6,17 +6,34 @@ import {Text} from '@/components/ui/text';
 import * as React from 'react';
 import {Pressable, type TextInput, View} from 'react-native';
 import {useRouter} from "expo-router";
+import loginUser from "@/api/auth_client";
+import {useState} from "react";
 
 export function SignInForm() {
     const router = useRouter()
     const passwordInputRef = React.useRef<TextInput>(null);
+    const [username, setUsername] = useState('');
+    const [password, setPassword] = useState('');
 
     function onEmailSubmitEditing() {
         passwordInputRef.current?.focus();
     }
 
-    function onSubmit() {
-        router.push('/onboarding/step2')
+    async function onSubmit() {
+        loginUser({
+            username: username,
+            password: password
+        })
+            .then(res => {
+                if (res.status != 200) {
+                    console.log("Could not login")
+                } else {
+                    router.push('/onboarding/step2')
+                }
+            })
+            .catch(err => {
+                console.log(err)
+            })
         // TODO: Submit form and navigate to protected screen if successful
     }
 
@@ -32,14 +49,15 @@ export function SignInForm() {
                 <CardContent className="gap-6">
                     <View className="gap-6">
                         <View className="gap-1.5">
-                            <Label htmlFor="email">Email</Label>
+                            <Label htmlFor="username">Username</Label>
                             <Input
-                                id="email"
-                                placeholder="m@example.com"
-                                keyboardType="email-address"
-                                autoComplete="email"
+                                id="username"
+                                placeholder="username"
+                                keyboardType="default"
+                                autoComplete="username"
                                 autoCapitalize="none"
                                 onSubmitEditing={onEmailSubmitEditing}
+                                onChangeText={text => setUsername(text)}
                                 returnKeyType="next"
                                 submitBehavior="submit"
                             />
@@ -62,6 +80,7 @@ export function SignInForm() {
                                 id="password"
                                 secureTextEntry
                                 returnKeyType="send"
+                                onChangeText={text => setPassword(text)}
                                 onSubmitEditing={onSubmit}
                             />
                         </View>
@@ -73,7 +92,7 @@ export function SignInForm() {
                         Don&apos;t have an account?{' '}
                         <Pressable
                             onPress={() => {
-                                router.push("/login/signup/index")
+                                router.push("/login/signup")
                             }}>
                             <Text className="text-sm underline underline-offset-4">Sign up</Text>
                         </Pressable>

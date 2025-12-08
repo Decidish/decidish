@@ -55,6 +55,7 @@ func (controller *AuthorizationController) loginMapping(db *sql.DB, r *gin.Engin
 
 		http.SetCookie(c.Writer, &cookie)
 
+		c.Header("Access-Control-Allow-Origin", "http://localhost:8081")
 		c.JSON(http.StatusOK, gin.H{
 			"message": "Successfully logged in",
 		})

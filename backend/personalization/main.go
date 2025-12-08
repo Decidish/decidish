@@ -37,7 +37,7 @@ func main() {
 
 	// Cors Settings for Security
 	r.Use(cors.New(cors.Config{
-		AllowOrigins:     []string{"*"},
+		AllowOrigins:     []string{"http://localhost:8081"},
 		AllowMethods:     []string{"PUT", "PATCH", "POST", "GET", "OPTIONS"},
 		AllowHeaders:     []string{"Origin", "Content-Type", "Authorization"},
 		AllowCredentials: true,

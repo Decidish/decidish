@@ -8,6 +8,7 @@ import { Icon } from '@/components/ui/icon';
 
 // Icons
 import { Leaf, Utensils, Flame, Apple, Vegan, Heart } from 'lucide-react-native';
+import AsyncStorage from "@react-native-async-storage/async-storage";
 
 export default function OnboardingStep5() {
   const router = useRouter();
@@ -29,11 +30,10 @@ export default function OnboardingStep5() {
     { label: 'Low Carb', icon: Heart },
   ];
 
-  const handleNext = () => {
+  const handleNext = async () => {
     if (selected.length === 0) return;
 
-    // TODO: save selected dietary preferences
-    // await AsyncStorage.setItem("dietPreferences", JSON.stringify(selected));
+    await AsyncStorage.setItem("dietPreferences", JSON.stringify(selected));
     router.push('/onboarding/step6');
   };
 

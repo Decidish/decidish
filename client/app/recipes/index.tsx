@@ -7,20 +7,21 @@ import { X, Heart, RotateCcw, Filter, Bookmark, ChefHat, CookingPot, ChevronUp, 
 // Components & Data
 import CardItem from '@/components/carditem'; 
 import { MOCK_RECIPES } from '@/assets/data/demo'; // data
-import { Recipe } from '@/api/models/recipe'; // interface
+import { Recipe } from '@/api/models/recipe';
+import recommendRecipes from "@/api/recipe_client"; // interface
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 
 type HistoryItem = {
   action: 'like' | 'dislike';
   cardIndex: number;
-  recipeId?: string; // Only needed if action is 'like'
+  title?: string; // Only needed if action is 'like'
 };
 
-export default function HomePage() {
+export default function RecipePage() {
   const swiperRef = useRef<Swiper<Recipe>>(null);
 
-  const [recipes, setRecipes] = useState<Recipe[]>(MOCK_RECIPES.slice(0, 5));
+  const [recipes, setRecipes] = useState<Recipe[]>([]);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isLoading, setIsLoading] = useState(false);
   const [hasMore, setHasMore] = useState(true);
@@ -50,21 +51,23 @@ export default function HomePage() {
     }
   }, [currentIndex]);
 
-  const loadMoreRecipes = async () => {
+  const loadMoreRecipes = () => {
     setIsLoading(true);
     try {
       // Fetch next batch (you can paginate or filter by offset)
       // const newRecipes = await recipeClient.searchRecipes('', 10);
-      const newRecipes = MOCK_RECIPES;
-      
-      // if (newRecipes.recipes.length === 0) {
-      if (newRecipes.length === 0) {
-        setHasMore(false);
-      } else {
-        // Append new recipes to existing ones
-        setRecipes(prev => [...prev, ...newRecipes]);
-        // setRecipes(prev => [...prev, ...newRecipes.recipes]);
-      }
+      recommendRecipes()
+          .then(res => {
+              const data: Recipe[] = res.data;
+
+              // if (newRecipes.recipes.length === 0) {
+              if (data.length === 0) {
+                  setHasMore(false);
+              } else {
+                  // Append new recipes to existing ones
+                  setRecipes(prev => [...prev, ...data]);
+              }
+          });
     } catch (error) {
       console.error('Failed to load more recipes:', error);
       setHasMore(false);
@@ -86,7 +89,7 @@ export default function HomePage() {
     const recipe = recipes[idx];
     if (recipe) {
     setLikedRecipes(prev => [...prev, recipe]);
-    setHistory(prev => [...prev, { action: 'like', cardIndex: idx, recipeId: recipe.id }]);
+    setHistory(prev => [...prev, { action: 'like', cardIndex: idx, recipeId: recipe.title }]);
     }
     setCurrentIndex(idx + 1)
   };
@@ -103,8 +106,8 @@ export default function HomePage() {
     // Remove from history
     setHistory(prev => prev.slice(0, -1));
     // If it was a like, remove from liked recipes
-    if (lastAction.action === 'like' && lastAction.recipeId) {
-      setLikedRecipes(prev => prev.filter(r => r.id !== lastAction.recipeId));
+    if (lastAction.action === 'like' && lastAction.title) {
+      setLikedRecipes(prev => prev.filter(r => r.title !== lastAction.title));
     }
     // Jump back to previous card
     setCurrentIndex(lastAction.cardIndex);
