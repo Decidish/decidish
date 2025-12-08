@@ -3,6 +3,7 @@ package decidish.com.core;
 import decidish.com.core.model.rewe.Address;
 import decidish.com.core.model.rewe.Market;
 import decidish.com.core.model.rewe.Product;
+import decidish.com.core.model.rewe.ProductAttributesDto;
 import decidish.com.core.repository.MarketRepository;
 import decidish.com.core.api.rewe.client.ReweApiClient;
 import jakarta.persistence.EntityManagerFactory;
@@ -24,16 +25,12 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.cache.CacheManager;
 import org.springframework.cache.annotation.EnableCaching;
 import org.springframework.core.annotation.Order;
-import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.data.redis.core.StringRedisTemplate;
-import org.springframework.http.MediaType;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
-import org.springframework.test.web.servlet.MvcResult;
 
 import java.text.DecimalFormat;
-import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -321,7 +318,10 @@ class BenchmarkingSuite {
 
         List<Product> products = new ArrayList<>();
         for (int i = 0; i < count; i++) {
-            Product p = new Product(Long.valueOf(i),productNameBase + " " + i,100,"img","100g");
+            ProductAttributesDto attrs = new ProductAttributesDto(
+                true,true,true,true,true,true,true,true,true,true,true,true
+            );
+            Product p = new Product(Long.valueOf(i),productNameBase + " " + i,100,"img","100g", attrs);
             p.setMarket(m);
             products.add(p);
         }

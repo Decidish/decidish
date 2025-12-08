@@ -84,7 +84,10 @@ class MarketRepositoryCacheTest {
         
         // You must actually save a Product for Market 3
         // assuming Product has a constructor like (name, market) or setters
-        Product p1 = new Product(100L,"Oranges",100,"img","100g");
+        ProductAttributesDto attrs = new ProductAttributesDto(
+            true,true,true,true,true,true,true,true,true,true,true,true
+        );
+        Product p1 = new Product(100L,"Oranges",100,"img","100g", attrs);
         p1.setMarket(market3); // Link the relationship
         market3.setProducts(new ArrayList<>(List.of(p1))); // Ensure consistency if bidirectional
 

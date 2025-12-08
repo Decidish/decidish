@@ -45,9 +45,26 @@ public class Product implements Serializable, Persistable<Long>{
 
     private String grammage;
 
-    @OneToOne(cascade = CascadeType.ALL)
-    @JoinColumn(name = "attributes_id", referencedColumnName = "id")
-    private ProductAttributes attributes;
+    // @OneToOne(cascade = CascadeType.ALL)
+    // @JoinColumn(name = "attributes_id", referencedColumnName = "id")
+    // private ProductAttributes attributes;
+
+    @Embedded
+    @AttributeOverrides({
+        @AttributeOverride(name = "isBulkyGood", column = @Column(name = "is_bulky_good")),
+        @AttributeOverride(name = "isOrganic", column = @Column(name = "is_organic")),
+        @AttributeOverride(name = "isVegan", column = @Column(name = "is_vegan")),
+        @AttributeOverride(name = "isVegetarian", column = @Column(name = "is_vegetarian")),
+        @AttributeOverride(name = "isDairyFree", column = @Column(name = "is_dairy_free")),
+        @AttributeOverride(name = "isGlutenFree", column = @Column(name = "is_gluten_free")),
+        @AttributeOverride(name = "isBiocide", column = @Column(name = "is_biocide")),
+        @AttributeOverride(name = "isAgeRestricted", column = @Column(name = "is_age_restricted")),
+        @AttributeOverride(name = "isRegional", column = @Column(name = "is_regional")),
+        @AttributeOverride(name = "isNew", column = @Column(name = "is_new")),
+        @AttributeOverride(name = "isLowestPrice", column = @Column(name = "is_lowest_price")),
+        @AttributeOverride(name = "isTobacoo", column = @Column(name = "is_tobacco"))
+    })
+    private ProductAttributesDto attributes;
     
     // TimeStamp
     @Column(name = "last_updated")
@@ -57,14 +74,14 @@ public class Product implements Serializable, Persistable<Long>{
     public Product() {}
     
     // Standard Constructor
-    public Product(Long id, String name, int price, String imageUrl, String grammage) {
+    public Product(Long id, String name, int price, String imageUrl, String grammage, ProductAttributesDto attributes) {
         this.id = id;
         this.name = name;
         this.price = price;
         this.imageUrl = imageUrl;
         this.grammage = grammage;
         this.lastUpdated = LocalDateTime.now();
-        // this.attributes = attributes;
+        this.attributes = attributes;
     }
     
     // Convert DTO to Entity
@@ -74,8 +91,9 @@ public class Product implements Serializable, Persistable<Long>{
         String imageUrl = dto.imageURL();
         int price = dto.listing().currentRetailPrice();
         String grammage = dto.listing().grammage();
+        ProductAttributesDto attributes = dto.attributes();
 
-        return new Product(productId, name, price, imageUrl, grammage);
+        return new Product(productId, name, price, imageUrl, grammage, attributes);
     }
     
     

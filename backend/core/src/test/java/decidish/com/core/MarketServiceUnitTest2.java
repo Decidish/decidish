@@ -49,8 +49,12 @@ class MarketServiceUnitTest2 {
         // --- 1. SETUP: Existing Database State ---
         Long marketDbId = 540945L;
 
+        ProductAttributesDto attrs = new ProductAttributesDto(
+            true,true,true,true,true,true,true,true,true,true,true,true
+        );
+
         // Existing Product in DB (Price is 1.00)
-        Product existingProduct = new Product(1L,"Old Milk Name",100,"img1","100g");
+        Product existingProduct = new Product(1L,"Old Milk Name",100,"img1","100g", attrs);
 
         Market dbMarket = new Market(marketDbId,"Rewe Market",new Address());
         
@@ -186,9 +190,12 @@ class MarketServiceUnitTest2 {
         Long marketDbId = 540945L;
         String query = "milk";
 
-        // Existing Product in DB (Price is 1.00)
-        Product existingProduct = new Product(1L,"Old Milk Name",100,"img1","100g");
+        ProductAttributesDto attrs = new ProductAttributesDto(
+            true,true,true,true,true,true,true,true,true,true,true,true
+        );
 
+        // Existing Product in DB (Price is 1.00)
+        Product existingProduct = new Product(1L,"Old Milk Name",100,"img1","100g", attrs);
         Market dbMarket = new Market(marketDbId,"Rewe Market",new Address());
         
         // Link bidirectional

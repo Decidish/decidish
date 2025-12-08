@@ -1,5 +1,10 @@
 package decidish.com.core.model.rewe;
 
+import java.io.Serializable;
+
+import jakarta.persistence.Embeddable;
+
+@Embeddable
 public record ProductAttributesDto (
     boolean isBulkyGood,
     boolean isOrganic,
@@ -13,4 +18,4 @@ public record ProductAttributesDto (
     boolean isNew,
     boolean isLowestPrice,
     boolean isTobacoo   
-){}
+) implements Serializable{}
