@@ -43,8 +43,7 @@ public class MarketService {
     @Autowired
     private ReweApiClient apiClient;
 
-    // We inject the context to allow self-invocation (calling methods via proxy)
-    // Alternatively, move saveAndRefresh to a separate component.
+    // Inject the context to allow self-invocation (calling methods via proxy)
     @Autowired
     @Lazy
     private MarketService self; 
@@ -66,7 +65,6 @@ public class MarketService {
         
         // DB CHECK (Warm Path)
         List<Market> dbMarkets = marketRepository.getMarketsByAddress(plz).orElse(List.of());
-
         // Check freshness (Only runs on Cache Miss)
         if (!dbMarkets.isEmpty() && isMarketFresh(dbMarkets.get(0))) {
             log.info("DB Hit (Fresh) for PLZ: {}", plz);
@@ -93,6 +91,12 @@ public class MarketService {
         return self.saveAndRefresh(marketsToSave, plz);
     }
 
+    /**
+     * WRITE PATH
+     * 1. Saves to Database.
+     * 2. @CachePut: Takes the return value and FORCES it into the 'markets' cache.
+     * This ensures the cache is in sync with the DB.
+     */
     @Transactional
     @CachePut(value = "markets", key = "#plz")
     public List<Market> saveAndRefresh(List<Market> markets, String plz) {
@@ -108,14 +112,11 @@ public class MarketService {
             
             // 2. Replace the Hibernate Bag with a plain ArrayList
             if (m.getProducts() != null) {
-                // This creates a "dumb" list that Jackson loves
                 List<Product> plainList = new ArrayList<>(m.getProducts());
                 m.setProducts(plainList);
             }
             
             sanitizedMarkets.add(m);
-            
-            // Handle eviction logic...
             self.evictSingleCache(m.getReweId());
         }
 
@@ -123,9 +124,8 @@ public class MarketService {
     }
 
     @Cacheable(value = "markets_id", key = "#id")
-    @Transactional(readOnly = true) // Good practice for Fetch queries
+    @Transactional(readOnly = true)
     public Market getMarket(Long id) {
-        // We use the new method instead of findById
         // This ensures 'products' are inside the object BEFORE it goes to Redis
         return marketRepository.findByIdWithProducts(id)
                 .orElseThrow(() -> new RuntimeException("Market not found"));
@@ -137,7 +137,6 @@ public class MarketService {
      */
     @CacheEvict(value = "markets_id", key = "#reweId")
     public void evictSingleCache(Long reweId) {
-        // Method body is empty, the annotation does the work.
         log.debug("Evicting market_id cache for: {}", reweId);
     }
     
@@ -145,25 +144,21 @@ public class MarketService {
          List<Long> apiIds = apiDtos.stream().map(MarketDto::id).toList();
          
          // Fetch fresh entities directly from DB for the update.
-         // We ignore the cache here because we need the latest @Version for locking.
+         // We ignore the cache here because we need the latest version 
          List<Market> dbEntities = marketRepository.findAllById(apiIds);
          
          // Convert to Map for fast lookup
          Map<Long, Market> marketMap = dbEntities.stream()
             .collect(Collectors.toMap(Market::getId, Function.identity()));
-
-         // ... rest of the logic is exactly the same ...
          List<Market> finalBatch = new ArrayList<>();
 
          for (MarketDto dto : apiDtos) {
             if (marketMap.containsKey(dto.id())) {
                 Market existing = marketMap.get(dto.id());
-                existing.updateFromDto(dto); // Updates the MANAGED entity
-                // existing.setLastUpdated(LocalDateTime.now()); 
+                existing.updateFromDto(dto);
                 finalBatch.add(existing);
             } else {
                 Market newMarket = Market.fromDto(dto);
-                // newMarket.setLastUpdated(LocalDateTime.now());
                 finalBatch.add(newMarket);
             }
          }
@@ -229,7 +224,7 @@ public class MarketService {
         ProductSearchResponse response = apiClient.searchProducts(query, 1, DEFAULT_OBJECTS_PER_PAGE, market.getReweId());
         if (response == null || response.data() == null) return market;
 
-        // 2. Create Lookup Map (Sanitized)
+        // 2. Create Lookup Map 
         // We use a Map to ensure we find existing products quickly
         Map<Long, Product> existingMap = new HashMap<>();
         for (Product p : market.getProducts()) {
@@ -243,17 +238,12 @@ public class MarketService {
         int i = 0;
         do {
             for (ProductDto apiProd : response.data().products().products()) {
-                Long apiId = apiProd.productId(); // Ensure this matches reweId format
+                Long apiId = apiProd.productId();
                 
                 if (existingMap.containsKey(apiId)) {
-                    // --- UPDATE ---
-                    // We modify the EXISTING object instance.
-                    // We do NOT create a new one. We do NOT add it to the list again.
                     Product p = existingMap.get(apiId);
                     p.updateFromDto(apiProd);
                 } else {
-                    // --- INSERT ---
-                    // Only create if it truly doesn't exist
                     Product newProduct = Product.fromDto(apiProd);
                     market.addProduct(newProduct); // Add to list
                     existingMap.put(apiId, newProduct);   // Add to Map so we don't insert duplicate in same loop

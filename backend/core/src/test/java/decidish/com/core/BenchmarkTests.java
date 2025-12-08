@@ -43,7 +43,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @Tag("benchmark")
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
 @EnableCaching
-class BenchmarkingSuite {
+class BenchmarkTests {
 
     @Autowired
     private MockMvc mockMvc;
