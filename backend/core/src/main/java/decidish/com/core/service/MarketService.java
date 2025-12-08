@@ -197,6 +197,7 @@ public class MarketService {
      * @brief Get all products from a given market. Should be called sparely (40 API calls).
      */
     @Transactional
+    @CachePut(value = "market_products", key = "#market.id")
     public Market getAllProductsAPI(Market market) {
         return getProductsAPI(market, "", Integer.MAX_VALUE);  
     }
@@ -204,6 +205,7 @@ public class MarketService {
     /**
      * @brief Get all products from a given market. First try to fetch from DB only. If no products or data not fresh, call API.
      */
+    @Cacheable(value = "market_products", key = "#reweId")
     public Market getAllProducts(Long reweId) {
         Market market = marketRepository.findByReweId(reweId)
                 .orElseThrow(() -> new RuntimeException("Market not found"));
@@ -239,6 +241,7 @@ public class MarketService {
     //? Probably make void in the future
     private Market getProductsAPI(Market market, String query, int numPages) {
         // 1. Fetch from API (first page to get pagination info)
+        log.info("Fetching API...");
         ProductSearchResponse response = apiClient.searchProducts(query, 1, DEFAULT_OBJECTS_PER_PAGE, market.getReweId());
         if (response == null || response.data() == null) return market;
 

@@ -229,7 +229,7 @@ class BenchmarkingSuite {
     @DisplayName("GET ALL PRODUCTS - Warm (DB Fetch)")
     void benchmarkGetAllProducts_Warm() throws Exception {
         // 1. Setup Market AND Products in DB
-        setupMarketWithProducts("Dummy Product", 50); // Simulate 50 products
+        setupMarketWithProducts("Dummy Product", 10000); // Simulate 50 products
         hibernateStats.clear();
 
         System.out.println("\n[ALL PRODS WARM] Fetching from DB...");
