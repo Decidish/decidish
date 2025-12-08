@@ -1,0 +1,1 @@
+// TODO: Register user, login with user to have User id inside the http cookie, check if cookie is valid from backend

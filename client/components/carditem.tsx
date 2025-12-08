@@ -1,104 +1,283 @@
-import React from "react";
-import { Dimensions, Image, Text, TouchableOpacity, View, ImageSourcePropType } from "react-native";
+import React, {useState} from "react";
+import { Dimensions, Image, Text, View, Platform, ScrollView, Modal, TouchableOpacity } from "react-native";
 import { Icon } from "@/components/ui/icon";
-import { Heart, Star, ThumbsDown, ThumbsUp, Zap } from "lucide-react-native";
-import styles from "@/assets/styles";
+import { Clock, Flame, Users, X } from "lucide-react-native";
+import { Recipe } from "@/api/models/recipe";
 
+
+// The Props now accept the full Recipe object + actions
 export interface CardItemProps {
-  image: ImageSourcePropType;
-  name: string;
-  description?: string;
-  matches?: number;
-  status?: "Online" | "Offline";
-  variant?: boolean; // small or large card
-  actions?: boolean;
-  onPressLeft?: () => void;
-  onPressRight?: () => void;
+  recipe: Recipe;
+  actions?: boolean; // If true, we could render buttons inside (optional)
 }
 
-const CardItem: React.FC<CardItemProps> = ({
-  image,
-  name,
-  description,
-  matches,
-  status,
-  variant = false,
-  actions = false,
-  onPressLeft,
-  onPressRight,
-}) => {
-  const fullWidth = Dimensions.get("window").width;
+const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get("window");
 
-  const imageStyle = {
-    borderRadius: 8,
-    width: variant ? fullWidth / 2 - 30 : fullWidth - 80,
-    height: variant ? 170 : 350,
-    margin: variant ? 0 : 20,
-  };
-
-  const nameStyle = {
-    paddingTop: variant ? 10 : 15,
-    paddingBottom: variant ? 5 : 7,
-    color: "#363636",
-    fontSize: variant ? 15 : 30,
-  };
+const CardItem: React.FC<CardItemProps> = ({ recipe }) => {
+  // Safety check
+  const [modalVisible, setModalVisible] = useState(false);
+  if (!recipe) return <View />;
 
   return (
-    <View style={styles.containerCardItem}>
-      {/* IMAGE */}
-      <Image source={image} style={imageStyle} />
+    <View 
+      className="bg-white w-full h-full rounded-3xl shadow-lg border border-gray-100 overflow-hidden">
+      {/* === 1. IMAGE HEADER === */}
+      <View className="h-1/2 relative">
+        <Image 
+          // React Native Image handles both local (require) and remote (uri)
+          source={typeof recipe.imageUrl === 'string' ? 
+            { uri: recipe.imageUrl } : recipe.imageUrl}
+          style={{ 
+            width: '100%', 
+            height: '100%',
+            resizeMode: 'cover'  
+          }}
+        />
 
-      {/* MATCHES */}
-      {matches !== undefined && (
-        <View style={styles.matchesCardItem}>
-          <Text style={styles.matchesTextCardItem}>
-            <Icon as={Heart} /> {matches}% Match!
+        
+        
+        {/* Floating Badges (Hardcoded for demo as they aren't in your model yet) */}
+        {/* <View className="absolute top-4 right-4 flex-row gap-2">
+          <View className="px-3 py-1 bg-white/90 rounded-full backdrop-blur-sm">
+            <Text className="text-xs font-bold text-gray-800">$12.50</Text>
+          </View>
+          <View className="px-3 py-1 bg-orange-600/90 rounded-full backdrop-blur-sm">
+            <Text className="text-xs font-bold text-white">Easy</Text>
+          </View>
+        </View> */}
+      </View>
+
+      {/* === 2. CONTENT BODY === */}
+      <TouchableOpacity className="w-full h-full"
+       onPress={() => setModalVisible(true)}
+       activeOpacity={0.7}
+      >
+      <View className="flex-1 bg-white p-5">
+        
+        {/* Title */}
+        <View>
+          <Text numberOfLines={1} adjustsFontSizeToFit className="text-2xl font-bold text-gray-900 mb-2 leading-tight">
+            {recipe.title}
           </Text>
         </View>
-      )}
-
-      {/* NAME */}
-      <Text style={nameStyle} numberOfLines={1} ellipsizeMode="tail">
-        {name}
-      </Text>
-
-      {/* DESCRIPTION */}
-      {description && (
-        <Text style={styles.descriptionCardItem} numberOfLines={2} ellipsizeMode="tail">
-          {description}
-        </Text>
-      )}
-
-      {/* STATUS */}
-      {status && (
-        <View style={styles.status}>
-          <View style={status === "Online" ? styles.online : styles.offline} />
-          <Text style={styles.statusText}>{status}</Text>
+      
+        {/* Tags (from your Model) */}
+        <View className="flex-row flex-wrap gap-2 mb-4">
+          {recipe.tags.slice(0,3).map((tag, i) => (
+            <View key={i} className="px-3 py-1 bg-green-50 rounded-full">
+              <Text className="text-[10px] font-bold text-green-700 uppercase">
+                {tag}
+              </Text>
+            </View>
+          ))}
         </View>
-      )}
 
-      {/* ACTIONS */}
-      {actions && (
-        <View style={styles.actionsCardItem}>
-          <TouchableOpacity style={styles.miniButton}>
-            <Icon as={Star} />
-          </TouchableOpacity>
-
-          <TouchableOpacity style={styles.button} onPress={onPressLeft}>
-            <Icon as={ThumbsUp} />
-          </TouchableOpacity>
-
-          <TouchableOpacity style={styles.button} onPress={onPressRight}>
-            <Icon as={ThumbsDown} />
-          </TouchableOpacity>
-
-          <TouchableOpacity style={styles.miniButton}>
-            <Icon as={Zap} />
-          </TouchableOpacity>
+        {/* Stats Row (Prep, Cook, Servings) */}
+        <View className="flex-row justify-between mb-4 border-b border-gray-100 pb-4">
+          <StatItem 
+            icon={Clock} 
+            color="text-orange-600" 
+            bgColor="bg-orange-50" 
+            label="Prep" 
+            value={`${recipe.prepTimeMinutes} min`} 
+          />
+          <StatItem 
+            icon={Flame} 
+            color="text-green-600" 
+            bgColor="bg-green-50" 
+            label="Cook" 
+            value={`${recipe.cookTimeMinutes} min`} 
+          />
+          <StatItem 
+            icon={Users} 
+            color="text-blue-600" 
+            bgColor="bg-blue-50" 
+            label="Servings" 
+            value={recipe.servings.toString()} 
+          />
         </View>
-      )}
+
+        {/* Nutrition Grid (Using your Nutrition Interface) */}
+        <View className="bg-gray-50 rounded-xl p-3 flex-row justify-between mb-4">
+          <NutriItem val={recipe.nutrition.calories} label="Calories" color="text-orange-600" />
+          <NutriItem val={`${recipe.nutrition.protein}g`} label="Protein" color="text-green-600" />
+          <NutriItem val={`${recipe.nutrition.carbs}g`} label="Carbs" color="text-blue-600" />
+          <NutriItem val={`${recipe.nutrition.fat}g`} label="Fat" color="text-yellow-600" />
+        </View>
+
+        {/* Ingredients Preview */}
+        <View>
+          <Text className="text-xs font-bold text-gray-500 mb-2">Key Ingredients</Text>
+          <View className="flex-row flex-wrap gap-1">
+            {recipe.ingredients.slice(0, 5).map((ing, i) => (
+              <Text key={i} className="text-[10px] text-gray-600 bg-gray-100 px-2 py-1 rounded-md overflow-hidden mb-1">
+                {ing.name}
+              </Text>
+            ))}
+            {recipe.ingredients.length > 5 && (
+              <Text className="text-[10px] text-gray-400 bg-gray-50 px-2 py-1 rounded-md">
+                +{recipe.ingredients.length - 5} more
+              </Text>
+            )}
+          </View>
+        </View>
+
+      </View>
+      </TouchableOpacity>
+    {/* Modal component - popup */}
+    <Modal
+        visible={modalVisible}
+        animationType="slide"
+        transparent={true}
+        onRequestClose={() => setModalVisible(false)}
+      >
+        <TouchableOpacity
+        onPress={() => setModalVisible(false)}
+        activeOpacity={1}
+        className="flex-1 w-full h-full justify-center items-center bg-black/50 cursor-default p-5"
+        >
+          {/* Popup Container */}
+          <TouchableOpacity
+          onPress={() => {}}
+          activeOpacity={1}
+          className="bg-white md:max-w-3xl w-full h-full rounded-3xl p-1 overflow-hidden cursor-default"
+          >
+
+            {/* Header with Close Button */}
+            <View className="bg-white flex-row w-full justify-between items-center px-4 py-4 border-b border-gray-200">
+              <Text className="flex-1 text-2xl font-bold text-gray-900">
+                {recipe.title}
+              </Text>
+              <TouchableOpacity
+                onPress={() => setModalVisible(false)}
+                className="p-2 bg-gray-100 rounded-full flex-shrink-0"
+              >
+                <X size={24} color="#333" />
+              </TouchableOpacity>
+            </View>
+
+            {/* Scrollable Content */}
+            <ScrollView className="flex-1 bg-white w-full h-full" contentContainerStyle={{ padding: 20 }}>
+              
+               <View className="flex-row flex-wrap gap-2 mb-4">
+                  {recipe.tags.map((tag, i) => (
+                    <View key={i} className="px-3 py-1 bg-green-50 rounded-full">
+                      <Text className="text-[10px] font-bold text-green-700 uppercase">
+                        {tag}
+                      </Text>
+                    </View>
+                  ))}
+                </View>
+
+                {/* Stats Row (Prep, Cook, Servings) */}
+                <View className="flex-row justify-between mb-4 border-b border-gray-100 pb-4">
+                  <StatItem 
+                    icon={Clock} 
+                    color="text-orange-600" 
+                    bgColor="bg-orange-50" 
+                    label="Prep" 
+                    value={`${recipe.prepTimeMinutes} min`} 
+                  />
+                  <StatItem 
+                    icon={Flame} 
+                    color="text-green-600" 
+                    bgColor="bg-green-50" 
+                    label="Cook" 
+                    value={`${recipe.cookTimeMinutes} min`} 
+                  />
+                  <StatItem 
+                    icon={Users} 
+                    color="text-blue-600" 
+                    bgColor="bg-blue-50" 
+                    label="Servings" 
+                    value={recipe.servings.toString()} 
+                  />
+                </View>
+
+                {/* Nutrition Grid (Using your Nutrition Interface) */}
+                <View className="bg-gray-50 rounded-xl p-3 flex-row justify-between mb-4">
+                  <NutriItem val={recipe.nutrition.calories} label="Calories" color="text-orange-600" />
+                  <NutriItem val={`${recipe.nutrition.protein}g`} label="Protein" color="text-green-600" />
+                  <NutriItem val={`${recipe.nutrition.carbs}g`} label="Carbs" color="text-blue-600" />
+                  <NutriItem val={`${recipe.nutrition.fat}g`} label="Fat" color="text-yellow-600" />
+                </View>
+
+                {/* Ingredients Preview */}
+                <View>
+                  <Text className="text-xs font-bold text-gray-500 mb-2">Key Ingredients</Text>
+                  <View className="flex-row flex-wrap gap-1">
+                    {recipe.ingredients.map((ing, i) => (
+                      <Text key={i} className="text-[10px] text-gray-600 bg-gray-100 px-2 py-1 rounded-md overflow-hidden mb-1">
+                        {ing.name}
+                      </Text>
+                    ))}
+                    {/* {recipe.ingredients.length > 5 && (
+                      <Text className="text-[10px] text-gray-400 bg-gray-50 px-2 py-1 rounded-md">
+                        +{recipe.ingredients.length - 5} more
+                      </Text>
+                    )} */}
+                  </View>
+                </View>
+                
+                <View className="mt-6">
+                  <Text className="text-lg font-bold text-gray-900">Instructions</Text>
+                  <View className="bg-gradient-to-b from-teal-50 to-transparent rounded-2xl overflow-hidden">
+                    {recipe.instructions.map((instruction, i) => (
+                      <View 
+                        key={i} 
+                        className="flex-row py-4 border-b border-teal-100"
+                        
+                      >
+                        {/* Step Number Badge */}
+                        <View className="w-10 h-10 rounded-full items-center justify-center flex-shrink-0 mr-2">
+                          <Text className="text-teal-500 font-bold text-base">
+                            {i + 1}.
+                          </Text>
+                        </View>
+
+                        {/* Instruction Text */}
+                        <Text 
+                          className="flex-1 text-base text-gray-700 leading-6"
+                          style={{ marginTop: 4 }}
+                        >
+                          {instruction}
+                        </Text>
+                      </View>
+                    ))}
+                  </View>
+                </View>
+
+            </ScrollView>
+          </TouchableOpacity>
+        </TouchableOpacity>
+      </Modal>
     </View>
   );
 };
+
+
+ 
+
+
+/* --- Helper Components for cleanliness --- */
+
+const StatItem = ({ icon: IconComponent, color, bgColor, label, value }: any) => (
+  <View className="flex-row items-center gap-2">
+    <View className={`w-8 h-8 ${bgColor} rounded-full items-center justify-center`}>
+      <Icon as={IconComponent} className={color} size={14} />
+    </View>
+    <View>
+      <Text className="text-[10px] text-gray-400">{label}</Text>
+      <Text className="text-xs font-bold text-gray-800">{value}</Text>
+    </View>
+  </View>
+);
+
+const NutriItem = ({ val, label, color }: any) => (
+  <View className="items-center flex-1">
+    <Text className={`text-sm font-bold ${color}`}>{val}</Text>
+    <Text className="text-[10px] text-gray-400">{label}</Text>
+  </View>
+);
 
 export default CardItem;
