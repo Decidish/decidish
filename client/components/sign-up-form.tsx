@@ -71,7 +71,7 @@ export function SignUpForm() {
             Already have an account?{' '}
             <Pressable
               onPress={() => {
-                  router.push('/login/signin/index')
+                  router.push('/login/signin')
               }}>
               <Text className="text-sm underline underline-offset-4">Sign in</Text>
             </Pressable>

@@ -12,7 +12,7 @@ export default function OnboardingStep1() {
     const router = useRouter();
 
     const handleGetStarted = () => {
-        router.push('/login/signin/index')
+        router.push('/login/signin')
         // router.push('/onboarding/step2');
     };
 
