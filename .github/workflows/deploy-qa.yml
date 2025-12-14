@@ -24,10 +24,7 @@ jobs:
       env:
         STACK_NAME: qa
       run: |
-        echo "Updating all services defined in prod.yaml..."
-
         docker compose -f prod.yaml pull
-
         docker stack deploy -c prod.yaml $STACK_NAME --with-registry-auth
 
 

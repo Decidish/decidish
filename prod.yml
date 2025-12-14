@@ -156,6 +156,17 @@ services:
   #   networks:
   #     - app-network
 
+  client-web:
+    image: decidish/client-web:latest
+    deploy:
+      replicas: 2
+      update_config:
+        order: start-first
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://localhost:3000"]
+      interval: 10s
+      retries: 3
+      start_period: 5s
 
   # ----------------------------------------------------------------
   # Messaging Services
