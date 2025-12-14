@@ -62,6 +62,14 @@ func (repository *UserPreferenceRepository) Save(userId string, preferences User
 	                              cook_frequency, dietary_preferences, allergies, 
 	                              servings_per_meal, cooking_skill)
 	VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+	ON CONFLICT (user_id) DO UPDATE 
+	SET postal_code = EXCLUDED.postal_code,
+	    weekly_budget = EXCLUDED.weekly_budget,
+	    cook_frequency = EXCLUDED.cook_frequency,
+	    dietary_preferences = EXCLUDED.dietary_preferences,
+	    allergies = EXCLUDED.allergies,
+	    servings_per_meal = EXCLUDED.servings_per_meal,
+	    cooking_skill = EXCLUDED.cooking_skill
 	`,
 		userId, preferences.PostalCode, preferences.WeeklyBudget,
 		preferences.CookFrequency, strings.Join(preferences.DietaryPreferences, ","),
