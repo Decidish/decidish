@@ -24,7 +24,7 @@ jobs:
       env:
         STACK_NAME: qa
       run: |
-        docker compose -f prod.yaml pull
-        docker stack deploy -c prod.yaml $STACK_NAME --with-registry-auth
+        docker compose -f prod.yml pull
+        docker stack deploy -c prod.yml $STACK_NAME --with-registry-auth
 
 
