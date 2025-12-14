@@ -96,7 +96,6 @@ services:
       - JWT_SECRET=${JWT_SECRET}
       - DATABASE_URL=${DATABASE_BACKEND_URL}
       - EMBEDDER_SERVER_URL=${EMBEDDER_SERVER_URL}
-      - KAFKA_CONNECTION_URL=${KAFKA_CONNECTION_URL}
       - MINIO_ENDPOINT=${MINIO_ENDPOINT}
       - MINIO_ACCESS_KEY=${MINIO_ACCESS_KEY}
       - MINIO_SECRET_KEY=${MINIO_SECRET_KEY}
@@ -105,6 +104,7 @@ services:
       - MINIO_RECIPES_OBJECT=${MINIO_RECIPES_OBJECT}
     depends_on:
       - db_backend
+      - redis
       - rabbitmq
     networks:
       - app-network
@@ -126,9 +126,10 @@ services:
       - app-network
 
 
-# ----------------------------------------------------------------
-# Kafka & Streaming
-# ----------------------------------------------------------------
+  # ----------------------------------------------------------------
+  # Message Queues
+  # ----------------------------------------------------------------
+
   rabbitmq:
     image: rabbitmq:3-management
     container_name: rabbitmq-broker
@@ -149,14 +150,47 @@ services:
     networks:
       - app-network
 
+  # ----------------------------------------------------------------
+  # Monitoring
+  # ----------------------------------------------------------------
+
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: prometheus
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml
+      - prometheus_data:/prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+    networks:
+      - app-network
+
+  grafana:
+    image: grafana/grafana:latest
+    container_name: grafana
+    ports:
+      - "3000:3000"
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=secret
+    depends_on:
+      prometheus:
+        condition: service_started
+    volumes:
+      - ./datasources.yml:/etc/grafana/provisioning/datasources/datasources.yml
+    networks:
+      - app-network
+
+
 # ----------------------------------------------------------------
 # Volumes & Networks
 # ----------------------------------------------------------------
 volumes:
   db_backend_data:
   db_authorisation_data:
-  kafka_data:
   rabbitmq_data:
+  prometheus_data:
 
 networks:
   app-network:

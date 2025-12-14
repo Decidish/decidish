@@ -11,6 +11,12 @@ type RecommenderService struct {
 	repository.RecommenderRepository
 }
 
+func NewRecommenderService(recommenderRepository repository.RecommenderRepository) *RecommenderService {
+	return &RecommenderService{
+		RecommenderRepository: recommenderRepository,
+	}
+}
+
 func (service RecommenderService) RecommendRecipeForUser(ctx *gin.Context) {
 	userId := ctx.GetString("user_id")
 

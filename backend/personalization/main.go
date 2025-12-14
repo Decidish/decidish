@@ -30,9 +30,6 @@ func main() {
 	// Run database migrations
 	dbDriver.RunMigrations(appConfig, db)
 
-	CreateTopic(appConfig.KafkaConnectionUrl, "user-interactions")
-	kafkaWriter := setupKafkaWriter(appConfig)
-
 	r := gin.Default()
 
 	// Cors Settings for Security
@@ -44,12 +41,15 @@ func main() {
 		MaxAge:           12 * time.Hour,
 	}))
 
+	// Enables prometheus metrics
+	enablePrometheusMetrics(r)
+
 	// Authentication needed
 	protected := r.Group("/api/v1")
 
 	protected.Use(middleware.AuthMiddleware(appConfig))
 	{
-		createUserActionMappings(protected, kafkaWriter)
+		createUserActionMappings(protected)
 		createRecommendRecipesMappings(protected, db)
 		createOnboardingMappings(appConfig, protected, db)
 	}

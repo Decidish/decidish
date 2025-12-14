@@ -8,7 +8,6 @@ import (
 type ApplicationConfig struct {
 	JWTSecret              string
 	DBConnectionUrl        string
-	KafkaConnectionUrl     string
 	MinioEndpoint          string
 	MinioAccessKey         string
 	MinioSecretKey         string
@@ -16,6 +15,7 @@ type ApplicationConfig struct {
 	MinioRecipesBucket     string
 	MinioRecipesObjectName string
 	EmbedderServerUrl      string
+	RabbitMQServerUrl      string
 }
 
 func (config *ApplicationConfig) LoadConfiguration() {
@@ -31,12 +31,6 @@ func (config *ApplicationConfig) LoadConfiguration() {
 	if config.DBConnectionUrl == "" {
 		// throw an error or set a default value
 		panic(errors.New("DATABASE_URL environment variable is required"))
-	}
-
-	config.KafkaConnectionUrl = os.Getenv("KAFKA_CONNECTION_URL")
-
-	if config.KafkaConnectionUrl == "" {
-		panic(errors.New("KAFKA_CONNECTION_URL environment variable is required"))
 	}
 
 	config.MinioEndpoint = os.Getenv("MINIO_ENDPOINT")
@@ -75,5 +69,11 @@ func (config *ApplicationConfig) LoadConfiguration() {
 
 	if config.EmbedderServerUrl == "" {
 		panic(errors.New("EMBEDDER_SERVER_URL environment variable is required"))
+	}
+
+	config.RabbitMQServerUrl = os.Getenv("RABBITMQ_SERVER_URL")
+
+	if config.RabbitMQServerUrl == "" {
+		panic(errors.New("RABBITMQ_SERVER_URL environment variable is required"))
 	}
 }

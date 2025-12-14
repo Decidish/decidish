@@ -10,6 +10,12 @@ type RecommenderRepository struct {
 	Db *sql.DB
 }
 
+func NewRecommenderRepository(db *sql.DB) RecommenderRepository {
+	return RecommenderRepository{
+		Db: db,
+	}
+}
+
 func (repo RecommenderRepository) GetRecommendedRecipesForUser(userId string) ([]migrations.Recipe, error) {
 	query, err := repo.Db.Query(`
 		WITH recommender AS ( 

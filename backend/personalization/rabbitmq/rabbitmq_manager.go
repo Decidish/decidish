@@ -1,40 +1,60 @@
 package rabbitmq
 
 import (
-	"fmt"
+	"context"
+	"log"
+	"sync"
+	"time"
 
-	"github.com/streadway/amqp"
+	amqp "github.com/rabbitmq/amqp091-go"
 )
 
-type RabbitMQManager struct {
-	conn    *amqp.Connection
-	channel *amqp.Channel
+type RabbitMQPublisher struct {
+	Ch *amqp.Channel
+	Mu sync.Mutex
 }
 
-func NewRabbitMQManager(amqpURI string) (*RabbitMQManager, error) {
-	// 1. Establish the persistent connection
-	conn, err := amqp.Dial(amqpURI)
-	if err != nil {
-		return nil, fmt.Errorf("failed to connect to RabbitMQ: %w", err)
-	}
-
-	// 2. Open a channel on that connection
+func NewRabbitMQPublisher(conn *amqp.Connection) *RabbitMQPublisher {
 	ch, err := conn.Channel()
 	if err != nil {
-		// Must close the connection if channel opening fails
-		conn.Close()
-		return nil, fmt.Errorf("failed to open a channel: %w", err)
+		log.Panicf("Failed to open channel: %s", err)
 	}
 
-	err = ch.ExchangeDeclare(
-		"pipeline.commands", "direct", true, false, false, false, nil,
+	_, err = ch.QueueDeclare(
+		"onboarding_publisher",
+		true,
+		false,
+		false,
+		false,
+		nil,
 	)
 	if err != nil {
-		return nil, fmt.Errorf("failed to declare exchange: %w", err)
+		log.Panicf("Failed to declare queue: %s", err)
 	}
 
-	return &RabbitMQManager{
-		conn:    conn,
-		channel: ch,
-	}, nil
+	return &RabbitMQPublisher{
+		Ch: ch,
+		Mu: sync.Mutex{},
+	}
+}
+
+func (publisher *RabbitMQPublisher) PublishEvent(queueName string, exchange string, eventBody any) error {
+	return publisher.Ch.PublishWithContext(
+		context.Background(),
+		exchange,
+		queueName,
+		false,
+		false,
+		amqp.Publishing{
+			ContentType:   "application/json",
+			DeliveryMode:  0,
+			Priority:      0,
+			CorrelationId: "",
+			ReplyTo:       "",
+			Timestamp:     time.Now(),
+			UserId:        "",
+			AppId:         "",
+			Body:          nil,
+		},
+	)
 }
