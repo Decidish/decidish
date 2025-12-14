@@ -1,25 +1,42 @@
-import { Ingredient } from '@/api/models/ingredient';
+import {Nutrients} from "@/api/models/nutrition";
 
-/**
- * Interface for a full Recipe object.
- */
-
-export interface Nutrition {
-  calories: number;
-  protein: number; // in grams
-  carbs: number;  // in grams
-  fat: number;  // in gramas
-}
 export interface Recipe {
-  id: string;
-  title: string;
-  description: string;
-  prepTimeMinutes: number;
-  cookTimeMinutes: number;
-  servings: number;
-  ingredients: Ingredient[];
-  instructions: string[];
-  imageUrl: string;
-  nutrition: Nutrition;
-  tags: string[];
+    // string `json:"category"`
+    category: string;
+
+    // int `json:"cook_time"`
+    cookTime: number;
+
+    // string `json:"description"`
+    description: string;
+
+    // string `json:"image"`
+    image: string;
+
+    // []string `json:"ingredients"`
+    ingredients: string[];
+
+    // string `json:"instructions"`
+    instructions: string;
+
+    // []string `json:"keywords"`
+    keyWords: string[];
+
+    // Nutrients `json:"nutrients"`
+    nutrients: Nutrients; // Reference to the Nutrients interface
+
+    // int `json:"prep_time"`
+    prepTime: number;
+
+    // float64 `json:"ratings"`
+    ratings: number;
+
+    // int `json:"total_time"`
+    totalTime: number;
+
+    // string `json:"title"`
+    title: string;
+
+    // string `json:"yields"`
+    yields: string;
 }

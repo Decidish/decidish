@@ -23,5 +23,6 @@ func (service RecommenderService) RecommendRecipeForUser(ctx *gin.Context) {
 		ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 	}
 
+	ctx.Header("Access-Control-Allow-Origin", "http://localhost:8081")
 	ctx.JSON(http.StatusOK, recipes)
 }

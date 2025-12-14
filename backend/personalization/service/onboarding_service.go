@@ -60,5 +60,7 @@ func (service OnboardingService) CreateUserPreferences(ctx *gin.Context) {
 		ctx.JSON(http.StatusServiceUnavailable, resp)
 		return
 	}
+
+	ctx.Header("Access-Control-Allow-Origin", "http://localhost:8081")
 	ctx.JSON(http.StatusCreated, userPreferences)
 }

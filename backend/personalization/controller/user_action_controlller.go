@@ -43,5 +43,6 @@ func (controller UserActionController) postUserAction(c *gin.Context) {
 		return
 	}
 
+	c.Header("Access-Control-Allow-Origin", "http://localhost:8081")
 	c.JSON(http.StatusCreated, gin.H{"message": "User action published successfully"})
 }
