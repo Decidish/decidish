@@ -8,13 +8,13 @@ on:
     branches: [ "main" ]
     paths:
       - 'backend/authorization/**'
-      - '.github/workflows/backend/authorization-ci.yml'
+      - '.github/workflows/authorization-ci.yml'
 
   pull_request:
     branches: [ "main" ]
     paths:
       - 'backend/authorization/**'
-      - '.github/workflows/backend/authorization-ci.yml'
+      - '.github/workflows/authorization-ci.yml'
 
 env:
   IMAGE_NAME: decidish/auth-service
