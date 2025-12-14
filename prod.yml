@@ -1,0 +1,194 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/compose-spec/compose-spec/master/schema/compose-spec.json
+version: '3.8'
+
+services:
+  # ----------------------------------------------------------------
+  # Databases & Cache
+  # ----------------------------------------------------------------
+
+  # PostgreSQL with pgvector
+  db_backend:
+    image: pgvector/pgvector:pg16
+    container_name: dev_backend_postgres
+    ports:
+      - "5433:5432"
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+    volumes:
+      - db_backend_data:/var/lib/postgresql/data
+      - ./init_db:/docker-entrypoint-initdb.d
+    networks:
+      - app-network
+
+  db_authorisation:
+    image: postgres:16-alpine
+    container_name: dev_auth_postgres
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+    volumes:
+      - db_authorisation_data:/var/lib/postgresql/data
+    networks:
+      - app-network
+
+  # Redis Cache
+  redis:
+    image: redis:alpine
+    container_name: dev_redis
+    ports:
+      - "6379:6379"
+    networks:
+      - app-network
+
+  # ----------------------------------------------------------------
+  # Application Services
+  # ----------------------------------------------------------------
+
+  # Authorization Server
+  authorization-server:
+    image: decidish/auth-service:latest
+    container_name: prod_authorization
+    ports:
+      - "8083:8083"
+    volumes:
+      - ./backend/authorization:/app
+    environment:
+      JWT_SECRET: ${JWT_SECRET}
+      DATABASE_URL: ${DATABASE_URL}
+    depends_on:
+      - db_authorisation
+    deploy:
+      mode: replicated
+      replicas: 3
+      endpoint_mode: vip
+      restart_policy:
+        condition: on-failure
+      update_config:
+        order: start-first
+        failure_action: rollback
+    networks:
+      - app-network
+
+  # Core Server
+  # core-server:
+  #   image: decidish/core-service:latest
+  #   container_name: prod_core
+  #   ports:
+  #     - "8080:8080"
+  #   volumes:
+  #     - ./backend/core:/app
+  #     - ~/.gradle:/home/gradle/.gradle
+  #   environment:
+  #     - SPRING_DATASOURCE_URL=jdbc:postgresql://db_backend:5432/${POSTGRES_DB}
+  #     - SPRING_DATASOURCE_USERNAME=${POSTGRES_USER}
+  #     - SPRING_DATASOURCE_PASSWORD=${POSTGRES_PASSWORD}
+  #     - REDIS_HOST=redis
+  #   depends_on:
+  #     - db_backend
+  #     - redis
+  #   networks:
+  #     - app-network
+
+  # # Personalization Server
+  # personalization-server:
+  #   image: decidish/personalization-service:latest
+  #   container_name: prod_personalization
+  #   ports:
+  #     - "8082:8082"
+  #   volumes:
+  #     - ./backend/personalization:/app
+  #   environment:
+  #     - DB_HOST=db_backend
+  #     - REDIS_HOST=redis
+  #     - JWT_SECRET=${JWT_SECRET}
+  #     - DATABASE_URL=${DATABASE_BACKEND_URL}
+  #     - EMBEDDER_SERVER_URL=${EMBEDDER_SERVER_URL}
+  #     - KAFKA_CONNECTION_URL=${KAFKA_CONNECTION_URL}
+  #     - MINIO_ENDPOINT=${MINIO_ENDPOINT}
+  #     - MINIO_ACCESS_KEY=${MINIO_ACCESS_KEY}
+  #     - MINIO_SECRET_KEY=${MINIO_SECRET_KEY}
+  #     - MINIO_USE_SSL=${MINIO_USE_SSL}
+  #     - MINIO_RECIPES_BUCKET=${MINIO_RECIPES_BUCKET}
+  #     - MINIO_RECIPES_OBJECT=${MINIO_RECIPES_OBJECT}
+  #   depends_on:
+  #     - db_backend
+  #     - rabbitmq
+  #   deploy:
+  #     mode: replicated
+  #     replicas: 3
+  #     endpoint_mode: vip
+  #     restart_policy:
+  #       condition: on-failure
+  #     update_config:
+  #       order: start-first
+  #       failure_action: rollback
+  #   healthcheck:
+  #     test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:8082/health"]
+  #     interval: 10s
+  #     timeout: 5s
+  #     retries: 3
+  #     start_period: 10s
+  #   networks:
+  #     - app-network
+
+  # # MLPipeline
+  # mlpipeline:
+  #   image: decidish/mlpipeline-service:latest
+  #   container_name: prod_mlpipeline
+  #   ports:
+  #     - "8000:8000"
+  #   volumes:
+  #     - ./mlpipeline:/app
+  #   environment:
+  #     - DATABASE_URL=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db_backend:5432/${POSTGRES_DB}
+  #   depends_on:
+  #     - db_backend
+  #     - rabbitmq
+  #   deploy:
+  #     mode: replicated
+  #     replicas: 3
+  #     endpoint_mode: vip
+  #   networks:
+  #     - app-network
+
+
+  # ----------------------------------------------------------------
+  # Messaging Services
+  # ----------------------------------------------------------------
+  rabbitmq:
+    image: rabbitmq:3-management
+    container_name: rabbitmq-broker
+    restart: always
+    environment:
+      # Credentials for the default user
+      RABBITMQ_DEFAULT_USER: guest
+      RABBITMQ_DEFAULT_PASS: guest
+      RABBITMQ_DEFAULT_VHOST: /
+    ports:
+      # AMQP port
+      - "5672:5672"
+      # Management UI port
+      - "15672:15672"
+    volumes:
+      # Persistent storage for message data and configurations
+      - rabbitmq_data:/var/lib/rabbitmq/mnesia
+    networks:
+      - app-network
+
+# ----------------------------------------------------------------
+# Volumes & Networks
+# ----------------------------------------------------------------
+volumes:
+  db_backend_data:
+  db_authorisation_data:
+  kafka_data:
+  rabbitmq_data:
+
+networks:
+  app-network:
+    driver: bridge
