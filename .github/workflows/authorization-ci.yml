@@ -6,15 +6,17 @@ on:
     paths:
       - 'backend/authorization/**'
       - '.github/workflows/authorization-ci.yml'
+      - '.github/workflows/templates/go-ci.yml'
   pull_request:
     branches: [ "main" ]
     paths:
       - 'backend/authorization/**'
       - '.github/workflows/authorization-ci.yml'
+      - '.github/workflows/templates/go-ci.yml'
 
 jobs:
   build:
-    uses: ./.github/workflows/templates/go-ci.yml
+    uses: .github/workflows/templates/go-ci.yml
     with:
       service_dir: 'backend/authorization'
       image_name: 'decidish/auth-service'
