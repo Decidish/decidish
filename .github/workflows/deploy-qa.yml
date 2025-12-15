@@ -7,9 +7,10 @@ on:
   push:
     branches: [ "feature/ci-cd-and-qa-deployment-setup" ]
 
-jobs:
 
-  build:
+jobs:
+  deploy-qa:
+    environment: qa
     runs-on: [self-hosted, qa-server]
     steps:
     - uses: actions/checkout@v4
@@ -22,9 +23,18 @@ jobs:
     
     - name: Update QA Stack
       env:
+        POSTGRES_USER: ${{ secrets.POSTGRES_USER }}
+        POSTGRES_PASSWORD: ${{ secrets.POSTGRES_PASSWORD }}
+        POSTGRES_DB: ${{ secrets.POSTGRES_DB }}
+        JWT_SECRET: ${{ secrets.JWT_SECRET }}
+        DATABASE_URL: ${{ secrets.DATABASE_URL }}
+        DATABASE_BACKEND_URL: ${{ secrets.DATABASE_BACKEND_URL }}
+        KAFKA_CONNECTION_URL: ${{ secrets.KAFKA_CONNECTION_URL }}
+        MINIO_ENDPOINT: ${{ secrets.MINIO_ENDPOINT }}
+        MINIO_ACCESS_KEY: ${{ secrets.MINIO_ACCESS_KEY }}
+        MINIO_SECRET_KEY: ${{ secrets.MINIO_SECRET_KEY }}
+        EMBEDDER_SERVER_URL: ${{ secrets.EMBEDDER_SERVER_URL }}
         STACK_NAME: qa
       run: |
         docker compose -f prod.yml pull
         docker stack deploy -c prod.yml $STACK_NAME --with-registry-auth
-
-
