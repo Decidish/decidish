@@ -6,20 +6,46 @@ on:
     paths:
       - 'backend/authorization/**'
       - '.github/workflows/authorization-ci.yml'
-      - '.github/workflows/templates/go-ci.yml'
   pull_request:
     branches: [ "main" ]
     paths:
       - 'backend/authorization/**'
       - '.github/workflows/authorization-ci.yml'
-      - '.github/workflows/templates/go-ci.yml'
+
+env:
+  SERVICE_DIR: 'backend/authorization'
+  IMAGE_NAME: 'decidish/authorization-service'
 
 jobs:
-  build:
-    uses: .github/workflows/templates/go-ci.yml
-    with:
-      service_dir: 'backend/authorization'
-      image_name: 'decidish/auth-service'
-    secrets:
-      DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
-      DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
+  build_and_push:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v4
+        with:
+          go-version: '1.25'
+
+      - name: Test
+        run: |
+          cd ${{ env.SERVICE_DIR }}
+          go test -v .
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Login to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Build and push
+        uses: docker/build-push-action@v5
+        with:
+          context: ${{ env.SERVICE_DIR }}
+          push: true
+          tags: |
+            ${{ env.IMAGE_NAME }}:latest
+            ${{ env.IMAGE_NAME }}:${{ github.sha }}
