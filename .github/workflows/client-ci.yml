@@ -6,14 +6,13 @@ on:
     paths:
       - 'client/**'
       - '.github/workflows/client-ci.yml'
-  # pull_request:
-  #   branches: [ "main" ]
-  #   paths:
-  #     - 'client/**'
-  #     - '.github/workflows/client-ci.yml'
+  pull_request:
+    branches: [ "main" ]
+    paths:
+      - 'client/**'
+      - '.github/workflows/client-ci.yml'
 
 env:
-  # Name it differently from your backend!
   IMAGE_NAME: decidish/client-web 
 
 jobs:
@@ -31,7 +30,7 @@ jobs:
     - name: Build and push
       uses: docker/build-push-action@v5
       with:
-        context: client # Point to the client folder
+        context: client
         push: true
         tags: |
           ${{ env.IMAGE_NAME }}:latest

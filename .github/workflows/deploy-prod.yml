@@ -7,12 +7,10 @@ on:
   push:
     branches: [ "prod" ]
 
-env:
-  IMAGE_NAME: decidish/auth-service
-
 jobs:
 
   build:
+    environment: prod
     runs-on: [self-hosted, prod-server]
     steps:
     - uses: actions/checkout@v4
@@ -25,6 +23,17 @@ jobs:
     
     - name: Update Production Stack
       env:
+        POSTGRES_USER: ${{ secrets.POSTGRES_USER }}
+        POSTGRES_PASSWORD: ${{ secrets.POSTGRES_PASSWORD }}
+        POSTGRES_DB: ${{ secrets.POSTGRES_DB }}
+        JWT_SECRET: ${{ secrets.JWT_SECRET }}
+        DATABASE_URL: ${{ secrets.DATABASE_URL }}
+        DATABASE_BACKEND_URL: ${{ secrets.DATABASE_BACKEND_URL }}
+        KAFKA_CONNECTION_URL: ${{ secrets.KAFKA_CONNECTION_URL }}
+        MINIO_ENDPOINT: ${{ secrets.MINIO_ENDPOINT }}
+        MINIO_ACCESS_KEY: ${{ secrets.MINIO_ACCESS_KEY }}
+        MINIO_SECRET_KEY: ${{ secrets.MINIO_SECRET_KEY }}
+        EMBEDDER_SERVER_URL: ${{ secrets.EMBEDDER_SERVER_URL }}
         STACK_NAME: prod
       run: |
         docker compose -f deploy.yml pull

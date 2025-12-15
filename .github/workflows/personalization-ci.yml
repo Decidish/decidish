@@ -1,0 +1,23 @@
+name: Personalization-Service-CI
+
+on:
+  push:
+    branches: [ "main" ]
+    paths:
+      - 'backend/personalization/**'
+      - '.github/workflows/personalization-ci.yml'
+  pull_request:
+    branches: [ "main" ]
+    paths:
+      - 'backend/personalization/**'
+      - '.github/workflows/personalization-ci.yml'
+
+jobs:
+  build:
+    uses: ./.github/workflows/templates/go-ci.yml
+    with:
+      service_dir: 'backend/personalization'
+      image_name: 'decidish/personalization-service'
+    secrets:
+      DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
+      DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}

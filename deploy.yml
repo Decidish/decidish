@@ -87,72 +87,71 @@ services:
   #   networks:
   #     - app-network
 
-  # # Personalization Server
-  # personalization-server:
-  #   image: decidish/personalization-service:latest
-  #   ports:
-  #     - "8082:8082"
-  #   volumes:
-  #     - ./backend/personalization:/app
-  #   environment:
-  #     - DB_HOST=db_backend
-  #     - REDIS_HOST=redis
-  #     - JWT_SECRET=${JWT_SECRET}
-  #     - DATABASE_URL=${DATABASE_BACKEND_URL}
-  #     - EMBEDDER_SERVER_URL=${EMBEDDER_SERVER_URL}
-  #     - KAFKA_CONNECTION_URL=${KAFKA_CONNECTION_URL}
-  #     - MINIO_ENDPOINT=${MINIO_ENDPOINT}
-  #     - MINIO_ACCESS_KEY=${MINIO_ACCESS_KEY}
-  #     - MINIO_SECRET_KEY=${MINIO_SECRET_KEY}
-  #     - MINIO_USE_SSL=${MINIO_USE_SSL}
-  #     - MINIO_RECIPES_BUCKET=${MINIO_RECIPES_BUCKET}
-  #     - MINIO_RECIPES_OBJECT=${MINIO_RECIPES_OBJECT}
-  #   depends_on:
-  #     - db_backend
-  #     - rabbitmq
-  #   deploy:
-  #     mode: replicated
-  #     replicas: 3
-  #     endpoint_mode: vip
-  #     restart_policy:
-  #       condition: on-failure
-  #     update_config:
-  #       order: start-first
-  #       failure_action: rollback
-  #   healthcheck:
-  #     test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:8082/health"]
-  #     interval: 10s
-  #     timeout: 5s
-  #     retries: 3
-  #     start_period: 10s
-  #   networks:
-  #     - app-network
+  # Personalization Server
+  personalization-server:
+    image: decidish/personalization-service:latest
+    ports:
+      - "8082:8082"
+    volumes:
+      - ./backend/personalization:/app
+    environment:
+      - DB_HOST=db_backend
+      - REDIS_HOST=redis
+      - JWT_SECRET=${JWT_SECRET}
+      - DATABASE_URL=${DATABASE_BACKEND_URL}
+      - EMBEDDER_SERVER_URL=${EMBEDDER_SERVER_URL}
+      - KAFKA_CONNECTION_URL=${KAFKA_CONNECTION_URL}
+      - MINIO_ENDPOINT=${MINIO_ENDPOINT}
+      - MINIO_ACCESS_KEY=${MINIO_ACCESS_KEY}
+      - MINIO_SECRET_KEY=${MINIO_SECRET_KEY}
+      - MINIO_USE_SSL=${MINIO_USE_SSL}
+      - MINIO_RECIPES_BUCKET=${MINIO_RECIPES_BUCKET}
+      - MINIO_RECIPES_OBJECT=${MINIO_RECIPES_OBJECT}
+    depends_on:
+      - db_backend
+      - rabbitmq
+    deploy:
+      mode: replicated
+      replicas: 3
+      endpoint_mode: vip
+      restart_policy:
+        condition: on-failure
+      update_config:
+        order: start-first
+        failure_action: rollback
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:8082/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+    networks:
+      - app-network
 
-  # # MLPipeline
-  # mlpipeline:
-  #   image: decidish/mlpipeline-service:latest
-  #   ports:
-  #     - "8000:8000"
-  #   volumes:
-  #     - ./mlpipeline:/app
-  #   environment:
-  #     - DATABASE_URL=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db_backend:5432/${POSTGRES_DB}
-  #   depends_on:
-  #     - db_backend
-  #     - rabbitmq
-  #   deploy:
-  #     mode: replicated
-  #     replicas: 3
-  #     endpoint_mode: vip
-  #   networks:
-  #     - app-network
+  # MLPipeline
+  mlpipeline:
+    image: decidish/mlpipeline-service:latest
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./mlpipeline:/app
+    environment:
+      - DATABASE_URL=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db_backend:5432/${POSTGRES_DB}
+    depends_on:
+      - db_backend
+      - rabbitmq
+    deploy:
+      mode: replicated
+      replicas: 3
+      endpoint_mode: vip
+    networks:
+      - app-network
 
   client-web:
     image: decidish/client-web:latest
     ports:
       - "3000:3000"
     deploy:
-      replicas: 2
       update_config:
         order: start-first
     healthcheck:
@@ -168,9 +167,8 @@ services:
     image: rabbitmq:3-management
     restart: always
     environment:
-      # Credentials for the default user
-      RABBITMQ_DEFAULT_USER: guest
-      RABBITMQ_DEFAULT_PASS: guest
+      RABBITMQ_DEFAULT_USER: ${RABBITMQ_DEFAULT_USER}
+      RABBITMQ_DEFAULT_PASS: ${RABBITMQ_DEFAULT_PASS}
       RABBITMQ_DEFAULT_VHOST: /
     ports:
       # AMQP port

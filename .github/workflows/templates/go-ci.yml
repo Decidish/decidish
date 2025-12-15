@@ -1,0 +1,57 @@
+name: Reusable Go Microservice CI
+
+on:
+  workflow_call:
+    inputs:
+      service_dir: # e.g., 'backend/authorization'
+        required: true
+        type: string
+        description: 'The path to the service directory containing the go.mod and Dockerfile.'
+      image_name: # e.g., 'decidish/auth-service'
+        required: true
+        type: string
+        description: 'The Docker image name (repository/image).'
+      go_version: # Optional, allowing flexibility
+        required: false
+        type: string
+        default: '1.25'
+
+    secrets:
+      DOCKERHUB_USERNAME:
+        required: true
+      DOCKERHUB_TOKEN:
+        required: true
+
+jobs:
+  build_and_push:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v4
+        with:
+          go-version: ${{ inputs.go_version }}
+
+      - name: Test
+        run: |
+          cd ${{ inputs.service_dir }}
+          go test -v .
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Login to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Build and push
+        uses: docker/build-push-action@v5
+        with:
+          context: ${{ inputs.service_dir }}
+          push: true
+          tags: |
+            ${{ inputs.image_name }}:latest
+            ${{ inputs.image_name }}:${{ github.sha }}
