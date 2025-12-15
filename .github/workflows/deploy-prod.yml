@@ -27,7 +27,7 @@ jobs:
       env:
         STACK_NAME: prod
       run: |
-        docker compose -f prod.yml pull
-        docker stack deploy -c prod.yml $STACK_NAME --with-registry-auth
+        docker compose -f deploy.yml pull
+        docker stack deploy -c deploy.yml $STACK_NAME --with-registry-auth
 
 

@@ -7,7 +7,6 @@ services:
   # PostgreSQL with pgvector
   db_backend:
     image: pgvector/pgvector:pg16
-    container_name: dev_backend_postgres
     ports:
       - "5433:5432"
     environment:
@@ -22,7 +21,6 @@ services:
 
   db_authorisation:
     image: postgres:16-alpine
-    container_name: dev_auth_postgres
     ports:
       - "5432:5432"
     environment:
@@ -37,7 +35,6 @@ services:
   # Redis Cache
   redis:
     image: redis:alpine
-    container_name: dev_redis
     ports:
       - "6379:6379"
     networks:
@@ -50,7 +47,6 @@ services:
   # Authorization Server
   authorization-server:
     image: decidish/auth-service:latest
-    container_name: prod_authorization
     ports:
       - "8083:8083"
     volumes:
@@ -75,7 +71,6 @@ services:
   # Core Server
   # core-server:
   #   image: decidish/core-service:latest
-  #   container_name: prod_core
   #   ports:
   #     - "8080:8080"
   #   volumes:
@@ -95,7 +90,6 @@ services:
   # # Personalization Server
   # personalization-server:
   #   image: decidish/personalization-service:latest
-  #   container_name: prod_personalization
   #   ports:
   #     - "8082:8082"
   #   volumes:
@@ -137,7 +131,6 @@ services:
   # # MLPipeline
   # mlpipeline:
   #   image: decidish/mlpipeline-service:latest
-  #   container_name: prod_mlpipeline
   #   ports:
   #     - "8000:8000"
   #   volumes:
@@ -171,7 +164,6 @@ services:
   # ----------------------------------------------------------------
   rabbitmq:
     image: rabbitmq:3-management
-    container_name: rabbitmq-broker
     restart: always
     environment:
       # Credentials for the default user
@@ -200,4 +192,4 @@ volumes:
 
 networks:
   app-network:
-    driver: bridge
+    driver: overlay
