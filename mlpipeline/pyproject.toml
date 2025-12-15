@@ -12,7 +12,6 @@ uvicorn = "^0.27.0"
 psycopg2-binary = "^2.9.9" # Required for Postgres connection
 asyncpg = "^0.31.0"
 pgvector = "^0.4.2"
-sentence-transformers = "^5.1.2"
 pytest = "^9.0.2"
 
 [build-system]

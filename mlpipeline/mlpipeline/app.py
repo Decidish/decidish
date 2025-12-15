@@ -8,7 +8,6 @@ import uvicorn
 from fastapi import FastAPI, HTTPException
 from pgvector.asyncpg import register_vector
 from pydantic import BaseModel
-from sentence_transformers import SentenceTransformer
 
 # GLOBAL VARIABLES
 ml_models = {}
@@ -22,7 +21,6 @@ async def lifespan(app):
     print("Startup: Loading resources...")
 
     try:
-        ml_models["embedding_model"] = SentenceTransformer('sentence-transformers/all-MiniLM-L6-v2')
         print("AI Model Ready!")
     except Exception as e:
         print(f"Failed to load AI model: {e}")
