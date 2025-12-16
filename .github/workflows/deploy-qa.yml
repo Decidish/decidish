@@ -39,25 +39,25 @@ jobs:
 
   auth-ci:
     needs: prepare
-    if: ${{ needs.prepare.outputs.auth_changed == 'true' }}
+    if: ${{ needs.prepare.outputs.auth_changed == 'true' }} || github.ref == 'refs/heads/main'
     uses: ./.github/workflows/authorization-ci.yml
     secrets: inherit
   
   personalization-ci:
     needs: prepare
-    if: ${{ needs.prepare.outputs.auth_changed == 'true' }}
+    if: ${{ needs.prepare.outputs.auth_changed == 'true' }} || github.ref == 'refs/heads/main'
     uses: ./.github/workflows/personalization-ci.yml
     secrets: inherit
   
   mlpipeline-ci:
     needs: prepare
-    if: ${{ needs.prepare.outputs.auth_changed == 'true' }}
+    if: ${{ needs.prepare.outputs.auth_changed == 'true' }} || github.ref == 'refs/heads/main'
     uses: ./.github/workflows/mlpipeline-ci.yml
     secrets: inherit
   
   client-ci:
     needs: prepare
-    if: ${{ needs.prepare.outputs.auth_changed == 'true' }}
+    if: ${{ needs.prepare.outputs.auth_changed == 'true' }} || github.ref == 'refs/heads/main'
     uses: ./.github/workflows/client-ci.yml
     secrets: inherit
 
