@@ -4,6 +4,8 @@
 name: Execute CI for QA
 
 on:
+  push:
+    branches: [ "main" ]
   pull_request:
     branches: [ "main" ]
 
