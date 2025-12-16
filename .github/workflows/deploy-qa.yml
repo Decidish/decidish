@@ -25,8 +25,8 @@ jobs:
               - '.github/workflows/authorization-ci.yml'
 
   auth-ci:
-    needs: check-changes
-    if: ${{ needs.check-changes.outputs.auth == 'true' }}
+    needs: prepare
+    if: ${{ needs.prepare.outputs.auth_changed == 'true' }}
     uses: ./.github/workflows/authorization-ci.yml
     secrets: inherit
 
