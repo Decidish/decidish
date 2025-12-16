@@ -46,7 +46,7 @@ services:
 
   # Authorization Server
   authorization-server:
-    image: decidish/auth-service:latest
+    image: decidish/authorization-service:${IMAGE_TAG}
     ports:
       - "8083:8083"
     volumes:
@@ -89,7 +89,7 @@ services:
 
   # Personalization Server
   personalization-server:
-    image: decidish/personalization-service:latest
+    image: decidish/personalization-service:${IMAGE_TAG}
     ports:
       - "8082:8082"
     volumes:
@@ -130,7 +130,7 @@ services:
 
   # MLPipeline
   mlpipeline:
-    image: decidish/mlpipeline-service:latest
+    image: decidish/mlpipeline-service:${IMAGE_TAG}
     ports:
       - "8000:8000"
     volumes:
@@ -148,7 +148,7 @@ services:
       - app-network
 
   client-web:
-    image: decidish/client-web:latest
+    image: decidish/client-web:${IMAGE_TAG}
     ports:
       - "3000:3000"
     deploy:
