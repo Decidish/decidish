@@ -1,3 +1,4 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/compose-spec/compose-spec/master/schema/compose-spec.json
 services:
   # ----------------------------------------------------------------
   # Databases & Cache
@@ -6,7 +7,6 @@ services:
   # PostgreSQL with pgvector
   db_backend:
     image: pgvector/pgvector:pg16
-    container_name: dev_backend_postgres
     ports:
       - "5433:5432"
     environment:
@@ -21,7 +21,6 @@ services:
 
   db_authorisation:
     image: postgres:16-alpine
-    container_name: dev_auth_postgres
     ports:
       - "5432:5432"
     environment:
@@ -36,7 +35,6 @@ services:
   # Redis Cache
   redis:
     image: redis:alpine
-    container_name: dev_redis
     ports:
       - "6379:6379"
     networks:
@@ -48,8 +46,7 @@ services:
 
   # Authorization Server
   authorization-server:
-    build: ./backend/authorization
-    container_name: dev_authorization
+    image: decidish/auth-service:latest
     ports:
       - "8083:8083"
     volumes:
@@ -59,33 +56,40 @@ services:
       DATABASE_URL: ${DATABASE_URL}
     depends_on:
       - db_authorisation
+    deploy:
+      mode: replicated
+      replicas: 3
+      endpoint_mode: vip
+      restart_policy:
+        condition: on-failure
+      update_config:
+        order: start-first
+        failure_action: rollback
     networks:
       - app-network
 
   # Core Server
-  core-server:
-    build: ./backend/core
-    container_name: dev_core
-    ports:
-      - "8080:8080"
-    volumes:
-      - ./backend/core:/app
-      - ~/.gradle:/home/gradle/.gradle
-    environment:
-      - SPRING_DATASOURCE_URL=jdbc:postgresql://db_backend:5432/${POSTGRES_DB}
-      - SPRING_DATASOURCE_USERNAME=${POSTGRES_USER}
-      - SPRING_DATASOURCE_PASSWORD=${POSTGRES_PASSWORD}
-      - REDIS_HOST=redis
-    depends_on:
-      - db_backend
-      - redis
-    networks:
-      - app-network
+  # core-server:
+  #   image: decidish/core-service:latest
+  #   ports:
+  #     - "8080:8080"
+  #   volumes:
+  #     - ./backend/core:/app
+  #     - ~/.gradle:/home/gradle/.gradle
+  #   environment:
+  #     - SPRING_DATASOURCE_URL=jdbc:postgresql://db_backend:5432/${POSTGRES_DB}
+  #     - SPRING_DATASOURCE_USERNAME=${POSTGRES_USER}
+  #     - SPRING_DATASOURCE_PASSWORD=${POSTGRES_PASSWORD}
+  #     - REDIS_HOST=redis
+  #   depends_on:
+  #     - db_backend
+  #     - redis
+  #   networks:
+  #     - app-network
 
   # Personalization Server
   personalization-server:
-    build: ./backend/personalization
-    container_name: dev_personalization
+    image: decidish/personalization-service:latest
     ports:
       - "8082:8082"
     volumes:
@@ -106,13 +110,27 @@ services:
     depends_on:
       - db_backend
       - rabbitmq
+    deploy:
+      mode: replicated
+      replicas: 3
+      endpoint_mode: vip
+      restart_policy:
+        condition: on-failure
+      update_config:
+        order: start-first
+        failure_action: rollback
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:8082/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
     networks:
       - app-network
 
   # MLPipeline
   mlpipeline:
-    build: ./mlpipeline
-    container_name: dev_mlpipeline
+    image: decidish/mlpipeline-service:latest
     ports:
       - "8000:8000"
     volumes:
@@ -122,21 +140,35 @@ services:
     depends_on:
       - db_backend
       - rabbitmq
+    deploy:
+      mode: replicated
+      replicas: 3
+      endpoint_mode: vip
     networks:
       - app-network
 
+  client-web:
+    image: decidish/client-web:latest
+    ports:
+      - "3000:3000"
+    deploy:
+      update_config:
+        order: start-first
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://localhost:3000"]
+      interval: 10s
+      retries: 3
+      start_period: 5s
 
-# ----------------------------------------------------------------
-# Kafka & Streaming
-# ----------------------------------------------------------------
+  # ----------------------------------------------------------------
+  # Messaging Services
+  # ----------------------------------------------------------------
   rabbitmq:
     image: rabbitmq:3-management
-    container_name: rabbitmq-broker
     restart: always
     environment:
-      # Credentials for the default user
-      RABBITMQ_DEFAULT_USER: guest
-      RABBITMQ_DEFAULT_PASS: guest
+      RABBITMQ_DEFAULT_USER: ${RABBITMQ_DEFAULT_USER}
+      RABBITMQ_DEFAULT_PASS: ${RABBITMQ_DEFAULT_PASS}
       RABBITMQ_DEFAULT_VHOST: /
     ports:
       # AMQP port
@@ -160,4 +192,4 @@ volumes:
 
 networks:
   app-network:
-    driver: bridge
+    driver: overlay
