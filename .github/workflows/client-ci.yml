@@ -1,16 +1,11 @@
 name: Client-CI
 
 on:
-  push:
-    branches: [ "main" ]
-    paths:
-      - 'client/**'
-      - '.github/workflows/client-ci.yml'
-  pull_request:
-    branches: [ "main" ]
-    paths:
-      - 'client/**'
-      - '.github/workflows/client-ci.yml'
+  workflow_call:
+    inputs:
+      environment:
+        required: false
+        type: string
 
 env:
   IMAGE_NAME: decidish/client-web 

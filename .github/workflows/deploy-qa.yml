@@ -4,15 +4,17 @@
 name: Deploy To QA
 
 on:
-  push:
-    branches: [ "chore/fix-deployment" ]
-
+  pull_request:
+    branches: [ "main" ]
 
 jobs:
   prepare:
     runs-on: ubuntu-latest
     outputs:
       auth_changed: ${{ steps.filter.outputs.auth }}
+      personalization_changed: ${{ steps.filter.outputs.personalization }}
+      mlpipeline_changed: ${{ steps.filter.outputs.mlpipeline }}
+      client_changed: ${{ steps.filter.outputs.client }}
     steps:
       - uses: actions/checkout@v4
 
@@ -23,15 +25,51 @@ jobs:
             auth:
               - 'backend/authorization/**'
               - '.github/workflows/authorization-ci.yml'
+            personalization:
+              - 'backend/personalization/**'
+              - '.github/workflows/personalization-ci.yml'
+            mlpipeline:
+              - 'mlpipeline/**'
+              - '.github/workflows/mlpipeline-ci.yml'
+            client:
+              - 'client/**'
+              - '.github/workflows/client-ci.yml'
 
   auth-ci:
     needs: prepare
     if: ${{ needs.prepare.outputs.auth_changed == 'true' }}
     uses: ./.github/workflows/authorization-ci.yml
     secrets: inherit
+  
+  personalization-ci:
+    needs: prepare
+    if: ${{ needs.prepare.outputs.auth_changed == 'true' }}
+    uses: ./.github/workflows/personalization-ci.yml
+    secrets: inherit
+  
+  mlpipeline-ci:
+    needs: prepare
+    if: ${{ needs.prepare.outputs.auth_changed == 'true' }}
+    uses: ./.github/workflows/mlpipeline-ci.yml
+    secrets: inherit
+  
+  client-ci:
+    needs: prepare
+    if: ${{ needs.prepare.outputs.auth_changed == 'true' }}
+    uses: ./.github/workflows/client-ci.yml
+    secrets: inherit
+
+  auth-test-ci:
+    needs: prepare
+    if: ${{ needs.prepare.outputs.auth_changed != 'true' }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Skip Authorization-Service-CI
+        run: echo "No changes in authorization service, skipping CI."
 
   deploy-qa:
-    needs: [prepare, auth-ci]
+    if: github.ref == 'refs/heads/main'
+    needs: [prepare, auth-ci, personalization-ci, mlpipeline-ci, client-ci, auth-test-ci]
     environment: qa
     runs-on: [self-hosted, qa-server]
     steps:

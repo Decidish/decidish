@@ -1,16 +1,11 @@
 name: Personalization-Service-CI
 
 on:
-  push:
-    branches: [ "main" ]
-    paths:
-      - 'backend/personalization/**'
-      - '.github/workflows/personalization-ci.yml'
-  pull_request:
-    branches: [ "main" ]
-    paths:
-      - 'backend/personalization/**'
-      - '.github/workflows/personalization-ci.yml'
+  workflow_call:
+    inputs:
+      environment:
+        required: false
+        type: string
 
 env:
   SERVICE_DIR: 'backend/personalization'

@@ -6,16 +6,6 @@ on:
       environment:
         required: false
         type: string
-  push:
-    branches: [ "main" ]
-    paths:
-      - 'backend/authorization/**'
-      - '.github/workflows/authorization-ci.yml'
-  pull_request:
-    branches: [ "main" ]
-    paths:
-      - 'backend/authorization/**'
-      - '.github/workflows/authorization-ci.yml'
 
 env:
   SERVICE_DIR: 'backend/authorization'
