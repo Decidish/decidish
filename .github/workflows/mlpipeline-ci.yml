@@ -1,17 +1,11 @@
 name: ML Pipeline CI (Poetry)
 
 on:
-  push:
-    branches: [ "main" ]
-    paths:
-      - 'mlpipeline/**'
-      - '.github/workflows/mlpipeline-ci.yml'
-
-  pull_request:
-    branches: [ "main" ]
-    paths:
-      - 'mlpipeline/**'
-      - '.github/workflows/mlpipeline-ci.yml'
+  workflow_call:
+    inputs:
+      environment:
+        required: false
+        type: string
 
 env:
   SERVICE_DIR: mlpipeline
@@ -59,5 +53,4 @@ jobs:
           context: ${{ env.SERVICE_DIR }}
           push: true
           tags: |
-            ${{ env.IMAGE_NAME }}:latest
             ${{ env.IMAGE_NAME }}:${{ github.sha }}

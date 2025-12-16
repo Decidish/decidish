@@ -1,16 +1,11 @@
 name: Authorization-Service-CI
 
 on:
-  push:
-    branches: [ "main" ]
-    paths:
-      - 'backend/authorization/**'
-      - '.github/workflows/authorization-ci.yml'
-  pull_request:
-    branches: [ "main" ]
-    paths:
-      - 'backend/authorization/**'
-      - '.github/workflows/authorization-ci.yml'
+  workflow_call:
+    inputs:
+      environment:
+        required: false
+        type: string
 
 env:
   SERVICE_DIR: 'backend/authorization'
@@ -47,5 +42,4 @@ jobs:
           context: ${{ env.SERVICE_DIR }}
           push: true
           tags: |
-            ${{ env.IMAGE_NAME }}:latest
             ${{ env.IMAGE_NAME }}:${{ github.sha }}
