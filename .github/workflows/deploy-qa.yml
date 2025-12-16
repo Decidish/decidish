@@ -78,7 +78,6 @@ jobs:
     - name: Update QA Stack
       env:
       # This variable tells the Python interpreter *everywhere* # (including inside your running Docker containers) to skip writing bytecode.
-        PYTHONDONTWRITEBYTECODE: 1
         POSTGRES_USER: ${{ secrets.POSTGRES_USER }}
         POSTGRES_PASSWORD: ${{ secrets.POSTGRES_PASSWORD }}
         POSTGRES_DB: ${{ secrets.POSTGRES_DB }}
