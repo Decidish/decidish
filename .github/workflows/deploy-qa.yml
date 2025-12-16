@@ -5,11 +5,33 @@ name: Deploy To QA
 
 on:
   push:
-    branches: [ "main" ]
+    branches: [ "chore/fix-deployment" ]
 
 
 jobs:
+  prepare:
+    runs-on: ubuntu-latest
+    outputs:
+      auth_changed: ${{ steps.filter.outputs.auth }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: dorny/paths-filter@v2
+        id: filter
+        with:
+          filters: |
+            auth:
+              - 'backend/authorization/**'
+              - '.github/workflows/authorization-ci.yml'
+
+  auth-ci:
+    needs: check-changes
+    if: ${{ needs.check-changes.outputs.auth == 'true' }}
+    uses: ./.github/workflows/authorization-ci.yml
+    secrets: inherit
+
   deploy-qa:
+    needs: [prepare, auth-ci]
     environment: qa
     runs-on: [self-hosted, qa-server]
     steps:
