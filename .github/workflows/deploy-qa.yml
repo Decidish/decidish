@@ -67,6 +67,11 @@ jobs:
     environment: qa
     runs-on: [self-hosted, qa-server]
     steps:
+    - name: Force Clean Up Workspace
+      run: |
+        sudo rm -rf "${{ github.workspace }}/*"
+        sudo rm -rf "${{ github.workspace }}/.*"
+
     - uses: actions/checkout@v4
 
     - name: Login to Docker Hub
