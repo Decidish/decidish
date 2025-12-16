@@ -1,6 +1,11 @@
 name: Authorization-Service-CI
 
 on:
+  workflow_call:
+    inputs:
+      environment:
+        required: false
+        type: string
   push:
     branches: [ "main" ]
     paths:
