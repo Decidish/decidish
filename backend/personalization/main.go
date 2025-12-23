@@ -28,7 +28,7 @@ func main() {
 		_ = db.Close()
 	}(db)
 	// Run database migrations
-	dbDriver.RunMigrations(appConfig, db)
+	dbDriver.RunMigrations(db)
 
 	r := gin.Default()
 

@@ -54,6 +54,7 @@ services:
     environment:
       JWT_SECRET: ${JWT_SECRET}
       DATABASE_URL: ${DATABASE_URL}
+      GIN_MODE: "release"
     depends_on:
       - db_authorisation
     deploy:
@@ -96,7 +97,6 @@ services:
       - ./backend/personalization:/app
     environment:
       - DB_HOST=db_backend
-      - REDIS_HOST=redis
       - JWT_SECRET=${JWT_SECRET}
       - DATABASE_URL=${DATABASE_BACKEND_URL}
       - EMBEDDER_SERVER_URL=${EMBEDDER_SERVER_URL}
@@ -107,6 +107,7 @@ services:
       - MINIO_USE_SSL=${MINIO_USE_SSL}
       - MINIO_RECIPES_BUCKET=${MINIO_RECIPES_BUCKET}
       - MINIO_RECIPES_OBJECT=${MINIO_RECIPES_OBJECT}
+      - GIN_MODE=release
     depends_on:
       - db_backend
     deploy:

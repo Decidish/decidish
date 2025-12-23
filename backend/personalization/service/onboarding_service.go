@@ -18,10 +18,11 @@ type OnboardingService struct {
 	*sql.DB
 }
 
-func NewOnboardingService(applicationConfig config.ApplicationConfig, preferenceRepository repository.UserPreferenceRepository) *OnboardingService {
+func NewOnboardingService(applicationConfig config.ApplicationConfig, preferenceRepository repository.UserPreferenceRepository, db *sql.DB) *OnboardingService {
 	return &OnboardingService{
 		ApplicationConfig:        applicationConfig,
 		UserPreferenceRepository: preferenceRepository,
+		DB:                       db,
 	}
 }
 

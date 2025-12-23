@@ -123,7 +123,8 @@ services:
       - app-network
 
   client-web:
-    image: decidish/client-web:${IMAGE_TAG}
+    build: ./client
+    container_name: dev_client
     ports:
       - "3000:3000"
     deploy:
@@ -156,7 +157,7 @@ services:
     image: grafana/grafana:latest
     container_name: grafana
     ports:
-      - "3000:3000"
+      - "3031:3000"
     environment:
       - GF_SECURITY_ADMIN_PASSWORD=secret
     depends_on:

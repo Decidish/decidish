@@ -15,7 +15,6 @@ type ApplicationConfig struct {
 	MinioRecipesBucket     string
 	MinioRecipesObjectName string
 	EmbedderServerUrl      string
-	RabbitMQServerUrl      string
 }
 
 func (config *ApplicationConfig) LoadConfiguration() {
@@ -65,15 +64,9 @@ func (config *ApplicationConfig) LoadConfiguration() {
 		panic(errors.New("MINIO_RECIPES_OBJECT environment variable is required"))
 	}
 
-	config.EmbedderServerUrl = os.Getenv("EMBEDDER_SERVER_URL")
-
-	if config.EmbedderServerUrl == "" {
-		panic(errors.New("EMBEDDER_SERVER_URL environment variable is required"))
-	}
-
-	config.RabbitMQServerUrl = os.Getenv("RABBITMQ_SERVER_URL")
-
-	if config.RabbitMQServerUrl == "" {
-		panic(errors.New("RABBITMQ_SERVER_URL environment variable is required"))
-	}
+	//config.EmbedderServerUrl = os.Getenv("EMBEDDER_SERVER_URL")
+	//
+	//if config.EmbedderServerUrl == "" {
+	//	panic(errors.New("EMBEDDER_SERVER_URL environment variable is required"))
+	//}
 }
