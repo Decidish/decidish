@@ -1,4 +1,4 @@
-# Decidish 🧭
+# Decidish
 
 This repository contains the local development environment for a **microservices-based application**, fully containerized using **Docker Compose**.
 

@@ -45,18 +45,10 @@ func (prefs UserPreferences) String() string {
 	return strings.Join([]string{core, constraints, budget, allergies}, " ")
 }
 
-type UserPreferenceRepository struct {
-	Db *sql.DB
-}
+type UserPreferenceRepository struct {}
 
-func NewUserPreferenceRepository(db *sql.DB) *UserPreferenceRepository {
-	return &UserPreferenceRepository{
-		Db: db,
-	}
-}
-
-func (repository *UserPreferenceRepository) Save(userId string, preferences UserPreferences) error {
-	_, err := repository.Db.Exec(`
+func (repository *UserPreferenceRepository) Save(tx *sql.Tx, userId string, preferences UserPreferences) error {
+	_, err := tx.Exec(`
 	INSERT INTO user_preferences (
 	                              user_id, postal_code, weekly_budget, 
 	                              cook_frequency, dietary_preferences, allergies, 

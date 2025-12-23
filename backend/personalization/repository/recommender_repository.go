@@ -6,12 +6,14 @@ import (
 	"strings"
 )
 
-type RecommenderRepository struct {
-	Db *sql.DB
+type RecommenderRepository struct {}
+
+func NewRecommenderRepository() RecommenderRepository {
+	return RecommenderRepository{}
 }
 
-func (repo RecommenderRepository) GetRecommendedRecipesForUser(userId string) ([]migrations.Recipe, error) {
-	query, err := repo.Db.Query(`
+func (repo RecommenderRepository) GetRecommendedRecipesForUser(tx *sql.Tx, userId string) ([]migrations.Recipe, error) {
+	query, err := tx.Query(`
 		WITH recommender AS ( 
 		    SELECT re.recipe_id, r.embedding <=> re.embedding as dist 
 			FROM recipe_embeddings re, (SELECT embedding

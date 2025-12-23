@@ -8,7 +8,6 @@ import (
 type ApplicationConfig struct {
 	JWTSecret              string
 	DBConnectionUrl        string
-	KafkaConnectionUrl     string
 	MinioEndpoint          string
 	MinioAccessKey         string
 	MinioSecretKey         string
@@ -31,12 +30,6 @@ func (config *ApplicationConfig) LoadConfiguration() {
 	if config.DBConnectionUrl == "" {
 		// throw an error or set a default value
 		panic(errors.New("DATABASE_URL environment variable is required"))
-	}
-
-	config.KafkaConnectionUrl = os.Getenv("KAFKA_CONNECTION_URL")
-
-	if config.KafkaConnectionUrl == "" {
-		panic(errors.New("KAFKA_CONNECTION_URL environment variable is required"))
 	}
 
 	config.MinioEndpoint = os.Getenv("MINIO_ENDPOINT")
@@ -71,9 +64,9 @@ func (config *ApplicationConfig) LoadConfiguration() {
 		panic(errors.New("MINIO_RECIPES_OBJECT environment variable is required"))
 	}
 
-	config.EmbedderServerUrl = os.Getenv("EMBEDDER_SERVER_URL")
-
-	if config.EmbedderServerUrl == "" {
-		panic(errors.New("EMBEDDER_SERVER_URL environment variable is required"))
-	}
+	//config.EmbedderServerUrl = os.Getenv("EMBEDDER_SERVER_URL")
+	//
+	//if config.EmbedderServerUrl == "" {
+	//	panic(errors.New("EMBEDDER_SERVER_URL environment variable is required"))
+	//}
 }

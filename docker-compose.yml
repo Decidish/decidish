@@ -96,7 +96,6 @@ services:
       - JWT_SECRET=${JWT_SECRET}
       - DATABASE_URL=${DATABASE_BACKEND_URL}
       - EMBEDDER_SERVER_URL=${EMBEDDER_SERVER_URL}
-      - KAFKA_CONNECTION_URL=${KAFKA_CONNECTION_URL}
       - MINIO_ENDPOINT=${MINIO_ENDPOINT}
       - MINIO_ACCESS_KEY=${MINIO_ACCESS_KEY}
       - MINIO_SECRET_KEY=${MINIO_SECRET_KEY}
@@ -105,7 +104,6 @@ services:
       - MINIO_RECIPES_OBJECT=${MINIO_RECIPES_OBJECT}
     depends_on:
       - db_backend
-      - rabbitmq
     networks:
       - app-network
 
@@ -121,33 +119,55 @@ services:
       - DATABASE_URL=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db_backend:5432/${POSTGRES_DB}
     depends_on:
       - db_backend
-      - rabbitmq
     networks:
       - app-network
 
-
-# ----------------------------------------------------------------
-# Kafka & Streaming
-# ----------------------------------------------------------------
-  rabbitmq:
-    image: rabbitmq:3-management
-    container_name: rabbitmq-broker
-    restart: always
-    environment:
-      # Credentials for the default user
-      RABBITMQ_DEFAULT_USER: guest
-      RABBITMQ_DEFAULT_PASS: guest
-      RABBITMQ_DEFAULT_VHOST: /
+  client-web:
+    build: ./client
+    container_name: dev_client
     ports:
-      # AMQP port
-      - "5672:5672"
-      # Management UI port
-      - "15672:15672"
+      - "3000:3000"
+    deploy:
+      update_config:
+        order: start-first
+    healthcheck:
+      test: [ "CMD", "wget", "-q", "--spider", "http://localhost:3000" ]
+      interval: 10s
+      retries: 3
+      start_period: 5s
+
+  # ----------------------------------------------------------------
+  # Monitoring
+  # ----------------------------------------------------------------
+
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: prometheus
+    ports:
+      - "9090:9090"
     volumes:
-      # Persistent storage for message data and configurations
-      - rabbitmq_data:/var/lib/rabbitmq/mnesia
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml
+      - prometheus_data:/prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
     networks:
       - app-network
+
+  grafana:
+    image: grafana/grafana:latest
+    container_name: grafana
+    ports:
+      - "3031:3000"
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=secret
+    depends_on:
+      prometheus:
+        condition: service_started
+    volumes:
+      - ./datasources.yml:/etc/grafana/provisioning/datasources/datasources.yml
+    networks:
+      - app-network
+
 
 # ----------------------------------------------------------------
 # Volumes & Networks
@@ -155,8 +175,7 @@ services:
 volumes:
   db_backend_data:
   db_authorisation_data:
-  kafka_data:
-  rabbitmq_data:
+  prometheus_data:
 
 networks:
   app-network:

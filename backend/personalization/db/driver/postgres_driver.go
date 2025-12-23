@@ -3,8 +3,6 @@ package driver
 import (
 	"database/sql"
 	"log"
-	"personalization/config"
-	migrations "personalization/db/scripts"
 
 	_ "github.com/lib/pq"
 	"github.com/pressly/goose/v3"
@@ -17,17 +15,13 @@ type DBDriver struct {
 }
 
 // RunMigrations connects to the DB and executes pending migrations.
-func (d DBDriver) RunMigrations(config config.ApplicationConfig, db *sql.DB) {
+func (d DBDriver) RunMigrations(db *sql.DB) {
 	if err := goose.SetDialect(d.Name); err != nil {
 		log.Fatalf("Goose failed to set dialect: %v", err)
 	}
 
 	if err := goose.Up(db, d.MigrationDir); err != nil {
 		log.Fatalf("Goose failed to run migrations: %v", err)
-	}
-
-	if err := migrations.ExecuteGoMigrations(config, db); err != nil {
-		log.Fatalf("Failed to execute go migrations: %v", err)
 	}
 
 	log.Println("Database migrations completed successfully.")

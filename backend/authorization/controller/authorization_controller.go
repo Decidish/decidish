@@ -123,10 +123,9 @@ func (controller *AuthorizationController) loginRequestHandler(db *sql.DB, login
 		}
 
 		return token, nil
-
-	} else {
-		return "", sql.ErrNoRows
 	}
+
+	return "", sql.ErrNoRows
 }
 
 func (controller *AuthorizationController) registerRequestHandler(db *sql.DB, loginBody auth.LoginRequestBody) error {

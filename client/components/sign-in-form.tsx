@@ -33,6 +33,7 @@ export function SignInForm() {
             })
             .catch(err => {
                 console.log(err)
+                // Create toast notification for error
             })
         // TODO: Submit form and navigate to protected screen if successful
     }
