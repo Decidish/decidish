@@ -185,7 +185,6 @@ func processInBatches(config config.ApplicationConfig, recipeIds []int, recipeSt
 				return
 			}
 
-			// 2. Post the request
 			resp, err := http.Post(config.EmbedderServerUrl+"/process_batch", "application/json", bytes.NewBuffer(jsonBody))
 			if err != nil {
 				fmt.Println("Error posting batch:", err)
@@ -252,6 +251,8 @@ func UpSeedRecipesTable(config config.ApplicationConfig, db *sql.DB) error {
 	if err != nil || tx == nil {
 		return errors.New("no transaction could be established")
 	}
+
+	defer tx.Rollback()
 
 	f, err := os.Open(LocalFilename)
 

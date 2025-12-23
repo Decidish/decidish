@@ -11,7 +11,6 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/joho/godotenv"
-	amqp "github.com/rabbitmq/amqp091-go"
 	ginprometheus "github.com/zsais/go-gin-prometheus"
 )
 
@@ -41,15 +40,6 @@ func connectDB(appConfig config.ApplicationConfig) *sql.DB {
 func enablePrometheusMetrics(r *gin.Engine) {
 	p := ginprometheus.NewPrometheus("gin")
 	p.Use(r)
-}
-
-func createRabbitMqConnection(appConfig config.ApplicationConfig) *amqp.Connection {
-	conn, err := amqp.Dial(appConfig.RabbitMQServerUrl)
-	if err != nil {
-		log.Panicf("Failed to connect: %s", err)
-	}
-
-	return conn
 }
 
 func createUserActionMappings(r *gin.RouterGroup) {

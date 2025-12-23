@@ -104,8 +104,6 @@ services:
       - MINIO_RECIPES_OBJECT=${MINIO_RECIPES_OBJECT}
     depends_on:
       - db_backend
-      - redis
-      - rabbitmq
     networks:
       - app-network
 
@@ -121,34 +119,21 @@ services:
       - DATABASE_URL=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db_backend:5432/${POSTGRES_DB}
     depends_on:
       - db_backend
-      - rabbitmq
     networks:
       - app-network
 
-
-  # ----------------------------------------------------------------
-  # Message Queues
-  # ----------------------------------------------------------------
-
-  rabbitmq:
-    image: rabbitmq:3-management
-    container_name: rabbitmq-broker
-    restart: always
-    environment:
-      # Credentials for the default user
-      RABBITMQ_DEFAULT_USER: guest
-      RABBITMQ_DEFAULT_PASS: guest
-      RABBITMQ_DEFAULT_VHOST: /
+  client-web:
+    image: decidish/client-web:${IMAGE_TAG}
     ports:
-      # AMQP port
-      - "5672:5672"
-      # Management UI port
-      - "15672:15672"
-    volumes:
-      # Persistent storage for message data and configurations
-      - rabbitmq_data:/var/lib/rabbitmq/mnesia
-    networks:
-      - app-network
+      - "3000:3000"
+    deploy:
+      update_config:
+        order: start-first
+    healthcheck:
+      test: [ "CMD", "wget", "-q", "--spider", "http://localhost:3000" ]
+      interval: 10s
+      retries: 3
+      start_period: 5s
 
   # ----------------------------------------------------------------
   # Monitoring
@@ -189,7 +174,6 @@ services:
 volumes:
   db_backend_data:
   db_authorisation_data:
-  rabbitmq_data:
   prometheus_data:
 
 networks:
