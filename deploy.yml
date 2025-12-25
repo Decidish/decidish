@@ -182,8 +182,7 @@ services:
     environment:
       - GF_SECURITY_ADMIN_PASSWORD=secret
     depends_on:
-      prometheus:
-        condition: service_started
+      - prometheus
     volumes:
       - ./datasources.yml:/etc/grafana/provisioning/datasources/datasources.yml
     networks:
