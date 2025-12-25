@@ -29,4 +29,4 @@ jobs:
         context: client
         push: true
         tags: |
-          ${{ env.IMAGE_NAME }}:${{ github.sha }}
+          ${{ env.IMAGE_NAME }}:${{ inputs.environment || 'latest' }}
