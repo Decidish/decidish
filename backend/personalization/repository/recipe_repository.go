@@ -1,19 +1,12 @@
-package migrations
+package repository
 
 import (
-	"bufio"
-	"bytes"
 	"database/sql"
-	"encoding/json"
 	"errors"
 	"fmt"
-	"net/http"
-	"os"
-	"personalization/config"
 	"regexp"
 	"strconv"
 	"strings"
-	"time"
 )
 
 type Nutrients struct {
@@ -150,56 +143,6 @@ func SaveKeywords(recipeId int, recipe Recipe, tx *sql.Tx) error {
 	return nil
 }
 
-func processInBatches(config config.ApplicationConfig, recipeIds []int, recipeStrs []string) {
-	const batchSize = 100
-
-	if len(recipeIds) != len(recipeStrs) {
-		fmt.Println("Error: ID slice and string slice lengths do not match.")
-		return
-	}
-	totalItems := len(recipeIds)
-
-	type EmbedRequest struct {
-		RecipeIds  []int    `json:"recipe_ids"`
-		RecipeStrs []string `json:"recipe_strs"`
-	}
-
-	for i := 0; i < totalItems; i += batchSize {
-		endIndex := i + batchSize
-		if endIndex > totalItems {
-			endIndex = totalItems
-		}
-
-		batchIDs := recipeIds[i:endIndex]
-		batchStrs := recipeStrs[i:endIndex]
-
-		go func(ids []int, strs []string) {
-			start := time.Now()
-
-			jsonBody, err := json.Marshal(EmbedRequest{
-				RecipeIds:  ids,
-				RecipeStrs: strs,
-			})
-			if err != nil {
-				fmt.Println("Error marshalling batch:", err)
-				return
-			}
-
-			resp, err := http.Post(config.EmbedderServerUrl+"/process_batch", "application/json", bytes.NewBuffer(jsonBody))
-			if err != nil {
-				fmt.Println("Error posting batch:", err)
-				return
-			}
-			defer resp.Body.Close()
-
-			end := time.Now()
-			fmt.Printf("Async batch (items: %d) request status: %s, duration: %v\n",
-				len(ids), resp.Status, end.Sub(start))
-
-		}(batchIDs, batchStrs)
-	}
-}
-
 func SaveIngredients(recipeId int, recipe Recipe, tx *sql.Tx) error {
 	var ingredientRegex = regexp.MustCompile(`^(\d+[\.,]?\d*)\s*([a-zA-ZäöüÄÖÜß\(\) ]*?)\s*(.*)$`)
 
@@ -240,81 +183,6 @@ func SaveIngredients(recipeId int, recipe Recipe, tx *sql.Tx) error {
 		if err != nil {
 			return err
 		}
-	}
-
-	return nil
-}
-
-func UpSeedRecipesTable(config config.ApplicationConfig, db *sql.DB) error {
-	tx, err := db.Begin()
-
-	if err != nil || tx == nil {
-		return errors.New("no transaction could be established")
-	}
-
-	defer tx.Rollback()
-
-	f, err := os.Open(LocalFilename)
-
-	if err != nil {
-		return err
-	}
-
-	defer f.Close()
-
-	scanner := bufio.NewScanner(f)
-	recipeCount := 1
-
-	var recipeIds []int
-	var recipeStr []string
-
-	for scanner.Scan() {
-
-		line := scanner.Bytes()
-
-		var recipe Recipe
-
-		err = json.Unmarshal(line, &recipe)
-
-		// Unable to unmarshal JSON line
-		if err != nil {
-			return err
-		}
-
-		// Insert recipe into the database
-		recipeId, err := SaveRecipe(&recipe, tx)
-		if err != nil {
-			return err
-		}
-
-		// Insert categories into a separate table if needed
-		err = SaveCategories(recipeId, recipe, tx)
-		if err != nil {
-			return err
-		}
-
-		// Insert keywords
-		err = SaveKeywords(recipeId, recipe, tx)
-		if err != nil {
-			return err
-		}
-
-		// Insert ingredients
-		err = SaveIngredients(recipeId, recipe, tx)
-		if err != nil {
-			return err
-		}
-
-		recipeIds = append(recipeIds, recipeId)
-		recipeStr = append(recipeStr, recipe.String())
-		recipeCount++
-	}
-
-	processInBatches(config, recipeIds, recipeStr)
-
-	err = tx.Commit()
-	if err != nil {
-		return err
 	}
 
 	return nil

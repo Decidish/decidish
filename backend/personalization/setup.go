@@ -63,3 +63,10 @@ func createOnboardingMappings(config config.ApplicationConfig, r *gin.RouterGrou
 
 	onboardingController.AddMappings(r)
 }
+
+func createRecipeMappings(config config.ApplicationConfig, r *gin.Engine, db *sql.DB) {
+	recipeService := service.NewRecipeService(config, db)
+	recipeController := controller.NewRecipeController(recipeService)
+
+	recipeController.AddMappings(r)
+}

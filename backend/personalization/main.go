@@ -41,6 +41,8 @@ func main() {
 		MaxAge:           12 * time.Hour,
 	}))
 
+	createRecipeMappings(appConfig, r, db)
+
 	// Enables prometheus metrics
 	enablePrometheusMetrics(r)
 
