@@ -2,6 +2,7 @@ package config
 
 import (
 	"errors"
+	"log"
 	"os"
 )
 
@@ -27,10 +28,14 @@ func (config *ApplicationConfig) LoadConfiguration() {
 
 	config.DBConnectionUrl = os.Getenv("DATABASE_URL")
 
+	log.Println("getting database variable")
+
 	if config.DBConnectionUrl == "" {
 		// throw an error or set a default value
 		panic(errors.New("DATABASE_URL environment variable is required"))
 	}
+
+	log.Println(config.DBConnectionUrl)
 
 	config.MinioEndpoint = os.Getenv("MINIO_ENDPOINT")
 

@@ -113,6 +113,14 @@ func (service RecipeService) SeedRecipeTableWithREWERecipes(ctx *gin.Context) {
 	}
 
 	err = DownloadRecipesIfNotPresent(service.config)
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, gin.H{
+			"version_id": goVersions[0],
+			"error":      err.Error(),
+		})
+		mu.Unlock()
+		return
+	}
 
 	err = UpSeedRecipesTable(service.config, service.DB)
 	if err != nil {
@@ -148,12 +156,12 @@ func (service RecipeService) SeedRecipeTableWithREWERecipes(ctx *gin.Context) {
 	})
 }
 
-func processInBatches(config config.ApplicationConfig, recipeIds []int, recipeStrs []string, tx *sql.Tx) {
+func processInBatches(config config.ApplicationConfig, recipeIds []int, recipeStrs []string, tx *sql.Tx) error {
 	const batchSize = 100
 
 	if len(recipeIds) != len(recipeStrs) {
 		fmt.Println("Error: ID slice and string slice lengths do not match.")
-		return
+		return errors.New("number of recipes and String slice lengths do not match")
 	}
 	totalItems := len(recipeIds)
 
@@ -172,20 +180,24 @@ func processInBatches(config config.ApplicationConfig, recipeIds []int, recipeSt
 
 	start := time.Now()
 
-	for i := 0; i < totalItems; i += batchSize {
+	for i := 0; i < 200; i += batchSize {
 		wg.Add(1)
 
-		go func(id int) {
+		go func(startIndex int) {
 			defer wg.Done()
 
 			sem <- struct{}{} // Acquire
-			endIndex := i + batchSize
+
+			endIndex := startIndex + batchSize
 			if endIndex > totalItems {
 				endIndex = totalItems
 			}
 
-			batchIDs := recipeIds[i:endIndex]
-			batchStrs := recipeStrs[i:endIndex]
+			batchIDs := recipeIds[startIndex:endIndex]
+
+			log.Println(batchIDs)
+
+			batchStrs := recipeStrs[startIndex:endIndex]
 
 			jsonBody, err := json.Marshal(EmbedRequest{
 				RecipeStrs: batchStrs,
@@ -222,7 +234,7 @@ func processInBatches(config config.ApplicationConfig, recipeIds []int, recipeSt
 			for idx, embedding := range result.Embeddings {
 				embJson, err := json.Marshal(embedding)
 				if err != nil {
-					fmt.Println("Error encoding embedding to JSON:", err)
+					log.Println("Error encoding embedding to JSON:", err)
 					<-sem
 					return
 				}
@@ -230,7 +242,7 @@ func processInBatches(config config.ApplicationConfig, recipeIds []int, recipeSt
 				_, err = tx.Exec(`INSERT INTO recipe_embeddings (recipe_id, embedding)
 								VALUES ($1, $2)`, batchIDs[idx], embJson)
 				if err != nil {
-					fmt.Println("Error inserting embedding:", err)
+					log.Println("Error inserting embedding:", err.Error())
 					<-sem
 					return
 				}
@@ -243,7 +255,7 @@ func processInBatches(config config.ApplicationConfig, recipeIds []int, recipeSt
 	wg.Wait()
 	end := time.Now()
 	fmt.Printf("Embeddings took duration: %v\n", end.Sub(start))
-	return
+	return nil
 }
 
 func UpSeedRecipesTable(config config.ApplicationConfig, db *sql.DB) error {
@@ -288,10 +300,13 @@ func UpSeedRecipesTable(config config.ApplicationConfig, db *sql.DB) error {
 		// Insert recipe into the database
 		recipeId, err := repository.SaveRecipe(&recipe, tx)
 		if err != nil {
+			if errors.Is(err, sql.ErrNoRows) {
+				continue
+			}
 			return err
 		}
 
-		// Insert categories into a separate table if needed
+		//Insert categories into a separate table if needed
 		err = repository.SaveCategories(recipeId, recipe, tx)
 		if err != nil {
 			return err
@@ -316,7 +331,7 @@ func UpSeedRecipesTable(config config.ApplicationConfig, db *sql.DB) error {
 	end := time.Now()
 	fmt.Println("Seed recipes took", end.Sub(start))
 
-	processInBatches(config, recipeIds, recipeStr, tx)
+	//processInBatches(config, recipeIds, recipeStr, tx)
 
 	_, err = tx.Exec("SET session_replication_role = 'origin';")
 	if err != nil {

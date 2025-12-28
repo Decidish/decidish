@@ -4,8 +4,6 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
-	"regexp"
-	"strconv"
 	"strings"
 )
 
@@ -62,7 +60,7 @@ func SaveRecipe(recipe *Recipe, tx *sql.Tx) (int, error) {
 	err := tx.QueryRow(`
 			INSERT INTO recipes (title, description, instructions, cook_time, prep_time, total_time, image, rating, serving_size, calories, yields) 
 			values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
-			ON CONFLICT (title) DO UPDATE SET title = EXCLUDED.title
+			ON CONFLICT (title) DO NOTHING
 			RETURNING id
 			`,
 		recipe.Title,
@@ -119,7 +117,7 @@ func SaveCategories(recipeId int, recipe Recipe, tx *sql.Tx) error {
 
 func SaveKeywords(recipeId int, recipe Recipe, tx *sql.Tx) error {
 	stmtKeyword := `INSERT INTO keywords (name) values ($1) 
-                	ON CONFLICT (name) DO UPDATE set name = excluded.name 
+                	ON CONFLICT (name) DO NOTHING 
                 	RETURNING id`
 	stmtRecipeKeyword := `INSERT INTO recipe_keywords (recipe_id, keyword_id) 
 							values ($1, $2)
@@ -129,6 +127,10 @@ func SaveKeywords(recipeId int, recipe Recipe, tx *sql.Tx) error {
 		var keywordID int
 
 		err := tx.QueryRow(stmtKeyword, keyword).Scan(&keywordID)
+
+		if errors.Is(err, sql.ErrNoRows) {
+			continue
+		}
 
 		if err != nil {
 			return err
@@ -144,31 +146,12 @@ func SaveKeywords(recipeId int, recipe Recipe, tx *sql.Tx) error {
 }
 
 func SaveIngredients(recipeId int, recipe Recipe, tx *sql.Tx) error {
-	var ingredientRegex = regexp.MustCompile(`^(\d+[\.,]?\d*)\s*([a-zA-ZäöüÄÖÜß\(\) ]*?)\s*(.*)$`)
-
 	stmtIngredient := `INSERT INTO ingredients (name) values ($1) ON CONFLICT (name) DO UPDATE set name = excluded.name RETURNING id`
-	stmtRecipeIngredient := `INSERT INTO recipe_ingredients (recipe_id, ingredient_id, quantity, unit) values ($1, $2, $3, $4) ON CONFLICT DO NOTHING `
+	//stmtRecipeIngredient := `INSERT INTO recipe_ingredients (recipe_id, ingredient_id, quantity, unit) values ($1, $2, $3, $4) ON CONFLICT DO NOTHING `
 
 	// Insert into ingredients table
 	for _, ingredient := range recipe.Ingredients {
-		// parse unit, name, quantity from ingredient string if needed
-		matches := ingredientRegex.FindStringSubmatch(ingredient)
-
-		amount := 0.0
-		unit := ""
 		name := ingredient
-
-		if len(matches) == 4 {
-			parsedAmount, err := strconv.ParseFloat(matches[1], 64)
-
-			if err != nil {
-				return err
-			}
-
-			amount = parsedAmount
-			unit = matches[2]
-			name = matches[3]
-		}
 
 		var ingredientID int
 
@@ -178,11 +161,11 @@ func SaveIngredients(recipeId int, recipe Recipe, tx *sql.Tx) error {
 			return err
 		}
 
-		_, err = tx.Exec(stmtRecipeIngredient, recipeId, ingredientID, amount, unit)
+		//_, err = tx.Exec(stmtRecipeIngredient, recipeId, ingredientID, amount, unit)
 
-		if err != nil {
-			return err
-		}
+		//if err != nil {
+		//	return err
+		//}
 	}
 
 	return nil
