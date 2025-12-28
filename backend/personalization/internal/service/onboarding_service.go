@@ -6,11 +6,15 @@ import (
 	"encoding/json"
 	"log"
 	"net/http"
-	"personalization/config"
-	"personalization/repository"
+	"personalization/internal/config"
+	"personalization/internal/repository"
 
 	"github.com/gin-gonic/gin"
 )
+
+type IOnboardingService interface {
+	CreateUserPreferences(ctx *gin.Context)
+}
 
 type OnboardingService struct {
 	config.ApplicationConfig

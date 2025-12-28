@@ -1,7 +1,7 @@
 package controller
 
 import (
-	"personalization/service"
+	"personalization/internal/service"
 
 	"github.com/gin-gonic/gin"
 )

@@ -4,7 +4,7 @@ import (
 	"database/sql"
 	"log"
 	"personalization/db/driver"
-	"personalization/middleware"
+	"personalization/internal/middleware"
 	"time"
 
 	"github.com/gin-contrib/cors"

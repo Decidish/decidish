@@ -1,16 +1,16 @@
 package controller
 
 import (
-	"personalization/service"
+	"personalization/internal/service"
 
 	"github.com/gin-gonic/gin"
 )
 
 type OnboardingController struct {
-	service.OnboardingService
+	OnboardingService service.IOnboardingService
 }
 
-func NewOnboardingController(service service.OnboardingService) *OnboardingController {
+func NewOnboardingController(service service.IOnboardingService) *OnboardingController {
 	return &OnboardingController{
 		OnboardingService: service,
 	}

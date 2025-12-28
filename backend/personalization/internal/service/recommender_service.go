@@ -4,7 +4,7 @@ import (
 	"database/sql"
 	"log"
 	"net/http"
-	"personalization/repository"
+	"personalization/internal/repository"
 
 	"github.com/gin-gonic/gin"
 )
@@ -17,7 +17,7 @@ type RecommenderService struct {
 func NewRecommenderService(recommenderRepository repository.RecommenderRepository, db *sql.DB) *RecommenderService {
 	return &RecommenderService{
 		RecommenderRepository: recommenderRepository,
-		DB: db,
+		DB:                    db,
 	}
 }
 

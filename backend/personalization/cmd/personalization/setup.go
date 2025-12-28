@@ -3,11 +3,11 @@ package main
 import (
 	"database/sql"
 	"log"
-	"personalization/config"
-	"personalization/controller"
 	"personalization/db/driver"
-	"personalization/repository"
-	"personalization/service"
+	"personalization/internal/config"
+	"personalization/internal/controller"
+	"personalization/internal/repository"
+	"personalization/internal/service"
 
 	"github.com/gin-gonic/gin"
 	"github.com/joho/godotenv"

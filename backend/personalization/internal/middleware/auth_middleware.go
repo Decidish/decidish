@@ -3,7 +3,7 @@ package middleware
 import (
 	"fmt"
 	"net/http"
-	"personalization/config"
+	"personalization/internal/config"
 
 	"github.com/gin-gonic/gin"
 	"github.com/golang-jwt/jwt/v5"
