@@ -5,7 +5,6 @@ from sklearn_crfsuite import metrics
 from sklearn.model_selection import train_test_split
 
 INPUT_FILE = "data/ingredient_parser_data/training_data.json"
-MODEL_FILE = "crf_model.pkl"
 
 def tokenize(text):
     """
@@ -136,15 +135,8 @@ print(f"\nModel F1 Score: {score:.4f}")
 print("\nDetailed Report:\n")
 print(metrics.flat_classification_report(y_test, y_pred, labels=labels))
 
-import shutil
-import os
-try:
-    # sklearn-crfsuite creates a temporary model file during .fit()
-    # We copy it to a permanent location before the script ends.
-    if crf.modelfile and os.path.exists(crf.modelfile.name):
-        shutil.copy(crf.modelfile.name, "ingredient_model.crfsuite")
-        print("Success! Model saved as 'ingredient_model.crfsuite'")
-    else:
-        print("Warning: Could not locate temporary model file.")
-except Exception as e:
-    print(f"Error exporting binary: {e}")
+import joblib
+
+# Replace your current shutil export with this:
+joblib.dump(crf, "ingredient_model.joblib")
+print("Model saved as ingredient_model.joblib")
