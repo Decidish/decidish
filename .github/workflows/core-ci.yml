@@ -1,0 +1,61 @@
+name: Core-Service-CI
+
+on:
+  workflow_call:
+    inputs:
+      environment:
+        required: false
+        type: string
+
+env:
+  SERVICE_DIR: 'backend/core'
+  IMAGE_NAME: 'decidish/core-service'
+
+jobs:
+  build-and-push:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Set up JDK 21
+        uses: actions/setup-java@v4
+        with:
+          java-version: '21'
+          distribution: 'temurin'
+          cache: 'gradle'
+
+      - name: Test and Build
+        run: |
+          cd ${{ env.SERVICE_DIR }}
+          chmod +x gradlew
+          ./gradlew build
+
+      - name: Grant execute permission for gradlew
+        run: chmod +x gradlew
+
+      - name: Test and Build
+        run: ./gradlew build
+
+      - name: Upload JAR
+        uses: actions/upload-artifact@v4
+        with:
+          name: app-jar
+          path: build/libs/*-SNAPSHOT.jar
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Login to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Build and push
+        uses: docker/build-push-action@v5
+        if: github.ref == 'refs/heads/main'
+        with:
+          context: ${{ env.SERVICE_DIR }}
+          push: true
+          tags: |
+            ${{ env.IMAGE_NAME }}:${{ inputs.environment || 'latest' }}

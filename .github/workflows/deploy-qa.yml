@@ -16,6 +16,7 @@ jobs:
       personalization_changed: ${{ steps.filter.outputs.personalization }}
       mlpipeline_changed: ${{ steps.filter.outputs.mlpipeline }}
       client_changed: ${{ steps.filter.outputs.client }}
+      core_changed: ${{ steps.filter.outputs.core }}
     steps:
       - uses: actions/checkout@v4
 
@@ -35,6 +36,9 @@ jobs:
             client:
               - 'client/**'
               - '.github/workflows/client-ci.yml'
+            core:
+              - 'backend/core/**'
+              - '.github/workflows/core-ci.yml'
 
   auth-ci:
     needs: prepare
@@ -56,6 +60,14 @@ jobs:
     needs: prepare
     if: ${{ needs.prepare.outputs.mlpipeline_changed == 'true' || github.ref == 'refs/heads/main' }}
     uses: ./.github/workflows/mlpipeline-ci.yml
+    with: 
+      environment: qa
+    secrets: inherit
+
+  core-ci:
+    needs: prepare
+    if: ${{ needs.prepare.outputs.core_changed == 'true' || github.ref == 'refs/heads/main' }}
+    uses: ./.github/workflows/core-ci.yml
     with: 
       environment: qa
     secrets: inherit

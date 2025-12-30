@@ -70,23 +70,23 @@ services:
       - app-network
 
   # Core Server
-  # core-server:
-  #   image: decidish/core-service:latest
-  #   ports:
-  #     - "8080:8080"
-  #   volumes:
-  #     - ./backend/core:/app
-  #     - ~/.gradle:/home/gradle/.gradle
-  #   environment:
-  #     - SPRING_DATASOURCE_URL=jdbc:postgresql://db_backend:5432/${POSTGRES_DB}
-  #     - SPRING_DATASOURCE_USERNAME=${POSTGRES_USER}
-  #     - SPRING_DATASOURCE_PASSWORD=${POSTGRES_PASSWORD}
-  #     - REDIS_HOST=redis
-  #   depends_on:
-  #     - db_backend
-  #     - redis
-  #   networks:
-  #     - app-network
+  core-server:
+    image: decidish/core-service:${IMAGE_TAG}
+    ports:
+      - "8080:8080"
+    volumes:
+      - ./backend/core:/app
+      - ~/.gradle:/home/gradle/.gradle
+    environment:
+      - SPRING_DATASOURCE_URL=jdbc:postgresql://db_backend:5432/${POSTGRES_DB}
+      - SPRING_DATASOURCE_USERNAME=${POSTGRES_USER}
+      - SPRING_DATASOURCE_PASSWORD=${POSTGRES_PASSWORD}
+      - REDIS_HOST=redis
+    depends_on:
+      - db_backend
+      - redis
+    networks:
+      - app-network
 
   # Personalization Server
   personalization-server:

@@ -14,5 +14,4 @@ COPY src ./src
 
 EXPOSE 8080
 
-#    -t (--continuous) tells Gradle to watch for source changes and restart the task
-CMD ["./gradlew", "bootRun", "-t", "--no-daemon"]
+CMD ["./gradlew", "bootRun"]
