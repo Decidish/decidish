@@ -53,6 +53,8 @@ dependencies {
     implementation 'org.springframework.grpc:spring-grpc-server-web-spring-boot-starter'
     implementation 'org.springframework.kafka:spring-kafka'
     implementation 'org.springframework.session:spring-session-jdbc'
+    // https://mvnrepository.com/artifact/io.minio/minio
+    implementation 'io.minio:minio:8.6.0'
     compileOnly 'org.projectlombok:lombok'
     developmentOnly 'org.springframework.boot:spring-boot-devtools'
     runtimeOnly 'io.micrometer:micrometer-registry-prometheus'
