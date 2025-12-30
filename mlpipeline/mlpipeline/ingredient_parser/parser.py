@@ -1,13 +1,11 @@
 import joblib
-from fastapi import FastAPI
+import sklearn_crfsuite
 from pydantic import BaseModel
 
 from mlpipeline.ingredient_parser.train_crf import sent2features, tokenize
 
 # Load the model once when the server starts
 model = joblib.load("ingredient_model.joblib")
-
-app = FastAPI()
 
 class IngredientRequest(BaseModel):
     phrase: str
@@ -58,16 +56,5 @@ def get_prediction(phrase):
     tags = model.predict([features])[0]
     return format_to_json(tokens, tags)
 
-@app.post("/parse", response_model=ParsedIngredient)
-async def parse_ingredient(item: IngredientRequest):
-    return get_prediction(item.phrase)
-
-@app.post("/parse-bulk")
-async def parse_bulk(phrases: list[str]):
-    all_tokens = [tokenize(p) for p in phrases]
-    all_features = [sent2features(t) for t in all_tokens]
-
-    all_tags = model.predict(all_features)
-
-    results = [format_to_json(tks, tgs) for tks, tgs in zip(all_tokens, all_tags)]
-    return results
+def get_model() -> sklearn_crfsuite.CRF:
+    return model
