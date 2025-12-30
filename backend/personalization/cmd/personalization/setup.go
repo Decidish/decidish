@@ -3,11 +3,11 @@ package main
 import (
 	"database/sql"
 	"log"
-	"personalization/config"
-	"personalization/controller"
 	"personalization/db/driver"
-	"personalization/repository"
-	"personalization/service"
+	"personalization/internal/config"
+	"personalization/internal/controller"
+	"personalization/internal/repository"
+	"personalization/internal/service"
 
 	"github.com/gin-gonic/gin"
 	"github.com/joho/godotenv"
@@ -62,4 +62,11 @@ func createOnboardingMappings(config config.ApplicationConfig, r *gin.RouterGrou
 	onboardingController := controller.NewOnboardingController(*onboardingService)
 
 	onboardingController.AddMappings(r)
+}
+
+func createRecipeMappings(config config.ApplicationConfig, r *gin.Engine, db *sql.DB) {
+	recipeService := service.NewRecipeService(config, db)
+	recipeController := controller.NewRecipeController(recipeService)
+
+	recipeController.AddMappings(r)
 }

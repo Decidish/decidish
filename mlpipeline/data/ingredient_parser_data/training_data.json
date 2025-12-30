@@ -1,0 +1,6203 @@
+[
+  {
+    "text": "250.0 g Rucolasalat",
+    "labels": {
+      "qty": "250.0",
+      "unit": "g",
+      "name": "Rucolasalat",
+      "comment": null
+    }
+  },
+  {
+    "text": "50.0 ml REWE Feine Welt Lesvos g.g.A. mildes Olivenöl",
+    "labels": {
+      "qty": "50.0",
+      "unit": "ml",
+      "name": "REWE Feine Welt Lesvos g.g.A. mildes Olivenöl",
+      "comment": null
+    }
+  },
+  {
+    "text": "25.0 ml REWE Feine Welt Aceto Balsamico di Modena I.G.P.",
+    "labels": {
+      "qty": "25.0",
+      "unit": "ml",
+      "name": "REWE Feine Welt Aceto Balsamico di Modena I.G.P.",
+      "comment": null
+    }
+  },
+  {
+    "text": "100.0 g Bauchspeck in Scheiben",
+    "labels": {
+      "qty": "100.0",
+      "unit": "g",
+      "name": "Bauchspeck",
+      "comment": "in Scheiben"
+    }
+  },
+  {
+    "text": "2.0 Scheibe(n) Roggenbrot",
+    "labels": {
+      "qty": "2.0",
+      "unit": "Scheibe(n)",
+      "name": "Roggenbrot",
+      "comment": null
+    }
+  },
+  {
+    "text": "1.0 TL Madras Currypulver",
+    "labels": {
+      "qty": "1.0",
+      "unit": "TL",
+      "name": "Madras Currypulver",
+      "comment": null
+    }
+  },
+  {
+    "text": "350.0 g stückige Tomaten (Dose)",
+    "labels": {
+      "qty": "350.0",
+      "unit": "g",
+      "name": "stückige Tomaten",
+      "comment": "(Dose)"
+    }
+  },
+  {
+    "text": "3.5 Stiel(e) Koriander",
+    "labels": {
+      "qty": "3.5",
+      "unit": "Stiel(e)",
+      "name": "Koriander",
+      "comment": null
+    }
+  },
+  {
+    "text": "8.0 Scheibe(n) Ciabatta",
+    "labels": {
+      "qty": "8.0",
+      "unit": "Scheibe(n)",
+      "name": "Ciabatta",
+      "comment": null
+    }
+  },
+  {
+    "text": "80.0 g feiner Zucker",
+    "labels": {
+      "qty": "80.0",
+      "unit": "g",
+      "name": "feiner Zucker",
+      "comment": null
+    }
+  },
+  {
+    "text": "175.0 g Frischkäse Natur",
+    "labels": {
+      "qty": "175.0",
+      "unit": "g",
+      "name": "Frischkäse Natur",
+      "comment": null
+    }
+  },
+  {
+    "text": "100.0 ml Maracuja- oder Orangensaft",
+    "labels": {
+      "qty": "100.0",
+      "unit": "ml",
+      "name": "Maracuja- oder Orangensaft",
+      "comment": null
+    }
+  },
+  {
+    "text": "100.0 g Mango-Samt-Konfitüre",
+    "labels": {
+      "qty": "100.0",
+      "unit": "g",
+      "name": "Mango-Samt-Konfitüre",
+      "comment": null
+    }
+  },
+  {
+    "text": "2.0 Stiel(e) Zitronenmelisse oder Minze (zum Dekorieren)",
+    "labels": {
+      "qty": "2.0",
+      "unit": "Stiel(e)",
+      "name": "Zitronenmelisse oder Minze",
+      "comment": "(zum Dekorieren)"
+    }
+  },
+  {
+    "text": "1.5 TL Ingwer, fein gerieben",
+    "labels": {
+      "qty": "1.5",
+      "unit": "TL",
+      "name": "Ingwer",
+      "comment": "fein gerieben"
+    }
+  },
+  {
+    "text": "0.5 TL indische Gewürzmischung",
+    "labels": {
+      "qty": "0.5",
+      "unit": "TL",
+      "name": "indische Gewürzmischung",
+      "comment": null
+    }
+  },
+  {
+    "text": "175.0 ml Rotwein",
+    "labels": {
+      "qty": "175.0",
+      "unit": "ml",
+      "name": "Rotwein",
+      "comment": null
+    }
+  },
+  {
+    "text": "200.0 g Erbsen, tiefgefroren (z.B. von REWE Bio)",
+    "labels": {
+      "qty": "200.0",
+      "unit": "g",
+      "name": "Erbsen",
+      "comment": "tiefgefroren (z.B. von REWE Bio)"
+    }
+  },
+  {
+    "text": "4.0 Wilhelm Brandenburg Fleischspieße vom Schwein",
+    "labels": {
+      "qty": "4.0",
+      "unit": "Stück",
+      "name": "Wilhelm Brandenburg Fleischspieße vom Schwein",
+      "comment": null
+    }
+  },
+  {
+    "text": "300.0 g rote Johannisbeeren",
+    "labels": {
+      "qty": "300.0",
+      "unit": "g",
+      "name": "rote Johannisbeeren",
+      "comment": null
+    }
+  },
+  {
+    "text": "500.0 g REWE Beste Wahl Rote Bete gekocht",
+    "labels": {
+      "qty": "500.0",
+      "unit": "g",
+      "name": "REWE Beste Wahl Rote Bete",
+      "comment": "gekocht"
+    }
+  },
+  {
+    "text": "250.0 g REWE Bio Forellenfilets geräuchert",
+    "labels": {
+      "qty": "250.0",
+      "unit": "g",
+      "name": "REWE Bio Forellenfilets",
+      "comment": "geräuchert"
+    }
+  },
+  {
+    "text": "180.0 g REWE Bio Frischkäse Doppelrahmstufe",
+    "labels": {
+      "qty": "180.0",
+      "unit": "g",
+      "name": "REWE Bio Frischkäse Doppelrahmstufe",
+      "comment": null
+    }
+  },
+  {
+    "text": "200.0 ml pflanzliche Sahne (z. B. Soja- oder Hafercreme)",
+    "labels": {
+      "qty": "200.0",
+      "unit": "ml",
+      "name": "pflanzliche Sahne",
+      "comment": "(z. B. Soja- oder Hafercreme)"
+    }
+  },
+  {
+    "text": "750.0 g Dinkelmehl Typ 630",
+    "labels": {
+      "qty": "750.0",
+      "unit": "g",
+      "name": "Dinkelmehl Typ 630",
+      "comment": null
+    }
+  },
+  {
+    "text": "600.0 g Lauch (ca. 2 Stangen)",
+    "labels": {
+      "qty": "600.0",
+      "unit": "g",
+      "name": "Lauch",
+      "comment": "(ca. 2 Stangen)"
+    }
+  },
+  {
+    "text": "300.0 g Kochschinken",
+    "labels": {
+      "qty": "300.0",
+      "unit": "g",
+      "name": "Kochschinken",
+      "comment": null
+    }
+  },
+  {
+    "text": "2.0 große Bio Orangen",
+    "labels": {
+      "qty": "2.0",
+      "unit": "Stück",
+      "name": "Bio Orangen",
+      "comment": "große"
+    }
+  },
+  {
+    "text": "200.0 g frischer Rotkohl",
+    "labels": {
+      "qty": "200.0",
+      "unit": "g",
+      "name": "Rotkohl",
+      "comment": "frischer"
+    }
+  },
+  {
+    "text": "150.0 g Meerrettich-Frischkäse",
+    "labels": {
+      "qty": "150.0",
+      "unit": "g",
+      "name": "Meerrettich-Frischkäse",
+      "comment": null
+    }
+  },
+  {
+    "text": "200.0 g Kölln Balance zarte Flocken glutenfrei",
+    "labels": {
+      "qty": "200.0",
+      "unit": "g",
+      "name": "Kölln Balance zarte Flocken",
+      "comment": "glutenfrei"
+    }
+  },
+  {
+    "text": "30.0 g Vollrohrzucker",
+    "labels": {
+      "qty": "30.0",
+      "unit": "g",
+      "name": "Vollrohrzucker",
+      "comment": null
+    }
+  },
+  {
+    "text": "100.0 ml REWE Beste Wahl Apfelsaft naturtrüb",
+    "labels": {
+      "qty": "100.0",
+      "unit": "ml",
+      "name": "REWE Beste Wahl Apfelsaft",
+      "comment": "naturtrüb"
+    }
+  },
+  {
+    "text": "1.0 Pck. Express Natur-Reis",
+    "labels": {
+      "qty": "1.0",
+      "unit": "Pck.",
+      "name": "Express Natur-Reis",
+      "comment": null
+    }
+  },
+  {
+    "text": "75.0 g Cashewnüsse",
+    "labels": {
+      "qty": "75.0",
+      "unit": "g",
+      "name": "Cashewnüsse",
+      "comment": null
+    }
+  },
+  {
+    "text": "800.0 g Schweineschulter, schier",
+    "labels": {
+      "qty": "800.0",
+      "unit": "g",
+      "name": "Schweineschulter",
+      "comment": "schier"
+    }
+  },
+  {
+    "text": "15.0 Zweig(e) Kerbel",
+    "labels": {
+      "qty": "15.0",
+      "unit": "Zweig(e)",
+      "name": "Kerbel",
+      "comment": null
+    }
+  },
+  {
+    "text": "5.0 EL Ricotta",
+    "labels": {
+      "qty": "5.0",
+      "unit": "EL",
+      "name": "Ricotta",
+      "comment": null
+    }
+  },
+  {
+    "text": "300.0 ml ja! Schlagsahne",
+    "labels": {
+      "qty": "300.0",
+      "unit": "ml",
+      "name": "ja! Schlagsahne",
+      "comment": null
+    }
+  },
+  {
+    "text": "400.0 g REWE Bio Erdbeeren",
+    "labels": {
+      "qty": "400.0",
+      "unit": "g",
+      "name": "REWE Bio Erdbeeren",
+      "comment": null
+    }
+  },
+  {
+    "text": "265.0 g Kichererbsen (Abtropfgewicht)",
+    "labels": {
+      "qty": "265.0",
+      "unit": "g",
+      "name": "Kichererbsen",
+      "comment": "(Abtropfgewicht)"
+    }
+  },
+  {
+    "text": "175.0 g Mais (Abtropfgewicht)",
+    "labels": {
+      "qty": "175.0",
+      "unit": "g",
+      "name": "Mais",
+      "comment": "(Abtropfgewicht)"
+    }
+  },
+  {
+    "text": "150.0 g Salami (am Stück)",
+    "labels": {
+      "qty": "150.0",
+      "unit": "g",
+      "name": "Salami",
+      "comment": "(am Stück)"
+    }
+  },
+  {
+    "text": "1.0 TL Paprikapulver (scharf)",
+    "labels": {
+      "qty": "1.0",
+      "unit": "TL",
+      "name": "Paprikapulver",
+      "comment": "(scharf)"
+    }
+  },
+  {
+    "text": "500.0 g kurze Nudeln (z. B. Penne oder Spirelli)",
+    "labels": {
+      "qty": "500.0",
+      "unit": "g",
+      "name": "kurze Nudeln",
+      "comment": "(z. B. Penne oder Spirelli)"
+    }
+  },
+  {
+    "text": "250.0 g Schinkenwürfel (roh)",
+    "labels": {
+      "qty": "250.0",
+      "unit": "g",
+      "name": "Schinkenwürfel",
+      "comment": "(roh)"
+    }
+  },
+  {
+    "text": "350.0 g Ananas (in Stücken, Dose)",
+    "labels": {
+      "qty": "350.0",
+      "unit": "g",
+      "name": "Ananas",
+      "comment": "(in Stücken, Dose)"
+    }
+  },
+  {
+    "text": "300.0 g kräftiger Käse (z. B. Appenzeller, gerieben)",
+    "labels": {
+      "qty": "300.0",
+      "unit": "g",
+      "name": "kräftiger Käse",
+      "comment": "(z. B. Appenzeller, gerieben)"
+    }
+  },
+  {
+    "text": "200.0 g Garnelen (vorgegart/Kühlregal)",
+    "labels": {
+      "qty": "200.0",
+      "unit": "g",
+      "name": "Garnelen",
+      "comment": "(vorgegart/Kühlregal)"
+    }
+  },
+  {
+    "text": "1.0 kleine Chilischote (rot)",
+    "labels": {
+      "qty": "1.0",
+      "unit": "Stück",
+      "name": "Chilischote",
+      "comment": "kleine, (rot)"
+    }
+  },
+  {
+    "text": "100.0 ml Chilisoße (süß-scharf)",
+    "labels": {
+      "qty": "100.0",
+      "unit": "ml",
+      "name": "Chilisoße",
+      "comment": "(süß-scharf)"
+    }
+  },
+  {
+    "text": "300.0 g Muschelnudeln",
+    "labels": {
+      "qty": "300.0",
+      "unit": "g",
+      "name": "Muschelnudeln",
+      "comment": null
+    }
+  },
+  {
+    "text": "2.0 Dose(n) geschälte Tomaten (á 240g)",
+    "labels": {
+      "qty": "2.0",
+      "unit": "Dose(n)",
+      "name": "geschälte Tomaten",
+      "comment": "(á 240g)"
+    }
+  },
+  {
+    "text": "0.5 Kopf Romanesco",
+    "labels": {
+      "qty": "0.5",
+      "unit": "Kopf",
+      "name": "Romanesco",
+      "comment": null
+    }
+  },
+  {
+    "text": "2.0 Hähnchenbrustfilets (à ca. 180 g)",
+    "labels": {
+      "qty": "2.0",
+      "unit": "Stück",
+      "name": "Hähnchenbrustfilets",
+      "comment": "(à ca. 180 g)"
+    }
+  },
+  {
+    "text": "100.0 g Edamame (aufgetaut)",
+    "labels": {
+      "qty": "100.0",
+      "unit": "g",
+      "name": "Edamame",
+      "comment": "(aufgetaut)"
+    }
+  },
+  {
+    "text": "400.0 g Rosenkohl (TK)",
+    "labels": {
+      "qty": "400.0",
+      "unit": "g",
+      "name": "Rosenkohl",
+      "comment": "(TK)"
+    }
+  },
+  {
+    "text": "2.0 große Süßkartoffeln (ca. 600 g)",
+    "labels": {
+      "qty": "2.0",
+      "unit": "Stück",
+      "name": "Süßkartoffeln",
+      "comment": "große, (ca. 600 g)"
+    }
+  },
+  {
+    "text": "1.0 frische rote Bete",
+    "labels": {
+      "qty": "1.0",
+      "unit": "Stück",
+      "name": "rote Bete",
+      "comment": "frische"
+    }
+  },
+  {
+    "text": "3.0 Migo Birnen",
+    "labels": {
+      "qty": "3.0",
+      "unit": "Stück",
+      "name": "Migo Birnen",
+      "comment": null
+    }
+  },
+  {
+    "text": "2.0 Prise(n) Meersalzflocken",
+    "labels": {
+      "qty": "2.0",
+      "unit": "Prise(n)",
+      "name": "Meersalzflocken",
+      "comment": null
+    }
+  },
+  {
+    "text": "6.0 große Äpfel",
+    "labels": {
+      "qty": "6.0",
+      "unit": "Stück",
+      "name": "Äpfel",
+      "comment": "große"
+    }
+  },
+  {
+    "text": "450.0 g brauner Zucker",
+    "labels": {
+      "qty": "450.0",
+      "unit": "g",
+      "name": "brauner Zucker",
+      "comment": null
+    }
+  },
+  {
+    "text": "1000.0 g Frischkäse (Doppelrahmstufe)",
+    "labels": {
+      "qty": "1000.0",
+      "unit": "g",
+      "name": "Frischkäse",
+      "comment": "(Doppelrahmstufe)"
+    }
+  },
+  {
+    "text": "250.0 g gemahlene Haselnüsse",
+    "labels": {
+      "qty": "250.0",
+      "unit": "g",
+      "name": "Haselnüsse",
+      "comment": "gemahlene"
+    }
+  },
+  {
+    "text": "1.0 Pck. Haselnuss-Glasur",
+    "labels": {
+      "qty": "1.0",
+      "unit": "Pck.",
+      "name": "Haselnuss-Glasur",
+      "comment": null
+    }
+  },
+  {
+    "text": "150.0 g dunkle Kuvertüre",
+    "labels": {
+      "qty": "150.0",
+      "unit": "g",
+      "name": "Kuvertüre",
+      "comment": "dunkle"
+    }
+  },
+  {
+    "text": "4.0 Stück Eier",
+    "labels": {
+      "qty": "4.0",
+      "unit": "Stück",
+      "name": "Eier",
+      "comment": null
+    }
+  },
+  {
+    "text": "1.0 kg Lammkarree",
+    "labels": {
+      "qty": "1.0",
+      "unit": "kg",
+      "name": "Lammkarree",
+      "comment": null
+    }
+  },
+  {
+    "text": "900.0 g REWE Beste Wahl Kartoffelhälften mit Thymian und Knoblauch",
+    "labels": {
+      "qty": "900.0",
+      "unit": "g",
+      "name": "REWE Beste Wahl Kartoffelhälften mit Thymian und Knoblauch",
+      "comment": null
+    }
+  },
+  {
+    "text": "25.0 g REWE Bio 6-Kräuter (TK)",
+    "labels": {
+      "qty": "25.0",
+      "unit": "g",
+      "name": "REWE Bio 6-Kräuter",
+      "comment": "(TK)"
+    }
+  },
+  {
+    "text": "2.0 gekochte Maiskolben",
+    "labels": {
+      "qty": "2.0",
+      "unit": "Stück",
+      "name": "Maiskolben",
+      "comment": "gekochte"
+    }
+  },
+  {
+    "text": "500.0 g Paprika-Mix",
+    "labels": {
+      "qty": "500.0",
+      "unit": "g",
+      "name": "Paprika-Mix",
+      "comment": null
+    }
+  },
+  {
+    "text": "400.0 g braune Pilze",
+    "labels": {
+      "qty": "400.0",
+      "unit": "g",
+      "name": "braune Pilze",
+      "comment": null
+    }
+  },
+  {
+    "text": "1.0 TL Vanillinzucker",
+    "labels": {
+      "qty": "1.0",
+      "unit": "TL",
+      "name": "Vanillinzucker",
+      "comment": null
+    }
+  },
+  {
+    "text": "Abrieb einer ¼ Bio-Orange",
+    "labels": {
+      "qty": "0.25",
+      "unit": "Stück",
+      "name": "Bio-Orange",
+      "comment": "Abrieb einer"
+    }
+  },
+  {
+    "text": "70.0 g Schlagsahne",
+    "labels": {
+      "qty": "70.0",
+      "unit": "g",
+      "name": "Schlagsahne",
+      "comment": null
+    }
+  },
+  {
+    "text": "0.25 Pck. Sahnesteif",
+    "labels": {
+      "qty": "0.25",
+      "unit": "Pck.",
+      "name": "Sahnesteif",
+      "comment": null
+    }
+  },
+  {
+    "text": "Granatapfelkerne nach Belieben",
+    "labels": {
+      "qty": null,
+      "unit": null,
+      "name": "Granatapfelkerne",
+      "comment": "nach Belieben"
+    }
+  },
+  {
+    "text": "100.0 g Speck in Würfeln",
+    "labels": {
+      "qty": "100.0",
+      "unit": "g",
+      "name": "Speck",
+      "comment": "in Würfeln"
+    }
+  },
+  {
+    "text": "4.0 Baguettebrötchen (zum Aufbacken, 200 g)",
+    "labels": {
+      "qty": "4.0",
+      "unit": "Stück",
+      "name": "Baguettebrötchen",
+      "comment": "(zum Aufbacken, 200 g)"
+    }
+  },
+  {
+    "text": "1.0 Pck. Iglo Green Cuisine Vegane “Chicken” Nuggets (250 g)",
+    "labels": {
+      "qty": "1.0",
+      "unit": "Pck.",
+      "name": "Iglo Green Cuisine Vegane “Chicken” Nuggets",
+      "comment": "(250 g)"
+    }
+  },
+  {
+    "text": "500.0 ml Vanilleeis (ggf. glutenfrei)",
+    "labels": {
+      "qty": "500.0",
+      "unit": "ml",
+      "name": "Vanilleeis",
+      "comment": "(ggf. glutenfrei)"
+    }
+  },
+  {
+    "text": "500.0 g Waldfrüchte (TK)",
+    "labels": {
+      "qty": "500.0",
+      "unit": "g",
+      "name": "Waldfrüchte",
+      "comment": "(TK)"
+    }
+  },
+  {
+    "text": "250.0 g Rote Bete (vorgegart, vakuumverpackt)",
+    "labels": {
+      "qty": "250.0",
+      "unit": "g",
+      "name": "Rote Bete",
+      "comment": "(vorgegart, vakuumverpackt)"
+    }
+  },
+  {
+    "text": "125.0 g REWE Beste Wahl Risotto Reis",
+    "labels": {
+      "qty": "125.0",
+      "unit": "g",
+      "name": "REWE Beste Wahl Risotto Reis",
+      "comment": null
+    }
+  },
+  {
+    "text": "150.0 g Garnelen (küchenfertig)",
+    "labels": {
+      "qty": "150.0",
+      "unit": "g",
+      "name": "Garnelen",
+      "comment": "(küchenfertig)"
+    }
+  },
+  {
+    "text": "4.0 REWE Beste Wahl Laugenstangen (TK, aufgetaut)",
+    "labels": {
+      "qty": "4.0",
+      "unit": "Stück",
+      "name": "REWE Beste Wahl Laugenstangen",
+      "comment": "(TK, aufgetaut)"
+    }
+  },
+  {
+    "text": "1.0 EL Gyros-Gewürz",
+    "labels": {
+      "qty": "1.0",
+      "unit": "EL",
+      "name": "Gyros-Gewürz",
+      "comment": null
+    }
+  },
+  {
+    "text": "1.0 Dose(n) stückige Tomaten (425 ml)",
+    "labels": {
+      "qty": "1.0",
+      "unit": "Dose(n)",
+      "name": "stückige Tomaten",
+      "comment": "(425 ml)"
+    }
+  },
+  {
+    "text": "150.0 g Amarettini",
+    "labels": {
+      "qty": "150.0",
+      "unit": "g",
+      "name": "Amarettini",
+      "comment": null
+    }
+  },
+  {
+    "text": "150.0 g Naturjoghurt, 1,5% Fett",
+    "labels": {
+      "qty": "150.0",
+      "unit": "g",
+      "name": "Naturjoghurt",
+      "comment": "1,5% Fett"
+    }
+  },
+  {
+    "text": "30.0 g Raspelschokolade Zartbitter",
+    "labels": {
+      "qty": "30.0",
+      "unit": "g",
+      "name": "Raspelschokolade Zartbitter",
+      "comment": null
+    }
+  },
+  {
+    "text": "330.0 g Zanderfilet ohne Haut",
+    "labels": {
+      "qty": "330.0",
+      "unit": "g",
+      "name": "Zanderfilet",
+      "comment": "ohne Haut"
+    }
+  },
+  {
+    "text": "1.0 Stiel(e) frischer Koriander",
+    "labels": {
+      "qty": "1.0",
+      "unit": "Stiel(e)",
+      "name": "Koriander",
+      "comment": "frischer"
+    }
+  },
+  {
+    "text": "Shiso-Kresse",
+    "labels": {
+      "qty": null,
+      "unit": null,
+      "name": "Shiso-Kresse",
+      "comment": null
+    }
+  },
+  {
+    "text": "3.0 TL Chili-Öl",
+    "labels": {
+      "qty": "3.0",
+      "unit": "TL",
+      "name": "Chili-Öl",
+      "comment": null
+    }
+  },
+  {
+    "text": "1.0 l Gemüsebrühe (heiß)",
+    "labels": {
+      "qty": "1.0",
+      "unit": "l",
+      "name": "Gemüsebrühe",
+      "comment": "(heiß)"
+    }
+  },
+  {
+    "text": "4.0 EL Sojasoße (nach Wunsch glutenfrei)",
+    "labels": {
+      "qty": "4.0",
+      "unit": "EL",
+      "name": "Sojasoße",
+      "comment": "(nach Wunsch glutenfrei)"
+    }
+  },
+  {
+    "text": "1.0 Chilischote, mittelscharf",
+    "labels": {
+      "qty": "1.0",
+      "unit": "Stück",
+      "name": "Chilischote",
+      "comment": "mittelscharf"
+    }
+  },
+  {
+    "text": "4.0 EL Kürbisöl",
+    "labels": {
+      "qty": "4.0",
+      "unit": "EL",
+      "name": "Kürbisöl",
+      "comment": null
+    }
+  },
+  {
+    "text": "1.0 Rotkohl (400 g)",
+    "labels": {
+      "qty": "1.0",
+      "unit": "Stück",
+      "name": "Rotkohl",
+      "comment": "(400 g)"
+    }
+  },
+  {
+    "text": "300.0 g Porree",
+    "labels": {
+      "qty": "300.0",
+      "unit": "g",
+      "name": "Porree",
+      "comment": null
+    }
+  },
+  {
+    "text": "4.0 Scheibe(n) Ciabatta-Brot",
+    "labels": {
+      "qty": "4.0",
+      "unit": "Scheibe(n)",
+      "name": "Ciabatta-Brot",
+      "comment": null
+    }
+  },
+  {
+    "text": "2.0 Romanosalatherzen",
+    "labels": {
+      "qty": "2.0",
+      "unit": "Stück",
+      "name": "Romanosalatherzen",
+      "comment": null
+    }
+  },
+  {
+    "text": "150.0 g Sour Cream",
+    "labels": {
+      "qty": "150.0",
+      "unit": "g",
+      "name": "Sour Cream",
+      "comment": null
+    }
+  },
+  {
+    "text": "1.0 Gänsebrust mit Knochen (TK)",
+    "labels": {
+      "qty": "1.0",
+      "unit": "Stück",
+      "name": "Gänsebrust",
+      "comment": "mit Knochen (TK)"
+    }
+  },
+  {
+    "text": "40.0 g Granatapfelkerne",
+    "labels": {
+      "qty": "40.0",
+      "unit": "g",
+      "name": "Granatapfelkerne",
+      "comment": null
+    }
+  },
+  {
+    "text": "500.0 ml H-Milch",
+    "labels": {
+      "qty": "500.0",
+      "unit": "ml",
+      "name": "H-Milch",
+      "comment": null
+    }
+  },
+  {
+    "text": "1.0 Kefirkultur (10 g, Kefir-Pilz)",
+    "labels": {
+      "qty": "1.0",
+      "unit": "Stück",
+      "name": "Kefirkultur",
+      "comment": "(10 g, Kefir-Pilz)"
+    }
+  },
+  {
+    "text": "100.0 g REWE Bio + vegan Soja Schnetzel",
+    "labels": {
+      "qty": "100.0",
+      "unit": "g",
+      "name": "REWE Bio + vegan Soja Schnetzel",
+      "comment": null
+    }
+  },
+  {
+    "text": "150.0 g REWE Bio Zwiebeln",
+    "labels": {
+      "qty": "150.0",
+      "unit": "g",
+      "name": "REWE Bio Zwiebeln",
+      "comment": null
+    }
+  },
+  {
+    "text": "1.0 EL REWE Bio Sojasauce",
+    "labels": {
+      "qty": "1.0",
+      "unit": "EL",
+      "name": "REWE Bio Sojasauce",
+      "comment": null
+    }
+  },
+  {
+    "text": "1.0 Dose(n) REWE Bio Tomaten in Stücken (400 g)",
+    "labels": {
+      "qty": "1.0",
+      "unit": "Dose(n)",
+      "name": "REWE Bio Tomaten in Stücken",
+      "comment": "(400 g)"
+    }
+  },
+  {
+    "text": "1.2 kg Birnen (reif und aromatisch)",
+    "labels": {
+      "qty": "1.2",
+      "unit": "kg",
+      "name": "Birnen",
+      "comment": "(reif und aromatisch)"
+    }
+  },
+  {
+    "text": "240.0 g Butter (weich)",
+    "labels": {
+      "qty": "240.0",
+      "unit": "g",
+      "name": "Butter",
+      "comment": "(weich)"
+    }
+  },
+  {
+    "text": "100.0 g Walnüsse (grob gehackt)",
+    "labels": {
+      "qty": "100.0",
+      "unit": "g",
+      "name": "Walnüsse",
+      "comment": "(grob gehackt)"
+    }
+  },
+  {
+    "text": "Puderzucker zum Besträuben",
+    "labels": {
+      "qty": null,
+      "unit": null,
+      "name": "Puderzucker",
+      "comment": "zum Besträuben"
+    }
+  },
+  {
+    "text": "250.0 g Feigen (getrocknet)",
+    "labels": {
+      "qty": "250.0",
+      "unit": "g",
+      "name": "Feigen",
+      "comment": "(getrocknet)"
+    }
+  },
+  {
+    "text": "125.0 g Mandeln (gestiftelt)",
+    "labels": {
+      "qty": "125.0",
+      "unit": "g",
+      "name": "Mandeln",
+      "comment": "(gestiftelt)"
+    }
+  },
+  {
+    "text": "5.0 EL Honig (flüssig)",
+    "labels": {
+      "qty": "5.0",
+      "unit": "EL",
+      "name": "Honig",
+      "comment": "(flüssig)"
+    }
+  },
+  {
+    "text": "125.0 g Kurkuma (frisch)",
+    "labels": {
+      "qty": "125.0",
+      "unit": "g",
+      "name": "Kurkuma",
+      "comment": "(frisch)"
+    }
+  },
+  {
+    "text": "200.0 g Ingwer (frisch)",
+    "labels": {
+      "qty": "200.0",
+      "unit": "g",
+      "name": "Ingwer",
+      "comment": "(frisch)"
+    }
+  },
+  {
+    "text": "250.0 g flüssiger Honig",
+    "labels": {
+      "qty": "250.0",
+      "unit": "g",
+      "name": "flüssiger Honig",
+      "comment": null
+    }
+  },
+  {
+    "text": "1.2 kg Kartoffeln (vorwiegend festkochend)",
+    "labels": {
+      "qty": "1.2",
+      "unit": "kg",
+      "name": "Kartoffeln",
+      "comment": "(vorwiegend festkochend)"
+    }
+  },
+  {
+    "text": "4.0 Seezungen (küchenfertig)",
+    "labels": {
+      "qty": "4.0",
+      "unit": "Stück",
+      "name": "Seezungen",
+      "comment": "(küchenfertig)"
+    }
+  },
+  {
+    "text": "2.0 REWE Regional Eier",
+    "labels": {
+      "qty": "2.0",
+      "unit": "Stück",
+      "name": "REWE Regional Eier",
+      "comment": null
+    }
+  },
+  {
+    "text": "2.0 EL REWE Regional Apfelsaft",
+    "labels": {
+      "qty": "2.0",
+      "unit": "EL",
+      "name": "REWE Regional Apfelsaft",
+      "comment": null
+    }
+  },
+  {
+    "text": "3.0 l Vollmilch",
+    "labels": {
+      "qty": "3.0",
+      "unit": "l",
+      "name": "Vollmilch",
+      "comment": null
+    }
+  },
+  {
+    "text": "320.0 g Kabeljaufilet",
+    "labels": {
+      "qty": "320.0",
+      "unit": "g",
+      "name": "Kabeljaufilet",
+      "comment": null
+    }
+  },
+  {
+    "text": "4.0 Naan-Brote (Fertigprodukt)",
+    "labels": {
+      "qty": "4.0",
+      "unit": "Stück",
+      "name": "Naan-Brote",
+      "comment": "(Fertigprodukt)"
+    }
+  },
+  {
+    "text": "2.0 TL Garam Masala Gewürz",
+    "labels": {
+      "qty": "2.0",
+      "unit": "TL",
+      "name": "Garam Masala Gewürz",
+      "comment": null
+    }
+  },
+  {
+    "text": "500.0 g weißer Spargel (ca. 8 dicke Stangen)",
+    "labels": {
+      "qty": "500.0",
+      "unit": "g",
+      "name": "weißer Spargel",
+      "comment": "(ca. 8 dicke Stangen)"
+    }
+  },
+  {
+    "text": "1.0 Pck. frischer Flammkuchenteig (á 260 g)",
+    "labels": {
+      "qty": "1.0",
+      "unit": "Pck.",
+      "name": "frischer Flammkuchenteig",
+      "comment": "(á 260 g)"
+    }
+  },
+  {
+    "text": "2.0 EL Zitrone",
+    "labels": {
+      "qty": "2.0",
+      "unit": "EL",
+      "name": "Zitrone",
+      "comment": null
+    }
+  },
+  {
+    "text": "75.0 g Nordsee Krabben",
+    "labels": {
+      "qty": "75.0",
+      "unit": "g",
+      "name": "Nordsee Krabben",
+      "comment": null
+    }
+  },
+  {
+    "text": "170.0 ml Rapsöl",
+    "labels": {
+      "qty": "170.0",
+      "unit": "ml",
+      "name": "Rapsöl",
+      "comment": null
+    }
+  },
+  {
+    "text": "100.0 g Pistazien (geröstet und gesalzen)",
+    "labels": {
+      "qty": "100.0",
+      "unit": "g",
+      "name": "Pistazien",
+      "comment": "(geröstet und gesalzen)"
+    }
+  },
+  {
+    "text": "2.0 Pck. REWE Feine Welt Jamon Iberico",
+    "labels": {
+      "qty": "2.0",
+      "unit": "Pck.",
+      "name": "REWE Feine Welt Jamon Iberico",
+      "comment": null
+    }
+  },
+  {
+    "text": "1.0 Bd. Koriander frisch",
+    "labels": {
+      "qty": "1.0",
+      "unit": "Bd.",
+      "name": "Koriander",
+      "comment": "frisch"
+    }
+  },
+  {
+    "text": "50.0 g Ghee",
+    "labels": {
+      "qty": "50.0",
+      "unit": "g",
+      "name": "Ghee",
+      "comment": null
+    }
+  },
+  {
+    "text": "8.0 Papadams (Pappadums)",
+    "labels": {
+      "qty": "8.0",
+      "unit": "Stück",
+      "name": "Papadams",
+      "comment": "(Pappadums)"
+    }
+  },
+  {
+    "text": "30.0 g Mandeln, geschält",
+    "labels": {
+      "qty": "30.0",
+      "unit": "g",
+      "name": "Mandeln",
+      "comment": ", geschält"
+    }
+  },
+  {
+    "text": "150.0 g Feldsalat (z. B. von REWE Regional)",
+    "labels": {
+      "qty": "150.0",
+      "unit": "g",
+      "name": "Feldsalat",
+      "comment": "(z. B. von REWE Regional)"
+    }
+  },
+  {
+    "text": "1.0 EL Lavendelhonig (z. B. von REWE Feine Welt)",
+    "labels": {
+      "qty": "1.0",
+      "unit": "EL",
+      "name": "Lavendelhonig",
+      "comment": "(z. B. von REWE Feine Welt)"
+    }
+  },
+  {
+    "text": "2.0 EL heller Essig (z. B. von REWE Feine Welt)",
+    "labels": {
+      "qty": "2.0",
+      "unit": "EL",
+      "name": "heller Essig",
+      "comment": "(z. B. von REWE Feine Welt)"
+    }
+  },
+  {
+    "text": "60.0 g Süßkartoffelchips (z. B. von REWE Feine Welt)",
+    "labels": {
+      "qty": "60.0",
+      "unit": "g",
+      "name": "Süßkartoffelchips",
+      "comment": "(z. B. von REWE Feine Welt)"
+    }
+  },
+  {
+    "text": "8.0 Stück REWE Feine Welt Würzige Ziege",
+    "labels": {
+      "qty": "8.0",
+      "unit": "Stück",
+      "name": "REWE Feine Welt Würzige Ziege",
+      "comment": null
+    }
+  },
+  {
+    "text": "2.0 EL REWE Bio Sonnenblumenkerne",
+    "labels": {
+      "qty": "2.0",
+      "unit": "EL",
+      "name": "REWE Bio Sonnenblumenkerne",
+      "comment": null
+    }
+  },
+  {
+    "text": "26.0 REWE Bio Dinkel-Butterkekse",
+    "labels": {
+      "qty": "26.0",
+      "unit": "Stück",
+      "name": "REWE Bio Dinkel-Butterkekse",
+      "comment": null
+    }
+  },
+  {
+    "text": "460.0 g ja! Champignons dritte Wahl geschnitten",
+    "labels": {
+      "qty": "460.0",
+      "unit": "g",
+      "name": "ja! Champignons dritte Wahl geschnitten",
+      "comment": null
+    }
+  },
+  {
+    "text": "540.0 g ja! Erbsen mit Möhren",
+    "labels": {
+      "qty": "540.0",
+      "unit": "g",
+      "name": "ja! Erbsen mit Möhren",
+      "comment": null
+    }
+  },
+  {
+    "text": "80.0 g Kakaopulver (ungesüßt)",
+    "labels": {
+      "qty": "80.0",
+      "unit": "g",
+      "name": "Kakaopulver",
+      "comment": "(ungesüßt)"
+    }
+  },
+  {
+    "text": "2.0 Pck. fertiger Blätterteig",
+    "labels": {
+      "qty": "2.0",
+      "unit": "Pck.",
+      "name": "fertiger Blätterteig",
+      "comment": null
+    }
+  },
+  {
+    "text": "1.0 Dose(n) Sauerkraut (385 g)",
+    "labels": {
+      "qty": "1.0",
+      "unit": "Dose(n)",
+      "name": "Sauerkraut",
+      "comment": "(385 g)"
+    }
+  },
+  {
+    "text": "1.0 Pck. Wilhelm Brandenburg Mini Schinkenknacker",
+    "labels": {
+      "qty": "1.0",
+      "unit": "Pck.",
+      "name": "Wilhelm Brandenburg Mini Schinkenknacker",
+      "comment": null
+    }
+  },
+  {
+    "text": "7.0 EL Sesamöl",
+    "labels": {
+      "qty": "7.0",
+      "unit": "EL",
+      "name": "Sesamöl",
+      "comment": null
+    }
+  },
+  {
+    "text": "1.0 Pck. ja! Frikadellenbällchen",
+    "labels": {
+      "qty": "1.0",
+      "unit": "Pck.",
+      "name": "ja! Frikadellenbällchen",
+      "comment": null
+    }
+  },
+  {
+    "text": "2.0 TL REWE Beste Wahl Kardamom (gemahlen)",
+    "labels": {
+      "qty": "2.0",
+      "unit": "TL",
+      "name": "REWE Beste Wahl Kardamom",
+      "comment": "(gemahlen)"
+    }
+  },
+  {
+    "text": "575.0 g Dinkelmehl (Type 630)",
+    "labels": {
+      "qty": "575.0",
+      "unit": "g",
+      "name": "Dinkelmehl",
+      "comment": "(Type 630)"
+    }
+  },
+  {
+    "text": "385.0 g Rohrzucker",
+    "labels": {
+      "qty": "385.0",
+      "unit": "g",
+      "name": "Rohrzucker",
+      "comment": null
+    }
+  },
+  {
+    "text": "350.0 g Schmand",
+    "labels": {
+      "qty": "350.0",
+      "unit": "g",
+      "name": "Schmand",
+      "comment": null
+    }
+  },
+  {
+    "text": "300.0 g Haferkekse",
+    "labels": {
+      "qty": "300.0",
+      "unit": "g",
+      "name": "Haferkekse",
+      "comment": null
+    }
+  },
+  {
+    "text": "85.0 ml Sahne",
+    "labels": {
+      "qty": "85.0",
+      "unit": "ml",
+      "name": "Sahne",
+      "comment": null
+    }
+  },
+  {
+    "text": "100.0 g Kuvertüre weiße Schokolade",
+    "labels": {
+      "qty": "100.0",
+      "unit": "g",
+      "name": "Kuvertüre weiße Schokolade",
+      "comment": null
+    }
+  },
+  {
+    "text": "24.0 Marshmallows",
+    "labels": {
+      "qty": "24.0",
+      "unit": "Stück",
+      "name": "Marshmallows",
+      "comment": null
+    }
+  },
+  {
+    "text": "bunte Schokostreusel",
+    "labels": {
+      "qty": null,
+      "unit": null,
+      "name": "bunte Schokostreusel",
+      "comment": null
+    }
+  },
+  {
+    "text": "24.0 Trauben",
+    "labels": {
+      "qty": "24.0",
+      "unit": "Stück",
+      "name": "Trauben",
+      "comment": null
+    }
+  },
+  {
+    "text": "3.0 Saftorangen",
+    "labels": {
+      "qty": "3.0",
+      "unit": "Stück",
+      "name": "Saftorangen",
+      "comment": null
+    }
+  },
+  {
+    "text": "200.0 ml neutrales Öl",
+    "labels": {
+      "qty": "200.0",
+      "unit": "ml",
+      "name": "neutrales Öl",
+      "comment": null
+    }
+  },
+  {
+    "text": "150.0 g dunkle Kuchenglasur",
+    "labels": {
+      "qty": "150.0",
+      "unit": "g",
+      "name": "dunkle Kuchenglasur",
+      "comment": null
+    }
+  },
+  {
+    "text": "50.0 g gemischte Kräuter (z.B. Petersilie, Minze, Dill, Koriander)",
+    "labels": {
+      "qty": "50.0",
+      "unit": "g",
+      "name": "gemischte Kräuter",
+      "comment": "(z.B. Petersilie, Minze, Dill, Koriander)"
+    }
+  },
+  {
+    "text": "150.0 g weiße Bohnen (Konserve)",
+    "labels": {
+      "qty": "150.0",
+      "unit": "g",
+      "name": "weiße Bohnen",
+      "comment": "(Konserve)"
+    }
+  },
+  {
+    "text": "1.0 TL Za‘atar",
+    "labels": {
+      "qty": "1.0",
+      "unit": "TL",
+      "name": "Za‘atar",
+      "comment": null
+    }
+  },
+  {
+    "text": "1.0 EL Sesamsamen (schwarz)",
+    "labels": {
+      "qty": "1.0",
+      "unit": "EL",
+      "name": "Sesamsamen",
+      "comment": "(schwarz)"
+    }
+  },
+  {
+    "text": "30.0 g REWE Bio Petersilie (frisch)",
+    "labels": {
+      "qty": "30.0",
+      "unit": "g",
+      "name": "REWE Bio Petersilie",
+      "comment": "(frisch)"
+    }
+  },
+  {
+    "text": "30.0 g REWE Bio Basilikum (frisch)",
+    "labels": {
+      "qty": "30.0",
+      "unit": "g",
+      "name": "REWE Bio Basilikum",
+      "comment": "(frisch)"
+    }
+  },
+  {
+    "text": "100.0 ml REWE Bio Natives Olivenöl",
+    "labels": {
+      "qty": "100.0",
+      "unit": "ml",
+      "name": "REWE Bio Natives Olivenöl",
+      "comment": null
+    }
+  },
+  {
+    "text": "800.0 g REWE Bio Kartoffeln (festkochend)",
+    "labels": {
+      "qty": "800.0",
+      "unit": "g",
+      "name": "REWE Bio Kartoffeln",
+      "comment": "(festkochend)"
+    }
+  },
+  {
+    "text": "300.0 ml REWE Bio Frische Weidemilch",
+    "labels": {
+      "qty": "300.0",
+      "unit": "ml",
+      "name": "REWE Bio Frische Weidemilch",
+      "comment": null
+    }
+  },
+  {
+    "text": "1.0 Prise(n) REWE Bio Muskatnuss (gemahlen)",
+    "labels": {
+      "qty": "1.0",
+      "unit": "Prise(n)",
+      "name": "REWE Bio Muskatnuss",
+      "comment": "(gemahlen)"
+    }
+  },
+  {
+    "text": "6.0 Scheibe(n) REWE Bio Bergkäse",
+    "labels": {
+      "qty": "6.0",
+      "unit": "Scheibe(n)",
+      "name": "REWE Bio Bergkäse",
+      "comment": null
+    }
+  },
+  {
+    "text": "3.0 Scheibe(n) REWE Bio Das Pure (Haferbrot)",
+    "labels": {
+      "qty": "3.0",
+      "unit": "Scheibe(n)",
+      "name": "REWE Bio Das Pure",
+      "comment": "(Haferbrot)"
+    }
+  },
+  {
+    "text": "0.5 Steckrübe (ca. 600 g)",
+    "labels": {
+      "qty": "0.5",
+      "unit": "Stück",
+      "name": "Steckrübe",
+      "comment": "(ca. 600 g)"
+    }
+  },
+  {
+    "text": "2.0 Dose(n) REWE Beste Wahl Kokosmilch (à 425 ml)",
+    "labels": {
+      "qty": "2.0",
+      "unit": "Dose(n)",
+      "name": "REWE Beste Wahl Kokosmilch",
+      "comment": "(à 425 ml)"
+    }
+  },
+  {
+    "text": "250.0 g Shiitake-Pilze",
+    "labels": {
+      "qty": "250.0",
+      "unit": "g",
+      "name": "Shiitake-Pilze",
+      "comment": null
+    }
+  },
+  {
+    "text": "0.5 Pck. Koriander",
+    "labels": {
+      "qty": "0.5",
+      "unit": "Pck.",
+      "name": "Koriander",
+      "comment": null
+    }
+  },
+  {
+    "text": "200.0 g REWE Beste Wahl Himbeer-Heidelbeer-Mix",
+    "labels": {
+      "qty": "200.0",
+      "unit": "g",
+      "name": "REWE Beste Wahl Himbeer-Heidelbeer-Mix",
+      "comment": null
+    }
+  },
+  {
+    "text": "200.0 g Sojajoghurt Natur",
+    "labels": {
+      "qty": "200.0",
+      "unit": "g",
+      "name": "Sojajoghurt Natur",
+      "comment": null
+    }
+  },
+  {
+    "text": "frische Beeren zum Verzieren",
+    "labels": {
+      "qty": null,
+      "unit": null,
+      "name": "frische Beeren",
+      "comment": "zum Verzieren"
+    }
+  },
+  {
+    "text": "180.0 g REWE Bio + vegan Streichcreme Süßkartoffel, Dattel & Curry",
+    "labels": {
+      "qty": "180.0",
+      "unit": "g",
+      "name": "REWE Bio + vegan Streichcreme Süßkartoffel, Dattel & Curry",
+      "comment": null
+    }
+  },
+  {
+    "text": "1.0 TL REWE Bio Currypulver",
+    "labels": {
+      "qty": "1.0",
+      "unit": "TL",
+      "name": "REWE Bio Currypulver",
+      "comment": null
+    }
+  },
+  {
+    "text": "1.0 Prise(n) REWE Bio Kreuzkümmel",
+    "labels": {
+      "qty": "1.0",
+      "unit": "Prise(n)",
+      "name": "REWE Bio Kreuzkümmel",
+      "comment": null
+    }
+  },
+  {
+    "text": "1.0 EL REWE Bio Kurkuma",
+    "labels": {
+      "qty": "1.0",
+      "unit": "EL",
+      "name": "REWE Bio Kurkuma",
+      "comment": null
+    }
+  },
+  {
+    "text": "1.0 Glas Kirschen (Abtropfgewicht 380 g)",
+    "labels": {
+      "qty": "1.0",
+      "unit": "Glas",
+      "name": "Kirschen",
+      "comment": "(Abtropfgewicht 380 g)"
+    }
+  },
+  {
+    "text": "500.0 g gegarte, geschälte Kartoffeln vom Vortag",
+    "labels": {
+      "qty": "500.0",
+      "unit": "g",
+      "name": "Kartoffeln",
+      "comment": "gegarte, geschälte, vom Vortag"
+    }
+  },
+  {
+    "text": "4.0 EL Panko",
+    "labels": {
+      "qty": "4.0",
+      "unit": "EL",
+      "name": "Panko",
+      "comment": null
+    }
+  },
+  {
+    "text": "250.0 g Guacamole (Fertigprodukt, Kühlregal)",
+    "labels": {
+      "qty": "250.0",
+      "unit": "g",
+      "name": "Guacamole",
+      "comment": "(Fertigprodukt, Kühlregal)"
+    }
+  },
+  {
+    "text": "4.0 Scheibe(n) Weißbrot (altbacken)",
+    "labels": {
+      "qty": "4.0",
+      "unit": "Scheibe(n)",
+      "name": "Weißbrot",
+      "comment": "(altbacken)"
+    }
+  },
+  {
+    "text": "450.0 g Hähnchenbrustfilets",
+    "labels": {
+      "qty": "450.0",
+      "unit": "g",
+      "name": "Hähnchenbrustfilets",
+      "comment": null
+    }
+  },
+  {
+    "text": "3.0 TL REWE Beste Wahl Curry Vadouvan",
+    "labels": {
+      "qty": "3.0",
+      "unit": "TL",
+      "name": "REWE Beste Wahl Curry Vadouvan",
+      "comment": null
+    }
+  },
+  {
+    "text": "150.0 g Joghurt (3,8 %)",
+    "labels": {
+      "qty": "150.0",
+      "unit": "g",
+      "name": "Joghurt",
+      "comment": "(3,8 %)"
+    }
+  },
+  {
+    "text": "500.0 g passierte Tomaten (Dose)",
+    "labels": {
+      "qty": "500.0",
+      "unit": "g",
+      "name": "passierte Tomaten",
+      "comment": "(Dose)"
+    }
+  },
+  {
+    "text": "5.0 EL Honig (oder Ahornsirup)",
+    "labels": {
+      "qty": "5.0",
+      "unit": "EL",
+      "name": "Honig",
+      "comment": "(oder Ahornsirup)"
+    }
+  },
+  {
+    "text": "5.0 EL Essig (z.B. Apfelessig)",
+    "labels": {
+      "qty": "5.0",
+      "unit": "EL",
+      "name": "Essig",
+      "comment": "(z.B. Apfelessig)"
+    }
+  },
+  {
+    "text": "3.0 EL Worcester-Sauce",
+    "labels": {
+      "qty": "3.0",
+      "unit": "EL",
+      "name": "Worcester-Sauce",
+      "comment": null
+    }
+  },
+  {
+    "text": "2.0 Paprika (rot, gelb oder grün)",
+    "labels": {
+      "qty": "2.0",
+      "unit": "Stück",
+      "name": "Paprika",
+      "comment": "(rot, gelb oder grün)"
+    }
+  },
+  {
+    "text": "335.0 g Butter (kalt)",
+    "labels": {
+      "qty": "335.0",
+      "unit": "g",
+      "name": "Butter",
+      "comment": "(kalt)"
+    }
+  },
+  {
+    "text": "525.0 ml Milch (3,8 % Fett)",
+    "labels": {
+      "qty": "525.0",
+      "unit": "ml",
+      "name": "Milch",
+      "comment": "(3,8 % Fett)"
+    }
+  },
+  {
+    "text": "500.0 g dicke Bohnen (Dose/Glas)",
+    "labels": {
+      "qty": "500.0",
+      "unit": "g",
+      "name": "dicke Bohnen",
+      "comment": "(Dose/Glas)"
+    }
+  },
+  {
+    "text": "5.0 EL Balsamico Essig",
+    "labels": {
+      "qty": "5.0",
+      "unit": "EL",
+      "name": "Balsamico Essig",
+      "comment": null
+    }
+  },
+  {
+    "text": "20.0 g Fondant",
+    "labels": {
+      "qty": "20.0",
+      "unit": "g",
+      "name": "Fondant",
+      "comment": null
+    }
+  },
+  {
+    "text": "weiße Zuckerstreusel",
+    "labels": {
+      "qty": null,
+      "unit": null,
+      "name": "weiße Zuckerstreusel",
+      "comment": null
+    }
+  },
+  {
+    "text": "1.0 TL Anis",
+    "labels": {
+      "qty": "1.0",
+      "unit": "TL",
+      "name": "Anis",
+      "comment": null
+    }
+  },
+  {
+    "text": "60.0 ml frisch gebrühter Espresso",
+    "labels": {
+      "qty": "60.0",
+      "unit": "ml",
+      "name": "Espresso",
+      "comment": "frisch gebrühter"
+    }
+  },
+  {
+    "text": "2.0 TL Espressobohnen",
+    "labels": {
+      "qty": "2.0",
+      "unit": "TL",
+      "name": "Espressobohnen",
+      "comment": null
+    }
+  },
+  {
+    "text": "50.0 g Parmesan (Stück)",
+    "labels": {
+      "qty": "50.0",
+      "unit": "g",
+      "name": "Parmesan",
+      "comment": "(Stück)"
+    }
+  },
+  {
+    "text": "2.0 EL Basilikum (frisch)",
+    "labels": {
+      "qty": "2.0",
+      "unit": "EL",
+      "name": "Basilikum",
+      "comment": "(frisch)"
+    }
+  },
+  {
+    "text": "15.0 Zweig(e) Thymian",
+    "labels": {
+      "qty": "15.0",
+      "unit": "Zweig(e)",
+      "name": "Thymian",
+      "comment": null
+    }
+  },
+  {
+    "text": "500.0 g REWE Bio Joghurt",
+    "labels": {
+      "qty": "500.0",
+      "unit": "g",
+      "name": "REWE Bio Joghurt",
+      "comment": null
+    }
+  },
+  {
+    "text": "200.0 g glutenfreie Mehlmischung",
+    "labels": {
+      "qty": "200.0",
+      "unit": "g",
+      "name": "glutenfreie Mehlmischung",
+      "comment": null
+    }
+  },
+  {
+    "text": "3.0 EL Sesamsaat",
+    "labels": {
+      "qty": "3.0",
+      "unit": "EL",
+      "name": "Sesamsaat",
+      "comment": null
+    }
+  },
+  {
+    "text": "15.0 g Guarana-Pulver (Reformhaus, Drogeriemarkt oder online)",
+    "labels": {
+      "qty": "15.0",
+      "unit": "g",
+      "name": "Guarana-Pulver",
+      "comment": "(Reformhaus, Drogeriemarkt oder online)"
+    }
+  },
+  {
+    "text": "4.0 Stücke Lachsfilets (ohne Haut; à ca. 150 g)",
+    "labels": {
+      "qty": "4.0",
+      "unit": "Stücke",
+      "name": "Lachsfilets",
+      "comment": "(ohne Haut; à ca. 150 g)"
+    }
+  },
+  {
+    "text": "40.0 g mittelscharfer Senf",
+    "labels": {
+      "qty": "40.0",
+      "unit": "g",
+      "name": "mittelscharfer Senf",
+      "comment": null
+    }
+  },
+  {
+    "text": "1.5 TL REWE Bio Vielblütenhonig",
+    "labels": {
+      "qty": "1.5",
+      "unit": "TL",
+      "name": "REWE Bio Vielblütenhonig",
+      "comment": null
+    }
+  },
+  {
+    "text": "20.0 g ja! Mehl",
+    "labels": {
+      "qty": "20.0",
+      "unit": "g",
+      "name": "ja! Mehl",
+      "comment": null
+    }
+  },
+  {
+    "text": "250.0 ml Fischfond (aus dem Glas) oder Gemüsebrühe (Instant)",
+    "labels": {
+      "qty": "250.0",
+      "unit": "ml",
+      "name": "Fischfond oder Gemüsebrühe",
+      "comment": "(aus dem Glas) (Instant)"
+    }
+  },
+  {
+    "text": "150.0 ml REWE Bio Milch",
+    "labels": {
+      "qty": "150.0",
+      "unit": "ml",
+      "name": "REWE Bio Milch",
+      "comment": null
+    }
+  },
+  {
+    "text": "200.0 g REWE Bio Spitzen-Langkornreis",
+    "labels": {
+      "qty": "200.0",
+      "unit": "g",
+      "name": "REWE Bio Spitzen-Langkornreis",
+      "comment": null
+    }
+  },
+  {
+    "text": "1.0 Pck. gemahlener Safran",
+    "labels": {
+      "qty": "1.0",
+      "unit": "Pck.",
+      "name": "Safran",
+      "comment": "gemahlener"
+    }
+  },
+  {
+    "text": "2.5 EL geriebener Meerrettich (Glas)",
+    "labels": {
+      "qty": "2.5",
+      "unit": "EL",
+      "name": "Meerrettich",
+      "comment": "geriebener (Glas)"
+    }
+  },
+  {
+    "text": "270.0 g Weizenmehl (Type 405) oder Dinkelmehl (Type 630)",
+    "labels": {
+      "qty": "270.0",
+      "unit": "g",
+      "name": "Weizenmehl oder Dinkelmehl",
+      "comment": "(Type 405) (Type 630)"
+    }
+  },
+  {
+    "text": "150.0 g Schokotropfen oder gehackte Schokolade (Vollmilch und/oder Zartbitter)",
+    "labels": {
+      "qty": "150.0",
+      "unit": "g",
+      "name": "Schokotropfen oder Schokolade",
+      "comment": "gehackte (Vollmilch und/oder Zartbitter)"
+    }
+  },
+  {
+    "text": "2.0 EL schwarze Sesamsaat",
+    "labels": {
+      "qty": "2.0",
+      "unit": "EL",
+      "name": "schwarze Sesamsaat",
+      "comment": null
+    }
+  },
+  {
+    "text": "80.0 g REWE Bio Vollkornsemmelbrösel",
+    "labels": {
+      "qty": "80.0",
+      "unit": "g",
+      "name": "REWE Bio Vollkornsemmelbrösel",
+      "comment": null
+    }
+  },
+  {
+    "text": "50.0 g REWE Bio Weizen-Vollkorn-Mehl",
+    "labels": {
+      "qty": "50.0",
+      "unit": "g",
+      "name": "REWE Bio Weizen-Vollkorn-Mehl",
+      "comment": null
+    }
+  },
+  {
+    "text": "200.0 g REWE Bio Dinkel wie Reis (100 % Dinkel)",
+    "labels": {
+      "qty": "200.0",
+      "unit": "g",
+      "name": "REWE Bio Dinkel wie Reis",
+      "comment": "(100 % Dinkel)"
+    }
+  },
+  {
+    "text": "250.0 ml Weißbier",
+    "labels": {
+      "qty": "250.0",
+      "unit": "ml",
+      "name": "Weißbier",
+      "comment": null
+    }
+  },
+  {
+    "text": "3.0 REWE Bio Äpfel",
+    "labels": {
+      "qty": "3.0",
+      "unit": "Stück",
+      "name": "REWE Bio Äpfel",
+      "comment": null
+    }
+  },
+  {
+    "text": "140.0 g REWE Bio Vielblütenhonig",
+    "labels": {
+      "qty": "140.0",
+      "unit": "g",
+      "name": "REWE Bio Vielblütenhonig",
+      "comment": null
+    }
+  },
+  {
+    "text": "140.0 g ja! Sonnenblumenmargarine",
+    "labels": {
+      "qty": "140.0",
+      "unit": "g",
+      "name": "ja! Sonnenblumenmargarine",
+      "comment": null
+    }
+  },
+  {
+    "text": "60.0 g Back-Kakao",
+    "labels": {
+      "qty": "60.0",
+      "unit": "g",
+      "name": "Back-Kakao",
+      "comment": null
+    }
+  },
+  {
+    "text": "500.0 g Butter (Zimmertemperatur)",
+    "labels": {
+      "qty": "500.0",
+      "unit": "g",
+      "name": "Butter",
+      "comment": "(Zimmertemperatur)"
+    }
+  },
+  {
+    "text": "75.0 g Stärke",
+    "labels": {
+      "qty": "75.0",
+      "unit": "g",
+      "name": "Stärke",
+      "comment": null
+    }
+  },
+  {
+    "text": "1.0 EL Olivenöl (z.B. von REWE Bio)",
+    "labels": {
+      "qty": "1.0",
+      "unit": "EL",
+      "name": "Olivenöl",
+      "comment": "(z.B. von REWE Bio)"
+    }
+  },
+  {
+    "text": "100.0 g Risotto-Reis",
+    "labels": {
+      "qty": "100.0",
+      "unit": "g",
+      "name": "Risotto-Reis",
+      "comment": null
+    }
+  },
+  {
+    "text": "210.0 g Butter kalt",
+    "labels": {
+      "qty": "210.0",
+      "unit": "g",
+      "name": "Butter",
+      "comment": "kalt"
+    }
+  },
+  {
+    "text": "50.0 g Haferflocken blütenzart",
+    "labels": {
+      "qty": "50.0",
+      "unit": "g",
+      "name": "Haferflocken",
+      "comment": "blütenzart"
+    }
+  },
+  {
+    "text": "5.0 REWE Regional Äpfel",
+    "labels": {
+      "qty": "5.0",
+      "unit": "Stück",
+      "name": "REWE Regional Äpfel",
+      "comment": null
+    }
+  },
+  {
+    "text": "3.0 EL REWE Beste Wahl Brauner Rohrohrzucker",
+    "labels": {
+      "qty": "3.0",
+      "unit": "EL",
+      "name": "REWE Beste Wahl Brauner Rohrohrzucker",
+      "comment": null
+    }
+  },
+  {
+    "text": "80.0 g REWE Bio Rucola",
+    "labels": {
+      "qty": "80.0",
+      "unit": "g",
+      "name": "REWE Bio Rucola",
+      "comment": null
+    }
+  },
+  {
+    "text": "500.0 g Rote Bete gekocht",
+    "labels": {
+      "qty": "500.0",
+      "unit": "g",
+      "name": "Rote Bete",
+      "comment": "gekocht"
+    }
+  },
+  {
+    "text": "4.5 EL Öl",
+    "labels": {
+      "qty": "4.5",
+      "unit": "EL",
+      "name": "Öl",
+      "comment": null
+    }
+  },
+  {
+    "text": "4.0 Skrei-Filets",
+    "labels": {
+      "qty": "4.0",
+      "unit": "Stück",
+      "name": "Skrei-Filets",
+      "comment": null
+    }
+  },
+  {
+    "text": "1.8 kg Roastbeef",
+    "labels": {
+      "qty": "1.8",
+      "unit": "kg",
+      "name": "Roastbeef",
+      "comment": null
+    }
+  },
+  {
+    "text": "60.0 g Pekannüsse",
+    "labels": {
+      "qty": "60.0",
+      "unit": "g",
+      "name": "Pekannüsse",
+      "comment": null
+    }
+  },
+  {
+    "text": "0.5 TL REWE Beste Wahl Koriander gemahlen",
+    "labels": {
+      "qty": "0.5",
+      "unit": "TL",
+      "name": "REWE Beste Wahl Koriander",
+      "comment": "gemahlen"
+    }
+  },
+  {
+    "text": "120.0 g Semmelbrösel (ggf. glutenfrei)",
+    "labels": {
+      "qty": "120.0",
+      "unit": "g",
+      "name": "Semmelbrösel",
+      "comment": "(ggf. glutenfrei)"
+    }
+  },
+  {
+    "text": "90.0 g REWE Bio Butter",
+    "labels": {
+      "qty": "90.0",
+      "unit": "g",
+      "name": "REWE Bio Butter",
+      "comment": null
+    }
+  },
+  {
+    "text": "500.0 ml Milch (Vollmilch, Zimmertemperatur)",
+    "labels": {
+      "qty": "500.0",
+      "unit": "ml",
+      "name": "Milch",
+      "comment": "(Vollmilch, Zimmertemperatur)"
+    }
+  },
+  {
+    "text": "200.0 g REWE Beste Wahl Rote Bete Würfel",
+    "labels": {
+      "qty": "200.0",
+      "unit": "g",
+      "name": "REWE Beste Wahl Rote Bete Würfel",
+      "comment": null
+    }
+  },
+  {
+    "text": "1.0 l heißer Kaffee",
+    "labels": {
+      "qty": "1.0",
+      "unit": "l",
+      "name": "Kaffee",
+      "comment": "heißer"
+    }
+  },
+  {
+    "text": "2.0 TL Lebkuchen-Gewürz",
+    "labels": {
+      "qty": "2.0",
+      "unit": "TL",
+      "name": "Lebkuchen-Gewürz",
+      "comment": null
+    }
+  },
+  {
+    "text": "optional Agavendicksaft / Zucker",
+    "labels": {
+      "qty": null,
+      "unit": null,
+      "name": "Agavendicksaft / Zucker",
+      "comment": "optional"
+    }
+  },
+  {
+    "text": "1.0 Prise(n) Chili-Flocken",
+    "labels": {
+      "qty": "1.0",
+      "unit": "Prise(n)",
+      "name": "Chili-Flocken",
+      "comment": null
+    }
+  },
+  {
+    "text": "1.0 kg Rinderbeinscheibe",
+    "labels": {
+      "qty": "1.0",
+      "unit": "kg",
+      "name": "Rinderbeinscheibe",
+      "comment": null
+    }
+  },
+  {
+    "text": "300.0 g Markknochen",
+    "labels": {
+      "qty": "300.0",
+      "unit": "g",
+      "name": "Markknochen",
+      "comment": null
+    }
+  },
+  {
+    "text": "0.25 Sellerie (Knolle)",
+    "labels": {
+      "qty": "0.25",
+      "unit": "Stück",
+      "name": "Sellerie",
+      "comment": "(Knolle)"
+    }
+  },
+  {
+    "text": "1.0 kleine Gartengurke",
+    "labels": {
+      "qty": "1.0",
+      "unit": "Stück",
+      "name": "Gartengurke",
+      "comment": "kleine"
+    }
+  },
+  {
+    "text": "2.0 Scheibe(n) Ananas (aus der Dose)",
+    "labels": {
+      "qty": "2.0",
+      "unit": "Scheibe(n)",
+      "name": "Ananas",
+      "comment": "(aus der Dose)"
+    }
+  },
+  {
+    "text": "4.0 Scheibe(n) Leberkäse",
+    "labels": {
+      "qty": "4.0",
+      "unit": "Scheibe(n)",
+      "name": "Leberkäse",
+      "comment": null
+    }
+  },
+  {
+    "text": "80.0 g süßer Senf",
+    "labels": {
+      "qty": "80.0",
+      "unit": "g",
+      "name": "süßer Senf",
+      "comment": null
+    }
+  },
+  {
+    "text": "75.0 ml Zitronen- oder Limettensaft",
+    "labels": {
+      "qty": "75.0",
+      "unit": "ml",
+      "name": "Zitronen- oder Limettensaft",
+      "comment": null
+    }
+  },
+  {
+    "text": "300.0 ml Vodka",
+    "labels": {
+      "qty": "300.0",
+      "unit": "ml",
+      "name": "Vodka",
+      "comment": null
+    }
+  },
+  {
+    "text": "250.0 g Engelshaar-Teigfäden (Kadayif, erhältlich im türkischen Lebesmittelgeschäft)",
+    "labels": {
+      "qty": "250.0",
+      "unit": "g",
+      "name": "Engelshaar-Teigfäden",
+      "comment": "(Kadayif, erhältlich im türkischen Lebesmittelgeschäft)"
+    }
+  },
+  {
+    "text": "1.0 TL Rosenwasser (optional)",
+    "labels": {
+      "qty": "1.0",
+      "unit": "TL",
+      "name": "Rosenwasser",
+      "comment": "(optional)"
+    }
+  },
+  {
+    "text": "0.5 TL Orangenblütenwasser (optional)",
+    "labels": {
+      "qty": "0.5",
+      "unit": "TL",
+      "name": "Orangenblütenwasser",
+      "comment": "(optional)"
+    }
+  },
+  {
+    "text": "300.0 g Speckwürfel",
+    "labels": {
+      "qty": "300.0",
+      "unit": "g",
+      "name": "Speckwürfel",
+      "comment": null
+    }
+  },
+  {
+    "text": "1.0 kg frischer Blattspinat",
+    "labels": {
+      "qty": "1.0",
+      "unit": "kg",
+      "name": "Blattspinat",
+      "comment": "frischer"
+    }
+  },
+  {
+    "text": "4.0 Stück REWE Feine Welt Goldbrustfilets Maishähnchen",
+    "labels": {
+      "qty": "4.0",
+      "unit": "Stück",
+      "name": "REWE Feine Welt Goldbrustfilets Maishähnchen",
+      "comment": null
+    }
+  },
+  {
+    "text": "2.0 Scheibe(n) REWE Buttertoast",
+    "labels": {
+      "qty": "2.0",
+      "unit": "Scheibe(n)",
+      "name": "REWE Buttertoast",
+      "comment": null
+    }
+  },
+  {
+    "text": "110.0 g REWE Bio Süßrahmbutter",
+    "labels": {
+      "qty": "110.0",
+      "unit": "g",
+      "name": "REWE Bio Süßrahmbutter",
+      "comment": null
+    }
+  },
+  {
+    "text": "600.0 g Lachsfilets ohne Haut",
+    "labels": {
+      "qty": "600.0",
+      "unit": "g",
+      "name": "Lachsfilets",
+      "comment": "ohne Haut"
+    }
+  },
+  {
+    "text": "300.0 g REWE Bio Blattspinat (TK)",
+    "labels": {
+      "qty": "300.0",
+      "unit": "g",
+      "name": "REWE Bio Blattspinat",
+      "comment": "(TK)"
+    }
+  },
+  {
+    "text": "75.0 g REWE Beste Wahl Schlagsahne (33%)",
+    "labels": {
+      "qty": "75.0",
+      "unit": "g",
+      "name": "REWE Beste Wahl Schlagsahne",
+      "comment": "(33%)"
+    }
+  },
+  {
+    "text": "180.0 g Austernpilze",
+    "labels": {
+      "qty": "180.0",
+      "unit": "g",
+      "name": "Austernpilze",
+      "comment": null
+    }
+  },
+  {
+    "text": "1.0 EL Zwiebelpulver",
+    "labels": {
+      "qty": "1.0",
+      "unit": "EL",
+      "name": "Zwiebelpulver",
+      "comment": null
+    }
+  },
+  {
+    "text": "16.0 Stück Reispapier",
+    "labels": {
+      "qty": "16.0",
+      "unit": "Stück",
+      "name": "Reispapier",
+      "comment": null
+    }
+  },
+  {
+    "text": "1.0 EL Barbecue Sauce",
+    "labels": {
+      "qty": "1.0",
+      "unit": "EL",
+      "name": "Barbecue Sauce",
+      "comment": null
+    }
+  },
+  {
+    "text": "15.0 g Röstzwiebeln",
+    "labels": {
+      "qty": "15.0",
+      "unit": "g",
+      "name": "Röstzwiebeln",
+      "comment": null
+    }
+  },
+  {
+    "text": "10.0 Dill",
+    "labels": {
+      "qty": "10.0",
+      "unit": null,
+      "name": "Dill",
+      "comment": null
+    }
+  },
+  {
+    "text": "150.0 g Heinz Mayonnaise Das Original",
+    "labels": {
+      "qty": "150.0",
+      "unit": "g",
+      "name": "Heinz Mayonnaise Das Original",
+      "comment": null
+    }
+  },
+  {
+    "text": "200.0 g Joghurt (1,5 %)",
+    "labels": {
+      "qty": "200.0",
+      "unit": "g",
+      "name": "Joghurt",
+      "comment": "(1,5 %)"
+    }
+  },
+  {
+    "text": "3.0 EL Dijon-Senf",
+    "labels": {
+      "qty": "3.0",
+      "unit": "EL",
+      "name": "Dijon-Senf",
+      "comment": null
+    }
+  },
+  {
+    "text": "1.0 EL Bourbon Vanillezucker",
+    "labels": {
+      "qty": "1.0",
+      "unit": "EL",
+      "name": "Bourbon Vanillezucker",
+      "comment": null
+    }
+  },
+  {
+    "text": "100.0 g Bonne Maman Haselnuss Kakao Creme",
+    "labels": {
+      "qty": "100.0",
+      "unit": "g",
+      "name": "Bonne Maman Haselnuss Kakao Creme",
+      "comment": null
+    }
+  },
+  {
+    "text": "300.0 g REWE frei von Joghurt mild",
+    "labels": {
+      "qty": "300.0",
+      "unit": "g",
+      "name": "REWE frei von Joghurt mild",
+      "comment": null
+    }
+  },
+  {
+    "text": "100.0 g REWE frei von Speisequark",
+    "labels": {
+      "qty": "100.0",
+      "unit": "g",
+      "name": "REWE frei von Speisequark",
+      "comment": null
+    }
+  },
+  {
+    "text": "60.0 g Kokosblütenzucker",
+    "labels": {
+      "qty": "60.0",
+      "unit": "g",
+      "name": "Kokosblütenzucker",
+      "comment": null
+    }
+  },
+  {
+    "text": "400.0 g Rote Bete (roh)",
+    "labels": {
+      "qty": "400.0",
+      "unit": "g",
+      "name": "Rote Bete",
+      "comment": "(roh)"
+    }
+  },
+  {
+    "text": "8.0 g Salz, grob",
+    "labels": {
+      "qty": "8.0",
+      "unit": "g",
+      "name": "Salz",
+      "comment": ", grob"
+    }
+  },
+  {
+    "text": "Mohn",
+    "labels": {
+      "qty": null,
+      "unit": null,
+      "name": "Mohn",
+      "comment": null
+    }
+  },
+  {
+    "text": "10.0 EL Sonnenblumenöl",
+    "labels": {
+      "qty": "10.0",
+      "unit": "EL",
+      "name": "Sonnenblumenöl",
+      "comment": null
+    }
+  },
+  {
+    "text": "1.0 Glas Kalamata Oliven ohne Stein (á 180 g)",
+    "labels": {
+      "qty": "1.0",
+      "unit": "Glas",
+      "name": "Kalamata Oliven",
+      "comment": "ohne Stein (á 180 g)"
+    }
+  },
+  {
+    "text": "2.0 Pck. REWE Beste Wahl Mini Frikadellen vegan (á 200 g)",
+    "labels": {
+      "qty": "2.0",
+      "unit": "Pck.",
+      "name": "REWE Beste Wahl Mini Frikadellen vegan",
+      "comment": "(á 200 g)"
+    }
+  },
+  {
+    "text": "300.0 g Fladenbrot",
+    "labels": {
+      "qty": "300.0",
+      "unit": "g",
+      "name": "Fladenbrot",
+      "comment": null
+    }
+  },
+  {
+    "text": "100.0 g weiße Bohnen (Dose)",
+    "labels": {
+      "qty": "100.0",
+      "unit": "g",
+      "name": "weiße Bohnen",
+      "comment": "(Dose)"
+    }
+  },
+  {
+    "text": "1.0 Spritzer Fischsoße (ggfs. vegan)",
+    "labels": {
+      "qty": "1.0",
+      "unit": "Spritzer",
+      "name": "Fischsoße",
+      "comment": "(ggfs. vegan)"
+    }
+  },
+  {
+    "text": "1.0 Handvoll frischer Koriander",
+    "labels": {
+      "qty": "1.0",
+      "unit": "Handvoll",
+      "name": "Koriander",
+      "comment": "frischer"
+    }
+  },
+  {
+    "text": "6.0 Blätter Gelatine (weiß)",
+    "labels": {
+      "qty": "6.0",
+      "unit": "Blätter",
+      "name": "Gelatine",
+      "comment": "(weiß)"
+    }
+  },
+  {
+    "text": "6.0 Lebensmittelfarben (gelb, orange, rot, lila, blau, grün)",
+    "labels": {
+      "qty": "6.0",
+      "unit": "Stück",
+      "name": "Lebensmittelfarben",
+      "comment": "(gelb, orange, rot, lila, blau, grün)"
+    }
+  },
+  {
+    "text": "2.0 Cayenne-Chili (rot, frisch)",
+    "labels": {
+      "qty": "2.0",
+      "unit": "Stück",
+      "name": "Cayenne-Chili",
+      "comment": "(rot, frisch)"
+    }
+  },
+  {
+    "text": "2.0 TL 5-Gewürze-Pulver",
+    "labels": {
+      "qty": "2.0",
+      "unit": "TL",
+      "name": "5-Gewürze-Pulver",
+      "comment": null
+    }
+  },
+  {
+    "text": "800.0 g Rinderschmorfleisch (z.B. Gulasch)",
+    "labels": {
+      "qty": "800.0",
+      "unit": "g",
+      "name": "Rinderschmorfleisch",
+      "comment": "(z.B. Gulasch)"
+    }
+  },
+  {
+    "text": "Mehl für die Arbeitsfläche und fürs Blech",
+    "labels": {
+      "qty": null,
+      "unit": null,
+      "name": "Mehl",
+      "comment": "für die Arbeitsfläche und fürs Blech"
+    }
+  },
+  {
+    "text": "100.0 g Feta (z.B. von REWE Feine Welt)",
+    "labels": {
+      "qty": "100.0",
+      "unit": "g",
+      "name": "Feta",
+      "comment": "(z.B. von REWE Feine Welt)"
+    }
+  },
+  {
+    "text": "3.0 Spitzpaprika (rot)",
+    "labels": {
+      "qty": "3.0",
+      "unit": "Stück",
+      "name": "Spitzpaprika",
+      "comment": "(rot)"
+    }
+  },
+  {
+    "text": "250.0 g Binis (Spargelbrokkoli)",
+    "labels": {
+      "qty": "250.0",
+      "unit": "g",
+      "name": "Binis",
+      "comment": "(Spargelbrokkoli)"
+    }
+  },
+  {
+    "text": "3.0 EL Erdnussbutter (crunchy)",
+    "labels": {
+      "qty": "3.0",
+      "unit": "EL",
+      "name": "Erdnussbutter",
+      "comment": "(crunchy)"
+    }
+  },
+  {
+    "text": "40.0 ml Gemüsebrühe",
+    "labels": {
+      "qty": "40.0",
+      "unit": "ml",
+      "name": "Gemüsebrühe",
+      "comment": null
+    }
+  },
+  {
+    "text": "2.0 EL Erdnüsse (geröstet, gesalzen)",
+    "labels": {
+      "qty": "2.0",
+      "unit": "EL",
+      "name": "Erdnüsse",
+      "comment": "(geröstet, gesalzen)"
+    }
+  },
+  {
+    "text": "25.0 g gemischte Kräuter",
+    "labels": {
+      "qty": "25.0",
+      "unit": "g",
+      "name": "gemischte Kräuter",
+      "comment": null
+    }
+  },
+  {
+    "text": "130.0 ml Milch (3,8% Fett)",
+    "labels": {
+      "qty": "130.0",
+      "unit": "ml",
+      "name": "Milch",
+      "comment": "(3,8% Fett)"
+    }
+  },
+  {
+    "text": "300.0 ml Rotweinessig",
+    "labels": {
+      "qty": "300.0",
+      "unit": "ml",
+      "name": "Rotweinessig",
+      "comment": null
+    }
+  },
+  {
+    "text": "1.0 verquirltes Ei",
+    "labels": {
+      "qty": "1.0",
+      "unit": "Stück",
+      "name": "Ei",
+      "comment": "verquirltes"
+    }
+  },
+  {
+    "text": "250.0 g Ziegenfrischkäsemousse",
+    "labels": {
+      "qty": "250.0",
+      "unit": "g",
+      "name": "Ziegenfrischkäsemousse",
+      "comment": null
+    }
+  },
+  {
+    "text": "500.0 g REWE Bio Joghurt (1,8 % Fett)",
+    "labels": {
+      "qty": "500.0",
+      "unit": "g",
+      "name": "REWE Bio Joghurt",
+      "comment": "(1,8 % Fett)"
+    }
+  },
+  {
+    "text": "50.0 ml REWE Bio natives Olivenöl",
+    "labels": {
+      "qty": "50.0",
+      "unit": "ml",
+      "name": "REWE Bio natives Olivenöl",
+      "comment": null
+    }
+  },
+  {
+    "text": "125.0 g Margarine (Zimmertemperatur)",
+    "labels": {
+      "qty": "125.0",
+      "unit": "g",
+      "name": "Margarine",
+      "comment": "(Zimmertemperatur)"
+    }
+  },
+  {
+    "text": "125.0 g Bitterschokolade (mind. 70 % Kakao)",
+    "labels": {
+      "qty": "125.0",
+      "unit": "g",
+      "name": "Bitterschokolade",
+      "comment": "(mind. 70 % Kakao)"
+    }
+  },
+  {
+    "text": "125.0 g Walnusskerne",
+    "labels": {
+      "qty": "125.0",
+      "unit": "g",
+      "name": "Walnusskerne",
+      "comment": null
+    }
+  },
+  {
+    "text": "300.0 g rote Bete",
+    "labels": {
+      "qty": "300.0",
+      "unit": "g",
+      "name": "rote Bete",
+      "comment": null
+    }
+  },
+  {
+    "text": "125.0 ml Schokosauce",
+    "labels": {
+      "qty": "125.0",
+      "unit": "ml",
+      "name": "Schokosauce",
+      "comment": null
+    }
+  },
+  {
+    "text": "4.0 Cocktailkirschen (nach Belieben)",
+    "labels": {
+      "qty": "4.0",
+      "unit": "Stück",
+      "name": "Cocktailkirschen",
+      "comment": "(nach Belieben)"
+    }
+  },
+  {
+    "text": "250.0 g REWE Bio Dinkel wie Reis (100 % Dinkel)",
+    "labels": {
+      "qty": "250.0",
+      "unit": "g",
+      "name": "REWE Bio Dinkel wie Reis",
+      "comment": "(100 % Dinkel)"
+    }
+  },
+  {
+    "text": "3.0 REWE Bio Zucchini (à ca. 300 g)",
+    "labels": {
+      "qty": "3.0",
+      "unit": "Stück",
+      "name": "REWE Bio Zucchini",
+      "comment": "(à ca. 300 g)"
+    }
+  },
+  {
+    "text": "1.0 Glas REWE Bio Tomate-Basilikum-Aufstrich",
+    "labels": {
+      "qty": "1.0",
+      "unit": "Glas",
+      "name": "REWE Bio Tomate-Basilikum-Aufstrich",
+      "comment": null
+    }
+  },
+  {
+    "text": "2.0 EL REWE Bio Senf-Honig-Feige",
+    "labels": {
+      "qty": "2.0",
+      "unit": "EL",
+      "name": "REWE Bio Senf-Honig-Feige",
+      "comment": null
+    }
+  },
+  {
+    "text": "2.0 EL REWE Bio Streichcreme Paprika-Cashew",
+    "labels": {
+      "qty": "2.0",
+      "unit": "EL",
+      "name": "REWE Bio Streichcreme Paprika-Cashew",
+      "comment": null
+    }
+  },
+  {
+    "text": "250.0 g rote Johannisbeeren",
+    "labels": {
+      "qty": "250.0",
+      "unit": "g",
+      "name": "rote Johannisbeeren",
+      "comment": null
+    }
+  },
+  {
+    "text": "40.0 g REWE Bio Blütenhonig",
+    "labels": {
+      "qty": "40.0",
+      "unit": "g",
+      "name": "REWE Bio Blütenhonig",
+      "comment": null
+    }
+  },
+  {
+    "text": "250.0 g REWE Bio Joghurt mild, 3,8 %",
+    "labels": {
+      "qty": "250.0",
+      "unit": "g",
+      "name": "REWE Bio Joghurt mild",
+      "comment": "3,8 %"
+    }
+  },
+  {
+    "text": "650.0 ml Buttermilch",
+    "labels": {
+      "qty": "650.0",
+      "unit": "ml",
+      "name": "Buttermilch",
+      "comment": null
+    }
+  },
+  {
+    "text": "100.0 g REWE Bio Apfel-Bananenmus",
+    "labels": {
+      "qty": "100.0",
+      "unit": "g",
+      "name": "REWE Bio Apfel-Bananenmus",
+      "comment": null
+    }
+  },
+  {
+    "text": "70.0 g zarte Haferflocken",
+    "labels": {
+      "qty": "70.0",
+      "unit": "g",
+      "name": "zarte Haferflocken",
+      "comment": null
+    }
+  },
+  {
+    "text": "60.0 g getrocknete Cranberries",
+    "labels": {
+      "qty": "60.0",
+      "unit": "g",
+      "name": "getrocknete Cranberries",
+      "comment": null
+    }
+  },
+  {
+    "text": "2.0 Auberginen (500 g)",
+    "labels": {
+      "qty": "2.0",
+      "unit": "Stück",
+      "name": "Auberginen",
+      "comment": "(500 g)"
+    }
+  },
+  {
+    "text": "150.0 g Heinz Tomato Frito",
+    "labels": {
+      "qty": "150.0",
+      "unit": "g",
+      "name": "Heinz Tomato Frito",
+      "comment": null
+    }
+  },
+  {
+    "text": "50.0 g Blauschimmelkäse (Roquefort)",
+    "labels": {
+      "qty": "50.0",
+      "unit": "g",
+      "name": "Blauschimmelkäse",
+      "comment": "(Roquefort)"
+    }
+  },
+  {
+    "text": "500.0 g ja! Fettarmer Joghurt mild 1,5% Fett",
+    "labels": {
+      "qty": "500.0",
+      "unit": "g",
+      "name": "ja! Fettarmer Joghurt mild",
+      "comment": "1,5% Fett"
+    }
+  },
+  {
+    "text": "2.0 TL ja! Paprikapulver (rosenscharf)",
+    "labels": {
+      "qty": "2.0",
+      "unit": "TL",
+      "name": "ja! Paprikapulver",
+      "comment": "(rosenscharf)"
+    }
+  },
+  {
+    "text": "800.0 g REWE Bio Hähnchenbrustfilet",
+    "labels": {
+      "qty": "800.0",
+      "unit": "g",
+      "name": "REWE Bio Hähnchenbrustfilet",
+      "comment": null
+    }
+  },
+  {
+    "text": "400.0 g REWE Beste Wahl Kartoffeln",
+    "labels": {
+      "qty": "400.0",
+      "unit": "g",
+      "name": "REWE Beste Wahl Kartoffeln",
+      "comment": null
+    }
+  },
+  {
+    "text": "600.0 g REWE Beste Wahl tiefgefrorener Brokkoli",
+    "labels": {
+      "qty": "600.0",
+      "unit": "g",
+      "name": "REWE Beste Wahl tiefgefrorener Brokkoli",
+      "comment": null
+    }
+  },
+  {
+    "text": "30.0 g REWE Beste Wahl Mandelblättchen",
+    "labels": {
+      "qty": "30.0",
+      "unit": "g",
+      "name": "REWE Beste Wahl Mandelblättchen",
+      "comment": null
+    }
+  },
+  {
+    "text": "150.0 g Kräuter-Frischkäse",
+    "labels": {
+      "qty": "150.0",
+      "unit": "g",
+      "name": "Kräuter-Frischkäse",
+      "comment": null
+    }
+  },
+  {
+    "text": "375.0 ml Milch (3,5 % Fett)",
+    "labels": {
+      "qty": "375.0",
+      "unit": "ml",
+      "name": "Milch",
+      "comment": "(3,5 % Fett)"
+    }
+  },
+  {
+    "text": "30.0 g Butter (flüssig)",
+    "labels": {
+      "qty": "30.0",
+      "unit": "g",
+      "name": "Butter",
+      "comment": "(flüssig)"
+    }
+  },
+  {
+    "text": "250.0 g stückige Tomaten (Dose)",
+    "labels": {
+      "qty": "250.0",
+      "unit": "g",
+      "name": "stückige Tomaten",
+      "comment": "(Dose)"
+    }
+  },
+  {
+    "text": "100.0 g Parmesan (jung)",
+    "labels": {
+      "qty": "100.0",
+      "unit": "g",
+      "name": "Parmesan",
+      "comment": "(jung)"
+    }
+  },
+  {
+    "text": "1.0 fertiger Schokoladenkuchen (ca. 350 g)",
+    "labels": {
+      "qty": "1.0",
+      "unit": "Stück",
+      "name": "Schokoladenkuchen",
+      "comment": "fertiger (ca. 350 g)"
+    }
+  },
+  {
+    "text": "blaue Lebensmittelfarbe (fettlöslich)",
+    "labels": {
+      "qty": null,
+      "unit": null,
+      "name": "Lebensmittelfarbe",
+      "comment": "blaue, (fettlöslich)"
+    }
+  },
+  {
+    "text": "grüne Lebensmittelfarbe (fettlöslich)",
+    "labels": {
+      "qty": null,
+      "unit": null,
+      "name": "Lebensmittelfarbe",
+      "comment": "grüne, (fettlöslich)"
+    }
+  },
+  {
+    "text": "50.0 g Kalamata-Oliven (ohne Stein)",
+    "labels": {
+      "qty": "50.0",
+      "unit": "g",
+      "name": "Kalamata-Oliven",
+      "comment": "(ohne Stein)"
+    }
+  },
+  {
+    "text": "2.0 Dose(n) Thunfisch (á 130 g)",
+    "labels": {
+      "qty": "2.0",
+      "unit": "Dose(n)",
+      "name": "Thunfisch",
+      "comment": "(á 130 g)"
+    }
+  },
+  {
+    "text": "3.0 große gekochte Kartoffeln vom Vortag",
+    "labels": {
+      "qty": "3.0",
+      "unit": "Stück",
+      "name": "Kartoffeln",
+      "comment": "große gekochte vom Vortag"
+    }
+  },
+  {
+    "text": "2.0 kleine Kohlrabi",
+    "labels": {
+      "qty": "2.0",
+      "unit": "Stück",
+      "name": "Kohlrabi",
+      "comment": "kleine"
+    }
+  },
+  {
+    "text": "1.0 REWE Bio Schweine Schnitzel (à 300 g)",
+    "labels": {
+      "qty": "1.0",
+      "unit": "Stück",
+      "name": "REWE Bio Schweine Schnitzel",
+      "comment": "(à 300 g)"
+    }
+  },
+  {
+    "text": "40.0 g Schinkenspeck",
+    "labels": {
+      "qty": "40.0",
+      "unit": "g",
+      "name": "Schinkenspeck",
+      "comment": null
+    }
+  },
+  {
+    "text": "400.0 g Seelachsfilet mit Haut",
+    "labels": {
+      "qty": "400.0",
+      "unit": "g",
+      "name": "Seelachsfilet",
+      "comment": "mit Haut"
+    }
+  },
+  {
+    "text": "3.0 EL Weizenmehl (Type 550)",
+    "labels": {
+      "qty": "3.0",
+      "unit": "EL",
+      "name": "Weizenmehl",
+      "comment": "(Type 550)"
+    }
+  },
+  {
+    "text": "75.0 ml Schlagsahne",
+    "labels": {
+      "qty": "75.0",
+      "unit": "ml",
+      "name": "Schlagsahne",
+      "comment": null
+    }
+  },
+  {
+    "text": "2.0 EL Wildblüten-Honig",
+    "labels": {
+      "qty": "2.0",
+      "unit": "EL",
+      "name": "Wildblüten-Honig",
+      "comment": null
+    }
+  },
+  {
+    "text": "8.0 Scheibe(n) Pumpernickel",
+    "labels": {
+      "qty": "8.0",
+      "unit": "Scheibe(n)",
+      "name": "Pumpernickel",
+      "comment": null
+    }
+  },
+  {
+    "text": "300.0 g Roquefort",
+    "labels": {
+      "qty": "300.0",
+      "unit": "g",
+      "name": "Roquefort",
+      "comment": null
+    }
+  },
+  {
+    "text": "500.0 g REWE Beste Wahl Wiener Würstchen",
+    "labels": {
+      "qty": "500.0",
+      "unit": "g",
+      "name": "REWE Beste Wahl Wiener Würstchen",
+      "comment": null
+    }
+  },
+  {
+    "text": "2.0 Gläser Letscho",
+    "labels": {
+      "qty": "2.0",
+      "unit": "Gläser",
+      "name": "Letscho",
+      "comment": null
+    }
+  },
+  {
+    "text": "1.0 Glas Gewürzgurken (mit Sud 670 g)",
+    "labels": {
+      "qty": "1.0",
+      "unit": "Glas",
+      "name": "Gewürzgurken",
+      "comment": "(mit Sud 670 g)"
+    }
+  },
+  {
+    "text": "800.0 g ja! Passierte Tomaten",
+    "labels": {
+      "qty": "800.0",
+      "unit": "g",
+      "name": "ja! Passierte Tomaten",
+      "comment": null
+    }
+  },
+  {
+    "text": "Saure Sahne",
+    "labels": {
+      "qty": null,
+      "unit": null,
+      "name": "Saure Sahne",
+      "comment": null
+    }
+  },
+  {
+    "text": "1.0 Spitzkohl oder Weißkohl",
+    "labels": {
+      "qty": "1.0",
+      "unit": "Stück",
+      "name": "Spitzkohl oder Weißkohl",
+      "comment": null
+    }
+  },
+  {
+    "text": "Zitrone (Saft und Abrieb)",
+    "labels": {
+      "qty": null,
+      "unit": null,
+      "name": "Zitrone",
+      "comment": "(Saft und Abrieb)"
+    }
+  },
+  {
+    "text": "20.0 g Pecorino",
+    "labels": {
+      "qty": "20.0",
+      "unit": "g",
+      "name": "Pecorino",
+      "comment": null
+    }
+  },
+  {
+    "text": "15.0 Shiitake Pilze",
+    "labels": {
+      "qty": "15.0",
+      "unit": "Stück",
+      "name": "Shiitake Pilze",
+      "comment": null
+    }
+  },
+  {
+    "text": "2.0 l Gemüsefond",
+    "labels": {
+      "qty": "2.0",
+      "unit": "l",
+      "name": "Gemüsefond",
+      "comment": null
+    }
+  },
+  {
+    "text": "75.0 g REWE Beste Wahl Schlagsahne (33%)",
+    "labels": {
+      "qty": "75.0",
+      "unit": "g",
+      "name": "REWE Beste Wahl Schlagsahne",
+      "comment": "(33%)"
+    }
+  },
+  {
+    "text": "180.0 g Austernpilze",
+    "labels": {
+      "qty": "180.0",
+      "unit": "g",
+      "name": "Austernpilze",
+      "comment": null
+    }
+  },
+  {
+    "text": "1.0 EL Zwiebelpulver",
+    "labels": {
+      "qty": "1.0",
+      "unit": "EL",
+      "name": "Zwiebelpulver",
+      "comment": null
+    }
+  },
+  {
+    "text": "16.0 Stück Reispapier",
+    "labels": {
+      "qty": "16.0",
+      "unit": "Stück",
+      "name": "Reispapier",
+      "comment": null
+    }
+  },
+  {
+    "text": "1.0 EL Barbecue Sauce",
+    "labels": {
+      "qty": "1.0",
+      "unit": "EL",
+      "name": "Barbecue Sauce",
+      "comment": null
+    }
+  },
+  {
+    "text": "15.0 g Röstzwiebeln",
+    "labels": {
+      "qty": "15.0",
+      "unit": "g",
+      "name": "Röstzwiebeln",
+      "comment": null
+    }
+  },
+  {
+    "text": "10.0 Dill",
+    "labels": {
+      "qty": "10.0",
+      "unit": null,
+      "name": "Dill",
+      "comment": null
+    }
+  },
+  {
+    "text": "150.0 g Heinz Mayonnaise Das Original",
+    "labels": {
+      "qty": "150.0",
+      "unit": "g",
+      "name": "Heinz Mayonnaise Das Original",
+      "comment": null
+    }
+  },
+  {
+    "text": "200.0 g Joghurt (1,5 %)",
+    "labels": {
+      "qty": "200.0",
+      "unit": "g",
+      "name": "Joghurt",
+      "comment": "(1,5 %)"
+    }
+  },
+  {
+    "text": "3.0 EL Dijon-Senf",
+    "labels": {
+      "qty": "3.0",
+      "unit": "EL",
+      "name": "Dijon-Senf",
+      "comment": null
+    }
+  },
+  {
+    "text": "1.0 EL Bourbon Vanillezucker",
+    "labels": {
+      "qty": "1.0",
+      "unit": "EL",
+      "name": "Bourbon Vanillezucker",
+      "comment": null
+    }
+  },
+  {
+    "text": "100.0 g Bonne Maman Haselnuss Kakao Creme",
+    "labels": {
+      "qty": "100.0",
+      "unit": "g",
+      "name": "Bonne Maman Haselnuss Kakao Creme",
+      "comment": null
+    }
+  },
+  {
+    "text": "300.0 g REWE frei von Joghurt mild",
+    "labels": {
+      "qty": "300.0",
+      "unit": "g",
+      "name": "REWE frei von Joghurt mild",
+      "comment": null
+    }
+  },
+  {
+    "text": "100.0 g REWE frei von Speisequark",
+    "labels": {
+      "qty": "100.0",
+      "unit": "g",
+      "name": "REWE frei von Speisequark",
+      "comment": null
+    }
+  },
+  {
+    "text": "60.0 g Kokosblütenzucker",
+    "labels": {
+      "qty": "60.0",
+      "unit": "g",
+      "name": "Kokosblütenzucker",
+      "comment": null
+    }
+  },
+  {
+    "text": "400.0 g Rote Bete (roh)",
+    "labels": {
+      "qty": "400.0",
+      "unit": "g",
+      "name": "Rote Bete",
+      "comment": "(roh)"
+    }
+  },
+  {
+    "text": "8.0 g Salz, grob",
+    "labels": {
+      "qty": "8.0",
+      "unit": "g",
+      "name": "Salz",
+      "comment": ", grob"
+    }
+  },
+  {
+    "text": "Mohn",
+    "labels": {
+      "qty": null,
+      "unit": null,
+      "name": "Mohn",
+      "comment": null
+    }
+  },
+  {
+    "text": "10.0 EL Sonnenblumenöl",
+    "labels": {
+      "qty": "10.0",
+      "unit": "EL",
+      "name": "Sonnenblumenöl",
+      "comment": null
+    }
+  },
+  {
+    "text": "1.0 Glas Kalamata Oliven ohne Stein (á 180 g)",
+    "labels": {
+      "qty": "1.0",
+      "unit": "Glas",
+      "name": "Kalamata Oliven",
+      "comment": "ohne Stein (á 180 g)"
+    }
+  },
+  {
+    "text": "2.0 Pck. REWE Beste Wahl Mini Frikadellen vegan (á 200 g)",
+    "labels": {
+      "qty": "2.0",
+      "unit": "Pck.",
+      "name": "REWE Beste Wahl Mini Frikadellen vegan",
+      "comment": "(á 200 g)"
+    }
+  },
+  {
+    "text": "300.0 g Fladenbrot",
+    "labels": {
+      "qty": "300.0",
+      "unit": "g",
+      "name": "Fladenbrot",
+      "comment": null
+    }
+  },
+  {
+    "text": "100.0 g weiße Bohnen (Dose)",
+    "labels": {
+      "qty": "100.0",
+      "unit": "g",
+      "name": "weiße Bohnen",
+      "comment": "(Dose)"
+    }
+  },
+  {
+    "text": "1.0 Spritzer Fischsoße (ggfs. vegan)",
+    "labels": {
+      "qty": "1.0",
+      "unit": "Spritzer",
+      "name": "Fischsoße",
+      "comment": "(ggfs. vegan)"
+    }
+  },
+  {
+    "text": "1.0 Handvoll frischer Koriander",
+    "labels": {
+      "qty": "1.0",
+      "unit": "Handvoll",
+      "name": "Koriander",
+      "comment": "frischer"
+    }
+  },
+  {
+    "text": "6.0 Blätter Gelatine (weiß)",
+    "labels": {
+      "qty": "6.0",
+      "unit": "Blätter",
+      "name": "Gelatine",
+      "comment": "(weiß)"
+    }
+  },
+  {
+    "text": "6.0 Lebensmittelfarben (gelb, orange, rot, lila, blau, grün)",
+    "labels": {
+      "qty": "6.0",
+      "unit": "Stück",
+      "name": "Lebensmittelfarben",
+      "comment": "(gelb, orange, rot, lila, blau, grün)"
+    }
+  },
+  {
+    "text": "2.0 Cayenne-Chili (rot, frisch)",
+    "labels": {
+      "qty": "2.0",
+      "unit": "Stück",
+      "name": "Cayenne-Chili",
+      "comment": "(rot, frisch)"
+    }
+  },
+  {
+    "text": "2.0 TL 5-Gewürze-Pulver",
+    "labels": {
+      "qty": "2.0",
+      "unit": "TL",
+      "name": "5-Gewürze-Pulver",
+      "comment": null
+    }
+  },
+  {
+    "text": "800.0 g Rinderschmorfleisch (z.B. Gulasch)",
+    "labels": {
+      "qty": "800.0",
+      "unit": "g",
+      "name": "Rinderschmorfleisch",
+      "comment": "(z.B. Gulasch)"
+    }
+  },
+  {
+    "text": "Mehl für die Arbeitsfläche und fürs Blech",
+    "labels": {
+      "qty": null,
+      "unit": null,
+      "name": "Mehl",
+      "comment": "für die Arbeitsfläche und fürs Blech"
+    }
+  },
+  {
+    "text": "100.0 g Feta (z.B. von REWE Feine Welt)",
+    "labels": {
+      "qty": "100.0",
+      "unit": "g",
+      "name": "Feta",
+      "comment": "(z.B. von REWE Feine Welt)"
+    }
+  },
+  {
+    "text": "3.0 Spitzpaprika (rot)",
+    "labels": {
+      "qty": "3.0",
+      "unit": "Stück",
+      "name": "Spitzpaprika",
+      "comment": "(rot)"
+    }
+  },
+  {
+    "text": "250.0 g Binis (Spargelbrokkoli)",
+    "labels": {
+      "qty": "250.0",
+      "unit": "g",
+      "name": "Binis",
+      "comment": "(Spargelbrokkoli)"
+    }
+  },
+  {
+    "text": "3.0 EL Erdnussbutter (crunchy)",
+    "labels": {
+      "qty": "3.0",
+      "unit": "EL",
+      "name": "Erdnussbutter",
+      "comment": "(crunchy)"
+    }
+  },
+  {
+    "text": "40.0 ml Gemüsebrühe",
+    "labels": {
+      "qty": "40.0",
+      "unit": "ml",
+      "name": "Gemüsebrühe",
+      "comment": null
+    }
+  },
+  {
+    "text": "2.0 EL Erdnüsse (geröstet, gesalzen)",
+    "labels": {
+      "qty": "2.0",
+      "unit": "EL",
+      "name": "Erdnüsse",
+      "comment": "(geröstet, gesalzen)"
+    }
+  },
+  {
+    "text": "25.0 g gemischte Kräuter",
+    "labels": {
+      "qty": "25.0",
+      "unit": "g",
+      "name": "gemischte Kräuter",
+      "comment": null
+    }
+  },
+  {
+    "text": "130.0 ml Milch (3,8% Fett)",
+    "labels": {
+      "qty": "130.0",
+      "unit": "ml",
+      "name": "Milch",
+      "comment": "(3,8% Fett)"
+    }
+  },
+  {
+    "text": "300.0 ml Rotweinessig",
+    "labels": {
+      "qty": "300.0",
+      "unit": "ml",
+      "name": "Rotweinessig",
+      "comment": null
+    }
+  },
+  {
+    "text": "1.0 verquirltes Ei",
+    "labels": {
+      "qty": "1.0",
+      "unit": "Stück",
+      "name": "Ei",
+      "comment": "verquirltes"
+    }
+  },
+  {
+    "text": "250.0 g Ziegenfrischkäsemousse",
+    "labels": {
+      "qty": "250.0",
+      "unit": "g",
+      "name": "Ziegenfrischkäsemousse",
+      "comment": null
+    }
+  },
+  {
+    "text": "500.0 g REWE Bio Joghurt (1,8 % Fett)",
+    "labels": {
+      "qty": "500.0",
+      "unit": "g",
+      "name": "REWE Bio Joghurt",
+      "comment": "(1,8 % Fett)"
+    }
+  },
+  {
+    "text": "50.0 ml REWE Bio natives Olivenöl",
+    "labels": {
+      "qty": "50.0",
+      "unit": "ml",
+      "name": "REWE Bio natives Olivenöl",
+      "comment": null
+    }
+  },
+  {
+    "text": "125.0 g Margarine (Zimmertemperatur)",
+    "labels": {
+      "qty": "125.0",
+      "unit": "g",
+      "name": "Margarine",
+      "comment": "(Zimmertemperatur)"
+    }
+  },
+  {
+    "text": "125.0 g Bitterschokolade (mind. 70 % Kakao)",
+    "labels": {
+      "qty": "125.0",
+      "unit": "g",
+      "name": "Bitterschokolade",
+      "comment": "(mind. 70 % Kakao)"
+    }
+  },
+  {
+    "text": "125.0 g Walnusskerne",
+    "labels": {
+      "qty": "125.0",
+      "unit": "g",
+      "name": "Walnusskerne",
+      "comment": null
+    }
+  },
+  {
+    "text": "300.0 g rote Bete",
+    "labels": {
+      "qty": "300.0",
+      "unit": "g",
+      "name": "rote Bete",
+      "comment": null
+    }
+  },
+  {
+    "text": "125.0 ml Schokosauce",
+    "labels": {
+      "qty": "125.0",
+      "unit": "ml",
+      "name": "Schokosauce",
+      "comment": null
+    }
+  },
+  {
+    "text": "4.0 Cocktailkirschen (nach Belieben)",
+    "labels": {
+      "qty": "4.0",
+      "unit": "Stück",
+      "name": "Cocktailkirschen",
+      "comment": "(nach Belieben)"
+    }
+  },
+  {
+    "text": "250.0 g REWE Bio Dinkel wie Reis (100 % Dinkel)",
+    "labels": {
+      "qty": "250.0",
+      "unit": "g",
+      "name": "REWE Bio Dinkel wie Reis",
+      "comment": "(100 % Dinkel)"
+    }
+  },
+  {
+    "text": "3.0 REWE Bio Zucchini (à ca. 300 g)",
+    "labels": {
+      "qty": "3.0",
+      "unit": "Stück",
+      "name": "REWE Bio Zucchini",
+      "comment": "(à ca. 300 g)"
+    }
+  },
+  {
+    "text": "1.0 Glas REWE Bio Tomate-Basilikum-Aufstrich",
+    "labels": {
+      "qty": "1.0",
+      "unit": "Glas",
+      "name": "REWE Bio Tomate-Basilikum-Aufstrich",
+      "comment": null
+    }
+  },
+  {
+    "text": "2.0 EL REWE Bio Senf-Honig-Feige",
+    "labels": {
+      "qty": "2.0",
+      "unit": "EL",
+      "name": "REWE Bio Senf-Honig-Feige",
+      "comment": null
+    }
+  },
+  {
+    "text": "2.0 EL REWE Bio Streichcreme Paprika-Cashew",
+    "labels": {
+      "qty": "2.0",
+      "unit": "EL",
+      "name": "REWE Bio Streichcreme Paprika-Cashew",
+      "comment": null
+    }
+  },
+  {
+    "text": "250.0 g rote Johannisbeeren",
+    "labels": {
+      "qty": "250.0",
+      "unit": "g",
+      "name": "rote Johannisbeeren",
+      "comment": null
+    }
+  },
+  {
+    "text": "40.0 g REWE Bio Blütenhonig",
+    "labels": {
+      "qty": "40.0",
+      "unit": "g",
+      "name": "REWE Bio Blütenhonig",
+      "comment": null
+    }
+  },
+  {
+    "text": "250.0 g REWE Bio Joghurt mild, 3,8 %",
+    "labels": {
+      "qty": "250.0",
+      "unit": "g",
+      "name": "REWE Bio Joghurt mild",
+      "comment": "3,8 %"
+    }
+  },
+  {
+    "text": "650.0 ml Buttermilch",
+    "labels": {
+      "qty": "650.0",
+      "unit": "ml",
+      "name": "Buttermilch",
+      "comment": null
+    }
+  },
+  {
+    "text": "100.0 g REWE Bio Apfel-Bananenmus",
+    "labels": {
+      "qty": "100.0",
+      "unit": "g",
+      "name": "REWE Bio Apfel-Bananenmus",
+      "comment": null
+    }
+  },
+  {
+    "text": "70.0 g zarte Haferflocken",
+    "labels": {
+      "qty": "70.0",
+      "unit": "g",
+      "name": "zarte Haferflocken",
+      "comment": null
+    }
+  },
+  {
+    "text": "60.0 g getrocknete Cranberries",
+    "labels": {
+      "qty": "60.0",
+      "unit": "g",
+      "name": "getrocknete Cranberries",
+      "comment": null
+    }
+  },
+  {
+    "text": "2.0 Auberginen (500 g)",
+    "labels": {
+      "qty": "2.0",
+      "unit": "Stück",
+      "name": "Auberginen",
+      "comment": "(500 g)"
+    }
+  },
+  {
+    "text": "150.0 g Heinz Tomato Frito",
+    "labels": {
+      "qty": "150.0",
+      "unit": "g",
+      "name": "Heinz Tomato Frito",
+      "comment": null
+    }
+  },
+  {
+    "text": "50.0 g Blauschimmelkäse (Roquefort)",
+    "labels": {
+      "qty": "50.0",
+      "unit": "g",
+      "name": "Blauschimmelkäse",
+      "comment": "(Roquefort)"
+    }
+  },
+  {
+    "text": "500.0 g ja! Fettarmer Joghurt mild 1,5% Fett",
+    "labels": {
+      "qty": "500.0",
+      "unit": "g",
+      "name": "ja! Fettarmer Joghurt mild",
+      "comment": "1,5% Fett"
+    }
+  },
+  {
+    "text": "2.0 TL ja! Paprikapulver (rosenscharf)",
+    "labels": {
+      "qty": "2.0",
+      "unit": "TL",
+      "name": "ja! Paprikapulver",
+      "comment": "(rosenscharf)"
+    }
+  },
+  {
+    "text": "800.0 g REWE Bio Hähnchenbrustfilet",
+    "labels": {
+      "qty": "800.0",
+      "unit": "g",
+      "name": "REWE Bio Hähnchenbrustfilet",
+      "comment": null
+    }
+  },
+  {
+    "text": "400.0 g REWE Beste Wahl Kartoffeln",
+    "labels": {
+      "qty": "400.0",
+      "unit": "g",
+      "name": "REWE Beste Wahl Kartoffeln",
+      "comment": null
+    }
+  },
+  {
+    "text": "600.0 g REWE Beste Wahl tiefgefrorener Brokkoli",
+    "labels": {
+      "qty": "600.0",
+      "unit": "g",
+      "name": "REWE Beste Wahl tiefgefrorener Brokkoli",
+      "comment": null
+    }
+  },
+  {
+    "text": "30.0 g REWE Beste Wahl Mandelblättchen",
+    "labels": {
+      "qty": "30.0",
+      "unit": "g",
+      "name": "REWE Beste Wahl Mandelblättchen",
+      "comment": null
+    }
+  },
+  {
+    "text": "150.0 g Kräuter-Frischkäse",
+    "labels": {
+      "qty": "150.0",
+      "unit": "g",
+      "name": "Kräuter-Frischkäse",
+      "comment": null
+    }
+  },
+  {
+    "text": "375.0 ml Milch (3,5 % Fett)",
+    "labels": {
+      "qty": "375.0",
+      "unit": "ml",
+      "name": "Milch",
+      "comment": "(3,5 % Fett)"
+    }
+  },
+  {
+    "text": "30.0 g Butter (flüssig)",
+    "labels": {
+      "qty": "30.0",
+      "unit": "g",
+      "name": "Butter",
+      "comment": "(flüssig)"
+    }
+  },
+  {
+    "text": "250.0 g stückige Tomaten (Dose)",
+    "labels": {
+      "qty": "250.0",
+      "unit": "g",
+      "name": "stückige Tomaten",
+      "comment": "(Dose)"
+    }
+  },
+  {
+    "text": "100.0 g Parmesan (jung)",
+    "labels": {
+      "qty": "100.0",
+      "unit": "g",
+      "name": "Parmesan",
+      "comment": "(jung)"
+    }
+  },
+  {
+    "text": "1.0 fertiger Schokoladenkuchen (ca. 350 g)",
+    "labels": {
+      "qty": "1.0",
+      "unit": "Stück",
+      "name": "Schokoladenkuchen",
+      "comment": "fertiger (ca. 350 g)"
+    }
+  },
+  {
+    "text": "blaue Lebensmittelfarbe (fettlöslich)",
+    "labels": {
+      "qty": null,
+      "unit": null,
+      "name": "Lebensmittelfarbe",
+      "comment": "blaue, (fettlöslich)"
+    }
+  },
+  {
+    "text": "grüne Lebensmittelfarbe (fettlöslich)",
+    "labels": {
+      "qty": null,
+      "unit": null,
+      "name": "Lebensmittelfarbe",
+      "comment": "grüne, (fettlöslich)"
+    }
+  },
+  {
+    "text": "50.0 g Kalamata-Oliven (ohne Stein)",
+    "labels": {
+      "qty": "50.0",
+      "unit": "g",
+      "name": "Kalamata-Oliven",
+      "comment": "(ohne Stein)"
+    }
+  },
+  {
+    "text": "2.0 Dose(n) Thunfisch (á 130 g)",
+    "labels": {
+      "qty": "2.0",
+      "unit": "Dose(n)",
+      "name": "Thunfisch",
+      "comment": "(á 130 g)"
+    }
+  },
+  {
+    "text": "3.0 große gekochte Kartoffeln vom Vortag",
+    "labels": {
+      "qty": "3.0",
+      "unit": "Stück",
+      "name": "Kartoffeln",
+      "comment": "große gekochte vom Vortag"
+    }
+  },
+  {
+    "text": "2.0 kleine Kohlrabi",
+    "labels": {
+      "qty": "2.0",
+      "unit": "Stück",
+      "name": "Kohlrabi",
+      "comment": "kleine"
+    }
+  },
+  {
+    "text": "1.0 REWE Bio Schweine Schnitzel (à 300 g)",
+    "labels": {
+      "qty": "1.0",
+      "unit": "Stück",
+      "name": "REWE Bio Schweine Schnitzel",
+      "comment": "(à 300 g)"
+    }
+  },
+  {
+    "text": "40.0 g Schinkenspeck",
+    "labels": {
+      "qty": "40.0",
+      "unit": "g",
+      "name": "Schinkenspeck",
+      "comment": null
+    }
+  },
+  {
+    "text": "400.0 g Seelachsfilet mit Haut",
+    "labels": {
+      "qty": "400.0",
+      "unit": "g",
+      "name": "Seelachsfilet",
+      "comment": "mit Haut"
+    }
+  },
+  {
+    "text": "3.0 EL Weizenmehl (Type 550)",
+    "labels": {
+      "qty": "3.0",
+      "unit": "EL",
+      "name": "Weizenmehl",
+      "comment": "(Type 550)"
+    }
+  },
+  {
+    "text": "75.0 ml Schlagsahne",
+    "labels": {
+      "qty": "75.0",
+      "unit": "ml",
+      "name": "Schlagsahne",
+      "comment": null
+    }
+  },
+  {
+    "text": "2.0 EL Wildblüten-Honig",
+    "labels": {
+      "qty": "2.0",
+      "unit": "EL",
+      "name": "Wildblüten-Honig",
+      "comment": null
+    }
+  },
+  {
+    "text": "8.0 Scheibe(n) Pumpernickel",
+    "labels": {
+      "qty": "8.0",
+      "unit": "Scheibe(n)",
+      "name": "Pumpernickel",
+      "comment": null
+    }
+  },
+  {
+    "text": "300.0 g Roquefort",
+    "labels": {
+      "qty": "300.0",
+      "unit": "g",
+      "name": "Roquefort",
+      "comment": null
+    }
+  },
+  {
+    "text": "500.0 g REWE Beste Wahl Wiener Würstchen",
+    "labels": {
+      "qty": "500.0",
+      "unit": "g",
+      "name": "REWE Beste Wahl Wiener Würstchen",
+      "comment": null
+    }
+  },
+  {
+    "text": "2.0 Gläser Letscho",
+    "labels": {
+      "qty": "2.0",
+      "unit": "Gläser",
+      "name": "Letscho",
+      "comment": null
+    }
+  },
+  {
+    "text": "1.0 Glas Gewürzgurken (mit Sud 670 g)",
+    "labels": {
+      "qty": "1.0",
+      "unit": "Glas",
+      "name": "Gewürzgurken",
+      "comment": "(mit Sud 670 g)"
+    }
+  },
+  {
+    "text": "800.0 g ja! Passierte Tomaten",
+    "labels": {
+      "qty": "800.0",
+      "unit": "g",
+      "name": "ja! Passierte Tomaten",
+      "comment": null
+    }
+  },
+  {
+    "text": "Saure Sahne",
+    "labels": {
+      "qty": null,
+      "unit": null,
+      "name": "Saure Sahne",
+      "comment": null
+    }
+  },
+  {
+    "text": "1.0 Spitzkohl oder Weißkohl",
+    "labels": {
+      "qty": "1.0",
+      "unit": "Stück",
+      "name": "Spitzkohl oder Weißkohl",
+      "comment": null
+    }
+  },
+  {
+    "text": "Zitrone (Saft und Abrieb)",
+    "labels": {
+      "qty": null,
+      "unit": null,
+      "name": "Zitrone",
+      "comment": "(Saft und Abrieb)"
+    }
+  },
+  {
+    "text": "20.0 g Pecorino",
+    "labels": {
+      "qty": "20.0",
+      "unit": "g",
+      "name": "Pecorino",
+      "comment": null
+    }
+  },
+  {
+    "text": "15.0 Shiitake Pilze",
+    "labels": {
+      "qty": "15.0",
+      "unit": "Stück",
+      "name": "Shiitake Pilze",
+      "comment": null
+    }
+  },
+  {
+    "text": "2.0 l Gemüsefond",
+    "labels": {
+      "qty": "2.0",
+      "unit": "l",
+      "name": "Gemüsefond",
+      "comment": null
+    }
+  },
+  {
+    "text": "3.0 Mini-Pak Choi",
+    "labels": {
+      "qty": "3.0",
+      "unit": "Stück",
+      "name": "Mini-Pak Choi",
+      "comment": null
+    }
+  },
+  {
+    "text": "4.0 EL Miso Paste",
+    "labels": {
+      "qty": "4.0",
+      "unit": "EL",
+      "name": "Miso Paste",
+      "comment": null
+    }
+  },
+  {
+    "text": "24.0 cl Wodka",
+    "labels": {
+      "qty": "24.0",
+      "unit": "cl",
+      "name": "Wodka",
+      "comment": null
+    }
+  },
+  {
+    "text": "12.0 cl Feigenlikör",
+    "labels": {
+      "qty": "12.0",
+      "unit": "cl",
+      "name": "Feigenlikör",
+      "comment": null
+    }
+  },
+  {
+    "text": "8.0 cl Zitronensaft",
+    "labels": {
+      "qty": "8.0",
+      "unit": "cl",
+      "name": "Zitronensaft",
+      "comment": null
+    }
+  },
+  {
+    "text": "40.0 cl Apfelsaft",
+    "labels": {
+      "qty": "40.0",
+      "unit": "cl",
+      "name": "Apfelsaft",
+      "comment": null
+    }
+  },
+  {
+    "text": "8.0 EL Rohrzucker",
+    "labels": {
+      "qty": "8.0",
+      "unit": "EL",
+      "name": "Rohrzucker",
+      "comment": null
+    }
+  },
+  {
+    "text": "12.0 Scheibe(n) Ingwer",
+    "labels": {
+      "qty": "12.0",
+      "unit": "Scheibe(n)",
+      "name": "Ingwer",
+      "comment": null
+    }
+  },
+  {
+    "text": "50.0 g rosa oder rote Rosenblätter (ungespritzt)",
+    "labels": {
+      "qty": "50.0",
+      "unit": "g",
+      "name": "rosa oder rote Rosenblätter",
+      "comment": "(ungespritzt)"
+    }
+  },
+  {
+    "text": "2.0 TL Rosenwasser",
+    "labels": {
+      "qty": "2.0",
+      "unit": "TL",
+      "name": "Rosenwasser",
+      "comment": null
+    }
+  },
+  {
+    "text": "2.0 EL REWE Feine Welt Fruchtessig Passionsfrucht",
+    "labels": {
+      "qty": "2.0",
+      "unit": "EL",
+      "name": "REWE Feine Welt Fruchtessig Passionsfrucht",
+      "comment": null
+    }
+  },
+  {
+    "text": "Brot zum Servieren",
+    "labels": {
+      "qty": null,
+      "unit": null,
+      "name": "Brot",
+      "comment": "zum Servieren"
+    }
+  },
+  {
+    "text": "100.0 g Joghurt (3,5 %)",
+    "labels": {
+      "qty": "100.0",
+      "unit": "g",
+      "name": "Joghurt",
+      "comment": "(3,5 %)"
+    }
+  },
+  {
+    "text": "500.0 g vorwiegend festkochende Kartoffeln",
+    "labels": {
+      "qty": "500.0",
+      "unit": "g",
+      "name": "Kartoffeln",
+      "comment": "vorwiegend festkochende"
+    }
+  },
+  {
+    "text": "800.0 g Schlagsahne",
+    "labels": {
+      "qty": "800.0",
+      "unit": "g",
+      "name": "Schlagsahne",
+      "comment": null
+    }
+  },
+  {
+    "text": "200.0 g REWE Feine Welt dunkle Kakaocreme",
+    "labels": {
+      "qty": "200.0",
+      "unit": "g",
+      "name": "REWE Feine Welt dunkle Kakaocreme",
+      "comment": null
+    }
+  },
+  {
+    "text": "370.0 g Kirsch-Konfitüre",
+    "labels": {
+      "qty": "370.0",
+      "unit": "g",
+      "name": "Kirsch-Konfitüre",
+      "comment": null
+    }
+  },
+  {
+    "text": "1.0 Dose(n) Sauerkirschen",
+    "labels": {
+      "qty": "1.0",
+      "unit": "Dose(n)",
+      "name": "Sauerkirschen",
+      "comment": null
+    }
+  },
+  {
+    "text": "0.5 l Kirschsaft",
+    "labels": {
+      "qty": "0.5",
+      "unit": "l",
+      "name": "Kirschsaft",
+      "comment": null
+    }
+  },
+  {
+    "text": "70.0 g Rewe Bio Frühstücksspeck",
+    "labels": {
+      "qty": "70.0",
+      "unit": "g",
+      "name": "Rewe Bio Frühstücksspeck",
+      "comment": null
+    }
+  },
+  {
+    "text": "250.0 g Dr. Oetker Crème fraîche",
+    "labels": {
+      "qty": "250.0",
+      "unit": "g",
+      "name": "Dr. Oetker Crème fraîche",
+      "comment": null
+    }
+  },
+  {
+    "text": "1.0 EL Sojasoße (glutenfrei)",
+    "labels": {
+      "qty": "1.0",
+      "unit": "EL",
+      "name": "Sojasoße",
+      "comment": "(glutenfrei)"
+    }
+  },
+  {
+    "text": "1.0 TL Austern-Sauce (alt. Hoisin-Sauce)",
+    "labels": {
+      "qty": "1.0",
+      "unit": "TL",
+      "name": "Austern-Sauce",
+      "comment": "(alt. Hoisin-Sauce)"
+    }
+  },
+  {
+    "text": "450.0 g ja! TK Rahmspinat",
+    "labels": {
+      "qty": "450.0",
+      "unit": "g",
+      "name": "ja! TK Rahmspinat",
+      "comment": null
+    }
+  },
+  {
+    "text": "4.0 ja! Eier (M)",
+    "labels": {
+      "qty": "4.0",
+      "unit": "Stück",
+      "name": "ja! Eier",
+      "comment": "(M)"
+    }
+  },
+  {
+    "text": "200.0 g ja! Gouda (jung)",
+    "labels": {
+      "qty": "200.0",
+      "unit": "g",
+      "name": "ja! Gouda",
+      "comment": "(jung)"
+    }
+  },
+  {
+    "text": "100.0 g ja! Pesto alla Calabrese",
+    "labels": {
+      "qty": "100.0",
+      "unit": "g",
+      "name": "ja! Pesto alla Calabrese",
+      "comment": null
+    }
+  },
+  {
+    "text": "2.0 Pck. Tofu (à 200 g)",
+    "labels": {
+      "qty": "2.0",
+      "unit": "Pck.",
+      "name": "Tofu",
+      "comment": "(à 200 g)"
+    }
+  },
+  {
+    "text": "1.0 kg Rinderfilet (à ca. 10 cm Durchmesser)",
+    "labels": {
+      "qty": "1.0",
+      "unit": "kg",
+      "name": "Rinderfilet",
+      "comment": "(à ca. 10 cm Durchmesser)"
+    }
+  },
+  {
+    "text": "400.0 g gemischte Pilze",
+    "labels": {
+      "qty": "400.0",
+      "unit": "g",
+      "name": "gemischte Pilze",
+      "comment": null
+    }
+  },
+  {
+    "text": "400.0 g Blätterteig",
+    "labels": {
+      "qty": "400.0",
+      "unit": "g",
+      "name": "Blätterteig",
+      "comment": null
+    }
+  },
+  {
+    "text": "500.0 g Prinzessbohnen (frisch oder TK)",
+    "labels": {
+      "qty": "500.0",
+      "unit": "g",
+      "name": "Prinzessbohnen",
+      "comment": "(frisch oder TK)"
+    }
+  },
+  {
+    "text": "3.5 EL Tahin",
+    "labels": {
+      "qty": "3.5",
+      "unit": "EL",
+      "name": "Tahin",
+      "comment": null
+    }
+  },
+  {
+    "text": "2.0 EL Sesam (schwarz)",
+    "labels": {
+      "qty": "2.0",
+      "unit": "EL",
+      "name": "Sesam",
+      "comment": "(schwarz)"
+    }
+  },
+  {
+    "text": "900.0 g REWE Bio Rote Bete, gegart",
+    "labels": {
+      "qty": "900.0",
+      "unit": "g",
+      "name": "REWE Bio Rote Bete",
+      "comment": ", gegart"
+    }
+  },
+  {
+    "text": "1.0 Chili, klein",
+    "labels": {
+      "qty": "1.0",
+      "unit": "Stück",
+      "name": "Chili",
+      "comment": "klein"
+    }
+  },
+  {
+    "text": "250.0 g griechischer Naturjoghurt (10%)",
+    "labels": {
+      "qty": "250.0",
+      "unit": "g",
+      "name": "griechischer Naturjoghurt",
+      "comment": "(10%)"
+    }
+  },
+  {
+    "text": "15.0 g Haselnusskerne, ganz",
+    "labels": {
+      "qty": "15.0",
+      "unit": "g",
+      "name": "Haselnusskerne",
+      "comment": ", ganz"
+    }
+  },
+  {
+    "text": "60.0 g REWE Bio Ziegenfrischkäse",
+    "labels": {
+      "qty": "60.0",
+      "unit": "g",
+      "name": "REWE Bio Ziegenfrischkäse",
+      "comment": null
+    }
+  },
+  {
+    "text": "20.0 g Ingwer frisch",
+    "labels": {
+      "qty": "20.0",
+      "unit": "g",
+      "name": "Ingwer",
+      "comment": "frisch"
+    }
+  },
+  {
+    "text": "20.0 g Thai-Basilikum",
+    "labels": {
+      "qty": "20.0",
+      "unit": "g",
+      "name": "Thai-Basilikum",
+      "comment": null
+    }
+  },
+  {
+    "text": "50.0 g Sushi-Ingwer",
+    "labels": {
+      "qty": "50.0",
+      "unit": "g",
+      "name": "Sushi-Ingwer",
+      "comment": null
+    }
+  },
+  {
+    "text": "2.0 EL Sriracha Mayo",
+    "labels": {
+      "qty": "2.0",
+      "unit": "EL",
+      "name": "Sriracha Mayo",
+      "comment": null
+    }
+  },
+  {
+    "text": "2.0 Scheibe(n) REWE Frei von Sandwich",
+    "labels": {
+      "qty": "2.0",
+      "unit": "Scheibe(n)",
+      "name": "REWE Frei von Sandwich",
+      "comment": null
+    }
+  },
+  {
+    "text": "1.0 Glas REWE Beste Wahl getrocknete Tomaten",
+    "labels": {
+      "qty": "1.0",
+      "unit": "Glas",
+      "name": "REWE Beste Wahl getrocknete Tomaten",
+      "comment": null
+    }
+  },
+  {
+    "text": "1.5 EL glutenfreier Senf",
+    "labels": {
+      "qty": "1.5",
+      "unit": "EL",
+      "name": "glutenfreier Senf",
+      "comment": null
+    }
+  },
+  {
+    "text": "2.0 EL REWE Bio 6 Kräuter",
+    "labels": {
+      "qty": "2.0",
+      "unit": "EL",
+      "name": "REWE Bio 6 Kräuter",
+      "comment": null
+    }
+  },
+  {
+    "text": "1.0 Pck. ja! tiefgefrorene Kroketten",
+    "labels": {
+      "qty": "1.0",
+      "unit": "Pck.",
+      "name": "ja! tiefgefrorene Kroketten",
+      "comment": null
+    }
+  },
+  {
+    "text": "1.0 Dose(n) ja! Champignons",
+    "labels": {
+      "qty": "1.0",
+      "unit": "Dose(n)",
+      "name": "ja! Champignons",
+      "comment": null
+    }
+  },
+  {
+    "text": "100.0 g ja! Gemüsemais (Dose)",
+    "labels": {
+      "qty": "100.0",
+      "unit": "g",
+      "name": "ja! Gemüsemais",
+      "comment": "(Dose)"
+    }
+  },
+  {
+    "text": "4.0 Scheibe(n) Kräuterbutter",
+    "labels": {
+      "qty": "4.0",
+      "unit": "Scheibe(n)",
+      "name": "Kräuterbutter",
+      "comment": null
+    }
+  },
+  {
+    "text": "4.0 EL ja! Waldhonig",
+    "labels": {
+      "qty": "4.0",
+      "unit": "EL",
+      "name": "ja! Waldhonig",
+      "comment": null
+    }
+  },
+  {
+    "text": "500.0 g Halloumi-Grillkäse (am Stück)",
+    "labels": {
+      "qty": "500.0",
+      "unit": "g",
+      "name": "Halloumi-Grillkäse",
+      "comment": "(am Stück)"
+    }
+  },
+  {
+    "text": "2.0 TL brauner Rohrzucker",
+    "labels": {
+      "qty": "2.0",
+      "unit": "TL",
+      "name": "brauner Rohrzucker",
+      "comment": null
+    }
+  },
+  {
+    "text": "4.0 cl Maracujasaft",
+    "labels": {
+      "qty": "4.0",
+      "unit": "cl",
+      "name": "Maracujasaft",
+      "comment": null
+    }
+  },
+  {
+    "text": "150.0 ml Ginger Ale",
+    "labels": {
+      "qty": "150.0",
+      "unit": "ml",
+      "name": "Ginger Ale",
+      "comment": null
+    }
+  },
+  {
+    "text": "250.0 g Naturjoghurt (1,5 %)",
+    "labels": {
+      "qty": "250.0",
+      "unit": "g",
+      "name": "Naturjoghurt",
+      "comment": "(1,5 %)"
+    }
+  },
+  {
+    "text": "250.0 g frischer Babyspinat",
+    "labels": {
+      "qty": "250.0",
+      "unit": "g",
+      "name": "Babyspinat",
+      "comment": "frischer"
+    }
+  },
+  {
+    "text": "4.0 TL REWE Beste Wahl Nuss-Mix Olive & Pistazie",
+    "labels": {
+      "qty": "4.0",
+      "unit": "TL",
+      "name": "REWE Beste Wahl Nuss-Mix Olive & Pistazie",
+      "comment": null
+    }
+  },
+  {
+    "text": "300.0 g Lachsfilet",
+    "labels": {
+      "qty": "300.0",
+      "unit": "g",
+      "name": "Lachsfilet",
+      "comment": null
+    }
+  },
+  {
+    "text": "1.0 Pck. Frischer Blätterteig (275 g) (Kühlregal)",
+    "labels": {
+      "qty": "1.0",
+      "unit": "Pck.",
+      "name": "Frischer Blätterteig",
+      "comment": "(275 g) (Kühlregal)"
+    }
+  },
+  {
+    "text": "2.0 Kaffir Limettenblätter (getrocknet)",
+    "labels": {
+      "qty": "2.0",
+      "unit": "Stück",
+      "name": "Kaffir Limettenblätter",
+      "comment": "(getrocknet)"
+    }
+  },
+  {
+    "text": "150.0 g Erdnüsse (gesalzen)",
+    "labels": {
+      "qty": "150.0",
+      "unit": "g",
+      "name": "Erdnüsse",
+      "comment": "(gesalzen)"
+    }
+  },
+  {
+    "text": "125.0 g Kuchenglasur dunkel",
+    "labels": {
+      "qty": "125.0",
+      "unit": "g",
+      "name": "Kuchenglasur dunkel",
+      "comment": null
+    }
+  },
+  {
+    "text": "200.0 g Hokkaido",
+    "labels": {
+      "qty": "200.0",
+      "unit": "g",
+      "name": "Hokkaido",
+      "comment": null
+    }
+  },
+  {
+    "text": "150.0 g Crème fraîche (laktosefrei)",
+    "labels": {
+      "qty": "150.0",
+      "unit": "g",
+      "name": "Crème fraîche",
+      "comment": "(laktosefrei)"
+    }
+  },
+  {
+    "text": "170.0 g Zuckerersatz (z.B. Erythrit)",
+    "labels": {
+      "qty": "170.0",
+      "unit": "g",
+      "name": "Zuckerersatz",
+      "comment": "(z.B. Erythrit)"
+    }
+  },
+  {
+    "text": "50.0 g Dinkelmehl (Type 630)",
+    "labels": {
+      "qty": "50.0",
+      "unit": "g",
+      "name": "Dinkelmehl",
+      "comment": "(Type 630)"
+    }
+  },
+  {
+    "text": "50.0 g gehackte Nüsse (z.B. Mandeln und Walnüsse)",
+    "labels": {
+      "qty": "50.0",
+      "unit": "g",
+      "name": "gehackte Nüsse",
+      "comment": "(z.B. Mandeln und Walnüsse)"
+    }
+  },
+  {
+    "text": "1.0 TL Backpulver (gehäuft)",
+    "labels": {
+      "qty": "1.0",
+      "unit": "TL",
+      "name": "Backpulver",
+      "comment": "(gehäuft)"
+    }
+  },
+  {
+    "text": "2.5 Pck. Giotto (à 150 g)",
+    "labels": {
+      "qty": "2.5",
+      "unit": "Pck.",
+      "name": "Giotto",
+      "comment": "(à 150 g)"
+    }
+  },
+  {
+    "text": "150.0 g Nuss-Nugat-Creme",
+    "labels": {
+      "qty": "150.0",
+      "unit": "g",
+      "name": "Nuss-Nugat-Creme",
+      "comment": null
+    }
+  },
+  {
+    "text": "75.0 g Haselnusskrokant",
+    "labels": {
+      "qty": "75.0",
+      "unit": "g",
+      "name": "Haselnusskrokant",
+      "comment": null
+    }
+  },
+  {
+    "text": "4.0 Stück Rote Bete",
+    "labels": {
+      "qty": "4.0",
+      "unit": "Stück",
+      "name": "Rote Bete",
+      "comment": null
+    }
+  },
+  {
+    "text": "1.0 Pck. Mürbeteig Torteletts",
+    "labels": {
+      "qty": "1.0",
+      "unit": "Pck.",
+      "name": "Mürbeteig Torteletts",
+      "comment": null
+    }
+  },
+  {
+    "text": "2.0 Dose(n) Kokosmilch (à 400 g)",
+    "labels": {
+      "qty": "2.0",
+      "unit": "Dose(n)",
+      "name": "Kokosmilch",
+      "comment": "(à 400 g)"
+    }
+  },
+  {
+    "text": "1.0 kleines Stück Zimtstange",
+    "labels": {
+      "qty": "1.0",
+      "unit": "Stück",
+      "name": "Zimtstange",
+      "comment": "kleines"
+    }
+  },
+  {
+    "text": "4.0 Steinbuttfilets (á ca. 150 g)",
+    "labels": {
+      "qty": "4.0",
+      "unit": "Stück",
+      "name": "Steinbuttfilets",
+      "comment": "(á ca. 150 g)"
+    }
+  },
+  {
+    "text": "1.0 EL fein abgeriebene Bio-Limettenschale",
+    "labels": {
+      "qty": "1.0",
+      "unit": "EL",
+      "name": "Bio-Limettenschale",
+      "comment": "fein abgeriebene"
+    }
+  },
+  {
+    "text": "100.0 g Spinat (TK)",
+    "labels": {
+      "qty": "100.0",
+      "unit": "g",
+      "name": "Spinat",
+      "comment": "(TK)"
+    }
+  },
+  {
+    "text": "100.0 g geriebener Käse (z. B. Mozzarella)",
+    "labels": {
+      "qty": "100.0",
+      "unit": "g",
+      "name": "geriebener Käse",
+      "comment": "(z. B. Mozzarella)"
+    }
+  },
+  {
+    "text": "250.0 g grobes Salz",
+    "labels": {
+      "qty": "250.0",
+      "unit": "g",
+      "name": "Salz",
+      "comment": "grobes"
+    }
+  },
+  {
+    "text": "3.0 EL Senf, körnig",
+    "labels": {
+      "qty": "3.0",
+      "unit": "EL",
+      "name": "Senf",
+      "comment": ", körnig"
+    }
+  },
+  {
+    "text": "4.0 Scheibe(n) Brot nach Wahl, dick geschnitten",
+    "labels": {
+      "qty": "4.0",
+      "unit": "Scheibe(n)",
+      "name": "Brot nach Wahl",
+      "comment": ", dick geschnitten"
+    }
+  },
+  {
+    "text": "200.0 g REWE Feine Welt Tiroler Bergkäse",
+    "labels": {
+      "qty": "200.0",
+      "unit": "g",
+      "name": "REWE Feine Welt Tiroler Bergkäse",
+      "comment": null
+    }
+  },
+  {
+    "text": "1.0 ja! Steinofen Baguette",
+    "labels": {
+      "qty": "1.0",
+      "unit": "Stück",
+      "name": "ja! Steinofen Baguette",
+      "comment": null
+    }
+  },
+  {
+    "text": "2.0 EL Butter oder Margarine",
+    "labels": {
+      "qty": "2.0",
+      "unit": "EL",
+      "name": "Butter oder Margarine",
+      "comment": null
+    }
+  },
+  {
+    "text": "150.0 g Ja! Geriebener Gratin- und Pizzakäse",
+    "labels": {
+      "qty": "150.0",
+      "unit": "g",
+      "name": "Ja! Geriebener Gratin- und Pizzakäse",
+      "comment": null
+    }
+  },
+  {
+    "text": "800.0 ml ja! Tomatencremesuppe (2 Dosen)",
+    "labels": {
+      "qty": "800.0",
+      "unit": "ml",
+      "name": "ja! Tomatencremesuppe",
+      "comment": "(2 Dosen)"
+    }
+  },
+  {
+    "text": "4.0 Kugel(n) Mövenpick Eis Maple Walnuts",
+    "labels": {
+      "qty": "4.0",
+      "unit": "Kugel(n)",
+      "name": "Mövenpick Eis Maple Walnuts",
+      "comment": null
+    }
+  },
+  {
+    "text": "250.0 g Käse (kräftig)",
+    "labels": {
+      "qty": "250.0",
+      "unit": "g",
+      "name": "Käse",
+      "comment": "(kräftig)"
+    }
+  },
+  {
+    "text": "80.0 ml Milch (3,8 % Fett)",
+    "labels": {
+      "qty": "80.0",
+      "unit": "ml",
+      "name": "Milch",
+      "comment": "(3,8 % Fett)"
+    }
+  },
+  {
+    "text": "400.0 ml Schokoladeneis",
+    "labels": {
+      "qty": "400.0",
+      "unit": "ml",
+      "name": "Schokoladeneis",
+      "comment": null
+    }
+  },
+  {
+    "text": "300.0 ml Vanilleeis",
+    "labels": {
+      "qty": "300.0",
+      "unit": "ml",
+      "name": "Vanilleeis",
+      "comment": null
+    }
+  },
+  {
+    "text": "1.0 REWE Beste Wahl Vanilleschote",
+    "labels": {
+      "qty": "1.0",
+      "unit": "Stück",
+      "name": "REWE Beste Wahl Vanilleschote",
+      "comment": null
+    }
+  },
+  {
+    "text": "3.0 EL REWE Bio Vielblütenhonig",
+    "labels": {
+      "qty": "3.0",
+      "unit": "EL",
+      "name": "REWE Bio Vielblütenhonig",
+      "comment": null
+    }
+  },
+  {
+    "text": "200.0 ml Milch 3,5%",
+    "labels": {
+      "qty": "200.0",
+      "unit": "ml",
+      "name": "Milch",
+      "comment": "3,5%"
+    }
+  },
+  {
+    "text": "180.0 g Brioche",
+    "labels": {
+      "qty": "180.0",
+      "unit": "g",
+      "name": "Brioche",
+      "comment": null
+    }
+  },
+  {
+    "text": "50.0 g REWE Bio Himbeeren, tiefgefroren",
+    "labels": {
+      "qty": "50.0",
+      "unit": "g",
+      "name": "REWE Bio Himbeeren",
+      "comment": ", tiefgefroren"
+    }
+  },
+  {
+    "text": "10.0 Cornichons",
+    "labels": {
+      "qty": "10.0",
+      "unit": "Stück",
+      "name": "Cornichons",
+      "comment": null
+    }
+  },
+  {
+    "text": "20.0 Blätter Feldsalat",
+    "labels": {
+      "qty": "20.0",
+      "unit": "Blätter",
+      "name": "Feldsalat",
+      "comment": null
+    }
+  },
+  {
+    "text": "REWE Beste Wahl Chipotle Chili Sauce",
+    "labels": {
+      "qty": null,
+      "unit": null,
+      "name": "REWE Beste Wahl Chipotle Chili Sauce",
+      "comment": null
+    }
+  },
+  {
+    "text": "0.5 EL Erdnüsse",
+    "labels": {
+      "qty": "0.5",
+      "unit": "EL",
+      "name": "Erdnüsse",
+      "comment": null
+    }
+  },
+  {
+    "text": "1.0 Pute (ca. 4 kg)",
+    "labels": {
+      "qty": "1.0",
+      "unit": "Stück",
+      "name": "Pute",
+      "comment": "ca. 4 kg"
+    }
+  },
+  {
+    "text": "1.0 kg Toastbrot",
+    "labels": {
+      "qty": "1.0",
+      "unit": "kg",
+      "name": "Toastbrot",
+      "comment": null
+    }
+  },
+  {
+    "text": "200.0 g Pekannusskerne, gehackt",
+    "labels": {
+      "qty": "200.0",
+      "unit": "g",
+      "name": "Pekannusskerne",
+      "comment": "gehackt"
+    }
+  },
+  {
+    "text": "300.0 ml heiße Milch",
+    "labels": {
+      "qty": "300.0",
+      "unit": "ml",
+      "name": "Milch",
+      "comment": "heiße"
+    }
+  },
+  {
+    "text": "200.0 g getrocknete Cranberries, gehackt",
+    "labels": {
+      "qty": "200.0",
+      "unit": "g",
+      "name": "getrocknete Cranberries",
+      "comment": "gehackt"
+    }
+  },
+  {
+    "text": "150.0 g getrocknete Lupinenkerne",
+    "labels": {
+      "qty": "150.0",
+      "unit": "g",
+      "name": "getrocknete Lupinenkerne",
+      "comment": null
+    }
+  },
+  {
+    "text": "100.0 g Reisflocken",
+    "labels": {
+      "qty": "100.0",
+      "unit": "g",
+      "name": "Reisflocken",
+      "comment": null
+    }
+  },
+  {
+    "text": "4.0 EL Apfelmark",
+    "labels": {
+      "qty": "4.0",
+      "unit": "EL",
+      "name": "Apfelmark",
+      "comment": null
+    }
+  },
+  {
+    "text": "1.0 Kohlrabi (groß; ca. 600 g)",
+    "labels": {
+      "qty": "1.0",
+      "unit": "Stück",
+      "name": "Kohlrabi",
+      "comment": "groß; ca. 600 g"
+    }
+  },
+  {
+    "text": "3.0 Kartoffeln (mittelgroß, mehligkochend)",
+    "labels": {
+      "qty": "3.0",
+      "unit": "Stück",
+      "name": "Kartoffeln",
+      "comment": "(mittelgroß, mehligkochend)"
+    }
+  },
+  {
+    "text": "1.0 l Gemüsebrühe (z. B. Instant)",
+    "labels": {
+      "qty": "1.0",
+      "unit": "l",
+      "name": "Gemüsebrühe",
+      "comment": "(z. B. Instant)"
+    }
+  },
+  {
+    "text": "1.0 Schale Bärlauch",
+    "labels": {
+      "qty": "1.0",
+      "unit": "Schale",
+      "name": "Bärlauch",
+      "comment": null
+    }
+  },
+  {
+    "text": "1.0 Schale glatte Petersilie",
+    "labels": {
+      "qty": "1.0",
+      "unit": "Schale",
+      "name": "glatte Petersilie",
+      "comment": null
+    }
+  },
+  {
+    "text": "1.0 Schale Kerbel",
+    "labels": {
+      "qty": "1.0",
+      "unit": "Schale",
+      "name": "Kerbel",
+      "comment": null
+    }
+  },
+  {
+    "text": "200.0 g Mandelstifte",
+    "labels": {
+      "qty": "200.0",
+      "unit": "g",
+      "name": "Mandelstifte",
+      "comment": null
+    }
+  },
+  {
+    "text": "400.0 g getrocknete Feigen",
+    "labels": {
+      "qty": "400.0",
+      "unit": "g",
+      "name": "getrocknete Feigen",
+      "comment": null
+    }
+  },
+  {
+    "text": "400.0 g Rosinen",
+    "labels": {
+      "qty": "400.0",
+      "unit": "g",
+      "name": "Rosinen",
+      "comment": null
+    }
+  },
+  {
+    "text": "1.5 EL Piment",
+    "labels": {
+      "qty": "1.5",
+      "unit": "EL",
+      "name": "Piment",
+      "comment": null
+    }
+  },
+  {
+    "text": "4.0 Stück Lachsfilet (à 150 g) (TK)",
+    "labels": {
+      "qty": "4.0",
+      "unit": "Stück",
+      "name": "Lachsfilet",
+      "comment": "(à 150 g) (TK)"
+    }
+  },
+  {
+    "text": "7.0 EL REWE Feine Welt Lesvos g.g.A. mildes Olivenöl",
+    "labels": {
+      "qty": "7.0",
+      "unit": "EL",
+      "name": "REWE Feine Welt Lesvos g.g.A. mildes Olivenöl",
+      "comment": null
+    }
+  },
+  {
+    "text": "2.0 EL REWE Feine Welt Aceto Balsamico Di Modena I.G.P",
+    "labels": {
+      "qty": "2.0",
+      "unit": "EL",
+      "name": "REWE Feine Welt Aceto Balsamico Di Modena I.G.P",
+      "comment": null
+    }
+  },
+  {
+    "text": "10.0 Tropfen Mandelaroma",
+    "labels": {
+      "qty": "10.0",
+      "unit": "Tropfen",
+      "name": "Mandelaroma",
+      "comment": null
+    }
+  },
+  {
+    "text": "1.0 Msp. Instant-Kaffee",
+    "labels": {
+      "qty": "1.0",
+      "unit": "Msp.",
+      "name": "Instant-Kaffee",
+      "comment": null
+    }
+  },
+  {
+    "text": "200.0 g REWE Feine Welt Heidelbeer Fruchtaufstrich",
+    "labels": {
+      "qty": "200.0",
+      "unit": "g",
+      "name": "REWE Feine Welt Heidelbeer Fruchtaufstrich",
+      "comment": null
+    }
+  },
+  {
+    "text": "200.0 g Edelzartbitter-Schokolade",
+    "labels": {
+      "qty": "200.0",
+      "unit": "g",
+      "name": "Edelzartbitter-Schokolade",
+      "comment": null
+    }
+  },
+  {
+    "text": "4.0 EL Dashi-Brühe (Alternativ Fischfond)",
+    "labels": {
+      "qty": "4.0",
+      "unit": "EL",
+      "name": "Dashi-Brühe",
+      "comment": "(Alternativ Fischfond)"
+    }
+  },
+  {
+    "text": "1.0 EL Mirin (Alternativ trockener Weißwein)",
+    "labels": {
+      "qty": "1.0",
+      "unit": "EL",
+      "name": "Mirin",
+      "comment": "(Alternativ trockener Weißwein)"
+    }
+  },
+  {
+    "text": "50.0 g Pistazienkerne (gesalzen, ohne Schale)",
+    "labels": {
+      "qty": "50.0",
+      "unit": "g",
+      "name": "Pistazienkerne",
+      "comment": "(gesalzen, ohne Schale)"
+    }
+  },
+  {
+    "text": "800.0 g gekochter Schinken",
+    "labels": {
+      "qty": "800.0",
+      "unit": "g",
+      "name": "gekochter Schinken",
+      "comment": null
+    }
+  },
+  {
+    "text": "5.0 g Backpulver",
+    "labels": {
+      "qty": "5.0",
+      "unit": "g",
+      "name": "Backpulver",
+      "comment": null
+    }
+  },
+  {
+    "text": "500.0 ja! Zarte Haferflocken",
+    "labels": {
+      "qty": "500.0",
+      "unit": "g",
+      "name": "ja! Zarte Haferflocken",
+      "comment": null
+    }
+  },
+  {
+    "text": "400.0 ml Milch (1,5 %)",
+    "labels": {
+      "qty": "400.0",
+      "unit": "ml",
+      "name": "Milch",
+      "comment": "(1,5 %)"
+    }
+  },
+  {
+    "text": "150.0 g REWE Bio Apfelmark",
+    "labels": {
+      "qty": "150.0",
+      "unit": "g",
+      "name": "REWE Bio Apfelmark",
+      "comment": null
+    }
+  },
+  {
+    "text": "170.0 g Honig",
+    "labels": {
+      "qty": "170.0",
+      "unit": "g",
+      "name": "Honig",
+      "comment": null
+    }
+  },
+  {
+    "text": "2.0 Eier (M, zimmerwarm)",
+    "labels": {
+      "qty": "2.0",
+      "unit": "Stück",
+      "name": "Eier",
+      "comment": "(M, zimmerwarm)"
+    }
+  },
+  {
+    "text": "6.0 REWE Regional Äpfel",
+    "labels": {
+      "qty": "6.0",
+      "unit": "Stück",
+      "name": "REWE Regional Äpfel",
+      "comment": null
+    }
+  },
+  {
+    "text": "8.0 Blatt weiße Gelatine",
+    "labels": {
+      "qty": "8.0",
+      "unit": "Blatt",
+      "name": "weiße Gelatine",
+      "comment": null
+    }
+  },
+  {
+    "text": "200.0 ml Milch (3,8% Fett)",
+    "labels": {
+      "qty": "200.0",
+      "unit": "ml",
+      "name": "Milch",
+      "comment": "(3,8% Fett)"
+    }
+  },
+  {
+    "text": "5.0 EL Limoncello",
+    "labels": {
+      "qty": "5.0",
+      "unit": "EL",
+      "name": "Limoncello",
+      "comment": null
+    }
+  },
+  {
+    "text": "30.0 g Mandelstifte",
+    "labels": {
+      "qty": "30.0",
+      "unit": "g",
+      "name": "Mandelstifte",
+      "comment": null
+    }
+  },
+  {
+    "text": "120.0 g kräftiger Pecorino",
+    "labels": {
+      "qty": "120.0",
+      "unit": "g",
+      "name": "kräftiger Pecorino",
+      "comment": null
+    }
+  },
+  {
+    "text": "350.0 g Orecchiette",
+    "labels": {
+      "qty": "350.0",
+      "unit": "g",
+      "name": "Orecchiette",
+      "comment": null
+    }
+  },
+  {
+    "text": "800.0 g Kürbisfleisch",
+    "labels": {
+      "qty": "800.0",
+      "unit": "g",
+      "name": "Kürbisfleisch",
+      "comment": null
+    }
+  },
+  {
+    "text": "2.0 Zehe(n) Koblauch",
+    "labels": {
+      "qty": "2.0",
+      "unit": "Zehe(n)",
+      "name": "Koblauch",
+      "comment": null
+    }
+  },
+  {
+    "text": "6.0 EL Amaranth gepoppt",
+    "labels": {
+      "qty": "6.0",
+      "unit": "EL",
+      "name": "Amaranth",
+      "comment": "gepoppt"
+    }
+  },
+  {
+    "text": "125.0 g Shiitakepilze",
+    "labels": {
+      "qty": "125.0",
+      "unit": "g",
+      "name": "Shiitakepilze",
+      "comment": null
+    }
+  },
+  {
+    "text": "2.0 Bio Karotten",
+    "labels": {
+      "qty": "2.0",
+      "unit": "Stück",
+      "name": "Bio Karotten",
+      "comment": null
+    }
+  },
+  {
+    "text": "12.0 frische Riesengarnelen, entdarmt",
+    "labels": {
+      "qty": "12.0",
+      "unit": "Stück",
+      "name": "frische Riesengarnelen",
+      "comment": "entdarmt"
+    }
+  },
+  {
+    "text": "1.5 l Brühe",
+    "labels": {
+      "qty": "1.5",
+      "unit": "l",
+      "name": "Brühe",
+      "comment": null
+    }
+  },
+  {
+    "text": "2.0 EL Sweet-Chili-Sauce",
+    "labels": {
+      "qty": "2.0",
+      "unit": "EL",
+      "name": "Sweet-Chili-Sauce",
+      "comment": null
+    }
+  },
+  {
+    "text": "1.0 großer Wirsing",
+    "labels": {
+      "qty": "1.0",
+      "unit": "Stück",
+      "name": "Wirsing",
+      "comment": "großer"
+    }
+  },
+  {
+    "text": "200.0 g Maronen, vorgekocht",
+    "labels": {
+      "qty": "200.0",
+      "unit": "g",
+      "name": "Maronen",
+      "comment": "vorgekocht"
+    }
+  },
+  {
+    "text": "80.0 g geriebener Käse, z. B Gouda",
+    "labels": {
+      "qty": "80.0",
+      "unit": "g",
+      "name": "geriebener Käse",
+      "comment": "z. B Gouda"
+    }
+  },
+  {
+    "text": "450.0 ml Gemüsefond",
+    "labels": {
+      "qty": "450.0",
+      "unit": "ml",
+      "name": "Gemüsefond",
+      "comment": null
+    }
+  },
+  {
+    "text": "100.0 g feine Lebkuchen ohne Schokolade, ohne Oblaten",
+    "labels": {
+      "qty": "100.0",
+      "unit": "g",
+      "name": "feine Lebkuchen",
+      "comment": "ohne Schokolade, ohne Oblaten"
+    }
+  },
+  {
+    "text": "0.5 TL Kurkuma Pulver",
+    "labels": {
+      "qty": "0.5",
+      "unit": "TL",
+      "name": "Kurkuma Pulver",
+      "comment": null
+    }
+  },
+  {
+    "text": "300.0 g Kartoffel (vorwiegend festkochend)",
+    "labels": {
+      "qty": "300.0",
+      "unit": "g",
+      "name": "Kartoffel",
+      "comment": "(vorwiegend festkochend)"
+    }
+  },
+  {
+    "text": "2.0 EL Cashewkerne geröstet",
+    "labels": {
+      "qty": "2.0",
+      "unit": "EL",
+      "name": "Cashewkerne",
+      "comment": "geröstet"
+    }
+  },
+  {
+    "text": "2.0 EL Koriander",
+    "labels": {
+      "qty": "2.0",
+      "unit": "EL",
+      "name": "Koriander",
+      "comment": null
+    }
+  },
+  {
+    "text": "50.0 ml Joghurt",
+    "labels": {
+      "qty": "50.0",
+      "unit": "ml",
+      "name": "Joghurt",
+      "comment": null
+    }
+  },
+  {
+    "text": "150.0 g Putenfleisch",
+    "labels": {
+      "qty": "150.0",
+      "unit": "g",
+      "name": "Putenfleisch",
+      "comment": null
+    }
+  },
+  {
+    "text": "100.0 ml Hühnerbrühe (Konzentrat)",
+    "labels": {
+      "qty": "100.0",
+      "unit": "ml",
+      "name": "Hühnerbrühe",
+      "comment": "(Konzentrat)"
+    }
+  },
+  {
+    "text": "3.0 große Erdbeeren",
+    "labels": {
+      "qty": "3.0",
+      "unit": "Stück",
+      "name": "Erdbeeren",
+      "comment": "große"
+    }
+  },
+  {
+    "text": "6.0 Mini-Bananen",
+    "labels": {
+      "qty": "6.0",
+      "unit": "Stück",
+      "name": "Mini-Bananen",
+      "comment": null
+    }
+  },
+  {
+    "text": "25.0 g dunkle Kuvertüre",
+    "labels": {
+      "qty": "25.0",
+      "unit": "g",
+      "name": "dunkle Kuvertüre",
+      "comment": null
+    }
+  },
+  {
+    "text": "1.0 Pck. Iglo Green Cuisine Veganes Hack (230 g)",
+    "labels": {
+      "qty": "1.0",
+      "unit": "Pck.",
+      "name": "Iglo Green Cuisine Veganes Hack",
+      "comment": "230 g"
+    }
+  },
+  {
+    "text": "1.0 Bd. Koriander (frisch)",
+    "labels": {
+      "qty": "1.0",
+      "unit": "Bd.",
+      "name": "Koriander",
+      "comment": "(frisch)"
+    }
+  },
+  {
+    "text": "500.0 g Sojagurt natur",
+    "labels": {
+      "qty": "500.0",
+      "unit": "g",
+      "name": "Sojagurt natur",
+      "comment": null
+    }
+  },
+  {
+    "text": "2.0 Birnen, fest, je etwa 220 g",
+    "labels": {
+      "qty": "2.0",
+      "unit": "Stück",
+      "name": "Birnen",
+      "comment": "fest, je etwa 220 g"
+    }
+  },
+  {
+    "text": "2.0 REWE Bio Kardamomkapseln",
+    "labels": {
+      "qty": "2.0",
+      "unit": "Stück",
+      "name": "REWE Bio Kardamomkapseln",
+      "comment": null
+    }
+  },
+  {
+    "text": "150.0 ml Grenadine",
+    "labels": {
+      "qty": "150.0",
+      "unit": "ml",
+      "name": "Grenadine",
+      "comment": null
+    }
+  },
+  {
+    "text": "35.0 g Pekannüsse",
+    "labels": {
+      "qty": "35.0",
+      "unit": "g",
+      "name": "Pekannüsse",
+      "comment": null
+    }
+  },
+  {
+    "text": "25.0 g Amarettini",
+    "labels": {
+      "qty": "25.0",
+      "unit": "g",
+      "name": "Amarettini",
+      "comment": null
+    }
+  },
+  {
+    "text": "15.0 g Pistazien",
+    "labels": {
+      "qty": "15.0",
+      "unit": "g",
+      "name": "Pistazien",
+      "comment": null
+    }
+  },
+  {
+    "text": "4.0 Kugel(n) Bourbon-Vanilleeis",
+    "labels": {
+      "qty": "4.0",
+      "unit": "Kugel(n)",
+      "name": "Bourbon-Vanilleeis",
+      "comment": null
+    }
+  },
+  {
+    "text": "800.0 g Rollfondant (pink)",
+    "labels": {
+      "qty": "800.0",
+      "unit": "g",
+      "name": "Rollfondant",
+      "comment": "(pink)"
+    }
+  },
+  {
+    "text": "Zuckerperlen (pink, rosa, silber)",
+    "labels": {
+      "qty": null,
+      "unit": null,
+      "name": "Zuckerperlen",
+      "comment": "(pink, rosa, silber)"
+    }
+  },
+  {
+    "text": "1.0 Pck. Blätterteig (ca. 275 g, aus dem Kühlregal)",
+    "labels": {
+      "qty": "1.0",
+      "unit": "Pck.",
+      "name": "Blätterteig",
+      "comment": "ca. 275 g, aus dem Kühlregal"
+    }
+  },
+  {
+    "text": "Puderzucker und Zimt zum Bestreuen",
+    "labels": {
+      "qty": null,
+      "unit": null,
+      "name": "Puderzucker und Zimt",
+      "comment": "zum Bestreuen"
+    }
+  },
+  {
+    "text": "25.0 g REWE Bio Petersilie, tiefgefroren",
+    "labels": {
+      "qty": "25.0",
+      "unit": "g",
+      "name": "REWE Bio Petersilie",
+      "comment": "tiefgefroren"
+    }
+  },
+  {
+    "text": "200.0 g REWE Bio Haferflocken (zart)",
+    "labels": {
+      "qty": "200.0",
+      "unit": "g",
+      "name": "REWE Bio Haferflocken",
+      "comment": "(zart)"
+    }
+  },
+  {
+    "text": "6.0 EL Leinsamen",
+    "labels": {
+      "qty": "6.0",
+      "unit": "EL",
+      "name": "Leinsamen",
+      "comment": null
+    }
+  },
+  {
+    "text": "7.0 EL Blütenhonig",
+    "labels": {
+      "qty": "7.0",
+      "unit": "EL",
+      "name": "Blütenhonig",
+      "comment": null
+    }
+  },
+  {
+    "text": "225.0 g Vollkorntoast",
+    "labels": {
+      "qty": "225.0",
+      "unit": "g",
+      "name": "Vollkorntoast",
+      "comment": null
+    }
+  },
+  {
+    "text": "180.0 g Hummus (Glas/Dose)",
+    "labels": {
+      "qty": "180.0",
+      "unit": "g",
+      "name": "Hummus",
+      "comment": "(Glas/Dose)"
+    }
+  },
+  {
+    "text": "50.0 g Sesam (geröstet)",
+    "labels": {
+      "qty": "50.0",
+      "unit": "g",
+      "name": "Sesam",
+      "comment": "(geröstet)"
+    }
+  },
+  {
+    "text": "300.0 g Paprikahälften (geröstet; Glas)",
+    "labels": {
+      "qty": "300.0",
+      "unit": "g",
+      "name": "Paprikahälften",
+      "comment": "(geröstet; Glas)"
+    }
+  },
+  {
+    "text": "3.0 EL stückige Tomaten (Dose/Tetrapak)",
+    "labels": {
+      "qty": "3.0",
+      "unit": "EL",
+      "name": "stückige Tomaten",
+      "comment": "(Dose/Tetrapak)"
+    }
+  },
+  {
+    "text": "400.0 g REWE Beste Wahl White Tiger Garnelen ohne Schale (TK, aufgetaut)",
+    "labels": {
+      "qty": "400.0",
+      "unit": "g",
+      "name": "REWE Beste Wahl White Tiger Garnelen ohne Schale",
+      "comment": "(TK, aufgetaut)"
+    }
+  },
+  {
+    "text": "4.0 EL REWE Bio Bratöl",
+    "labels": {
+      "qty": "4.0",
+      "unit": "EL",
+      "name": "REWE Bio Bratöl",
+      "comment": null
+    }
+  },
+  {
+    "text": "4.0 Stück Sahne Toffees",
+    "labels": {
+      "qty": "4.0",
+      "unit": "Stück",
+      "name": "Sahne Toffees",
+      "comment": null
+    }
+  },
+  {
+    "text": "2.0 kleine Lauchzwiebeln",
+    "labels": {
+      "qty": "2.0",
+      "unit": "Stück",
+      "name": "Lauchzwiebeln",
+      "comment": "kleine"
+    }
+  },
+  {
+    "text": "275.0 g helles Mehl",
+    "labels": {
+      "qty": "275.0",
+      "unit": "g",
+      "name": "helles Mehl",
+      "comment": null
+    }
+  },
+  {
+    "text": "2.0 EL heller Sesam",
+    "labels": {
+      "qty": "2.0",
+      "unit": "EL",
+      "name": "heller Sesam",
+      "comment": null
+    }
+  },
+  {
+    "text": "130.0 ml Buttermilch",
+    "labels": {
+      "qty": "130.0",
+      "unit": "ml",
+      "name": "Buttermilch",
+      "comment": null
+    }
+  },
+  {
+    "text": "2.0 EL Bourbon-Vanillezucker",
+    "labels": {
+      "qty": "2.0",
+      "unit": "EL",
+      "name": "Bourbon-Vanillezucker",
+      "comment": null
+    }
+  },
+  {
+    "text": "125.0 g Mandarinen (Abtropfgewicht)",
+    "labels": {
+      "qty": "125.0",
+      "unit": "g",
+      "name": "Mandarinen",
+      "comment": "(Abtropfgewicht)"
+    }
+  },
+  {
+    "text": "140.0 g Ananas in Stücken (Abtropfgewicht)",
+    "labels": {
+      "qty": "140.0",
+      "unit": "g",
+      "name": "Ananas in Stücken",
+      "comment": "(Abtropfgewicht)"
+    }
+  },
+  {
+    "text": "600.0 g Fenchel (mit Grün)",
+    "labels": {
+      "qty": "600.0",
+      "unit": "g",
+      "name": "Fenchel",
+      "comment": "(mit Grün)"
+    }
+  }
+]

@@ -4,7 +4,7 @@ import (
 	"database/sql"
 	"log"
 	"personalization/db/driver"
-	"personalization/middleware"
+	"personalization/internal/middleware"
 	"time"
 
 	"github.com/gin-contrib/cors"
@@ -40,6 +40,8 @@ func main() {
 		AllowCredentials: true,
 		MaxAge:           12 * time.Hour,
 	}))
+
+	createRecipeMappings(appConfig, r, db)
 
 	// Enables prometheus metrics
 	enablePrometheusMetrics(r)

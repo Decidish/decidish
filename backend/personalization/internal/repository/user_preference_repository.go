@@ -45,7 +45,7 @@ func (prefs UserPreferences) String() string {
 	return strings.Join([]string{core, constraints, budget, allergies}, " ")
 }
 
-type UserPreferenceRepository struct {}
+type UserPreferenceRepository struct{}
 
 func (repository *UserPreferenceRepository) Save(tx *sql.Tx, userId string, preferences UserPreferences) error {
 	_, err := tx.Exec(`

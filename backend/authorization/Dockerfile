@@ -1,9 +1,6 @@
-FROM golang:1.25-alpine
+FROM golang:1.25-alpine AS builder
 
 WORKDIR /app
-
-# Install CompileDaemon for hot-reloading in Go
-RUN go install github.com/githubnemo/CompileDaemon@latest
 
 COPY go.mod ./
 COPY go.sum ./
@@ -11,7 +8,17 @@ RUN go mod download
 
 COPY . .
 
-EXPOSE 8083
+RUN go build -o auth_service .
 
-# Watch for changes and rerun the app
-CMD ["CompileDaemon", "--build=go build -o main .", "--command=./main"]
+
+FROM golang:1.25-alpine AS runner
+
+WORKDIR /app
+
+COPY --from=builder /app/auth_service ./auth_service
+
+COPY --from=builder /app/migrations ./migrations
+
+EXPOSE 8082
+
+CMD ["./auth_service"]

@@ -2,17 +2,16 @@ package repository
 
 import (
 	"database/sql"
-	migrations "personalization/db/scripts"
 	"strings"
 )
 
-type RecommenderRepository struct {}
+type RecommenderRepository struct{}
 
 func NewRecommenderRepository() RecommenderRepository {
 	return RecommenderRepository{}
 }
 
-func (repo RecommenderRepository) GetRecommendedRecipesForUser(tx *sql.Tx, userId string) ([]migrations.Recipe, error) {
+func (repo RecommenderRepository) GetRecommendedRecipesForUser(tx *sql.Tx, userId string) ([]Recipe, error) {
 	query, err := tx.Query(`
 		WITH recommender AS ( 
 		    SELECT re.recipe_id, r.embedding <=> re.embedding as dist 
@@ -74,10 +73,10 @@ func (repo RecommenderRepository) GetRecommendedRecipesForUser(tx *sql.Tx, userI
 		return nil, err
 	}
 
-	var recipes []migrations.Recipe
+	var recipes []Recipe
 
 	for query.Next() {
-		var recipe migrations.Recipe
+		var recipe Recipe
 
 		var keywordsStr sql.NullString
 		var ingredientsStr sql.NullString

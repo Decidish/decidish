@@ -52,8 +52,6 @@ services:
     container_name: dev_authorization
     ports:
       - "8083:8083"
-    volumes:
-      - ./backend/authorization:/app
     environment:
       JWT_SECRET: ${JWT_SECRET}
       DATABASE_URL: ${DATABASE_URL}
@@ -88,8 +86,6 @@ services:
     container_name: dev_personalization
     ports:
       - "8082:8082"
-    volumes:
-      - ./backend/personalization:/app
     environment:
       - DB_HOST=db_backend
       - REDIS_HOST=redis
