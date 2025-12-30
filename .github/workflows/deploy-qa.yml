@@ -38,7 +38,7 @@ jobs:
 
   auth-ci:
     needs: prepare
-    if: ${{ needs.prepare.outputs.auth_changed == 'true' }} || github.ref == 'refs/heads/main'
+    if: ${{ needs.prepare.outputs.auth_changed == 'true' || github.ref == 'refs/heads/main' }}
     uses: ./.github/workflows/authorization-ci.yml
     with: 
       environment: qa
@@ -46,7 +46,7 @@ jobs:
   
   personalization-ci:
     needs: prepare
-    if: ${{ needs.prepare.outputs.auth_changed == 'true' }} || github.ref == 'refs/heads/main'
+    if: ${{ needs.prepare.outputs.personalization_changed == 'true' || github.ref == 'refs/heads/main' }}
     uses: ./.github/workflows/personalization-ci.yml
     with: 
       environment: qa
@@ -54,7 +54,7 @@ jobs:
   
   mlpipeline-ci:
     needs: prepare
-    if: ${{ needs.prepare.outputs.auth_changed == 'true' }} || github.ref == 'refs/heads/main'
+    if: ${{ needs.prepare.outputs.mlpipeline_changed == 'true' || github.ref == 'refs/heads/main' }}
     uses: ./.github/workflows/mlpipeline-ci.yml
     with: 
       environment: qa
@@ -62,7 +62,7 @@ jobs:
   
   client-ci:
     needs: prepare
-    if: ${{ needs.prepare.outputs.auth_changed == 'true' }} || github.ref == 'refs/heads/main'
+    if: ${{ needs.prepare.outputs.client_changed == 'true' || github.ref == 'refs/heads/main' }}
     uses: ./.github/workflows/client-ci.yml
     with: 
       environment: qa

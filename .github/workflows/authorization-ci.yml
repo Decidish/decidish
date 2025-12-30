@@ -25,7 +25,7 @@ jobs:
       - name: Test
         run: |
           cd ${{ env.SERVICE_DIR }}
-          go test -v .
+          go test -v ./...
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
