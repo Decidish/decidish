@@ -41,6 +41,7 @@ func main() {
 		MaxAge:           12 * time.Hour,
 	}))
 
+	// TODO: Make sure this endpoint is now visible to users
 	createRecipeMappings(appConfig, r, db)
 
 	// Enables prometheus metrics
