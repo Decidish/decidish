@@ -3,6 +3,7 @@
 
 from torch.utils.data import DataLoader, Dataset, random_split
 import json
+import torch
 
 
 def load_from_json(json_path: str = "recipe.json"):
@@ -26,17 +27,17 @@ class PairDataset(Dataset):
 
     def __getitem__(self, idx: int):
         recipe = self.recipes[idx]
-        recipe_embed = self.recipes_embed[idx]
+        recipe_embed = torch.tensor(self.recipes_embed[idx])
         return recipe, recipe_embed
 
+
 dataset = PairDataset("recipe.json")
-train_ratio = 0.8
+train_ratio = 0.9
 train_size = int(train_ratio * len(dataset))
 val_size = len(dataset) - train_size
 train_set, val_set = random_split(dataset, [train_size, val_size])
-train_loader = DataLoader(train_set, batch_size=32, shuffle=True)
-val_loader = DataLoader(val_set, batch_size=32, shuffle=False)
-
+train_loader = DataLoader(train_set, batch_size=32, shuffle=True, pin_memory=True)
+val_loader = DataLoader(val_set, batch_size=32, shuffle=False, pin_memory=True)
 
 if __name__ == "__main__":
     print(f"train set length: {len(train_set)}")

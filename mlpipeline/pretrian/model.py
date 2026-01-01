@@ -22,7 +22,7 @@ def mean_pool_embeddings(
 @dataclass
 class UserEncoderConfig:
     user_input_dim: int
-    hidden_dim: int = 128
+    hidden_dim: int = 512
     output_dim = 384
     num_layers: int = 2
     dropout: float = 0.1
@@ -103,7 +103,7 @@ class RecipeEncoder(nn.Module):
             ))
         self.mlp = nn.Sequential(*blocks)
 
-    def forward(self, x):
+    def forward(self, x: List[str]):
         with torch.no_grad():
             emb = self.base_model.encode(
                 x,
@@ -146,18 +146,16 @@ class UserRecipeModel(nn.Module):
 def loss(
         emb_user: torch.Tensor,
         emb_recipe: torch.Tensor,
-        target: List,
         temperature: float = 0.07,
 ) -> torch.Tensor:
     logits = emb_user @ emb_recipe.T / temperature
 
     B = emb_user.size(0)
     device = emb_user.device
-    target = torch.tensor(target)
+    target = torch.arange(B, device=device)
 
     loss_u2r = F.cross_entropy(logits, target)
     loss_r2u = F.cross_entropy(logits.T, target)
 
     return (loss_u2r + loss_r2u) / 2.0
 
-# TODO: add dataloaser and loss design
