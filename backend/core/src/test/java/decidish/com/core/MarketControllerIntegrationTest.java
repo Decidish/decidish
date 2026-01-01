@@ -83,7 +83,7 @@ class MarketControllerIntegrationTest {
         // --- 4. ASSERT: Database Verification ---
         // Verify the controller call actually persisted data
         assertEquals(1, marketRepository.count());
-        Market saved = marketRepository.findByReweId(MARKET_ID1).orElseThrow();
+        Market saved = marketRepository.findById(MARKET_ID1).orElseThrow();
         assertEquals("REWE Integration Market", saved.getName());
     }
 
@@ -93,7 +93,7 @@ class MarketControllerIntegrationTest {
         // --- 1. ARRANGE: Pre-seed Database ---
         // The service requires the market to exist before fetching products
         Market dbMarket = new Market();
-        dbMarket.setReweId(MARKET_ID2);
+        dbMarket.setId(MARKET_ID2);
         dbMarket.setName("Market Before Products");
         marketRepository.save(dbMarket);
 
@@ -121,7 +121,7 @@ class MarketControllerIntegrationTest {
                 .andExpect(jsonPath("$.products[0].price").value(159));
 
         // --- 4. ASSERT: Database Verification ---
-        Market updatedMarket = marketRepository.findByReweId(MARKET_ID2).get();
+        Market updatedMarket = marketRepository.findById(MARKET_ID2).get();
         assertEquals(1, updatedMarket.getProducts().size());
         assertEquals("Integration Milk", updatedMarket.getProducts().get(0).getName());
     }
@@ -131,7 +131,7 @@ class MarketControllerIntegrationTest {
     void testGetAllProductsWithQuery_EndToEnd() throws Exception {
         // --- 1. ARRANGE: Pre-seed Database ---
         Market dbMarket = new Market();
-        dbMarket.setReweId(MARKET_ID1);
+        dbMarket.setId(MARKET_ID1);
         dbMarket.setName("Market Before Query Products");
         marketRepository.save(dbMarket);
 
@@ -159,7 +159,7 @@ class MarketControllerIntegrationTest {
                 .andExpect(jsonPath("$.products[0].price").value(299));
         
         // --- 4. ASSERT: Database Verification ---
-        Market updatedMarket = marketRepository.findByReweId(MARKET_ID1).get();
+        Market updatedMarket = marketRepository.findById(MARKET_ID1).get();
         assertEquals(1, updatedMarket.getProducts().size());
         assertEquals("Integration Bread", updatedMarket.getProducts().get(0).getName());
         assertEquals(299, updatedMarket.getProducts().get(0).getPrice());   

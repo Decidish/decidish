@@ -295,7 +295,7 @@ class BenchmarkTests {
     private void setupMarketWithoutProducts() {
         marketRepository.deleteAll();
         Market m = new Market();
-        m.setReweId(MARKET_ID);
+        m.setId(MARKET_ID);
         m.setName("Benchmark Market");
         marketRepository.save(m);
     }
@@ -303,7 +303,7 @@ class BenchmarkTests {
     private void setupMarketWithProducts(String productNameBase, int count) {
         marketRepository.deleteAll();
         Market m = new Market();
-        m.setReweId(MARKET_ID);
+        m.setId(MARKET_ID);
         m.setName("Benchmark Market");
         m = marketRepository.save(m);
 

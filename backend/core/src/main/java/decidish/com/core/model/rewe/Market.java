@@ -24,7 +24,7 @@ public class Market implements Serializable, Persistable<Long>{
     // EXTERNAL REWE ID
     @Id
     // @Column(name = "rewe_id", unique = true, nullable = false)
-    private Long reweId;
+    private Long id;
 
     private String name;
 
@@ -59,7 +59,7 @@ public class Market implements Serializable, Persistable<Long>{
 
     @Override
     public Long getId() {
-        return reweId;
+        return id;
     }
 
     @PostLoad
@@ -76,7 +76,7 @@ public class Market implements Serializable, Persistable<Long>{
         , Address address
         // , boolean isOpen
     ){
-        this.reweId = reweId;
+        this.id = reweId;
         this.name = name;
         this.address = address;
         this.lastUpdated = LocalDateTime.now();
