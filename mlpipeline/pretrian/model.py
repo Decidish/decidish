@@ -21,7 +21,7 @@ def mean_pool_embeddings(
 
 @dataclass
 class UserEncoderConfig:
-    user_input_dim: int
+    user_input_dim: int = 35
     hidden_dim: int = 512
     output_dim = 384
     num_layers: int = 2
@@ -112,6 +112,7 @@ class RecipeEncoder(nn.Module):
             )  # [B,D]
 
         device = next(self.mlp.parameters()).device
+        emb = emb.detach().clone()
         emb = emb.to(device)
         out = self.mlp(emb)
 
@@ -158,4 +159,3 @@ def loss(
     loss_r2u = F.cross_entropy(logits.T, target)
 
     return (loss_u2r + loss_r2u) / 2.0
-

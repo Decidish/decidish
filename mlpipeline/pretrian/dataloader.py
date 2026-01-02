@@ -14,21 +14,21 @@ def load_from_json(json_path: str = "recipe.json"):
     for _, v in data.items():
         recipes.append(v["recipes"])
         recipes_embed.append(v["embed"])
-    return recipes, recipes_embed
+    return recipes_embed, recipes
 
 
 class PairDataset(Dataset):
     def __init__(self, json_path: str = "recipe.json"):
         super().__init__()
-        self.recipes, self.recipes_embed = load_from_json(json_path)
+        self.recipes_embed, self.recipes = load_from_json(json_path)
 
     def __len__(self):
         return len(self.recipes)
 
     def __getitem__(self, idx: int):
         recipe = self.recipes[idx]
-        recipe_embed = torch.tensor(self.recipes_embed[idx])
-        return recipe, recipe_embed
+        recipe_embed = torch.tensor(self.recipes_embed[idx], dtype=torch.float32)
+        return recipe_embed, recipe
 
 
 dataset = PairDataset("recipe.json")
@@ -45,4 +45,5 @@ if __name__ == "__main__":
 
     for batch in train_loader:
         print(batch)
+        print(f"the size of the embed is: {batch[0].shape}")
         break
