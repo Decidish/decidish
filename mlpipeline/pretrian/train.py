@@ -94,7 +94,7 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--seed", type=int, default=1864)
     parser.add_argument("--epochs", type=int, default=20)
-    parser.add_argument("--lr", type=float, default=1e-5)
+    parser.add_argument("--lr", type=float, default=1e-4)
     parser.add_argument("--weight_decay", type=float, default=1e-6)
     parser.add_argument("--temperature", type=int, default=0.07)
     parser.add_argument("--ckpt_dir", type=str, default="checkpoints")
