@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	"regexp"
 	"strings"
 )
 
@@ -145,6 +146,42 @@ func SaveKeywords(recipeId int, recipe Recipe, tx *sql.Tx) error {
 	return nil
 }
 
+var ingredientRe = regexp.MustCompile(`^\s*(\d+([.,]\d+)?(/\d+)?)?\s*([A-Za-zÄÖÜäöüß%°µ/.\-()]+)?\s+([^()]+?)(\s*\((.+)\))?\s*$`)
+
+// parseIngredient parses an ingredient line and returns pointers for qty, unit, name and comment.
+// Missing parts are returned as nil.
+func parseIngredient(line string) (qty, unit, name, comment *string) {
+	m := ingredientRe.FindStringSubmatch(line)
+	if m == nil {
+		s := strings.TrimSpace(line)
+		if s == "" {
+			return nil, nil, nil, nil
+		}
+		return nil, nil, &s, nil
+	}
+
+	// m indices:
+	// 1 = qty, 4 = unit, 5 = name, 7 = comment
+	get := func(idx int) *string {
+		if idx >= len(m) {
+			return nil
+		}
+		v := strings.TrimSpace(m[idx])
+		if v == "" {
+			return nil
+		}
+		return &v
+	}
+
+	q := get(1)
+	if q != nil {
+		v := strings.ReplaceAll(*q, ",", ".")
+		q = &v
+	}
+
+	return q, get(4), get(5), get(7)
+}
+
 func SaveIngredients(recipeId int, recipe Recipe, tx *sql.Tx) error {
 	stmtIngredient := `
 			WITH ins AS (
@@ -161,9 +198,7 @@ func SaveIngredients(recipeId int, recipe Recipe, tx *sql.Tx) error {
 
 	// Insert into ingredients table
 	for _, ingredient := range recipe.Ingredients {
-		name := ingredient
-
-		// Execute crf
+		qty, unit, name, _ := parseIngredient(ingredient)
 
 		var ingredientID int
 
@@ -174,7 +209,7 @@ func SaveIngredients(recipeId int, recipe Recipe, tx *sql.Tx) error {
 		}
 
 		// TODO: Do we need the quantity and unit?
-		_, err = tx.Exec(stmtRecipeIngredient, recipeId, ingredientID, 0.0, "")
+		_, err = tx.Exec(stmtRecipeIngredient, recipeId, ingredientID, qty, unit)
 
 		if err != nil {
 			return err

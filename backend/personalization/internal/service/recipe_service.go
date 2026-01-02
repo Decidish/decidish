@@ -22,6 +22,15 @@ import (
 	"github.com/minio/minio-go/v7/pkg/credentials"
 )
 
+type EmbedRequest struct {
+	RecipeStrs []string `json:"text"`
+}
+type EmbedResponse struct {
+	Device     string      `json:"device"`
+	Model      string      `json:"model"`
+	Embeddings [][]float64 `json:"embeddings"`
+}
+
 type RecipeService struct {
 	config config.ApplicationConfig
 	DB     *sql.DB
@@ -35,6 +44,7 @@ func NewRecipeService(config config.ApplicationConfig, db *sql.DB) RecipeService
 }
 
 func (service RecipeService) CreateRecipe(ctx *gin.Context) {
+	ctx.JSON(http.StatusNotImplemented, gin.H{"status": http.StatusNotImplemented})
 	log.Fatal("Not implemented yet!")
 }
 
@@ -248,15 +258,6 @@ func processInBatches(config config.ApplicationConfig, recipeIds []int, recipeSt
 	}
 	totalItems := len(recipeIds)
 
-	type EmbedRequest struct {
-		RecipeStrs []string `json:"text"`
-	}
-	type EmbedResponse struct {
-		Device     string      `json:"device"`
-		Model      string      `json:"model"`
-		Embeddings [][]float64 `json:"embeddings"`
-	}
-
 	// concurrency control and error propagation
 	sem := make(chan struct{}, 10)
 	var wg sync.WaitGroup
@@ -306,70 +307,13 @@ func processInBatches(config config.ApplicationConfig, recipeIds []int, recipeSt
 				return
 			}
 
-			resp, err := http.Post(config.EmbedderServerUrl+"/embed", "application/json", bytes.NewBuffer(jsonBody))
-			if err != nil {
-				select {
-				case errCh <- fmt.Errorf("post embed: %w", err):
-				default:
-				}
-				cancel()
-				return
-			}
-			defer resp.Body.Close()
-
-			if resp.StatusCode != http.StatusOK {
-				bodyBytes, _ := io.ReadAll(resp.Body)
-				select {
-				case errCh <- fmt.Errorf("embedder returned %d: %s", resp.StatusCode, string(bodyBytes)):
-				default:
-				}
-				cancel()
+			errCh, result, done := SendRequestToEmbedderServer(err, config, jsonBody, errCh, cancel)
+			if done {
 				return
 			}
 
-			bodyBytes, err := io.ReadAll(resp.Body)
-			if err != nil {
-				select {
-				case errCh <- fmt.Errorf("read body: %w", err):
-				default:
-				}
-				cancel()
-				return
-			}
-
-			var result EmbedResponse
-			if err := json.Unmarshal(bodyBytes, &result); err != nil {
-				select {
-				case errCh <- fmt.Errorf("unmarshal embed response: %w", err):
-				default:
-				}
-				cancel()
-				return
-			}
-
-			for idx, embedding := range result.Embeddings {
-				embJson, err := json.Marshal(embedding)
-				if err != nil {
-					log.Println("Error encoding embedding to JSON:", err)
-					select {
-					case errCh <- fmt.Errorf("encode embedding: %w", err):
-					default:
-					}
-					cancel()
-					return
-				}
-
-				_, err = tx.Exec(`INSERT INTO recipe_embeddings (recipe_id, embedding) VALUES ($1, $2)`, batchIDs[idx], embJson)
-				if err != nil {
-					log.Println("Error inserting embedding:", err)
-					select {
-					case errCh <- fmt.Errorf("insert embedding: %w", err):
-					default:
-					}
-					cancel()
-					return
-				}
-			}
+			insertRecipeStmt := `INSERT INTO recipe_embeddings (recipe_id, embedding) VALUES ($1, $2)`
+			insertEmbeddings(result, errCh, cancel, tx, batchIDs, insertRecipeStmt)
 		}()
 	}
 
@@ -383,5 +327,76 @@ func processInBatches(config config.ApplicationConfig, recipeIds []int, recipeSt
 		return e
 	default:
 		return nil
+	}
+}
+
+func SendRequestToEmbedderServer(err error, config config.ApplicationConfig, jsonBody []byte, errCh chan error, cancel context.CancelFunc) (chan error, EmbedResponse, bool) {
+	resp, err := http.Post(config.EmbedderServerUrl+"/embed", "application/json", bytes.NewBuffer(jsonBody))
+	if err != nil {
+		select {
+		case errCh <- fmt.Errorf("post embed: %w", err):
+		default:
+		}
+		cancel()
+		return nil, EmbedResponse{}, true
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		bodyBytes, _ := io.ReadAll(resp.Body)
+		select {
+		case errCh <- fmt.Errorf("embedder returned %d: %s", resp.StatusCode, string(bodyBytes)):
+		default:
+		}
+		cancel()
+		return nil, EmbedResponse{}, true
+	}
+
+	bodyBytes, err := io.ReadAll(resp.Body)
+	if err != nil {
+		select {
+		case errCh <- fmt.Errorf("read body: %w", err):
+		default:
+		}
+		cancel()
+		return nil, EmbedResponse{}, true
+	}
+
+	var result EmbedResponse
+	if err := json.Unmarshal(bodyBytes, &result); err != nil {
+		select {
+		case errCh <- fmt.Errorf("unmarshal embed response: %w", err):
+		default:
+		}
+		cancel()
+		return nil, EmbedResponse{}, true
+	}
+	return errCh, result, false
+}
+
+// Given the embedding response, inserts the embeddings into recipe_embeddings table
+func insertEmbeddings(result EmbedResponse, errCh chan error, cancel context.CancelFunc, tx *sql.Tx, batchIDs []int, insertQuery string) {
+	for idx, embedding := range result.Embeddings {
+		embJson, err := json.Marshal(embedding)
+		if err != nil {
+			log.Println("Error encoding embedding to JSON:", err)
+			select {
+			case errCh <- fmt.Errorf("encode embedding: %w", err):
+			default:
+			}
+			cancel()
+			return
+		}
+
+		_, err = tx.Exec(insertQuery, batchIDs[idx], embJson)
+		if err != nil {
+			log.Println("Error inserting embedding:", err)
+			select {
+			case errCh <- fmt.Errorf("insert embedding: %w", err):
+			default:
+			}
+			cancel()
+			return
+		}
 	}
 }
