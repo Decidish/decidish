@@ -6,6 +6,12 @@ CREATE TABLE recipe_embeddings (
     embedding vector(384)
 );
 
+CREATE TABLE ingredient_embeddings (
+    id SERIAL PRIMARY KEY,
+    ingredient_id INT UNIQUE references ingredients(id) ON DELETE CASCADE,
+    embedding vector(384)
+);
+
 CREATE INDEX ON recipe_embeddings USING hnsw (embedding vector_cosine_ops)
 WITH (m = 16, ef_construction = 200);
 

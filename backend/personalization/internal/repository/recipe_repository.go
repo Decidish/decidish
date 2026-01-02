@@ -146,12 +146,24 @@ func SaveKeywords(recipeId int, recipe Recipe, tx *sql.Tx) error {
 }
 
 func SaveIngredients(recipeId int, recipe Recipe, tx *sql.Tx) error {
-	stmtIngredient := `INSERT INTO ingredients (name) values ($1) ON CONFLICT (name) DO UPDATE set name = excluded.name RETURNING id`
-	//stmtRecipeIngredient := `INSERT INTO recipe_ingredients (recipe_id, ingredient_id, quantity, unit) values ($1, $2, $3, $4) ON CONFLICT DO NOTHING `
+	stmtIngredient := `
+			WITH ins AS (
+				INSERT INTO ingredients (name)
+				VALUES ($1)
+				ON CONFLICT (name) DO NOTHING
+				RETURNING id
+			)	
+			SELECT id FROM ins
+			UNION ALL
+			SELECT id FROM ingredients WHERE name = $1
+			LIMIT 1;`
+	stmtRecipeIngredient := `INSERT INTO recipe_ingredients (recipe_id, ingredient_id, quantity, unit) values ($1, $2, $3, $4) ON CONFLICT DO NOTHING`
 
 	// Insert into ingredients table
 	for _, ingredient := range recipe.Ingredients {
 		name := ingredient
+
+		// Execute crf
 
 		var ingredientID int
 
@@ -161,11 +173,12 @@ func SaveIngredients(recipeId int, recipe Recipe, tx *sql.Tx) error {
 			return err
 		}
 
-		//_, err = tx.Exec(stmtRecipeIngredient, recipeId, ingredientID, amount, unit)
+		// TODO: Do we need the quantity and unit?
+		_, err = tx.Exec(stmtRecipeIngredient, recipeId, ingredientID, 0.0, "")
 
-		//if err != nil {
-		//	return err
-		//}
+		if err != nil {
+			return err
+		}
 	}
 
 	return nil

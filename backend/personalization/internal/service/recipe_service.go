@@ -186,7 +186,10 @@ func UpSeedRecipesTable(config config.ApplicationConfig, db *sql.DB) error {
 	end := time.Now()
 	fmt.Println("Seed recipes took", end.Sub(start))
 
-	//processInBatches(config, recipeIds, recipeStr, tx)
+	err = processInBatches(config, recipeIds, recipeStr, tx)
+	if err != nil {
+		return err
+	}
 
 	err = tx.Commit()
 	if err != nil {
@@ -238,7 +241,7 @@ func DownloadRecipesIfNotPresent(config config.ApplicationConfig) error {
 }
 
 func processInBatches(config config.ApplicationConfig, recipeIds []int, recipeStrs []string, tx *sql.Tx) error {
-	const batchSize = 100
+	const batchSize = 500
 
 	if len(recipeIds) != len(recipeStrs) {
 		return errors.New("number of recipes and String slice lengths do not match")
@@ -264,7 +267,7 @@ func processInBatches(config config.ApplicationConfig, recipeIds []int, recipeSt
 
 	start := time.Now()
 
-	// iterate up to totalItems (not fixed 200)
+	// iterate up to totalItems
 	for i := 0; i < totalItems; i += batchSize {
 		if ctx.Err() != nil {
 			break
