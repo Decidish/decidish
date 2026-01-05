@@ -2,7 +2,6 @@ package repository
 
 import (
 	"database/sql"
-	"errors"
 	"fmt"
 	"regexp"
 	"strings"
@@ -55,15 +54,16 @@ func (r Recipe) String() string {
 	)
 }
 
+// SaveRecipe inserts a recipe or returns the existing id when a recipe with the same title already exists.
 func SaveRecipe(recipe *Recipe, tx *sql.Tx) (int, error) {
 	var recipeID int
-
-	err := tx.QueryRow(`
-			INSERT INTO recipes (title, description, instructions, cook_time, prep_time, total_time, image, rating, serving_size, calories, yields) 
-			values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
-			ON CONFLICT (title) DO NOTHING
-			RETURNING id
-			`,
+	stmt := `
+	INSERT INTO recipes (title, description, instructions, cook_time, prep_time, total_time, image, rating, serving_size, calories, yields)
+	VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11)
+	ON CONFLICT (title) DO NOTHING
+	RETURNING id
+	`
+	err := tx.QueryRow(stmt,
 		recipe.Title,
 		recipe.Description,
 		recipe.Instructions,
@@ -80,66 +80,69 @@ func SaveRecipe(recipe *Recipe, tx *sql.Tx) (int, error) {
 	if err != nil {
 		return -1, err
 	}
-
 	return recipeID, nil
 }
 
+// SaveCategories ensures category rows exist and links them to the recipe.
 func SaveCategories(recipeId int, recipe Recipe, tx *sql.Tx) error {
-	for _, category := range strings.Split(recipe.Category, ",") {
-		category = strings.TrimSpace(category)
+	stmtCategory := `
+		WITH ins AS (
+		  INSERT INTO categories (name) VALUES ($1)
+		  ON CONFLICT (name) DO NOTHING
+		  RETURNING id
+		)
+		SELECT id FROM ins
+		UNION ALL
+		SELECT id FROM categories WHERE name = $1
+		LIMIT 1;
+		`
+	stmtRecipeCategory := `INSERT INTO recipe_categories (recipe_id, category_id) VALUES ($1, $2) ON CONFLICT DO NOTHING;`
 
-		var categoryID int
-		err := tx.QueryRow(`
-			INSERT INTO categories (name) values ($1) 
-			ON CONFLICT (name) DO NOTHING
-			RETURNING id
-			`, category,
-		).Scan(&categoryID)
-
-		if errors.Is(err, sql.ErrNoRows) {
+	for _, raw := range strings.Split(recipe.Category, ",") {
+		category := strings.TrimSpace(raw)
+		if category == "" {
 			continue
 		}
 
-		if err != nil {
+		var categoryID int
+		if err := tx.QueryRow(stmtCategory, category).Scan(&categoryID); err != nil {
 			return err
 		}
 
-		_, err = tx.Exec(`
-			INSERT INTO recipe_categories (recipe_id, category_id) values ($1, $2)
-			`, recipeId, categoryID)
-
-		if err != nil {
+		if _, err := tx.Exec(stmtRecipeCategory, recipeId, categoryID); err != nil {
 			return err
 		}
 	}
-
 	return nil
 }
 
+// SaveKeywords ensures keyword rows exist and links them to the recipe.
 func SaveKeywords(recipeId int, recipe Recipe, tx *sql.Tx) error {
-	stmtKeyword := `INSERT INTO keywords (name) values ($1) 
-                	ON CONFLICT (name) DO NOTHING 
-                	RETURNING id`
-	stmtRecipeKeyword := `INSERT INTO recipe_keywords (recipe_id, keyword_id) 
-							values ($1, $2)
-							ON CONFLICT DO NOTHING `
+	stmtKeyword := `
+		WITH ins AS (
+		  INSERT INTO keywords (name) VALUES ($1)
+		  ON CONFLICT (name) DO NOTHING
+		  RETURNING id
+		)
+		SELECT id FROM ins
+		UNION ALL
+		SELECT id FROM keywords WHERE name = $1
+		LIMIT 1;
+		`
+	stmtRecipeKeyword := `INSERT INTO recipe_keywords (recipe_id, keyword_id) VALUES ($1, $2) ON CONFLICT DO NOTHING;`
 
-	for _, keyword := range recipe.KeyWords {
-		var keywordID int
-
-		err := tx.QueryRow(stmtKeyword, keyword).Scan(&keywordID)
-
-		if errors.Is(err, sql.ErrNoRows) {
+	for _, raw := range recipe.KeyWords {
+		keyword := strings.TrimSpace(raw)
+		if keyword == "" {
 			continue
 		}
 
-		if err != nil {
+		var keywordID int
+		if err := tx.QueryRow(stmtKeyword, keyword).Scan(&keywordID); err != nil {
 			return err
 		}
 
-		_, err = tx.Exec(stmtRecipeKeyword, recipeId, keywordID)
-
-		if err != nil {
+		if _, err := tx.Exec(stmtRecipeKeyword, recipeId, keywordID); err != nil {
 			return err
 		}
 	}

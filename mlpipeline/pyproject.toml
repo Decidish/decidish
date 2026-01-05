@@ -6,7 +6,7 @@ authors = ["sarpsahinalp <sarp.sahinalp@tum.de>"]
 readme = "README.md"
 
 [tool.poetry.dependencies]
-python = "^3.12"
+python = ">=3.13,<3.15"
 fastapi = "^0.109.0"
 uvicorn = "^0.27.0"
 psycopg2-binary = "^2.9.9" # Required for Postgres connection
@@ -14,6 +14,10 @@ asyncpg = "^0.31.0"
 pgvector = "^0.4.2"
 pytest = "^9.0.2"
 sklearn-crfsuite = "^0.5.0"
+spacy = "^3.8.11"
+recipe-scrapers = "^15.11.0"
+selenium = "^4.39.0"
+webdriver-manager = "^4.0.2"
 
 [build-system]
 requires = ["poetry-core"]

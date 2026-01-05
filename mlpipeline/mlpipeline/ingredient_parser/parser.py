@@ -1,60 +1,46 @@
-import joblib
-import sklearn_crfsuite
-from pydantic import BaseModel
+from fractions import Fraction
+import re
+import time
+import spacy
+from spacy import displacy
+import timeit
 
-from mlpipeline.ingredient_parser.train_crf import sent2features, tokenize
+nlp = spacy.load('mlpipeline/ingredient_parser/model-best/model')
 
-# Load the model once when the server starts
-model = joblib.load("ingredient_model.joblib")
+def fraction_to_mixed_number(fraction: Fraction) -> str:
+    if fraction.numerator >= fraction.denominator:
+        whole, remainder = divmod(fraction.numerator, fraction.denominator)
+        if remainder == 0:
+            return str(whole)
+        else:
+            return f"{whole} {Fraction(remainder, fraction.denominator)}"
+    else:
+        return str(fraction)
 
-class IngredientRequest(BaseModel):
-    phrase: str
 
-class ParsedIngredient(BaseModel):
-    quantity: str = None
-    unit: str = None
-    name: str = None
-    comment: str = None
+def convert_floats_to_fractions(text: str) -> str:
+    return re.sub(
+        r'\b-?\d+\.\d+\b',
+        lambda match: fraction_to_mixed_number(
+            Fraction(float(match.group())).limit_denominator()), text
+    )
 
-def format_to_json(tokens: list, tags: list) -> dict:
+
+def process_text(text):
     """
-    Groups BIO tags into a structured JSON dictionary.
-    tokens: ["2", "cups", "all", "purpose", "flour"]
-    tags: ["B-QTY", "B-UNIT", "B-NAME", "I-NAME", "I-NAME"]
+    A wrapper function to pre-process text and run it through our pipeline.
     """
-    result = {
-        "quantity": [],
-        "unit": [],
-        "name": [],
-        "comment": []
-    }
+    return nlp(convert_floats_to_fractions(text))
 
-    field_map = {
-        'QTY': 'quantity',
-        'UNIT': 'unit',
-        'NAME': 'name',
-        'COMMENT': 'comment'
-    }
 
-    for token, tag in zip(tokens, tags):
-        if tag == "O":
-            continue
+ingredients = ['1 Stuck Puten (4 kg)']
 
-        # Extract the entity type from "B-NAME" or "I-NAME"
-        prefix, entity_type = tag.split("-")
-        field_key = field_map.get(entity_type)
+doc = process_text(ingredients[0])  # Get the first doc from the list
 
-        if field_key:
-            result[field_key].append(token)
+print(f"Full Text: {doc.text}")
 
-    # Join lists into clean strings and return
-    return {k: (" ".join(v) if v else None) for k, v in result.items()}
+# Loop through the detected entities
+for ent in doc.ents:
+    print(f"Text: {ent.text}  ->  Label: {ent.label_}")
 
-def get_prediction(phrase):
-    tokens = tokenize(phrase)
-    features = sent2features(tokens)
-    tags = model.predict([features])[0]
-    return format_to_json(tokens, tags)
-
-def get_model() -> sklearn_crfsuite.CRF:
-    return model
+# docs = [process_text(line) for line in ingredients]
