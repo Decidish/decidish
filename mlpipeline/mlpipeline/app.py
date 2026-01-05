@@ -1,26 +1,31 @@
+import asyncio
+from mlpipeline.etl.pipeline import Pipeline
+import psycopg2
 import uvicorn
 from fastapi import FastAPI
 
-from mlpipeline.ingredient_parser.parser import ParsedIngredient, IngredientRequest, get_prediction, format_to_json, \
-    get_model
-from mlpipeline.ingredient_parser.train_crf import tokenize, sent2features
+from mlpipeline.ingredient_parser.parser import IngredientParser
 
 app = FastAPI(title="Recipe Embedding Service")
 
-@app.post("/parse", response_model=ParsedIngredient)
-async def parse_ingredient(item: IngredientRequest):
-    return get_prediction(item.phrase)
+ingredientParser = IngredientParser()
 
-@app.post("/parse-bulk")
-async def parse_bulk(phrases: list[str]):
-    all_tokens = [tokenize(p) for p in phrases]
-    all_features = [sent2features(t) for t in all_tokens]
+with psycopg2.connect(
+    dbname="mlpipeline",
+    user="mlpipeline_user",
+    password="secure_password",
+    host="localhost",
+    port=5432
+) as conn:
+    etl_pipeline = Pipeline(conn, ingredientParser)
 
-    model = get_model()
-    all_tags = model.predict(all_features)
+@app.post("/recipes/add/rewe")
+def add_rewe_recipes():
+    # TODO: Get from config
+    file_path = "s3://my-minio-bucket/rewe_recipes.jsonl"
 
-    results = [format_to_json(tks, tgs) for tks, tgs in zip(all_tokens, all_tags)]
-    return results
+    asyncio.run(etl_pipeline.run_etl(file_path, file_path))
+    return {"status": "Import is in progress!"}
 
 if __name__ == "__main__":
     uvicorn.run("app:app", host="0.0.0.0", port=8000, reload=True)
