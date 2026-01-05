@@ -1,4 +1,7 @@
 import asyncio
+
+import spacy
+
 from mlpipeline.etl.pipeline import Pipeline
 import psycopg2
 import uvicorn
@@ -8,7 +11,7 @@ from mlpipeline.ingredient_parser.parser import IngredientParser
 
 app = FastAPI(title="Recipe Embedding Service")
 
-ingredientParser = IngredientParser()
+ingredientParser = IngredientParser(spacy.load('mlpipeline/ingredient_parser/model-best/model'))
 
 with psycopg2.connect(
     dbname="mlpipeline",
@@ -21,10 +24,7 @@ with psycopg2.connect(
 
 @app.post("/recipes/add/rewe")
 def add_rewe_recipes():
-    # TODO: Get from config
-    file_path = "s3://my-minio-bucket/rewe_recipes.jsonl"
-
-    asyncio.run(etl_pipeline.run_etl(file_path, file_path))
+    asyncio.run(etl_pipeline.run_etl())
     return {"status": "Import is in progress!"}
 
 if __name__ == "__main__":

@@ -1,27 +1,52 @@
-import asyncio
-from fractions import Fraction
-import re
 import json
-from mlpipeline.ingredient_parser.parser import IngredientParser, convert_to_float, fraction_to_mixed_number
-import psycopg2
-from typing import AsyncGenerator, Optional, Tuple
+import logging
+from fractions import Fraction
+from typing import AsyncGenerator, Optional
 
+import psycopg2
+from minio import Minio, S3Error
+
+from mlpipeline.config.app_config import AppConfig
 from mlpipeline.etl.models import Recipe
+from mlpipeline.ingredient_parser.parser import IngredientParser, convert_to_float, fraction_to_mixed_number
+
 
 class Pipeline:
-    def __init__(self, conn: psycopg2.extensions.connection, parser: IngredientParser):
+    def __init__(self, conn: psycopg2.extensions.connection, parser: IngredientParser, config: AppConfig):
         self.conn = conn
         self.parser = parser
+        self.config = config
+        self.minioClient = Minio(
+            config.minio_endpoint,
+            access_key=config.minio_access_key,
+            secret_key=config.minio_secret_key,
+            secure=config.minio_use_ssl
+        )
 
-    def count_lines(self, file_path: str) -> int:
-        # Dummy implementation, replace with actual line counting logic
-        return 1000
 
-    async def get_minio_batch(self, file_path: str) -> AsyncGenerator[list[str], None]:
-        # Dummy implementation, replace with actual MinIO batch fetching logic
-        for _ in range(10):
-            await asyncio.sleep(0.1)
-            yield ["line1", "line2", "line3", "line4", "line5", "line6", "line7", "line8", "line9", "line10"]
+    async def get_minio_batch(self) -> AsyncGenerator[list[str], None]:
+
+        response = None
+        try:
+            # This does NOT download the whole file; it opens a connection.
+            response = self.minioClient.get_object(self.config.minio_recipes_bucket, self.config.minio_recipes_object_name)
+
+            # The response object acts like an open file handle.
+            for line in response:
+                if line.strip():
+                    try:
+                        data = json.loads(line.decode('utf-8'))
+
+                        yield data
+                    except json.JSONDecodeError as e:
+                        print(f"Skipping invalid JSON line: {e}")
+
+        except S3Error as err:
+            print(f"Minio Error: {err}")
+        finally:
+            if response:
+                response.close()
+                response.release_conn()
 
     def process_recipe(self, line: str) -> Optional[Exception]:
         try:
@@ -52,11 +77,11 @@ class Pipeline:
                     recipe_data.nutrients.calories,
                     recipe_data.yields
                 ))
-                recipe_id = cursor.fetchone();
+                recipe_id = cursor.fetchone()
         
                 if recipe_id is None:
                     print(f"Recipe '{recipe_data.title}' already exists. Skipping insertion.")
-                    return
+                    return None
                 
                 recipe_id = recipe_id[0]
 
@@ -72,8 +97,9 @@ class Pipeline:
         except Exception as e:
             print(f"Database insertion error: {e}")   
             raise e
-    
-    def process_keywords(self, recipe_id: int, keywords: list[str], cursor):
+
+    @staticmethod
+    def process_keywords(recipe_id: int, keywords: list[str], cursor):
         for keyword in keywords:
             keyword = keyword.strip()
             if keyword == "":
@@ -96,8 +122,9 @@ class Pipeline:
             cursor.execute("""
                 INSERT INTO recipe_keywords (recipe_id, keyword_id) VALUES ($1, $2) ON CONFLICT DO NOTHING;
             """, (recipe_id, keyword_id))
-    
-    def process_categories(self, recipe_id: int, categories: list[str], cursor):
+
+    @staticmethod
+    def process_categories(recipe_id: int, categories: list[str], cursor):
         for category in categories:
             category = category.strip()
             if category == "":
@@ -122,8 +149,7 @@ class Pipeline:
             """, (recipe_id, category_id))
     
     def process_ingredients(self, recipe_id: int, ingredients: list[str], cursor):
-        # TODO: Optimize batch processing and normalize the quantities here
-        docs = [self.parser.process_text(line) for line in ingredients]
+        docs = self.parser.process_texts(ingredients)
 
         for doc in docs:
             qty = None
@@ -166,16 +192,18 @@ class Pipeline:
             self.process_recipe(line)
         
 
-    def update_job_status(self, job_id: str, progress: float, status: str):
+    @staticmethod
+    def update_job_status(job_id: str, progress: float, status: str):
         # TODO: Implement process bar for a job
         if progress is not None:
             print(f"Job {job_id} progress updated to {progress:.2f}%")
         if status is not None:
             print(f"Job {job_id} status updated to {status}")
 
-    async def run_etl(self, file_path: str, job_id: str = "2"):
+    async def run_etl(self, job_id: str = "2"):
         processed = 0
-            
-        async for batch in self.get_minio_batch(file_path):
+        logging.log(logging.INFO, f"Starting ETL Job {job_id}...")
+
+        async for batch in self.get_minio_batch():
             self.process_recipe_batch(batch)
             processed += len(batch)

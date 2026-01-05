@@ -1,17 +1,32 @@
-from fractions import Fraction
 import re
 import unicodedata
+from fractions import Fraction
+from typing import Iterator
+
 import spacy
+from spacy.tokens import Doc
+
 
 class IngredientParser:
-    def __init__(self):
-        self.nlp = spacy.load('mlpipeline/ingredient_parser/model-best/model')
+    def __init__(self, nlp: spacy.Language):
+        # Try to use GPU if available
+        spacy.require_gpu()
+        self.nlp = nlp
 
     def process_text(self, text: str):
         """
         A wrapper function to pre-process text and run it through our pipeline.
         """
         return self.nlp(convert_floats_to_fractions(text))
+
+    def process_texts(self, texts: list[str]) -> Iterator[Doc]:
+        """
+        Process a list of texts and return their parsed representations.
+        """
+        clean_texts = (convert_floats_to_fractions(t) for t in texts)
+
+        # Return a generator instead of a list for memory efficiency
+        return self.nlp.pipe(clean_texts)
 
 
 def convert_to_float(fraction_str: str) -> float:
