@@ -10,7 +10,7 @@ from spacy.tokens import Doc
 class IngredientParser:
     def __init__(self, nlp: spacy.Language):
         # Try to use GPU if available
-        spacy.require_gpu()
+        # spacy.require_gpu()
         self.nlp = nlp
 
     def process_text(self, text: str):
@@ -41,8 +41,9 @@ def convert_to_float(fraction_str: str) -> float:
             return -float(sum(Fraction(part) for part in normalized[1:].split()))
         
         return float(sum(Fraction(part) for part in normalized.split()))
-    except ValueError:
-        raise ValueError(f"Cannot convert '{fraction_str}' to float.")
+    except ValueError as err:
+        print("Error converting float to fraction in text:")
+        raise err
 
 def fraction_to_mixed_number(fraction: Fraction) -> str:
     if fraction.numerator >= fraction.denominator:
@@ -56,12 +57,15 @@ def fraction_to_mixed_number(fraction: Fraction) -> str:
 
 
 def convert_floats_to_fractions(text: str) -> str:
-    return re.sub(
-        r'\b-?\d+\.\d+\b',
-        lambda match: fraction_to_mixed_number(
-            Fraction(float(match.group())).limit_denominator()), text
-    )
-
+    try:
+        return re.sub(
+            r'\b-?\d+\.\d+\b',
+            lambda match: fraction_to_mixed_number(
+                Fraction(float(match.group())).limit_denominator()), text
+        )
+    except ValueError as err:
+        print("Error converting float to fraction in text:", text)
+        raise err
 
 # ingredients = ['1 Stuck Puten (4 kg)']
 

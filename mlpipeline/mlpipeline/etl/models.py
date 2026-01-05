@@ -6,18 +6,18 @@ class Nutrients(BaseModel):
     calories: str
 
 class Recipe(BaseModel):
-    category: str
-    cook_time: int
+    category: str | None = None
+    cook_time: int | None = None
     description: str
     image: str
     ingredients: List[str]
     instructions: str
-    keywords: List[str]
+    keywords: List[str] | None = None
     nutrients: Nutrients
     
-    prep_time: int
-    ratings: float
-    total_time: int
+    prep_time: int | None = None
+    ratings: float | None = None
+    total_time: int | None = None
     title: str
     yields: str
 
