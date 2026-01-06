@@ -1,8 +1,8 @@
 spring:
   datasource:
     url: jdbc:postgresql://localhost:5433/decidish
-    username: user
-    password: password
+    username: "DB-USER"
+    password: "DB-PASSWORD"
   jpa:
     hibernate:
       ddl-auto: validate
@@ -10,9 +10,10 @@ spring:
       hibernate:
         format_sql: true
   session:
-    store-type: jdbc
-    jdbc:
-      initialize-schema: always
+    # store-type: jdbc
+    # jdbc:
+    #   initialize-schema: always
+    store-type: none
   application:
     name: "core"
   flyway:

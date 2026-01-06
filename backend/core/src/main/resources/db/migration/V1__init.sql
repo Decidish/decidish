@@ -1,6 +1,6 @@
 CREATE TABLE addresses
 (
-    id       BIGINT NOT NULL,
+    id       SERIAL NOT NULL,
     street   VARCHAR(255),
     zip_code VARCHAR(5),
     city     VARCHAR(255),
@@ -59,3 +59,18 @@ CREATE INDEX idx_products_market_id ON products (market_id);
 
 -- 2. Index on name (Useful for product searching)
 CREATE INDEX idx_products_name ON products (name);
+
+CREATE TABLE IF NOT EXISTS ingredients (
+    id SERIAL PRIMARY KEY,
+    name VARCHAR(255)
+);
+
+-- Matching ingredients to products
+CREATE TABLE ingredient_product (
+    ingredient_id BIGINT NOT NULL,
+    product_id BIGINT NOT NULL,
+    confidence FLOAT NOT NULL, -- in range [0.0, 1.0]
+    PRIMARY KEY (ingredient_id, product_id),
+    CONSTRAINT fk_ipm_ingredient FOREIGN KEY (ingredient_id) REFERENCES ingredients(id),
+    CONSTRAINT fk_ipm_product FOREIGN KEY (product_id) REFERENCES products(id)
+);

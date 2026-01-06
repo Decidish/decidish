@@ -3,7 +3,6 @@ import decidish.com.core.model.recipes.IngredientProduct;
 import decidish.com.core.model.recipes.RecipeIngredient;
 import org.springframework.data.jpa.repository.JpaRepository;
 import decidish.com.core.model.recipes.RecipeIngredientId;
-import decidish.com.core.model.rewe.Product;
 
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -13,11 +12,28 @@ import java.util.List;
 public interface RecipeIngredientRepository
         extends JpaRepository<RecipeIngredient, RecipeIngredientId> {
 
+    // @Query("""
+    //     SELECT ri.recipe, ri.ingredient, SUM(ri.quantity) as totalQuantity, ri.unit
+    //     FROM RecipeIngredient ri
+    //     WHERE ri.recipe.id IN :recipeIds
+    //     GROUP BY ri.recipe, ri.ingredient, ri.unit
+    // """)
+
     @Query("""
-        SELECT ri.recipe, ri.ingredient, SUM(ri.quantity) as totalQuantity, ri.unit
+        SELECT new decidish.com.core.model.recipes.RecipeIngredient(
+            ri.recipe,
+            ri.ingredient,
+            ri.normalizedName,
+            SUM(ri.quantity),
+            ri.unit
+        )
         FROM RecipeIngredient ri
         WHERE ri.recipe.id IN :recipeIds
-        GROUP BY ri.recipe, ri.ingredient, ri.unit
+        GROUP BY
+            ri.recipe,
+            ri.ingredient,
+            ri.normalizedName,
+            ri.unit
     """)
     List<RecipeIngredient> findForShoppingList(
             @Param("recipeIds") List<Long> recipeIds

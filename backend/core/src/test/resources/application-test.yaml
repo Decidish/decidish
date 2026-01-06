@@ -11,15 +11,17 @@ spring:
     banner-mode: off
   datasource:
     url: jdbc:postgresql://localhost:5433/decidish
-    username: user
-    password: password
+    username: "DB-USER"
+    password: "DB-PASSWORD"
     driver-class-name: org.postgresql.Driver
   jpa:
     # Force Hibernate to use Postgres dialect
     database-platform: org.hibernate.dialect.PostgreSQLDialect
     hibernate:
       # Ensure a clean database for every test: drops and recreates schema
-      ddl-auto: create-drop
+      # ddl-auto: create-drop
+      # ddl-auto: validate
+      ddl-auto: none
     # show-sql: true
     # 1. Stop printing SQL statements to the console
     show-sql: false 
@@ -36,13 +38,19 @@ spring:
       # Disable any manual data.sql scripts
       mode: never
   session:
-    store-type: jdbc
-    jdbc:
-      initialize-schema: always
+    # store-type: jdbc
+    # jdbc:
+    #   initialize-schema: always
+    store-type: none
   application:
     name: "core"
   flyway:
-    enabled: "false"
+    # enabled: "false"
+    enabled: "true"
+    baseline-on-migrate: "true"
+    validate-on-migrate: "false"
+    baseline-version: 0
+    locations: classpath:db/migration
   ssl:
     bundle:
       pem:

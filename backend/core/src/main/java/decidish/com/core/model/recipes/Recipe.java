@@ -41,5 +41,16 @@ public class Recipe {
         orphanRemoval = true
     )
     private List<RecipeIngredient> ingredients = new ArrayList<>();
+
+    // Constructor without id
+    public Recipe(String title) {
+        this.title = title;
+    }
+
+    // Constructor with ingredients
+    public Recipe(String title, List<RecipeIngredient> ingredients) {
+        this.title = title;
+        this.ingredients = ingredients;
+    }
 }
 

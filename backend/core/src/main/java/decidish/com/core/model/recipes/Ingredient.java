@@ -16,4 +16,9 @@ public class Ingredient {
 
     @Column(unique = true, nullable = false)
     private String name; // canonical name, e.g. "Rucola"
+
+    // Constructor
+    public Ingredient(String name) {
+        this.name = name;
+    }
 }

@@ -10,6 +10,7 @@ import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.cache.CacheManager;
 import org.springframework.test.context.ActiveProfiles; // If you use application-test.properties
 
 import java.util.List;
@@ -30,6 +31,9 @@ class MarketServiceIntegrationTest {
     @Autowired
     private MarketRepository marketRepository;
 
+    @Autowired
+    private CacheManager cacheManager;
+
     // A real, valid REWE Market ID (e.g., REWE City Munich)
     // You can find this ID in the URL on the rewe website
     private final Long VALID_MARKET_ID = 431022L; 
@@ -39,7 +43,9 @@ class MarketServiceIntegrationTest {
     void setup() {
         // Clear DB to ensure we are actually persisting fresh data
         marketRepository.deleteAll();
-        marketService.setSelf(marketService); 
+        marketService.setSelf(marketService);
+        cacheManager.getCacheNames()
+            .forEach(cacheName -> cacheManager.getCache(cacheName).clear()); 
     }
 
     @Test

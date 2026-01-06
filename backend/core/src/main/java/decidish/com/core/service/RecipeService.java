@@ -20,8 +20,8 @@ public class RecipeService {
     
     private static final Logger log = LoggerFactory.getLogger(RecipeService.class);
     
-    @Autowired
-    private MarketService marketService;
+    // @Autowired
+    // private MarketService marketService;
 
     @Autowired
     private RecipeIngredientRepository recipeIngredientRepository;
