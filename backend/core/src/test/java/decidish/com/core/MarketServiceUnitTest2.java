@@ -120,14 +120,20 @@ class MarketServiceUnitTest2 {
         assertEquals(2, savedMarket.getProducts().size(), "Should have 2 products (1 updated + 1 new)");
 
         // Check 2: Verify Update Logic (PROD-1)
+        // Product p1 = savedMarket.getProducts().stream()
+        //         .filter(p -> p.getId().equals(1L)).findFirst().get();
         Product p1 = savedMarket.getProducts().stream()
-                .filter(p -> p.getId().equals(1L)).findFirst().get();
+        .filter(p -> Long.valueOf(1L).equals(p.getReweId())).findFirst().get();
+
         assertEquals(150, p1.getPrice(), "Existing product price should be updated");
         assertEquals("New Milk Name", p1.getName(), "Existing product name should be updated");
 
         // Check 3: Verify Insert Logic (PROD-2)
+        // Product p2 = savedMarket.getProducts().stream()
+        //         .filter(p -> p.getId().equals(2L)).findFirst().get();
         Product p2 = savedMarket.getProducts().stream()
-                .filter(p -> p.getId().equals(2L)).findFirst().get();
+        .filter(p -> Long.valueOf(2L).equals(p.getReweId())).findFirst().get();
+
         assertEquals("Butter", p2.getName());
         assertEquals(299, p2.getPrice());
         
@@ -242,7 +248,7 @@ class MarketServiceUnitTest2 {
             .thenAnswer(invocation -> invocation.getArgument(0));
 
         // --- 3. EXECUTE ---
-        marketService.getProductsQuery(marketDbId, query);
+        marketService.getProductsQuerySave(marketDbId, query);
 
         // --- 4. VERIFY (The Crucial Part) ---
         // Capture what was sent to the DB
@@ -256,14 +262,21 @@ class MarketServiceUnitTest2 {
         // Further assertions
         Market savedMarket = marketCaptor.getValue();
         // Check 2: Verify Update Logic (PROD-1)
+        // Product p1 = savedMarket.getProducts().stream()
+        //         .filter(p -> p.getId().equals(1L)).findFirst().get();
+
         Product p1 = savedMarket.getProducts().stream()
-                .filter(p -> p.getId().equals(1L)).findFirst().get();
+        .filter(p -> Long.valueOf(1L).equals(p.getReweId())).findFirst().get();
+
         assertEquals(150, p1.getPrice(), "Existing product price should be updated");
         assertEquals("New Milk Name", p1.getName(), "Existing product name should be updated");
 
         // Check 3: Verify Insert Logic (PROD-2)
+        // Product p2 = savedMarket.getProducts().stream()
+        //         .filter(p -> p.getId().equals(2L)).findFirst().get();
+
         Product p2 = savedMarket.getProducts().stream()
-                .filter(p -> p.getId().equals(2L)).findFirst().get();
+        .filter(p -> Long.valueOf(2L).equals(p.getReweId())).findFirst().get();
         assertEquals("Butter", p2.getName());
         assertEquals(200, p2.getPrice());
 

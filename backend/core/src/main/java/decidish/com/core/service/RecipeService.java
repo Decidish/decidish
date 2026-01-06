@@ -1,0 +1,293 @@
+package decidish.com.core.service;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.support.TransactionTemplate;
+
+import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.HashMap;
+import java.util.List;
+import java.util.stream.Collectors;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Optional;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.Executor;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+
+import decidish.com.core.repository.IngredientProductRepository;
+import decidish.com.core.repository.MarketRepository;
+import decidish.com.core.repository.ProductRepository;
+import decidish.com.core.repository.RecipeIngredientRepository;
+import jakarta.persistence.EntityManager;
+import decidish.com.core.model.rewe.Market;
+import decidish.com.core.model.rewe.Product;
+import decidish.com.core.model.recipes.*;
+
+// Final purpose: generate shopping list from selected recipes
+@Service
+public class RecipeService {
+    
+    private static final Logger log = LoggerFactory.getLogger(RecipeService.class);
+    
+    // Configuration constants
+
+    // Too low => less accurate, faster -> 0.0 means (almost) everything matches so we don't call the rewe API
+    // Too high => more accurate, slower -> 1.0 means nothing matches so we always call the rewe API
+    // Between 0.0 and 1.0
+    private static final Double FUZZY_MATCHING_THRESHOLD = 0.6;
+
+    // Max number of fuzzy matches to retrieve from DB per ingredient
+    // Keep it higher in case best matches are not available in market
+    private static final Integer FUZZY_MATCHING_LIMIT = 10;
+
+    // Confidence score settings for API-fetched products
+    // API response are assigned confidence scores starting from API_CONFIDENCE and decreasing by DESC_INCREMENT until FLOOR_CONFIDENCE 
+    // (e.g., 0.95, 0.94, 0.93, ... down to 0.80)
+    private static final Float API_CONFIDENCE = 0.95f;
+    private static final Float FLOOR_CONFIDENCE = 0.80f;
+    private static final Float DESC_INCREMENT = 0.01f;
+
+    // Max number of API matches to consider per ingredient
+    private static final int API_MATCHING_LIMIT = 5;
+
+    // Number of threads for parallel API calls
+    private static final int API_THREADS = 20;
+
+    // private static final ExecutorService apiExecutor = Executors.newFixedThreadPool(API_THREADS);
+    private Executor apiExecutor = Executors.newFixedThreadPool(API_THREADS);
+
+    // @Autowired
+    // private MarketService marketService;
+
+    @Autowired
+    private RecipeIngredientRepository recipeIngredientRepository;
+
+    @Autowired
+    private IngredientProductRepository ingredientProductRepository;
+
+    @Autowired
+    private TransactionTemplate transactionTemplate;
+
+    @Autowired
+    private MarketRepository marketRepository;
+    
+    @Autowired
+    private MarketService marketService;
+
+    @Autowired 
+    private ProductRepository productRepository;
+
+    @Autowired
+    private EntityManager entityManager;
+
+    public void setApiExecutor(Executor apiExecutor) {
+        this.apiExecutor = apiExecutor;
+    }
+
+    /**
+     * Generate shopping list:
+     * - Batch fetch existing IngredientProduct mappings for all ingredients in the list
+     * - For ingredients without local matches, call REWE API in parallel
+     * - Save new products and mappings with descending confidence scores
+     */
+    public ShoppingListResponse generateShoppingList(Long marketId, List<Integer> recipeIds) {
+        // 1. Get raw ingredients and aggregate total needs
+        List<RecipeIngredient> rawIngredients = recipeIngredientRepository.findForShoppingList(recipeIds);
+        Map<Integer, Double> totalNeeds = new HashMap<>();
+        Map<Integer, RecipeIngredient> ingredientRef = new HashMap<>();
+
+        for (RecipeIngredient ri : rawIngredients) {
+            Integer ingId = ri.getIngredient().getId();
+            totalNeeds.merge(ingId, (ri.getQuantity() != null ? ri.getQuantity().doubleValue() : 0.0), Double::sum);
+            ingredientRef.putIfAbsent(ingId, ri);
+        }
+
+        List<Integer> ingredientIds = new ArrayList<>(totalNeeds.keySet());
+
+        // 2. Fetch all Global Mappings for these ingredients that exist in the DB
+        List<IngredientProduct> allExistingMappings = recipeIngredientRepository.findProductsForIngredientsInMarket(
+            ingredientIds,
+            marketId
+        );
+
+        // 3. BATCH FETCH: Get all products for this market that match our mappings
+        // This prevents the IllegalStateException by ensuring we have the "Inventory" ready.
+        final Map<Long, Product> localProductMap = allExistingMappings.isEmpty() 
+            ? Map.of() // Returns an empty, immutable map
+            : productRepository.findByMarketIdAndReweIds(marketId, 
+                allExistingMappings.stream()
+                    .map(ip -> ip.getId().getProductId())
+                    .distinct()
+                    .toList())
+            .stream()
+            .collect(Collectors.toMap(Product::getReweId, p -> p));
+        
+        // Group mappings by ingredient for processing
+        Map<Integer, List<IngredientProduct>> localMatchesMap = allExistingMappings.stream()
+                .collect(Collectors.groupingBy(ip -> ip.getIngredient().getId()));
+
+        // 4. Parallel Processing of Ingredients
+        List<CompletableFuture<IngredientGroup>> futures = ingredientIds.stream()
+            .map(ingId -> CompletableFuture.supplyAsync(() -> {
+                Ingredient ingredient = ingredientRef.get(ingId).getIngredient();
+                String ingName = ingredient.getName();
+                Double needed = totalNeeds.get(ingId);
+                
+                // 4a. Check Local DB first (using our pre-fetched map)
+                if (localMatchesMap.containsKey(ingId) && !localMatchesMap.get(ingId).isEmpty()) {
+                    final Map<Long, Product> finalLocalMap = localProductMap;
+                    List<ShoppingOption> options = localMatchesMap.get(ingId).stream()
+                        .map(m -> {
+                            Product p = finalLocalMap.get(m.getId().getProductId());
+                            return (p != null) ? createShoppingOption(m, p, needed) : null;
+                        })
+                        .filter(java.util.Objects::nonNull)
+                        .sorted(Comparator.comparing(ShoppingOption::confidence).reversed())
+                        .toList();
+
+                    if (!options.isEmpty()) {
+                        return new IngredientGroup(ingId, ingName, needed, options);
+                    }
+                }
+
+                // 4b. API Fallback
+                try {
+                    List<Product> apiProducts = marketService.getProductsQueryNoSave(marketId, ingName);
+                    if (apiProducts.isEmpty()) {
+                        return new IngredientGroup(ingId, ingName, needed, List.of());
+                    }
+
+                    // Prepare Market reference for new products
+                    Market managedMarket = marketRepository.getReferenceById(marketId);
+                    List<IngredientProduct> newMappings = new ArrayList<>();
+                    List<Product> productsToSave = new ArrayList<>();
+
+                    int validProductCount = 0;
+                    for (Product p : apiProducts) {
+                        float confidence = Math.max(FLOOR_CONFIDENCE, API_CONFIDENCE - (validProductCount * DESC_INCREMENT));
+                        
+                        p.setMarket(managedMarket);
+                        productsToSave.add(p);
+                        newMappings.add(new IngredientProduct(
+                            new IngredientProductId(ingId, p.getReweId()),
+                            ingredient,
+                            confidence));
+                            
+                        validProductCount++;
+                        if (validProductCount >= API_MATCHING_LIMIT) break;
+                    }
+
+                    // 4c. Save and Return (Transactionally)
+                    return transactionTemplate.execute(status -> {
+                        saveProductsIndividually(marketId, productsToSave);
+                        ingredientProductRepository.saveAll(newMappings);
+                        
+                        // Create a local map of the fresh products to avoid re-querying the DB
+                        Map<Long, Product> freshApiMap = productsToSave.stream()
+                            .collect(Collectors.toMap(Product::getReweId, p -> p));
+
+                        return new IngredientGroup(ingId, ingName, needed, 
+                            newMappings.stream()
+                                .map(m -> createShoppingOption(m, freshApiMap.get(m.getId().getProductId()), needed))
+                                .filter(java.util.Objects::nonNull)
+                                .sorted(Comparator.comparing(ShoppingOption::confidence).reversed())
+                                .toList());
+                    });
+
+                } catch (Exception e) {
+                    log.error("Failed to fetch API for {}: {}", ingName, e.getMessage());
+                    return new IngredientGroup(ingId, ingName, needed, List.of());
+                }
+            }, apiExecutor))
+            .toList();
+
+        List<IngredientGroup> groups = futures.stream()
+            .map(CompletableFuture::join)
+            .sorted(Comparator.comparing(IngredientGroup::ingredientName))
+            .collect(Collectors.toList());
+        
+        return new ShoppingListResponse(groups);
+    }
+
+    /**
+     * Updated Helper: Now accepts the Product directly to avoid N+1 queries.
+     */
+    private ShoppingOption createShoppingOption(IngredientProduct mapping, Product product, Double neededAmount) {
+        if (product == null) return null;
+
+        Double productSize = product.getNormalizedAmount() != null && product.getNormalizedAmount() > 0 
+                            ? product.getNormalizedAmount() 
+                            : 1.0; 
+
+        int quantity = (int) Math.ceil(neededAmount / productSize);
+
+        return new ShoppingOption(
+            product,
+            quantity,
+            productSize * quantity,
+            mapping.getConfidence()
+        );
+    }
+
+    /**
+     * Helper to save products for a market without loading the whole Market collection.
+     */
+    private void saveProductsIndividually(Long marketId, List<Product> products) {
+        for (Product p : products) {
+            // Check if product with this reweId exists for this market
+            Optional<Product> existing = productRepository.findByMarketIdAndReweId(marketId, p.getReweId());
+            if (existing.isPresent()) {
+                Product dbProd = existing.get();
+                dbProd.updateFromOther(p); // Update price/name
+                productRepository.save(dbProd);
+            } else {
+                productRepository.save(p);
+            }
+        }
+    }
+
+    // /**
+    //  * Pre-process fuzzy matching for all ingredients in the database.
+    //  * @return List of all generated IngredientProduct mappings.
+    //  */
+    public List<IngredientProduct> fuzzyMatchingPreProcessing() {
+        // 1. Get Projections
+        List<IngredientMatchProjection> projections = ingredientProductRepository.findGenericMatches(   
+            ingredientProductRepository.findAllIngredientsIds(),
+            FUZZY_MATCHING_THRESHOLD,
+            FUZZY_MATCHING_LIMIT
+        );
+
+        // 2. Clear table
+        ingredientProductRepository.deleteAllInBatch();
+        ingredientProductRepository.flush();
+
+        // 3. Pre-fetch Products by REWE ID
+        // We need the actual entities because we are joining on a non-PK column
+        List<Long> reweIds = projections.stream().map(p -> p.getProductId()).distinct().toList();
+        Map<Long, Product> productMap = productRepository.findAllByReweIdIn(reweIds).stream()
+                .collect(Collectors.toMap(Product::getReweId, p -> p));
+
+        // 4. Map Projections to Entities
+        List<IngredientProduct> entities = projections.stream().map(p -> {
+            // p.getProductId() should be the REWE ID (Long) from your Match Projection
+            IngredientProductId id = new IngredientProductId(p.getIngredientId(), p.getProductId());
+            
+            IngredientProduct ip = new IngredientProduct();
+            ip.setId(id);
+            ip.setConfidence(p.getConfidence());
+            
+            // Crucial: Set the objects so Hibernate can validate the relationship
+            ip.setIngredient(entityManager.getReference(Ingredient.class, p.getIngredientId()));
+            
+            return ip;
+        }).toList();
+
+        return ingredientProductRepository.saveAll(entities);
+    }
+}

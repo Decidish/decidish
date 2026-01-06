@@ -98,7 +98,7 @@ class MarketControllerIntegrationTest {
                 .andExpect(status().isOk())
                 .andExpect(content().contentType(MediaType.APPLICATION_JSON))
                 .andExpect(jsonPath("$", hasSize(1)))
-                .andExpect(jsonPath("$[0].reweId").value(MARKET_ID1))
+                .andExpect(jsonPath("$[0].id").value(MARKET_ID1))
                 .andExpect(jsonPath("$[0].name").value("REWE Integration Market"));
 
         System.out.println(">>> REPO CLASS: " + marketRepository.getClass().getName());
@@ -139,7 +139,7 @@ class MarketControllerIntegrationTest {
         // --- 3. ACT ---
         mockMvc.perform(get("/api/v1/markets/{id}/products", MARKET_ID2))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.reweId").value(MARKET_ID2))
+                .andExpect(jsonPath("$.id").value(MARKET_ID2))
                 // Verify products are in the JSON response
                 .andExpect(jsonPath("$.products", hasSize(1)))
                 .andExpect(jsonPath("$.products[0].name").value("Integration Milk"))
@@ -177,7 +177,7 @@ class MarketControllerIntegrationTest {
         mockMvc.perform(get("/api/v1/markets/{id}/query", MARKET_ID1)
                         .param("query", query))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.reweId").value(MARKET_ID1))
+                .andExpect(jsonPath("$.id").value(MARKET_ID1))
                 // Verify products are in the JSON response
                 .andExpect(jsonPath("$.products", hasSize(1)))
                 .andExpect(jsonPath("$.products[0].name").value("Integration Bread"))
