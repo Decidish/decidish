@@ -1,4 +1,4 @@
-FROM python:3.12-slim
+FROM python:3.13-slim
 
 WORKDIR /app
 
@@ -15,7 +15,8 @@ RUN pip install poetry
 # This makes it easier to run commands without activating a venv.
 ENV POETRY_VIRTUALENVS_CREATE=false
 
-COPY pyproject.toml poetry.lock* ./
+COPY pyproject.toml ./
+#poetry.lock* ./
 
 # --no-root: triggers an error if your project doesn't have a package structure yet, safer to skip for now
 RUN poetry install --no-root --no-interaction --no-ansi
