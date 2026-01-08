@@ -14,6 +14,7 @@ import java.util.stream.Collectors;
 import java.util.Map;
 import java.util.function.DoubleBinaryOperator;
 
+import decidish.com.core.repository.IngredientProductRepository;
 import decidish.com.core.repository.RecipeIngredientRepository;
 import decidish.com.core.model.recipes.RecipeIngredient;
 import decidish.com.core.model.recipes.ShoppingListResponse;
@@ -27,11 +28,17 @@ public class RecipeService {
     
     private static final Logger log = LoggerFactory.getLogger(RecipeService.class);
     
+    private static final Double FUZZY_MATCHING_THRESHOLD = 0.3;
+    private static final Integer FUZZY_MATCHING_LIMIT = 5;
+
     // @Autowired
     // private MarketService marketService;
 
     @Autowired
     private RecipeIngredientRepository recipeIngredientRepository;
+
+    @Autowired
+    private IngredientProductRepository ingredientProductRepository;
     
     // TODO: testing 
     // TODO: add alternatives? ------> create ShoppingListItem with List<Product> alternatives?
@@ -162,5 +169,29 @@ public class RecipeService {
             productSize * quantity, // Total amount you end up buying
             mapping.getConfidence() // AI Confidence score
         );
+    }
+
+    /**
+     * Pre-process fuzzy matching for all ingredients in the database.
+     * @return List of all generated IngredientProduct mappings.
+     */
+    public List<IngredientProduct> fuzzyMatchingPreProcessing() {
+        List<Long> allIngredientIds = ingredientProductRepository.findAllIngredientsIds();
+        log.info("Total ingredients to process for fuzzy matching: " + allIngredientIds.size());
+
+        List<IngredientProduct> allMatches = ingredientProductRepository.findGenericMatches(
+            allIngredientIds,
+            FUZZY_MATCHING_THRESHOLD,
+            FUZZY_MATCHING_LIMIT
+        );
+
+        log.info("Total fuzzy matches found: " + allMatches.size());
+
+        // Refresh the ingredient-product mappings in the database
+        // ? TODO: maybe optimize this to only update changed entries or bulky additions/deletions if bad performance
+        ingredientProductRepository.deleteAllInBatch();
+        ingredientProductRepository.saveAll(allMatches);
+
+        return allMatches;
     }
 }

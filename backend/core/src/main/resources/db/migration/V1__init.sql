@@ -27,7 +27,8 @@ CREATE INDEX idx_markets_name ON markets (name);
 
 CREATE TABLE products
 (
-    id            BIGINT NOT NULL,
+    id            SERIAL NOT NULL,
+    rewe_id       BIGINT NOT NULL,
     name          VARCHAR(255),
     market_id     BIGINT NOT NULL,
     price         INT,
@@ -75,3 +76,15 @@ CREATE TABLE ingredient_product (
     CONSTRAINT fk_ipm_ingredient FOREIGN KEY (ingredient_id) REFERENCES ingredients(id),
     CONSTRAINT fk_ipm_product FOREIGN KEY (product_id) REFERENCES products(id)
 );
+
+-- For fuzzy matching, we need the pg_trgm extension
+
+CREATE EXTENSION IF NOT EXISTS pg_trgm;
+
+-- Index on ingredients.name for faster similarity searches
+
+CREATE INDEX idx_ingredients_name_trgm ON ingredients USING gin (name gin_trgm_ops);
+
+CREATE INDEX idx_products_name_trgm
+ON products
+USING gin (name gin_trgm_ops);

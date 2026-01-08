@@ -114,4 +114,57 @@ class RecipeServiceIntegrationTest {
         System.out.println("Shopping List Result:");
         shoppingList.items().forEach(p -> System.out.println("-> " + p.ingredientName()));
     }
+
+    @Test
+    @DisplayName("INTEGRATION: Fuzzy matching pre-processing for all ingredients")
+    void testFuzzyMatchingPreProcessing_Integration() {
+        // Set up some ingredients in the DB (about 3-5 should suffice for integration test)
+        List<Ingredient> testIngredients = List.of(
+            new Ingredient("Tomato"),
+            new Ingredient("Cucumber"),
+            new Ingredient("Lettuce")
+        );
+        testIngredients = testIngredients.stream()
+            .map(entityManager::merge)
+            .toList();
+
+        entityManager.flush();
+        entityManager.clear();
+
+        // Set up a market (needed for products)
+        Market market = new Market(MARKET_ID, "Test Market", new Address());
+        marketRepository.save(market);
+
+        // Set up some products in the DB (some of them should match the ingredients, others not)
+
+        List<Product> testProducts = List.of(
+            new Product(1001L, "Fresh Tomato", 100, "url", "1kg", new ProductAttributesDto(false,false,false,false,false,false,false,false,false,false,false,false)),
+            new Product(1002L, "Cucumber Slices", 150, "url", "500g", new ProductAttributesDto(false,false,false,false,false,false,false,false,false,false,false,false)),
+            new Product(1003L, "Lettuce Head", 200, "url", "1pc", new ProductAttributesDto(false,false,false,false,false,false,false,false,false,false,false,false)),
+            new Product(1004L, "Potato Chips", 250, "url", "200g", new ProductAttributesDto(false,false,false,false,false,false,false,false,false,false,false,false)),
+            new Product(1005L, "Carrot Sticks", 180, "url", "300g", new ProductAttributesDto(false,false,false,false,false,false,false,false,false,false,false,false))
+        );
+
+        // Assign market to products and persist
+        for (Product p : testProducts) {
+            p.setMarket(market);
+            entityManager.merge(p);    
+        }
+
+        entityManager.flush();
+        entityManager.clear();
+
+        // --- STEP 2: EXECUTE SERVICE ---
+        List<IngredientProduct> generatedMappings = recipeService.fuzzyMatchingPreProcessing();
+
+        // --- STEP 3: ASSERT ---
+        assertNotNull(generatedMappings);
+        assertFalse(generatedMappings.isEmpty(), "Generated mappings should not be empty");
+        System.out.println("Generated Ingredient-Product Mappings:");
+        for (IngredientProduct ip : generatedMappings) {
+            System.out.println("Ingredient: " + ip.getIngredient().getName() + 
+                               " -> Product: " + ip.getProduct().getName() +
+                               " (Confidence: " + ip.getConfidence() + ")");
+        }
+    }
 }
