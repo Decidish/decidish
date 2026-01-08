@@ -3,7 +3,7 @@ package main
 import (
 	"database/sql"
 	"log"
-	"personalization/db/driver"
+	"personalization/internal/driver"
 	"personalization/internal/middleware"
 	"time"
 

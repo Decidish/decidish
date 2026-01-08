@@ -3,9 +3,9 @@ package main
 import (
 	"database/sql"
 	"log"
-	"personalization/db/driver"
 	"personalization/internal/config"
 	"personalization/internal/controller"
+	"personalization/internal/driver"
 	"personalization/internal/repository"
 	"personalization/internal/service"
 
