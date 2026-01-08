@@ -22,7 +22,7 @@ public class RecipeIngredient {
     @JoinColumn(name = "ingredient_id")
     private Ingredient ingredient;
 
-    private String normalizedName;
+    // private String normalizedName;
     private Double quantity;
     private String unit;
 }

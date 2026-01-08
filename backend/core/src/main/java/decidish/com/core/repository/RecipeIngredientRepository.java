@@ -23,7 +23,6 @@ public interface RecipeIngredientRepository
         SELECT new decidish.com.core.model.recipes.RecipeIngredient(
             ri.recipe,
             ri.ingredient,
-            ri.normalizedName,
             SUM(ri.quantity),
             ri.unit
         )
@@ -32,7 +31,6 @@ public interface RecipeIngredientRepository
         GROUP BY
             ri.recipe,
             ri.ingredient,
-            ri.normalizedName,
             ri.unit
     """)
     List<RecipeIngredient> findForShoppingList(

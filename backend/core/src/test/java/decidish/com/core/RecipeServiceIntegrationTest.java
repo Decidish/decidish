@@ -77,8 +77,8 @@ class RecipeServiceIntegrationTest {
         // // Continue with your service call...
 
         // 4. Create Recipe-Ingredient Links
-        RecipeIngredient ri1 = new RecipeIngredient(r1, onion, "onion", 2.0, "pcs");
-        RecipeIngredient ri2 = new RecipeIngredient(r2, pasta, "pasta", 500.0, "g");
+        RecipeIngredient ri1 = new RecipeIngredient(r1, onion, 2.0, "pcs");
+        RecipeIngredient ri2 = new RecipeIngredient(r2, pasta, 500.0, "g");
         repository.saveAll(List.of(ri1, ri2));
 
         ProductAttributesDto attrs = new ProductAttributesDto(false,false,false,false,false,false,false,false,false,false,false,false);
