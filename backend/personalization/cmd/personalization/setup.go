@@ -3,9 +3,9 @@ package main
 import (
 	"database/sql"
 	"log"
-	"personalization/db/driver"
 	"personalization/internal/config"
 	"personalization/internal/controller"
+	"personalization/internal/driver"
 	"personalization/internal/repository"
 	"personalization/internal/service"
 
@@ -29,7 +29,6 @@ func setupAppConfig() config.ApplicationConfig {
 
 func connectDB(appConfig config.ApplicationConfig) *sql.DB {
 	dbDriver := driver.DBDriver{
-		MigrationDir:  "db/migrations",
 		Name:          "postgres",
 		ConnectionUrl: appConfig.DBConnectionUrl,
 	}

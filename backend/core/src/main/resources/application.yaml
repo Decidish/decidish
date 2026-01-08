@@ -5,8 +5,7 @@ spring:
     password: 1234
   jpa:
     hibernate:
-      # Ensure a clean database for every test: drops and recreates schema
-      ddl-auto: create-drop
+      ddl-auto: validate
   session:
     store-type: jdbc
     jdbc:
