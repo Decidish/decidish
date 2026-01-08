@@ -26,7 +26,7 @@ public class RecipeService {
     @Autowired
     private RecipeIngredientRepository recipeIngredientRepository;
     
-    // TODO: testing CRITICAL
+    // TODO: testing 
     // TODO: add alternatives? ------> create ShoppingListItem with List<Product> alternatives?
     // TODO: quantities? ------------> create ShoppingListItem with quantity field? (also in alternatives?)
     public List<Product> generateShoppingList(Long marketId, List<Long> recipeIds) {

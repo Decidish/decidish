@@ -5,6 +5,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.CompletableFuture;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
@@ -264,4 +265,95 @@ public class MarketService {
         // Hibernate.initialize(savedMarket.getProducts());
         return savedMarket;
     }
+
+    // // NOTE: NO @Transactional here! We want to keep DB connections free while waiting for API.
+    // public Market getProductsAPI(Market market, String query, int maxPages) {
+
+    //     Long marketId = market.getReweId();
+        
+    //     // --- STEP 1: Fetch First Page (Synchronous) ---
+    //     log.info("Fetching API Page 1...");
+        
+    //     ProductSearchResponse firstPage = apiClient.searchProducts(query, 1, DEFAULT_OBJECTS_PER_PAGE, marketId);
+    //     if (firstPage == null || firstPage.data() == null) return null;
+
+    //     // Collect all found products into a single list
+    //     List<ProductDto> allFoundProducts = new ArrayList<>(firstPage.data().products().products());
+
+    //     // --- STEP 2: Calculate Pages ---
+    //     int totalApiPages = firstPage.data().products().pagination().pageCount();
+    //     int pagesToFetch = Math.min(maxPages, totalApiPages);
+
+    //     // --- STEP 3: Parallel Fetch (Scatter) ---
+    //     if (pagesToFetch > 1) {
+    //         log.info("Starting parallel fetch for {} more pages...", pagesToFetch - 1);
+            
+    //         List<CompletableFuture<List<ProductDto>>> futures = new ArrayList<>();
+
+    //         // Start loops from Page 2
+    //         for (int i = 2; i <= pagesToFetch; i++) {
+    //             final int pageNum = i; // Needed for lambda
+                
+    //             // Create a task that runs in the background
+    //             CompletableFuture<List<ProductDto>> future = CompletableFuture.supplyAsync(() -> {
+    //                 try {
+    //                     var response = apiClient.searchProducts(query, pageNum, DEFAULT_OBJECTS_PER_PAGE, marketId);
+    //                     if (response != null && response.data() != null) {
+    //                         return response.data().products().products();
+    //                     }
+    //                 } catch (Exception e) {
+    //                     log.error("Failed to fetch page " + pageNum, e);
+    //                 }
+    //                 return List.<ProductDto>of(); // Return empty list on failure
+    //             });
+                
+    //             futures.add(future);
+    //         }
+
+    //         // --- STEP 4: Wait for All (Gather) ---
+    //         // This blocks the main thread until ALL requests are done
+    //         CompletableFuture.allOf(futures.toArray(new CompletableFuture[0])).join();
+
+    //         // Extract data from futures
+    //         for (var future : futures) {
+    //             try {
+    //                 allFoundProducts.addAll(future.get());
+    //             } catch (Exception e) {
+    //                 // Should not happen since we used join(), but good practice
+    //             }
+    //         }
+    //     }
+
+    //     log.info("Finished fetching. Total items found: {}", allFoundProducts.size());
+
+    //     // --- STEP 5: Save to DB (Transactional) ---
+    //     // Now we call a separate method that handles the DB Lock
+    //     return updateMarketData(marketId, allFoundProducts);
+    // }
+
+    // // Separate helper method just for the DB write
+    // @Transactional
+    // protected Market updateMarketData(Long marketId, List<ProductDto> dtos) {
+    //     Market market = marketRepository.findById(marketId).orElseThrow();
+        
+    //     // Create Lookup Map for O(1) access
+    //     Map<Long, Product> existingMap = new HashMap<>();
+    //     for (Product p : market.getProducts()) {
+    //         existingMap.put(p.getId(), p);
+    //     }
+
+    //     // Update or Insert
+    //     for (ProductDto dto : dtos) {
+    //         if (existingMap.containsKey(dto.productId())) {
+    //             existingMap.get(dto.productId()).updateFromDto(dto);
+    //         } else {
+    //             Product newProduct = Product.fromDto(dto);
+    //             market.addProduct(newProduct);
+    //             // Update map to avoid duplicates if API returns same item twice
+    //             existingMap.put(dto.productId(), newProduct); 
+    //         }
+    //     }
+
+    //     return marketRepository.save(market);
+    // }
 }
