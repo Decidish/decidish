@@ -16,8 +16,6 @@ WORKDIR /app
 
 COPY --from=builder /app/personalization_service ./personalization_service
 
-COPY --from=builder /app/db ./db
-
 EXPOSE 8082
 
 CMD ["./personalization_service"]
