@@ -138,6 +138,7 @@ class RecipeServiceIntegrationTest {
         // Set up some products in the DB (some of them should match the ingredients, others not)
 
         List<Product> testProducts = List.of(
+            new Product(1000L, "Tomato Soup", 100, "url", "1L", new ProductAttributesDto(false,false,false,false,false,false,false,false,false,false,false,false)),
             new Product(1001L, "Fresh Tomato", 100, "url", "1kg", new ProductAttributesDto(false,false,false,false,false,false,false,false,false,false,false,false)),
             new Product(1002L, "Cucumber Slices", 150, "url", "500g", new ProductAttributesDto(false,false,false,false,false,false,false,false,false,false,false,false)),
             new Product(1003L, "Lettuce Head", 200, "url", "1pc", new ProductAttributesDto(false,false,false,false,false,false,false,false,false,false,false,false)),
@@ -163,7 +164,7 @@ class RecipeServiceIntegrationTest {
         System.out.println("Generated Ingredient-Product Mappings:");
         for (IngredientProduct ip : generatedMappings) {
             System.out.println("Ingredient: " + ip.getIngredient().getName() + 
-                               " -> Product: " + ip.getProduct().getName() +
+                               " -> Product: " + marketRepository.findProductNameByReweId(ip.getId().getProductId()) +
                                " (Confidence: " + ip.getConfidence() + ")");
         }
     }

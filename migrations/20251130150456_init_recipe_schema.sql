@@ -10,7 +10,7 @@ CREATE TABLE keywords (
     name VARCHAR(50) UNIQUE NOT NULL
 );
 
-CREATE TABLE ingredients (
+CREATE TABLE IF NOT EXISTS ingredients (
     id SERIAL PRIMARY KEY,
     name VARCHAR(255) UNIQUE NOT NULL
 );
