@@ -2,11 +2,13 @@ spring:
   datasource:
     url: jdbc:postgresql://localhost:5433/decidish
     username: user
-    password: 1234
+    password: password
   jpa:
     hibernate:
-      # Ensure a clean database for every test: drops and recreates schema
-      ddl-auto: create-drop
+      ddl-auto: validate
+    properties:
+      hibernate:
+        format_sql: true
   session:
     store-type: jdbc
     jdbc:
@@ -14,7 +16,8 @@ spring:
   application:
     name: "core"
   flyway:
-    enabled: "false"
+    enabled: "true"
+    baseline-on-migrate: true
   ssl:
     bundle:
       pem:

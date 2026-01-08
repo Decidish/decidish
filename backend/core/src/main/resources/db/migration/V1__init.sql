@@ -50,7 +50,7 @@ CREATE TABLE products
 
     CONSTRAINT pk_products PRIMARY KEY (id),
     -- Foreign Key to markets table
-    CONSTRAINT fk_products_on_market FOREIGN KEY (market_id) REFERENCES markets(id),
+    CONSTRAINT fk_products_on_market FOREIGN KEY (market_id) REFERENCES markets(id)
 );
 
 -- Indexes for efficient lookups/joins:
