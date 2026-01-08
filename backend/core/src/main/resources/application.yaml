@@ -1,8 +1,8 @@
 spring:
   datasource:
     url: jdbc:postgresql://localhost:5433/decidish
-    username: "DB-USER"
-    password: "DB-PASSWORD"
+    username: user
+    password: password
   jpa:
     hibernate:
       ddl-auto: validate

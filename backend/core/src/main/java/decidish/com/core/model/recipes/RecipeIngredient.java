@@ -23,6 +23,6 @@ public class RecipeIngredient {
     private Ingredient ingredient;
 
     private String normalizedName;
-    private BigDecimal quantity;
+    private Double quantity;
     private String unit;
 }

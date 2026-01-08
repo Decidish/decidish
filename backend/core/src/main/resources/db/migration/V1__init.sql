@@ -1,6 +1,6 @@
 CREATE TABLE addresses
 (
-    id       SERIAL NOT NULL,
+    id       BIGSERIAL NOT NULL,
     street   VARCHAR(255),
     zip_code VARCHAR(5),
     city     VARCHAR(255),
@@ -34,6 +34,7 @@ CREATE TABLE products
     image_url     VARCHAR(255),
     grammage      VARCHAR(255),
     last_updated  TIMESTAMP,
+    normalized_amount FLOAT,
 
     is_bulky_good      BOOLEAN,
     is_organic         BOOLEAN,
@@ -61,7 +62,7 @@ CREATE INDEX idx_products_market_id ON products (market_id);
 CREATE INDEX idx_products_name ON products (name);
 
 CREATE TABLE IF NOT EXISTS ingredients (
-    id SERIAL PRIMARY KEY,
+    id BIGSERIAL PRIMARY KEY,
     name VARCHAR(255)
 );
 

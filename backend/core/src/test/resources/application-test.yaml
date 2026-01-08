@@ -11,8 +11,8 @@ spring:
     banner-mode: off
   datasource:
     url: jdbc:postgresql://localhost:5433/decidish
-    username: "DB-USER"
-    password: "DB-PASSWORD"
+    username: user
+    password: password
     driver-class-name: org.postgresql.Driver
   jpa:
     # Force Hibernate to use Postgres dialect

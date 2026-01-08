@@ -67,12 +67,12 @@ class RecipeServiceUnitTest {
             .thenReturn(List.of(mappingTomato));
 
         // --- ACT ---
-        List<Product> results = recipeService.generateShoppingList(MARKET_ID, RECIPE_IDS);
+        ShoppingListResponse results = recipeService.generateShoppingList(MARKET_ID, RECIPE_IDS);
 
         // --- ASSERT ---
         assertNotNull(results);
-        assertEquals(1, results.size());
-        assertEquals("Rewe Bio Tomato", results.get(0).getName());
+        assertEquals(1, results.items().size());
+        assertEquals("Tomato", results.items().get(0).ingredientName());
 
         // Verify that the repository was called with correct params
         verify(recipeIngredientRepository).findForShoppingList(RECIPE_IDS);
@@ -91,9 +91,9 @@ class RecipeServiceUnitTest {
             .thenReturn(List.of());
 
         // Act
-        List<Product> results = recipeService.generateShoppingList(MARKET_ID, RECIPE_IDS);
+        ShoppingListResponse results = recipeService.generateShoppingList(MARKET_ID, RECIPE_IDS);
 
         // Assert
-        assertTrue(results.isEmpty());
+        assertTrue(results.items().get(0).options().isEmpty());
     }
 }

@@ -77,8 +77,8 @@ class RecipeServiceIntegrationTest {
         // // Continue with your service call...
 
         // 4. Create Recipe-Ingredient Links
-        RecipeIngredient ri1 = new RecipeIngredient(r1, onion, "onion", new BigDecimal("2"), "pcs");
-        RecipeIngredient ri2 = new RecipeIngredient(r2, pasta, "pasta", new BigDecimal("500"), "g");
+        RecipeIngredient ri1 = new RecipeIngredient(r1, onion, "onion", 2.0, "pcs");
+        RecipeIngredient ri2 = new RecipeIngredient(r2, pasta, "pasta", 500.0, "g");
         repository.saveAll(List.of(ri1, ri2));
 
         ProductAttributesDto attrs = new ProductAttributesDto(false,false,false,false,false,false,false,false,false,false,false,false);
@@ -103,15 +103,15 @@ class RecipeServiceIntegrationTest {
 
         // --- STEP 2: EXECUTE SERVICE ---
         List<Long> selectedRecipes = List.of(recipeId_1, recipeId_2);
-        List<Product> shoppingList = recipeService.generateShoppingList(MARKET_ID, selectedRecipes);
+        ShoppingListResponse shoppingList = recipeService.generateShoppingList(MARKET_ID, selectedRecipes);
 
         // --- STEP 3: ASSERT ---
         assertNotNull(shoppingList);
         // Based on our data, only Onion has a mapping. Pasta should be ignored or logged as missing.
-        assertEquals(1, shoppingList.size(), "Should only find 1 product (Onion) because Pasta mapping is missing");
-        assertEquals("Ja! Zwiebeln", shoppingList.get(0).getName());
+        assertEquals(1, shoppingList.items().size(), "Should only find 1 product (Onion) because Pasta mapping is missing");
+        assertEquals("Ja! Zwiebeln", shoppingList.items().get(0).ingredientName());
         
         System.out.println("Shopping List Result:");
-        shoppingList.forEach(p -> System.out.println("-> " + p.getName()));
+        shoppingList.items().forEach(p -> System.out.println("-> " + p.ingredientName()));
     }
 }

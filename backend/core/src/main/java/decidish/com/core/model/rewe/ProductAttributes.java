@@ -1,4 +1,4 @@
-// package decidish.com.core.model.rewe;
+/* package decidish.com.core.model.rewe;
 
 // import java.io.Serializable;
 
@@ -65,20 +65,21 @@
 //         this.isTobacco = isTobacco;
 //     }
 
-//     public static ProductAttributes fromDto(ProductAttributesDto dto) {
-//         return new ProductAttributes(
-//             dto.isBulkyGood(),
-//             dto.isOrganic(),
-//             dto.isVegan(),
-//             dto.isVegetarian(),
-//             dto.isDairyFree(),
-//             dto.isGlutenFree(),
-//             dto.isBiocide(),
-//             dto.isAgeRestricted(),
-//             dto.isRegional(),
-//             dto.isNew(),
-//             dto.isLowestPrice(),
-//             dto.isTobacoo()
-//         );
-//     }
-// }
+    public static ProductAttributes fromDto(ProductAttributesDto dto) {
+        return new ProductAttributes(
+            dto.isBulkyGood(),
+            dto.isOrganic(),
+            dto.isVegan(),
+            dto.isVegetarian(),
+            dto.isDairyFree(),
+            dto.isGlutenFree(),
+            dto.isBiocide(),
+            dto.isAgeRestricted(),
+            dto.isRegional(),
+            dto.isNew(),
+            dto.isLowestPrice(),
+            dto.isTobacoo()
+        );
+    }
+}
+ */
