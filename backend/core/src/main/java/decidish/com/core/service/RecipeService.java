@@ -16,10 +16,9 @@ import java.util.function.DoubleBinaryOperator;
 
 import decidish.com.core.repository.IngredientProductRepository;
 import decidish.com.core.repository.RecipeIngredientRepository;
-import decidish.com.core.model.recipes.RecipeIngredient;
-import decidish.com.core.model.recipes.ShoppingListResponse;
+import decidish.com.core.service.MarketService;
+import decidish.com.core.model.rewe.Market;
 import decidish.com.core.model.rewe.Product;
-import decidish.com.core.model.recipes.IngredientProduct;
 import decidish.com.core.model.recipes.*;
 
 // Final purpose: generate shopping list from selected recipes
@@ -39,6 +38,9 @@ public class RecipeService {
 
     @Autowired
     private IngredientProductRepository ingredientProductRepository;
+    
+    @Autowired
+    private MarketService marketService;
     
     // TODO: testing 
     // TODO: add alternatives? ------> create ShoppingListItem with List<Product> alternatives?
@@ -132,6 +134,25 @@ public class RecipeService {
 
             if (options.isEmpty()) {
                 log.warn("No products found for ingredient: {} (ID: {})", ref.getIngredient().getName(), ingId);
+                try {
+                    // Call the MarketService API using the ingredient name as the query
+                    Market marketResponse = marketService.getProductsQuery(marketId, name);
+                    
+                    // If the API returns a valid market with products, add them to the options list
+                    if (marketResponse != null && marketResponse.getProducts() != null) {
+                        List<Product> apiProducts = marketResponse.getProducts();
+                        for(Product apiProduct : apiProducts){
+                            ShoppingOption option = new ShoppingOption(apiProduct,needed,,0.95)
+                        }
+                        options.addAll(apiProducts);
+                        
+                        log.debug("Added {} products from API for ingredient: {}", apiProducts.size(), name);
+                    } else {
+                        log.warn("API returned no products for ingredient: {} (ID: {})", name, ingId);
+                    }
+                } catch (Exception e) {
+                    log.error("Error fetching products from API for ingredient: {}", name, e);
+                }
             }
 
             groups.add(new IngredientGroup(
