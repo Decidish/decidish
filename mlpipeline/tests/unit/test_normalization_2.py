@@ -1,6 +1,6 @@
 import unittest
 from unittest.mock import MagicMock, patch
-from normalization import UnitGraph
+from mlpipeline.ingredient_parser.normalization import UnitGraph
 
 class TestUnitGraph(unittest.TestCase):
 

@@ -1,7 +1,7 @@
 import unittest
 import os
 import psycopg2
-from normalization import UnitGraph
+from mlpipeline.ingredient_parser.normalization import UnitGraph
 
 # Connection string to your running Docker DB (exposed on localhost)
 DB_DSN = os.getenv("CORE_DATABASE_URL", "postgresql://user:password@localhost:5433/decidish?sslmode=disable")
