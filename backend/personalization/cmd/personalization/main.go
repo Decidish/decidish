@@ -3,7 +3,6 @@ package main
 import (
 	"database/sql"
 	"log"
-	"personalization/internal/driver"
 	"personalization/internal/middleware"
 	"time"
 
@@ -15,20 +14,12 @@ func main() {
 	// Create application configuration from the env variables
 	appConfig := setupAppConfig()
 
-	dbDriver := driver.DBDriver{
-		MigrationDir:  "db/migrations",
-		Name:          "postgres",
-		ConnectionUrl: appConfig.DBConnectionUrl,
-	}
-
 	// Connect to the database
 	db := connectDB(appConfig)
 
 	defer func(db *sql.DB) {
 		_ = db.Close()
 	}(db)
-	// Run database migrations
-	dbDriver.RunMigrations(db)
 
 	r := gin.Default()
 

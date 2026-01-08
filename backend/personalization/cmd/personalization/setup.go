@@ -29,7 +29,6 @@ func setupAppConfig() config.ApplicationConfig {
 
 func connectDB(appConfig config.ApplicationConfig) *sql.DB {
 	dbDriver := driver.DBDriver{
-		MigrationDir:  "db/migrations",
 		Name:          "postgres",
 		ConnectionUrl: appConfig.DBConnectionUrl,
 	}
