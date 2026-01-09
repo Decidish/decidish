@@ -56,8 +56,6 @@ public class RecipeServiceE2EBenchmarkTest {
         "Marmelade", "Nutella", "Müsli", "Haferflocken", "Mais", "Erbsen", "Bohnen", "Thunfisch", "Lachs", "Hähnchen"
     };
     
-    private int i = 1;
-
     @BeforeEach
     void setup() {
         // Clean slate for accurate timing
