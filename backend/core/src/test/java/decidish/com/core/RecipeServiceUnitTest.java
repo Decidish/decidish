@@ -28,7 +28,7 @@ class RecipeServiceUnitTest {
     private RecipeService recipeService;
 
     private final Long MARKET_ID = 431022L;
-    private final List<Long> RECIPE_IDS = List.of(101L, 102L);
+    private final List<Integer> RECIPE_IDS = List.of(101, 102);
 
     private RecipeIngredient riTomato;
     private IngredientProduct mappingTomato;
@@ -37,7 +37,7 @@ class RecipeServiceUnitTest {
     void setup() {
         // 1. Setup Mock Ingredient and 
         Ingredient tomato = new Ingredient("Tomato");
-        tomato.setId(1L);
+        tomato.setId(1);
 
         // 2. Setup Mock Recipe-Ingredient link
         riTomato = new RecipeIngredient();
@@ -76,7 +76,7 @@ class RecipeServiceUnitTest {
 
         // Verify that the repository was called with correct params
         verify(recipeIngredientRepository).findForShoppingList(RECIPE_IDS);
-        verify(recipeIngredientRepository).findProductsForIngredientsInMarket(List.of(1L), MARKET_ID);
+        verify(recipeIngredientRepository).findProductsForIngredientsInMarket(List.of(1), MARKET_ID);
     }
 
     @Test

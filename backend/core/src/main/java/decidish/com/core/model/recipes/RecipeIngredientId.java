@@ -8,6 +8,6 @@ import java.io.Serializable;
 @EqualsAndHashCode
 public class RecipeIngredientId implements Serializable {
 
-    private Long recipe;
-    private Long ingredient;
+    private Integer recipe;
+    private Integer ingredient;
 }

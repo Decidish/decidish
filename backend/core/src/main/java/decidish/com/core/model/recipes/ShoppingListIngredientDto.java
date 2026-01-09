@@ -1,7 +1,7 @@
 package decidish.com.core.model.recipes;
 
 public record ShoppingListIngredientDto (
-    Long ingredientId,
+    Integer ingredientId,
     Double totalQuantity,
     String unit
 ) {}

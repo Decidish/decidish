@@ -34,7 +34,7 @@ public interface RecipeIngredientRepository
             ri.unit
     """)
     List<RecipeIngredient> findForShoppingList(
-            @Param("recipeIds") List<Long> recipeIds
+            @Param("recipeIds") List<Integer> recipeIds
     );
 
     // TODO: change this when changing market-product relation to many-to-many
@@ -85,7 +85,7 @@ public interface RecipeIngredientRepository
     // """)
 
     List<IngredientProduct> findProductsForIngredientsInMarket(
-            @Param("ingredientIds") List<Long> ingredientIds,
+            @Param("ingredientIds") List<Integer> ingredientIds,
             @Param("marketId") Long marketId
     );
 }

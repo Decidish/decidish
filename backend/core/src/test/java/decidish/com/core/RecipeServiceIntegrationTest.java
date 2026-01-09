@@ -62,8 +62,8 @@ class RecipeServiceIntegrationTest {
         r1 = entityManager.merge(r1);
         r2 = entityManager.merge(r2);
 
-        Long recipeId_1 = r1.getId();
-        Long recipeId_2 = r2.getId();
+        Integer recipeId_1 = r1.getId();
+        Integer recipeId_2 = r2.getId();
 
         // // --- FORCE COMMIT NOW ---
         // entityManager.flush(); 
@@ -102,7 +102,7 @@ class RecipeServiceIntegrationTest {
         entityManager.clear();
 
         // --- STEP 2: EXECUTE SERVICE ---
-        List<Long> selectedRecipes = List.of(recipeId_1, recipeId_2);
+        List<Integer> selectedRecipes = List.of(recipeId_1, recipeId_2);
         ShoppingListResponse shoppingList = recipeService.generateShoppingList(MARKET_ID, selectedRecipes);
 
         // --- STEP 3: ASSERT ---

@@ -88,18 +88,19 @@ public class RecipeService {
     /**
      * Generates a shopping list with alternatives and quantities.
      */
-    public ShoppingListResponse generateShoppingList(Long marketId, List<Long> recipeIds) {
+    public ShoppingListResponse generateShoppingList(Long marketId, List<Integer> recipeIds) {
 
         // Fetch all raw ingredients for the selected recipes
         List<RecipeIngredient> rawIngredients = recipeIngredientRepository.findForShoppingList(recipeIds);
 
+        // TODO: remove this
         // Aggregation: Sum amounts for the same Ingredient ID
         // (e.g., Recipe A needs 200g Flour, Recipe B needs 300g Flour -> Total 500g)
-        Map<Long, Double> totalNeeds = new HashMap<>();
-        Map<Long, RecipeIngredient> ingredientRef = new HashMap<>(); // Keep reference to get Name/Unit
+        Map<Integer, Double> totalNeeds = new HashMap<>();
+        Map<Integer, RecipeIngredient> ingredientRef = new HashMap<>(); // Keep reference to get Name/Unit
 
         for (RecipeIngredient ri : rawIngredients) {
-            Long ingId = ri.getIngredient().getId();
+            Integer ingId = ri.getIngredient().getId();
             // The quantity of the ingredients is already normalize
             Double amount = ri.getQuantity() != null ? ri.getQuantity() : 0.0;
             
@@ -108,20 +109,20 @@ public class RecipeService {
         }
 
         // Batch fetch matching products for ALL ingredients in this market
-        List<Long> ingredientIds = new ArrayList<>(totalNeeds.keySet());
+        List<Integer> ingredientIds = new ArrayList<>(totalNeeds.keySet());
         List<IngredientProduct> allMappings = recipeIngredientRepository.findProductsForIngredientsInMarket(
             ingredientIds,
             marketId
         );
 
         // Group mappings by Ingredient ID
-        Map<Long, List<IngredientProduct>> matchesByIngredient = allMappings.stream()
+        Map<Integer, List<IngredientProduct>> matchesByIngredient = allMappings.stream()
             .collect(Collectors.groupingBy(ip -> ip.getIngredient().getId()));
 
         // Build the Response
         List<IngredientGroup> groups = new ArrayList<>();
 
-        for (Long ingId : ingredientIds) {
+        for (Integer ingId : ingredientIds) {
             RecipeIngredient ref = ingredientRef.get(ingId);
             Double needed = totalNeeds.get(ingId);
             List<IngredientProduct> matches = matchesByIngredient.getOrDefault(ingId, List.of());
@@ -134,24 +135,25 @@ public class RecipeService {
 
             if (options.isEmpty()) {
                 log.warn("No products found for ingredient: {} (ID: {})", ref.getIngredient().getName(), ingId);
+                String ingName = ref.getIngredient().getName();
                 try {
                     // Call the MarketService API using the ingredient name as the query
-                    Market marketResponse = marketService.getProductsQuery(marketId, name);
+                    Market marketResponse = marketService.getProductsQuery(marketId, ingName);
                     
                     // If the API returns a valid market with products, add them to the options list
                     if (marketResponse != null && marketResponse.getProducts() != null) {
                         List<Product> apiProducts = marketResponse.getProducts();
                         for(Product apiProduct : apiProducts){
-                            ShoppingOption option = new ShoppingOption(apiProduct,needed,,0.95)
+                            ShoppingOption option = new ShoppingOption(apiProduct,(int)Math.ceil(needed),apiProduct.getNormalizedAmount(),0.95f);
+                            options.add(option);
                         }
-                        options.addAll(apiProducts);
                         
-                        log.debug("Added {} products from API for ingredient: {}", apiProducts.size(), name);
+                        log.debug("Added {} products from API for ingredient: {}", apiProducts.size(), ingName);
                     } else {
-                        log.warn("API returned no products for ingredient: {} (ID: {})", name, ingId);
+                        log.warn("API returned no products for ingredient: {} (ID: {})", ingName, ingId);
                     }
                 } catch (Exception e) {
-                    log.error("Error fetching products from API for ingredient: {}", name, e);
+                    log.error("Error fetching products from API for ingredient: {}", ingName, e);
                 }
             }
 

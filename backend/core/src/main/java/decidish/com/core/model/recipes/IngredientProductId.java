@@ -8,6 +8,6 @@ import java.io.Serializable;
 @AllArgsConstructor
 @Embeddable
 public class IngredientProductId implements Serializable {
-    private Long ingredientId;
+    private Integer ingredientId;
     private Long productId;
 } 
