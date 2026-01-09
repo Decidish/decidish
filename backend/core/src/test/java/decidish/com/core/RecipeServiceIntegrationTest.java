@@ -4,6 +4,7 @@ import decidish.com.core.model.recipes.*;
 import decidish.com.core.model.rewe.*;
 import decidish.com.core.repository.MarketRepository;
 import decidish.com.core.repository.RecipeIngredientRepository;
+import decidish.com.core.service.MarketService;
 import decidish.com.core.service.RecipeService;
 import jakarta.persistence.EntityManager;
 import jakarta.transaction.Transactional;
@@ -12,14 +13,18 @@ import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.test.annotation.Rollback;
 import org.springframework.test.context.ActiveProfiles;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.context.transaction.TestTransaction;
 
 import java.math.BigDecimal;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.when;
 
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 @ActiveProfiles("test")
@@ -38,6 +43,9 @@ class RecipeServiceIntegrationTest {
 
     @Autowired
     private EntityManager entityManager; // Used to persist setup data without creating 5 extra repositories
+
+    @MockitoBean // Crucial: Replaces the real MarketService bean with a Mock
+    private MarketService marketService;
 
     private final Long MARKET_ID = 431022L;
 
@@ -115,6 +123,78 @@ class RecipeServiceIntegrationTest {
         
         System.out.println("Shopping List Result:");
         shoppingList.items().forEach(p -> System.out.println("-> " + p.ingredientName()));
+    }
+    
+    @Test
+    @DisplayName("INTEGRATION: Generate shopping list (Hybrid: Local + API fallback)")
+    void testGenerateShoppingList_Hybrid() {
+        // --- DATA SETUP ---
+        Market market = new Market(MARKET_ID, "Test Market", null);
+        marketRepository.save(market);
+
+        // Ingredient 1: Onion (Will have local mapping)
+        Ingredient onion = new Ingredient("Onion");
+        onion = entityManager.merge(onion);
+
+        // Ingredient 2: Saffron (Will be missing locally -> API Fallback)
+        Ingredient saffron = new Ingredient("Saffron");
+        saffron = entityManager.merge(saffron);
+
+        Recipe r1 = new Recipe("Fancy Paella");
+        r1 = entityManager.merge(r1);
+
+        // Link Ingredients to Recipe
+        RecipeIngredient ri1 = new RecipeIngredient(r1, onion, BigDecimal.valueOf(2), "pcs");
+        RecipeIngredient ri2 = new RecipeIngredient(r1, saffron, BigDecimal.valueOf(1), "g");
+        repository.saveAll(List.of(ri1, ri2));
+
+        // Create Local Product for Onion
+        Product reweOnion = new Product(555L, "Ja! Zwiebeln", 100, "url", "1kg", null);
+        reweOnion.setMarket(market);
+        reweOnion.setNormalizedAmount(1.0);
+        reweOnion = entityManager.merge(reweOnion);
+
+        // Map Onion locally
+        IngredientProduct mapping = new IngredientProduct();
+        mapping.setId(new IngredientProductId(onion.getId(), reweOnion.getId()));
+        mapping.setIngredient(onion);
+        mapping.setProduct(reweOnion);
+        mapping.setConfidence(0.95f);
+        entityManager.merge(mapping);
+
+        entityManager.flush();
+        entityManager.clear();
+
+        // --- MOCK API BEHAVIOR ---
+        // When service asks for Saffron, return a mock product
+        Product apiSaffron = new Product(777L, "Premium Saffron", 999, "url", "1g", null);
+        apiSaffron.setNormalizedAmount(1.0);
+        
+        Market mockApiMarket = new Market();
+        mockApiMarket.setProducts(List.of(apiSaffron));
+
+        when(marketService.getProductsQuery(eq(MARKET_ID), eq("Saffron")))
+            .thenReturn(mockApiMarket);
+
+        // --- EXECUTE ---
+        ShoppingListResponse response = recipeService.generateShoppingList(MARKET_ID, List.of(r1.getId()));
+
+        // --- ASSERT ---
+        assertNotNull(response);
+        assertEquals(2, response.items().size(), "Should contain both ingredients");
+
+        // Verify Onion (Local)
+        IngredientGroup onionGroup = response.items().stream()
+            .filter(g -> g.ingredientName().equals("Onion"))
+            .findFirst().orElseThrow();
+        assertEquals("Ja! Zwiebeln", onionGroup.options().get(0).product().getName());
+
+        // Verify Saffron (API)
+        IngredientGroup saffronGroup = response.items().stream()
+            .filter(g -> g.ingredientName().equals("Saffron"))
+            .findFirst().orElseThrow();
+        assertFalse(saffronGroup.options().isEmpty(), "Saffron should have options from API");
+        assertEquals("Premium Saffron", saffronGroup.options().get(0).product().getName());
     }
 
     @Test

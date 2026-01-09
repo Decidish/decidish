@@ -45,46 +45,6 @@ public class RecipeService {
     // TODO: testing 
     // TODO: add alternatives? ------> create ShoppingListItem with List<Product> alternatives?
     // TODO: quantities? ------------> create ShoppingListItem with quantity field? (also in alternatives?)
-    // public List<Product> generateShoppingList(Long marketId, List<Long> recipeIds) {
-
-    //     // 1. Get aggregated ingredients for the selected recipes
-    //     List<RecipeIngredient> recipe_ingredient = recipeIngredientRepository.findForShoppingList(recipeIds);
-
-    //     // 2. Create list of ingredient ids
-    //     List<Long> ingredients = recipe_ingredient.stream()
-    //         .map(ri -> ri.getIngredient().getId())
-    //         .distinct()
-    //         .toList();
-
-    //     // 3. For each ingredient, find matching products in the specified market
-
-    //     // We assume that matchings are already done with a certain confidence
-    //     List<IngredientProduct> allMappings = recipeIngredientRepository.findProductsForIngredientsInMarket(
-    //         ingredients,
-    //         marketId
-    //     );
-
-    //     // 4. Group by ingredient (to pick best match later, and have alternatives stored)
-    //     Map<Long, List<IngredientProduct>> groupedByIngredient = allMappings.stream()
-    //         .collect(Collectors.groupingBy(ip -> ip.getIngredient().getId()));
-
-    //     // 5. For each ingredient in the shopping list, pick the best matching product
-    //     List<Product> shoppingList = recipe_ingredient.stream()
-    //         .map(ri -> {
-    //             List<IngredientProduct> matches = groupedByIngredient.get(ri.getIngredient().getId());
-    //             if (matches != null && !matches.isEmpty()) {
-    //                 // Pick the product with highest confidence
-    //                 return matches.get(0).getProduct();
-    //             } else {
-    //                 log.warn("No matching product found for ingredient ID: " + ri.getIngredient().getId());
-    //                 return null;
-    //             }
-    //         })
-    //         .filter(p -> p != null)
-    //         .collect(Collectors.toList());
-
-    //     return shoppingList;
-    // }
     /**
      * Generates a shopping list with alternatives and quantities.
      */
@@ -144,7 +104,9 @@ public class RecipeService {
                     if (marketResponse != null && marketResponse.getProducts() != null) {
                         List<Product> apiProducts = marketResponse.getProducts();
                         for(Product apiProduct : apiProducts){
-                            ShoppingOption option = new ShoppingOption(apiProduct,(int)Math.ceil(needed),apiProduct.getNormalizedAmount(),0.95f);
+                            IngredientProductId igId = new IngredientProductId(ref.getIngredient().getId(),apiProduct.getId());
+                            IngredientProduct ig = new IngredientProduct(igId,ref.getIngredient(),apiProduct,0.95f);
+                            ShoppingOption option = createShoppingOption(ig, needed);
                             options.add(option);
                         }
                         
