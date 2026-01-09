@@ -126,6 +126,64 @@ class RecipeServiceIntegrationTest {
     }
     
     @Test
+    @DisplayName("INTEGRATION: DB Returns multiple rows for same ingredient, Service sums them up")
+    void testAggregationEndToEnd() {
+        // --- 1. SETUP DATA ---
+        Market market = new Market(MARKET_ID, "Test Market", null);
+        marketRepository.save(market);
+
+        Ingredient milk = new Ingredient("Milk");
+        milk = entityManager.merge(milk);
+
+        // Recipe 1: Pancakes (Needs 200ml Milk)
+        Recipe r1 = new Recipe("Pancakes");
+        r1 = entityManager.merge(r1);
+        RecipeIngredient ri1 = new RecipeIngredient(r1, milk, BigDecimal.valueOf(200), "ml");
+
+        // Recipe 2: Cereal (Needs 150ml Milk)
+        Recipe r2 = new Recipe("Cereal");
+        r2 = entityManager.merge(r2);
+        RecipeIngredient ri2 = new RecipeIngredient(r2, milk, BigDecimal.valueOf(150), "ml");
+
+        repository.saveAll(List.of(ri1, ri2));
+
+        // Product: 1 Liter Milk (1000ml)
+        Product milkCarton = new Product();
+        milkCarton.setName("Fresh Milk 1L");
+        milkCarton.setMarket(market);
+        milkCarton.setNormalizedAmount(1000.0);
+        milkCarton.setReweId(123L);
+        milkCarton = entityManager.merge(milkCarton);
+
+        // Mapping
+        IngredientProductId mapId = new IngredientProductId(milk.getId(), milkCarton.getId());
+        IngredientProduct mapping = new IngredientProduct(mapId, milk, milkCarton, 0.99f);
+        entityManager.merge(mapping);
+
+        entityManager.flush();
+        entityManager.clear();
+
+        // --- 2. EXECUTE ---
+        // Select BOTH recipes
+        ShoppingListResponse response = recipeService.generateShoppingList(MARKET_ID, List.of(r1.getId(), r2.getId()));
+
+        // --- 3. ASSERT ---
+        assertNotNull(response);
+        assertEquals(1, response.items().size(), "Should merge both milk requirements into 1 entry");
+
+        IngredientGroup milkGroup = response.items().get(0);
+        assertEquals("Milk", milkGroup.ingredientName());
+        
+        // Check Sum: 200 + 150 = 350
+        assertEquals(350.0, milkGroup.totalAmountNeeded(), 0.01);
+
+        // Check Product Quantity
+        // Need 350, Pack is 1000 -> Buy 1
+        ShoppingOption option = milkGroup.options().get(0);
+        assertEquals(1, option.quantityToBuy());
+    }
+    
+    @Test
     @DisplayName("INTEGRATION: Generate shopping list (Hybrid: Local + API fallback)")
     void testGenerateShoppingList_Hybrid() {
         // --- DATA SETUP ---

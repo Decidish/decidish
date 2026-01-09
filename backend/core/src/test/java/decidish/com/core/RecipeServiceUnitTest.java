@@ -191,4 +191,98 @@ class RecipeServiceUnitTest {
         // Verify API WAS called
         verify(marketService, times(1)).getProductsQuery(eq(marketId), eq("Exotic Spice"));
     }
+    
+    @Test
+    @DisplayName("UNIT: Aggregates quantities from multiple recipes (200g + 300g = 500g)")
+    void testGenerateShoppingList_Aggregation() {
+        // --- GIVEN ---
+        Ingredient flour = new Ingredient();
+        flour.setId(1);
+        flour.setName("Flour");
+
+        // Recipe A needs 200g Flour
+        RecipeIngredient ri1 = new RecipeIngredient();
+        ri1.setIngredient(flour);
+        ri1.setQuantity(BigDecimal.valueOf(200));
+
+        // Recipe B needs 300g Flour
+        RecipeIngredient ri2 = new RecipeIngredient();
+        ri2.setIngredient(flour);
+        ri2.setQuantity(BigDecimal.valueOf(300));
+
+        // Mock Repo returning disjoint list
+        when(recipeIngredientRepository.findForShoppingList(anyList()))
+            .thenReturn(List.of(ri1, ri2));
+
+        // --- PRODUCT SETUP ---
+        // Product is a 1kg bag (1000g)
+        Product flourBag = new Product();
+        flourBag.setId(99L);
+        flourBag.setName("Gold Flour 1kg");
+        flourBag.setNormalizedAmount(1000.0);
+
+        IngredientProduct mapping = new IngredientProduct();
+        mapping.setIngredient(flour);
+        mapping.setProduct(flourBag);
+        mapping.setConfidence(1.0f);
+
+        when(recipeIngredientRepository.findProductsForIngredientsInMarket(anyList(), eq(MARKET_ID)))
+            .thenReturn(List.of(mapping));
+
+        // --- WHEN ---
+        ShoppingListResponse response = recipeService.generateShoppingList(MARKET_ID, List.of(10, 11));
+
+        // --- THEN ---
+        assertNotNull(response);
+        assertEquals(1, response.items().size(), "Should aggregate into exactly 1 item entry");
+        
+        IngredientGroup group = response.items().get(0);
+        assertEquals("Flour", group.ingredientName());
+        assertEquals(500.0, group.totalAmountNeeded(), 0.01, "Total needed should be 200 + 300 = 500");
+
+        // Verify Shopping Option Calculation
+        // Need 500g, Pack is 1000g -> Buy 1
+        ShoppingOption option = group.options().get(0);
+        assertEquals(1, option.quantityToBuy(), "500g needed / 1000g pack = 0.5 -> Ceil to 1");
+        assertEquals(1000.0, option.totalProductAmount(), "Buying 1 pack of 1000g = 1000g total");
+    }
+    
+    @Test
+    @DisplayName("UNIT: Calculates correct pack count (Need 250g, Pack 100g -> Buy 3)")
+    void testGenerateShoppingList_PackCalculation() {
+        // --- GIVEN ---
+        Ingredient sugar = new Ingredient();
+        sugar.setId(2);
+        sugar.setName("Sugar");
+
+        // Recipe needs 250g
+        RecipeIngredient ri = new RecipeIngredient();
+        ri.setIngredient(sugar);
+        ri.setQuantity(BigDecimal.valueOf(250));
+
+        when(recipeIngredientRepository.findForShoppingList(anyList())).thenReturn(List.of(ri));
+
+        // Product is a small 100g packet
+        Product sugarPacket = new Product();
+        sugarPacket.setId(88L);
+        sugarPacket.setNormalizedAmount(100.0);
+
+        IngredientProduct mapping = new IngredientProduct();
+        mapping.setIngredient(sugar);
+        mapping.setProduct(sugarPacket);
+        mapping.setConfidence(1.0f);
+
+        when(recipeIngredientRepository.findProductsForIngredientsInMarket(anyList(), eq(MARKET_ID)))
+            .thenReturn(List.of(mapping));
+
+        // --- WHEN ---
+        ShoppingListResponse response = recipeService.generateShoppingList(MARKET_ID, List.of(1));
+
+        // --- THEN ---
+        ShoppingOption option = response.items().get(0).options().get(0);
+        
+        // Math: 250 / 100 = 2.5 -> Ceil to 3
+        assertEquals(3, option.quantityToBuy()); 
+        assertEquals(300.0, option.totalProductAmount(), "3 packs * 100g = 300g total");
+    }
 }
