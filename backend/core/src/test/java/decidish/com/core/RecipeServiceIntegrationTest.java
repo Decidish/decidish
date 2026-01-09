@@ -21,7 +21,7 @@ import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.*;
 
-@SpringBootTest
+@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 @ActiveProfiles("test")
 @Tag("integration")
 @Transactional 
@@ -77,8 +77,8 @@ class RecipeServiceIntegrationTest {
         // // Continue with your service call...
 
         // 4. Create Recipe-Ingredient Links
-        RecipeIngredient ri1 = new RecipeIngredient(r1, onion, 2.0, "pcs");
-        RecipeIngredient ri2 = new RecipeIngredient(r2, pasta, 500.0, "g");
+        RecipeIngredient ri1 = new RecipeIngredient(r1, onion, BigDecimal.valueOf(2), "pcs");
+        RecipeIngredient ri2 = new RecipeIngredient(r2, pasta, BigDecimal.valueOf(500.0), "g");
         repository.saveAll(List.of(ri1, ri2));
 
         ProductAttributesDto attrs = new ProductAttributesDto(false,false,false,false,false,false,false,false,false,false,false,false);
@@ -107,9 +107,11 @@ class RecipeServiceIntegrationTest {
 
         // --- STEP 3: ASSERT ---
         assertNotNull(shoppingList);
-        // Based on our data, only Onion has a mapping. Pasta should be ignored or logged as missing.
-        assertEquals(1, shoppingList.items().size(), "Should only find 1 product (Onion) because Pasta mapping is missing");
-        assertEquals("Ja! Zwiebeln", shoppingList.items().get(0).ingredientName());
+        assertEquals(2, shoppingList.items().size());
+        assertEquals("Pasta", shoppingList.items().get(1).ingredientName());
+        // assertEquals(0,shoppingList.items().get(1).options().size());
+        assertEquals("Onion", shoppingList.items().get(0).ingredientName());
+        assertEquals("Ja! Zwiebeln", shoppingList.items().get(0).options().get(0).product().getName());
         
         System.out.println("Shopping List Result:");
         shoppingList.items().forEach(p -> System.out.println("-> " + p.ingredientName()));

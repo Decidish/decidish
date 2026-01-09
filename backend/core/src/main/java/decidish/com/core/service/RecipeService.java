@@ -102,9 +102,9 @@ public class RecipeService {
         for (RecipeIngredient ri : rawIngredients) {
             Integer ingId = ri.getIngredient().getId();
             // The quantity of the ingredients is already normalize
-            Double amount = ri.getQuantity() != null ? ri.getQuantity() : 0.0;
+            BigDecimal amount = ri.getQuantity() != null ? ri.getQuantity() : BigDecimal.ZERO;
             
-            totalNeeds.merge(ingId, amount, Double::sum);
+            totalNeeds.merge(ingId, amount.doubleValue(), Double::sum);
             ingredientRef.putIfAbsent(ingId, ri);
         }
 
@@ -199,7 +199,7 @@ public class RecipeService {
      * @return List of all generated IngredientProduct mappings.
      */
     public List<IngredientProduct> fuzzyMatchingPreProcessing() {
-        List<Long> allIngredientIds = ingredientProductRepository.findAllIngredientsIds();
+        List<Integer> allIngredientIds = ingredientProductRepository.findAllIngredientsIds();
         log.info("Total ingredients to process for fuzzy matching: " + allIngredientIds.size());
 
         List<IngredientProduct> allMatches = ingredientProductRepository.findGenericMatches(

@@ -22,6 +22,6 @@ public class RecipeIngredient {
     @JoinColumn(name = "ingredient_id")
     private Ingredient ingredient;
 
-    private Double quantity;
+    private BigDecimal quantity;
     private String unit;
 }

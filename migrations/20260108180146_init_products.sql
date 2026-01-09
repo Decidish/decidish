@@ -24,7 +24,7 @@ CREATE INDEX idx_markets_name ON markets (name);
 
 CREATE TABLE products
 (
-    id                BIGINT  NOT NULL,
+    id                BIGSERIAL NOT NULL,
     rewe_id           BIGINT  NOT NULL,
     name              VARCHAR(255),
     market_id         BIGINT  NOT NULL,

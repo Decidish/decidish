@@ -9,10 +9,11 @@ import io.lettuce.core.dynamic.annotation.Param;
 
 import java.util.List;
 
-
-
 public interface IngredientProductRepository extends JpaRepository<IngredientProduct, IngredientProductId> {
     
+    @Query("SELECT i.id FROM Ingredient i")
+    List<Integer> findAllIngredientsIds();
+
     @Query(value = """
         WITH match_candidates AS (
             SELECT 
@@ -49,11 +50,8 @@ public interface IngredientProductRepository extends JpaRepository<IngredientPro
         ORDER BY ingredient_id, confidence_val DESC
         """, nativeQuery = true)
     List<IngredientProduct> findGenericMatches(
-        @Param("ingredientIds") List<Long> ingredientIds, 
+        @Param("ingredientIds") List<Integer> ingredientIds, 
         @Param("threshold") Double threshold, 
         @Param("limit") Integer limit
     );
-
-    @Query("SELECT i.id FROM Ingredient i")
-    List<Long> findAllIngredientsIds();
 }
