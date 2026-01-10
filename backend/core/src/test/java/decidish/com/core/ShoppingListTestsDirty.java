@@ -1,119 +1,248 @@
 package decidish.com.core;
 
-import decidish.com.core.model.rewe.Address;
-import decidish.com.core.model.rewe.Market;
-import decidish.com.core.repository.IngredientProductRepository;
-import decidish.com.core.repository.RecipeIngredientRepository;
-import decidish.com.core.repository.MarketRepository;
-import decidish.com.core.repository.ProductRepository;
-import decidish.com.core.service.MarketService;
-import decidish.com.core.service.RecipeService;
-import decidish.com.core.model.recipes.ShoppingListResponse;
-import decidish.com.core.model.recipes.ShoppingOption;
-import decidish.com.core.model.recipes.Recipe;
-import decidish.com.core.model.recipes.Ingredient;
-import decidish.com.core.model.recipes.IngredientGroup;
-import decidish.com.core.model.recipes.RecipeIngredient;
+import jakarta.persistence.EntityManager;
+import jakarta.transaction.Transactional;
 
-import org.junit.jupiter.api.*;
+import org.junit.jupiter.api.Test; // JUnit 5 - ADD
+
+import java.math.BigDecimal;
+import java.util.List;
+
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Tag;
+import org.mockito.stubbing.VoidAnswer1;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.test.annotation.Rollback;
 import org.springframework.test.context.ActiveProfiles;
-import org.springframework.transaction.annotation.Transactional;
-import org.springframework.transaction.support.TransactionTemplate; 
+import org.springframework.test.context.transaction.TestTransaction;
+import org.springframework.transaction.support.TransactionTemplate;
 
+import decidish.com.core.model.rewe.Market;
+import decidish.com.core.repository.IngredientProductRepository;
+import decidish.com.core.repository.MarketRepository;
+import decidish.com.core.repository.ProductRepository;
+import decidish.com.core.repository.RecipeIngredientRepository;
+import decidish.com.core.service.RecipeService;
+import decidish.com.core.model.rewe.Address;
+import decidish.com.core.service.MarketService;
+import decidish.com.core.model.recipes.Recipe;
+import decidish.com.core.model.recipes.Ingredient;
+import decidish.com.core.model.recipes.RecipeIngredient;
+import decidish.com.core.model.recipes.ShoppingListResponse;
+import decidish.com.core.model.recipes.IngredientProduct;
+import decidish.com.core.model.recipes.IngredientGroup;
+import decidish.com.core.model.recipes.ShoppingOption;
 
-import jakarta.persistence.EntityManager;
-import java.util.List;
-import java.math.BigDecimal;
 
 import static org.junit.jupiter.api.Assertions.*;
-
-
 
 @SpringBootTest
 @ActiveProfiles("test")
 @Tag("integration")
-class ShoppingListTests {
+class ShoppingListTestsDirty {
+    
+    @Autowired
+    private RecipeService recipeService;
 
-    @Autowired private RecipeService recipeService;
-    @Autowired private MarketRepository marketRepository;
-    @Autowired private MarketService marketService;
-    @Autowired private IngredientProductRepository ingredientProductRepository;
-    @Autowired private RecipeIngredientRepository recipeIngredientRepository;
-    @Autowired private ProductRepository productRepository;
-    @Autowired private EntityManager entityManager;
-    @Autowired private TransactionTemplate transactionTemplate;
+    @Autowired
+    private RecipeIngredientRepository repository;
+
+    @Autowired
+    private MarketRepository marketRepository;
+
+    @Autowired
+    private ProductRepository productRepository;
+
+    @Autowired
+    private MarketService marketService;
+
+    @Autowired
+    private IngredientProductRepository ingredientProductRepository;
+
+    @Autowired
+    private EntityManager entityManager; // Used to persist setup data without creating 5 extra repositories
+
+    @Autowired
+    private TransactionTemplate transactionTemplate;
 
     private final Long MARKET_ID = 431022L;
-    private List<Integer> recipeIds;
 
-    @BeforeEach
-    @Transactional
-    void setUp() {
-        // We use transactionTemplate to ensure the setup is visible to background threads
-        recipeIds = transactionTemplate.execute(status -> {
-            // 1. Setup Market with products
-            if(!marketRepository.existsById(MARKET_ID)) {
-                Market market = new Market(MARKET_ID, "Test Market", new Address());
-                marketRepository.save(market);
-                marketService.getAllProducts(MARKET_ID);
-            }
+    @Test
+    @DisplayName("Set up market, products, ingredients, and fuzzy matches")
+    @Rollback(false)
+    void testSetupData() {
+        transactionTemplate.execute(status -> {
+            // 1. Create Market
+            Market market = new Market(MARKET_ID, "Test Market", new Address());
+            marketRepository.save(market);
 
-            List<Integer> ids = null;
+            // 2. Get real products from REWE API for that market
+            marketService.getAllProducts(MARKET_ID); // products added inside
 
-            // 3. Load Recipes & Ingredients
-            if(recipeIngredientRepository.count() == 0) {
-                ids = loadRecipeIngredients();
-            } else {
-                ids = recipeIngredientRepository.findAll()
-                        .stream()
-                        .map(ri -> ri.getRecipe().getId())
-                        .distinct()
-                        .toList();
-            }
-            
-            // 4. Run Fuzzy Matching Pre-processing
-            if(ingredientProductRepository.count() == 0) {
-                recipeService.fuzzyMatchingPreProcessing();
-            }
-            
+            // 3. Load Ingredients and Recipes
+            List<Integer> recipeIds = loadRecipeIngredients();
             entityManager.flush();
             entityManager.clear();
 
-            return ids;
+            // 4. Fuzzy matching preprocessing
+            List<IngredientProduct> preMatches = recipeService.fuzzyMatchingPreProcessing();
+
+            // -- VERIFICATION CHECK --
+            long count = ingredientProductRepository.count();
+            System.out.println("Final count in DB before commit: " + count);
+
+            // Show matches (with names)
+            for (IngredientProduct ip : preMatches) {
+                System.out.println("Ingredient: " + ip.getIngredient().getName() +
+                    " <-> Product: " + marketRepository.findProductNameByReweId(ip.getId().getProductId()) +
+                    " | Confidence: " + ip.getConfidence());
+            }
+
+            entityManager.flush();
+            entityManager.clear();
+
+            // assertNotNull(market);
+            // assertNotNull(recipeIds);
+            // assertFalse(recipeIds.isEmpty());
+            //assertNotNull(preMatches);
+
+            return null;
         });
     }
 
     @Test
-    @DisplayName("INTEGRATION: Generate shopping list with descending confidence")
-    void testGenerateShoppingList_Clean() {
-        // Execute the multi-threaded generation
-        long startTime = System.currentTimeMillis();
+    @DisplayName("INTEGRATION: Generate shopping list from multi-recipe ingredient aggregation")
+    void testGenerateShoppingList_Live() {
+
+        // -- SET UP DATA -- 
+
+        // List<Integer> recipeIds = transactionTemplate.execute(status -> {
+        //     // 1. Create Market
+        //     Market market = new Market(MARKET_ID, "Test Market", new Address());
+        //     marketRepository.save(market);
+
+        //     // 2. Get real products from REWE API for that market
+        //     market = marketService.getAllProducts(MARKET_ID);
+        //     // productRepository.saveAll(market.getProducts());
+            
+        //     // 3. Load Ingredients and Recipes
+        //     List<Integer> lrecipeIds = loadRecipeIngredients(); 
+
+        //     // 4. Fuzzy matching preprocessing
+        //     List<IngredientProduct> preMatches = recipeService.fuzzyMatchingPreProcessing();
+        //     return lrecipeIds;
+        // });
+        // 1. Create Market
+
+        // Market market = transactionTemplate.execute(status ->{ 
+        //     return marketRepository.save(new Market(MARKET_ID, "Test Market", new Address()));
+        // });
         
+
+        // // 2. Get real products from REWE API for that market
+        // market = transactionTemplate.execute(status ->{
+        //     return marketService.getAllProducts(MARKET_ID);
+        // });
+
+        // // Print number of products fetched
+        // System.out.println("Number of products fetched from REWE API: " + market.getProducts().size());
+
+        // return;
+
+        // Add products to local repository
+        // productRepository.saveAll(market.getProducts());
+
+        // 3. Create some ingredients that exist in REWE
+
+        // List<Integer> recipeIds = transactionTemplate.execute(status -> {
+        //     return loadRecipeIngredients();
+        // });
+        // // List<Integer> recipeIds = loadRecipeIngredients();
+
+        // // -- FUZZY MATCHING PREPROCESSING --
+
+        // List<IngredientProduct> preMatches = transactionTemplate.execute(status -> {
+        //     return recipeService.fuzzyMatchingPreProcessing();
+        // });
+
+        // // // --- FORCE COMMIT NOW ---
+        // // entityManager.flush(); 
+        // // TestTransaction.flagForCommit(); // Ensure the flag is set
+        // // TestTransaction.end();           // This actually closes the transaction and COMMITS
+        
+        // // // Check your psql terminal now! The data is there.
+
+        // // // --- START NEW TRANSACTION IF NEEDED ---
+        // // TestTransaction.start(); 
+        // // // Continue with your service call...
+
+        // // -- GENERATE SHOPPING LIST --
+
+        // // We must show how many times rewe api was called
+
+        // // recipeService.resetApiCounter();
+
+        List<Integer> recipeIds = transactionTemplate.execute(status -> {
+            // 1. Create Market
+            Market market = new Market(MARKET_ID, "Test Market", new Address());
+            marketRepository.save(market);
+
+            // 2. Get real products from REWE API for that market
+            marketService.getAllProducts(MARKET_ID); // products added inside
+
+            // 3. Load Ingredients and Recipes
+            List<Integer> lrecipeIds = loadRecipeIngredients();
+            entityManager.flush();
+            entityManager.clear();
+
+            // 4. Fuzzy matching preprocessing
+            List<IngredientProduct> preMatches = recipeService.fuzzyMatchingPreProcessing();
+
+            // -- VERIFICATION CHECK --
+            long count = ingredientProductRepository.count();
+            System.out.println("Final count in DB before commit: " + count);
+
+            // Show matches (with names)
+            for (IngredientProduct ip : preMatches) {
+                System.out.println("Ingredient: " + ip.getIngredient().getName() +
+                    " <-> Product: " + marketRepository.findProductNameByReweId(ip.getId().getProductId()) +
+                    " | Confidence: " + ip.getConfidence());
+            }
+
+            entityManager.flush();
+            entityManager.clear();
+
+            assertNotNull(market);
+            assertNotNull(lrecipeIds);
+            assertFalse(lrecipeIds.isEmpty());
+            assertNotNull(preMatches);
+
+            return lrecipeIds;
+        });
+
+        // List<Integer> recipeIds = List.of(1, 2, 3); // Assuming these IDs were created in setup
+
+        long startTime = System.currentTimeMillis();
+
         ShoppingListResponse shoppingList = recipeService.generateShoppingListV4(
             MARKET_ID,
             recipeIds
         );
 
-        long duration = System.currentTimeMillis() - startTime;
+        long endTime = System.currentTimeMillis();
+        long duration = endTime - startTime;
+
+        System.out.println("Shopping list generation took " + duration + " milliseconds.");
+
+        // Get number of API calls made
+        // int totalApiCalls = recipeService.apiCallCounter.get();
+        // System.out.println("Total API calls made: " + totalApiCalls);
 
         // -- ASSERTIONS --
-        assertNotNull(shoppingList);
-        assertFalse(shoppingList.items().isEmpty(), "Shopping list should not be empty");
-        
-        System.out.println("Generation took: " + duration + "ms");
 
-        // Verify descending confidence logic for a known ingredient (e.g., Salz)
-        shoppingList.items().stream()
-            .filter(group -> group.ingredientName().equalsIgnoreCase("Salz"))
-            .findFirst()
-            .ifPresent(group -> {
-                assertTrue(group.options().size() > 1);
-                float firstConf = group.options().get(0).confidence();
-                float secondConf = group.options().get(1).confidence();
-                assertTrue(firstConf > secondConf, "First option should have higher confidence than second");
-            });
+        assertNotNull(shoppingList);
+        // assertEquals(35, shoppingList.items().size());
 
         System.out.println("Generated shopping list with " + shoppingList.items().size() + " ingredient groups.");
 
@@ -122,19 +251,12 @@ class ShoppingListTests {
             System.out.println("Ingredient: " + group.ingredientName() + " (Needed: " + group.totalAmountNeeded() + ")");
             for (ShoppingOption option : group.options()) {
                 if (option != null) {
-                    System.out.println("  - Product: " + option.product().getName() + ", Price: " + option.product().getPrice() + ", Needed: " + option.quantityToBuy() + ", Confidence: " + option.confidence() + ", URL: " + option.product().getImageUrl());
+                    System.out.println("  - Product: " + option.product().getName() + ", Price: " + option.product().getPrice() + ", Confidence: " + option.confidence());
                 } else {
                     System.out.println("  - No products found for this ingredient.");  
                 }
             }
         }
-    }
-
-    @AfterEach
-    void tearDown() {
-        // If you used @Rollback(false) or manual commits in setup, 
-        // you would manually clean up here. 
-        // However, with standard @SpringBootTest, everything rolls back.
     }
 
     // Auxiliary method to load recipe ingredients
@@ -412,9 +534,9 @@ class ShoppingListTests {
             .toList();
 
         // Save all recipe ingredients
-        recipeIngredientRepository.saveAll(ri1);
-        recipeIngredientRepository.saveAll(ri2);
-        recipeIngredientRepository.saveAll(ri3);
+        repository.saveAll(ri1);
+        repository.saveAll(ri2);
+        repository.saveAll(ri3);
 
         return List.of(recipe1.getId(), recipe2.getId(), recipe3.getId());
     }

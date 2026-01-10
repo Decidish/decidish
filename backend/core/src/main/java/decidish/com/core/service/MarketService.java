@@ -177,6 +177,15 @@ public class MarketService {
     }
 
     /**
+     * @brief Query a certain product for a given market. Only first page. One API call. This is the async version.
+     */
+    public Market getProductsQueryV2(Long marketId, String query) {
+        
+        Market market = getMarket(marketId);
+        return getProductsAPIV2(market, query, 1);  
+    }
+
+    /**
      * @brief Get all products from a given market. Should be called sparely (40 API calls).
      */
     @Transactional
@@ -229,7 +238,7 @@ public class MarketService {
         // We use a Map to ensure we find existing products quickly
         Map<Long, Product> existingMap = new HashMap<>();
         for (Product p : market.getProducts()) {
-            existingMap.put(p.getId(), p);
+            existingMap.put(p.getReweId(), p);
         }
 
         int queryPages = response.data().products().pagination().pageCount();
@@ -261,9 +270,83 @@ public class MarketService {
         // 4. Save
         // save() is smart enough to handle both INSERTS and UPDATES in one go.
         Market savedMarket = marketRepository.save(market);
+        marketRepository.flush();
         // Does not work: Force Hibernate to fetch the products BEFORE the transaction closes
         // Hibernate.initialize(savedMarket.getProducts());
         return savedMarket;
+    }
+
+    private Market getProductsAPIV2(Market market, String query, int numPages) {
+        // 1. Fetch from API (first page to get pagination info)
+        log.info("Fetching API...");
+        ProductSearchResponse response = apiClient.searchProducts(query, 1, DEFAULT_OBJECTS_PER_PAGE, market.getId());
+        if (response == null || response.data() == null) return market; //? Changed to void
+        
+
+        // 2. Create Lookup Map 
+        // We use a Map to ensure we find existing products quickly
+        Map<Long, Product> existingMap = new HashMap<>();
+        for (Product p : market.getProducts()) {
+            existingMap.put(p.getReweId(), p);
+        }
+
+        int queryPages = response.data().products().pagination().pageCount();
+
+        int numberPages = Math.min(numPages, queryPages);
+        // 3. Process API items
+        int i = 0;
+        do {
+            for (ProductDto apiProd : response.data().products().products()) {
+                Long apiId = apiProd.productId();
+                
+                if (existingMap.containsKey(apiId)) {
+                    Product p = existingMap.get(apiId);
+                    p.updateFromDto(apiProd);
+                } else {
+                    Product newProduct = Product.fromDto(apiProd);
+                    market.addProduct(newProduct); // Add to list
+                    existingMap.put(apiId, newProduct);   // Add to Map so we don't insert duplicate in same loop
+                }
+            }
+            ++i;
+            if(i < numberPages){ // Still pages left
+                // log.info("Fetching from external API for ", reweId);
+                response = apiClient.searchProducts(query, i, DEFAULT_OBJECTS_PER_PAGE, market.getId());
+                // System.out.println("API Response: " + response);        
+            }
+        }while(i<numberPages); //? Maybe refactor this with just a for, numberPages = 1 ini and then update
+
+        // 4. Save --> DON'T TOUCH DB FOR ASYNC VERSIOn
+        // save() is smart enough to handle both INSERTS and UPDATES in one go.
+        // Market savedMarket = marketRepository.save(market);
+        // Does not work: Force Hibernate to fetch the products BEFORE the transaction closes
+        // Hibernate.initialize(savedMarket.getProducts());
+        return market;
+    }
+
+    /**
+     * Returns a list of Products for a specific search, detached from the Market entity 
+     * to ensure thread-safety during concurrent processing.
+     */
+    public List<Product> getProductsQueryV3(Long marketId, String query) {
+        // 1. Get market to get the REWE ID (Market is read-only here)
+        Market market = getMarket(marketId);
+        
+        // 2. Fetch from API
+        ProductSearchResponse response = apiClient.searchProducts(query, 1, DEFAULT_OBJECTS_PER_PAGE, market.getId());
+        if (response == null || response.data() == null) return new ArrayList<>();
+
+        List<Product> results = new ArrayList<>();
+        
+        // 3. Convert DTOs to Product Entities (unpersisted)
+        for (ProductDto dto : response.data().products().products()) {
+            Product p = Product.fromDto(dto);
+            // We set the market reference so it's ready for saving later
+            p.setMarket(market); 
+            results.add(p);
+        }
+        
+        return results;
     }
 
     // // NOTE: NO @Transactional here! We want to keep DB connections free while waiting for API.

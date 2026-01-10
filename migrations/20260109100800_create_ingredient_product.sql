@@ -10,12 +10,12 @@ CREATE TABLE ingredient_product (
     CONSTRAINT fk_ingredient_product_ingredient 
         FOREIGN KEY (ingredient_id) 
         REFERENCES ingredients (id) 
-        ON DELETE CASCADE,
-        
-    CONSTRAINT fk_ingredient_product_product 
-        FOREIGN KEY (product_id) 
-        REFERENCES products (id) 
         ON DELETE CASCADE
+        
+    -- CONSTRAINT fk_ingredient_product_product 
+    --     FOREIGN KEY (product_id) 
+    --     REFERENCES products (rewe_id) 
+    --     ON DELETE CASCADE
 );
 -- +goose StatementEnd
 

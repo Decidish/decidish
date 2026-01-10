@@ -3,6 +3,7 @@ package decidish.com.core;
 import decidish.com.core.model.recipes.*;
 import decidish.com.core.model.rewe.Market;
 import decidish.com.core.model.rewe.Product;
+import decidish.com.core.model.rewe.Address;
 import decidish.com.core.repository.IngredientProductRepository;
 import decidish.com.core.repository.MarketRepository;
 import decidish.com.core.repository.RecipeIngredientRepository;
@@ -15,7 +16,9 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.ActiveProfiles;
+import org.springframework.transaction.TransactionDefinition;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionTemplate;
 
 import java.math.BigDecimal;
 import java.util.ArrayList;
@@ -44,6 +47,9 @@ public class RecipeServiceE2EBenchmarkTest {
     @Autowired
     private EntityManager entityManager;
 
+    @Autowired
+    private TransactionTemplate transactionTemplate;
+
     // Use a real Market ID that exists in the external API (e.g., REWE Munich)
     private final Long MARKET_ID = 431022L; 
 
@@ -58,17 +64,24 @@ public class RecipeServiceE2EBenchmarkTest {
     
     @BeforeEach
     void setup() {
-        // Clean slate for accurate timing
-        recipeIngredientRepository.deleteAll();
-        ingredientProductRepository.deleteAll();
+        // Force a separate, committed transaction for setup
+        transactionTemplate.setPropagationBehavior(TransactionDefinition.PROPAGATION_REQUIRES_NEW);
         
-        // Use EntityManager to delete recipes since RecipeRepository is absent
-        entityManager.createQuery("DELETE FROM Recipe").executeUpdate();
-        
-        // Ensure Market exists locally
-        if (!marketRepository.existsById(MARKET_ID)) {
-            marketRepository.save(new Market(MARKET_ID, "Benchmark Market", null));
-        }
+        transactionTemplate.execute(status -> {
+            // Clean slate
+            ingredientProductRepository.deleteAll();
+            recipeIngredientRepository.deleteAll();
+            entityManager.createQuery("DELETE FROM Recipe").executeUpdate();
+            
+            // Use a native delete or ensure the market is gone first
+            marketRepository.deleteById(MARKET_ID);
+            marketRepository.flush();
+
+            Market market = new Market(MARKET_ID, "Benchmark Market", new Address());
+            marketRepository.saveAndFlush(market);
+            
+            return null; 
+        });
     }
 
     @Test
@@ -79,7 +92,7 @@ public class RecipeServiceE2EBenchmarkTest {
         List<Integer> recipeIds = setupScenario(50, 0); // 50 items, 0 missing
 
         long start = System.nanoTime();
-        ShoppingListResponse response = recipeService.generateShoppingList(MARKET_ID, recipeIds);
+        ShoppingListResponse response = recipeService.generateShoppingListV4(MARKET_ID, recipeIds);
         long end = System.nanoTime();
 
         printResult("Full Local Cache", 0, start, end);
@@ -94,7 +107,7 @@ public class RecipeServiceE2EBenchmarkTest {
         List<Integer> recipeIds = setupScenario(50, 5);
 
         long start = System.nanoTime();
-        ShoppingListResponse response = recipeService.generateShoppingList(MARKET_ID, recipeIds);
+        ShoppingListResponse response = recipeService.generateShoppingListV4(MARKET_ID, recipeIds);
         long end = System.nanoTime();
 
         printResult("Hybrid (5 Missing)", 5, start, end);
@@ -114,7 +127,7 @@ public class RecipeServiceE2EBenchmarkTest {
 
         System.out.println("Starting Stress Test: 50 Parallel API Requests...");
         long start = System.nanoTime();
-        ShoppingListResponse response = recipeService.generateShoppingList(MARKET_ID, recipeIds);
+        ShoppingListResponse response = recipeService.generateShoppingListV4(MARKET_ID, recipeIds);
         long end = System.nanoTime();
 
         printResult("Full API Stress (50 Missing)", 50, start, end);

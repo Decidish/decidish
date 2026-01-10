@@ -31,6 +31,7 @@ public class Product implements Serializable, Persistable<Long>{
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    @Column(name = "rewe_id", unique = true)
     private Long reweId; // Id from REWE system
 
     private String name;
@@ -106,11 +107,23 @@ public class Product implements Serializable, Persistable<Long>{
     
     
     public void updateFromDto(ProductDto dto) {
+        this.reweId = dto.productId();
         this.name = dto.title();
         this.lastUpdated = LocalDateTime.now();
         this.imageUrl = dto.imageURL();
         this.price = dto.listing().currentRetailPrice();
         this.grammage = dto.listing().grammage();
+        this.lastUpdated = LocalDateTime.now();
+    }
+
+    public void updateFromOther(Product other) {
+        this.reweId = other.reweId;
+        this.name = other.name;
+        this.price = other.price;
+        this.imageUrl = other.imageUrl;
+        this.grammage = other.grammage;
+        this.normalizedAmount = other.normalizedAmount;
+        this.attributes = other.attributes;
         this.lastUpdated = LocalDateTime.now();
     }
 

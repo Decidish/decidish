@@ -3,6 +3,7 @@ package decidish.com.core.repository;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 
+import decidish.com.core.model.recipes.IngredientMatchProjection;
 import decidish.com.core.model.recipes.IngredientProduct;
 import decidish.com.core.model.recipes.IngredientProductId;
 import io.lettuce.core.dynamic.annotation.Param;
@@ -42,14 +43,14 @@ public interface IngredientProductRepository extends JpaRepository<IngredientPro
             FROM match_candidates
         )
         SELECT 
-            ingredient_id AS ingredient_id, -- Maps to ID part 1
-            rewe_val AS product_id,         -- Maps to ID part 2 (Hibernate needs this name)
-            confidence_val AS confidence    -- Maps to confidence field
+            ingredient_id AS ingredientId, 
+            rewe_val AS productId, 
+            confidence_val AS confidence
         FROM ranked_matches
         WHERE rn <= :limit
         ORDER BY ingredient_id, confidence_val DESC
         """, nativeQuery = true)
-    List<IngredientProduct> findGenericMatches(
+    List<IngredientMatchProjection> findGenericMatches(
         @Param("ingredientIds") List<Integer> ingredientIds, 
         @Param("threshold") Double threshold, 
         @Param("limit") Integer limit

@@ -74,7 +74,10 @@ class RecipeServiceUnitTest {
             .thenReturn(List.of(riTomato));
 
         // Mock Step 3: Return the product mappings for those ingredients
-        when(recipeIngredientRepository.findProductsForIngredientsInMarket(anyList(), eq(MARKET_ID)))
+        // when(recipeIngredientRepository.findProductsForIngredientsInMarket(anyList(), eq(MARKET_ID)))
+        //     .thenReturn(List.of(mappingTomato));
+
+        when(recipeService.getMatches(anyList(), eq(MARKET_ID)))
             .thenReturn(List.of(mappingTomato));
 
         // --- ACT ---
@@ -132,7 +135,10 @@ class RecipeServiceUnitTest {
 
         // MOCK
         when(recipeIngredientRepository.findForShoppingList(List.of(recipeId))).thenReturn(List.of(ri));
-        when(recipeIngredientRepository.findProductsForIngredientsInMarket(anyList(), eq(marketId)))
+        // when(recipeIngredientRepository.findProductsForIngredientsInMarket(anyList(), eq(marketId)))
+        //     .thenReturn(List.of(mapping));
+
+        when(recipeService.getMatches(anyList(), eq(marketId)))
             .thenReturn(List.of(mapping));
 
         // WHEN
@@ -226,7 +232,10 @@ class RecipeServiceUnitTest {
         mapping.setProduct(flourBag);
         mapping.setConfidence(1.0f);
 
-        when(recipeIngredientRepository.findProductsForIngredientsInMarket(anyList(), eq(MARKET_ID)))
+        // when(recipeIngredientRepository.findProductsForIngredientsInMarket(anyList(), eq(MARKET_ID)))
+        //     .thenReturn(List.of(mapping));
+
+        when(recipeService.getMatches(anyList(), eq(MARKET_ID)))
             .thenReturn(List.of(mapping));
 
         // --- WHEN ---
@@ -272,7 +281,10 @@ class RecipeServiceUnitTest {
         mapping.setProduct(sugarPacket);
         mapping.setConfidence(1.0f);
 
-        when(recipeIngredientRepository.findProductsForIngredientsInMarket(anyList(), eq(MARKET_ID)))
+        // when(recipeIngredientRepository.findProductsForIngredientsInMarket(anyList(), eq(MARKET_ID)))
+        //     .thenReturn(List.of(mapping));
+
+        when(recipeService.getMatches(anyList(), eq(MARKET_ID)))
             .thenReturn(List.of(mapping));
 
         // --- WHEN ---

@@ -14,6 +14,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
+import org.mockito.Spy;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.math.BigDecimal;
@@ -26,6 +27,7 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.doAnswer;
+import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
@@ -38,13 +40,14 @@ class RecipeServiceBenchmarkTest {
     @Mock
     private MarketService marketService;
 
+    @Spy
     @InjectMocks
     private RecipeService recipeService;
 
     // --- Benchmark Config ---
     private final Long MARKET_ID = 123L;
     private final int TOTAL_INGREDIENTS = 50; // A realistic "big shop" size
-    private final long MOCK_API_LATENCY_MS = 200; // Simulate 200ms network round-trip per request
+    private final long MOCK_API_LATENCY_MS = 500; // Simulate 500ms network round-trip per request
 
     private List<RecipeIngredient> mockRawIngredients;
 
@@ -81,7 +84,10 @@ class RecipeServiceBenchmarkTest {
                 .map(ri -> createMockMapping(ri.getIngredient()))
                 .collect(Collectors.toList());
 
-        when(recipeIngredientRepository.findProductsForIngredientsInMarket(anyList(), eq(MARKET_ID)))
+        // when(recipeIngredientRepository.findProductsForIngredientsInMarket(anyList(), eq(MARKET_ID)))
+        //         .thenReturn(allMatches);
+
+        when(recipeService.getMatches(anyList(), eq(MARKET_ID)))
                 .thenReturn(allMatches);
 
         // 2. Measure
@@ -149,8 +155,15 @@ class RecipeServiceBenchmarkTest {
                 .map(ri -> createMockMapping(ri.getIngredient()))
                 .collect(Collectors.toList());
 
-        when(recipeIngredientRepository.findProductsForIngredientsInMarket(anyList(), eq(MARKET_ID)))
-                .thenReturn(localMatches);
+        // Mock ONLY the internal getMatches call
+        // This bypasses the repo query and the Object[] casting logic entirely
+        doReturn(localMatches).when(recipeService).getMatches(anyList(), eq(MARKET_ID));
+
+        // when(recipeIngredientRepository.findProductsForIngredientsInMarket(anyList(), eq(MARKET_ID)))
+        //         .thenReturn(localMatches);
+
+        // when(recipeService.getMatches(anyList(), eq(MARKET_ID)))
+        //         .thenReturn(localMatches);
 
         // 3. Mock API with Latency
         // For any call to getProductsQuery, sleep 200ms then return a product

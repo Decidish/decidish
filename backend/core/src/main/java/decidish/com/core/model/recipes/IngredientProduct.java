@@ -17,8 +17,10 @@ public class IngredientProduct {
     @MapsId("ingredientId")
     private Ingredient ingredient;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @MapsId("productId")
+    // @ManyToOne(fetch = FetchType.LAZY)
+    // @MapsId("productId")
+    // @JoinColumn(name = "product_id", referencedColumnName = "rewe_id", insertable = false, updatable = false)
+    @Transient
     private Product product;
 
     private float confidence;

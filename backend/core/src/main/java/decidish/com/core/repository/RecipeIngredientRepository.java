@@ -37,56 +37,98 @@ public interface RecipeIngredientRepository
             @Param("recipeIds") List<Integer> recipeIds
     );
 
-    // TODO: change this when changing market-product relation to many-to-many
-    @Query("""
-        SELECT ip
-        FROM IngredientProduct ip
-        WHERE ip.ingredient.id = :ingredientId
-          AND ip.product.market.id = :marketId
-        ORDER BY ip.confidence DESC
-    """)
-
+    // // TODO: change this when changing market-product relation to many-to-many
     // @Query("""
-    //     SELECT ip.product
+    //     SELECT ip
     //     FROM IngredientProduct ip
     //     WHERE ip.ingredient.id = :ingredientId
-    //       AND :marketId IN (
-    //         SELECT m.id 
-    //         FROM MarketProduct mp
-    //         WHERE mp.product.id = ip.product.id
-    //       )
+    //       AND ip.product.market.id = :marketId
+    //     ORDER BY ip.confidence DESC
     // """)
+
+    // // @Query("""
+    // //     SELECT ip.product
+    // //     FROM IngredientProduct ip
+    // //     WHERE ip.ingredient.id = :ingredientId
+    // //       AND :marketId IN (
+    // //         SELECT m.id 
+    // //         FROM MarketProduct mp
+    // //         WHERE mp.product.id = ip.product.id
+    // //       )
+    // // """)
     
-    List<IngredientProduct> findProductsForIngredientInMarket(
-            @Param("ingredientId") Long ingredientId,
-            @Param("marketId") Long marketId
-    );
+    // List<IngredientProduct> findProductsForIngredientInMarket(
+    //         @Param("ingredientId") Long ingredientId,
+    //         @Param("marketId") Long marketId
+    // );
 
 
     // For multiple ingredients (more efficient than a for, requires mapping a posteriori)
-    @Query("""
-        SELECT ip
-        FROM IngredientProduct ip
-        WHERE ip.ingredient.id IN :ingredientIds
-        AND ip.product.market.id = :marketId
-        ORDER BY ip.ingredient.id, ip.confidence DESC
-    """)
 
     // @Query("""
-    //     SELECT ip.product
+    //     SELECT ip
     //     FROM IngredientProduct ip
-    //     WHERE ip.ingredient.id IN :ingredientIds
-    //       AND :marketId IN (
-    //         SELECT m.id 
-    //         FROM MarketProduct mp
-    //         WHERE mp.product.id = ip.product.id
-    //       )
-    //     ORDER BY ip.ingredient.id, ip.confidence DESC
+    //     JOIN ip.product p
+    //     WHERE ip.id.ingredientId IN :ingredientIds
+    //     AND p.market.id = :marketId
+    //     ORDER BY ip.confidence DESC
     // """)
 
-    List<IngredientProduct> findProductsForIngredientsInMarket(
-            @Param("ingredientIds") List<Integer> ingredientIds,
-            @Param("marketId") Long marketId
+    // // @Query("""
+    // //     SELECT ip
+    // //     FROM IngredientProduct ip
+    // //     JOIN Product p ON ip.id.productId = p.reweId
+    // //     WHERE ip.id.ingredientId IN :ingredientIds
+    // //     AND p.market.id = :marketId
+    // //     ORDER BY ip.confidence DESC
+    // // """)
+
+    // // @Query("""
+    // //     SELECT ip
+    // //     FROM IngredientProduct ip
+    // //     JOIN ip.product p
+    // //     WHERE ip.ingredient.id IN :ingredientIds
+    // //     AND p.market.id = :marketId
+    // //     ORDER BY ip.confidence DESC
+    // // """)
+
+    // // @Query("""
+    // //     SELECT ip
+    // //     FROM IngredientProduct ip
+    // //     WHERE ip.ingredient.id IN :ingredientIds
+    // //     AND ip.product.market.id = :marketId
+    // //     ORDER BY ip.ingredient.id, ip.confidence DESC
+    // // """)
+
+    // // @Query("""
+    // //     SELECT ip.product
+    // //     FROM IngredientProduct ip
+    // //     WHERE ip.ingredient.id IN :ingredientIds
+    // //       AND :marketId IN (
+    // //         SELECT m.id 
+    // //         FROM MarketProduct mp
+    // //         WHERE mp.product.id = ip.product.id
+    // //       )
+    // //     ORDER BY ip.ingredient.id, ip.confidence DESC
+    // // """)
+
+    // List<IngredientProduct> findProductsForIngredientsInMarket(
+    //         @Param("ingredientIds") List<Integer> ingredientIds,
+    //         @Param("marketId") Long marketId
+    // );
+
+    @Query("""
+        SELECT ip, p
+        FROM IngredientProduct ip
+        JOIN FETCH ip.ingredient i
+        JOIN Product p ON ip.id.productId = p.reweId
+        WHERE ip.id.ingredientId IN :ingredientIds
+        AND p.market.id = :marketId
+        ORDER BY ip.confidence DESC
+    """)
+    List<Object[]> findProductsForIngredientsInMarket(
+        @Param("ingredientIds") List<Integer> ingredientIds,
+        @Param("marketId") Long marketId
     );
 }
 
