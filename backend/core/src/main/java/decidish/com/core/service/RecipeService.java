@@ -222,10 +222,10 @@ public class RecipeService {
 
     public ShoppingListResponse generateShoppingListV2(Long marketId, List<Integer> recipeIds) {
 
-        // 1️⃣ Fetch all raw ingredients for the selected recipes
+        // Fetch all raw ingredients for the selected recipes
         List<RecipeIngredient> rawIngredients = recipeIngredientRepository.findForShoppingList(recipeIds);
 
-        // 2️⃣ Aggregate needs for each ingredient
+        // Aggregate needs for each ingredient
         Map<Integer, Double> totalNeeds = new HashMap<>();
         Map<Integer, RecipeIngredient> ingredientRef = new HashMap<>();
         for (RecipeIngredient ri : rawIngredients) {
@@ -237,7 +237,7 @@ public class RecipeService {
 
         List<Integer> ingredientIds = new ArrayList<>(totalNeeds.keySet());
 
-        // 3️⃣ Fetch local matches from DB
+        // Fetch local matches from DB
         // List<IngredientProduct> allMappings = recipeIngredientRepository.findProductsForIngredientsInMarket(
         //         ingredientIds, marketId
         // );
@@ -247,7 +247,7 @@ public class RecipeService {
         Map<Integer, List<IngredientProduct>> matchesByIngredient = allMappings.stream()
                 .collect(Collectors.groupingBy(ip -> ip.getIngredient().getId()));
 
-    //     // 4️⃣ Prepare thread-safe list for ingredient groups
+    //     // Prepare thread-safe list for ingredient groups
     //     List<IngredientGroup> groups = Collections.synchronizedList(new ArrayList<>());
     //     List<CompletableFuture<Void>> apiFutures = new ArrayList<>();
 
@@ -311,10 +311,10 @@ public class RecipeService {
     //         }
     //     }
 
-    //     // 5️⃣ Wait for all async API calls to finish
+    //     // Wait for all async API calls to finish
     //     CompletableFuture.allOf(apiFutures.toArray(new CompletableFuture[0])).join();
 
-    //     // 6️⃣ Sort for deterministic output
+    //     // Sort for deterministic output
     //     groups.sort(Comparator.comparing(IngredientGroup::ingredientName));
 
     //     return new ShoppingListResponse(groups);
@@ -340,7 +340,7 @@ public class RecipeService {
                 // 2. Fetch from API
                 Market marketWithProducts = marketService.getProductsQueryV2(marketId, ingName);
                 
-                // ⚠️ FIX: If API returned random/all products, filter them or return empty
+                // FIX: If API returned random/all products, filter them or return empty
                 if (marketWithProducts.getProducts().isEmpty()) {
                     return new IngredientGroup(ingId, ingName, needed, List.of());
                 }
@@ -412,10 +412,10 @@ public class RecipeService {
     public ShoppingListResponse generateShoppingListV3(Long marketId, List<Integer> recipeIds) {
         long startTime = System.currentTimeMillis();
 
-        // 1️⃣ Fetch raw ingredients
+        // Fetch raw ingredients
         List<RecipeIngredient> rawIngredients = recipeIngredientRepository.findForShoppingList(recipeIds);
 
-        // 2️⃣ Aggregate needs
+        // Aggregate needs
         Map<Integer, Double> totalNeeds = new HashMap<>();
         Map<Integer, RecipeIngredient> ingredientRef = new HashMap<>();
         for (RecipeIngredient ri : rawIngredients) {
@@ -426,7 +426,7 @@ public class RecipeService {
 
         List<Integer> ingredientIds = new ArrayList<>(totalNeeds.keySet());
 
-        // 3️⃣ FETCH ALL LOCAL MATCHES ONCE (Performance Optimization)
+        // FETCH ALL LOCAL MATCHES ONCE (Performance Optimization)
         // This prevents 34 separate DB calls inside the threads
         // List<IngredientProduct> allExistingMappings = recipeIngredientRepository
         //         .findProductsForIngredientsInMarket(ingredientIds, marketId);
@@ -445,7 +445,7 @@ public class RecipeService {
                 " (Confidence: " + m.getConfidence() + ")"
             ));
         } else {
-            System.out.println("⚠️ No matches found in DB. API fallback will be triggered for all ingredients.");
+            System.out.println("No matches found in DB. API fallback will be triggered for all ingredients.");
         }
         System.out.println("--------------------------");
         // --- DEBUG PRINT END ---
@@ -453,7 +453,7 @@ public class RecipeService {
         Map<Integer, List<IngredientProduct>> localMatchesMap = allExistingMappings.stream()
                 .collect(Collectors.groupingBy(ip -> ip.getIngredient().getId()));
 
-        // 4️⃣ Process Ingredients
+        // Process Ingredients
         List<CompletableFuture<IngredientGroup>> futures = ingredientIds.stream()
             .map(ingId -> CompletableFuture.supplyAsync(() -> {
                 String ingName = ingredientRef.get(ingId).getIngredient().getName();
