@@ -55,6 +55,7 @@ func (controller *AuthorizationController) loginMapping(db *sql.DB, r *gin.Engin
 
 		http.SetCookie(c.Writer, &cookie)
 
+		c.Header("Access-Control-Allow-Origin", "http://localhost:8081")
 		c.JSON(http.StatusOK, gin.H{
 			"message": "Successfully logged in",
 		})
@@ -122,10 +123,9 @@ func (controller *AuthorizationController) loginRequestHandler(db *sql.DB, login
 		}
 
 		return token, nil
-
-	} else {
-		return "", sql.ErrNoRows
 	}
+
+	return "", sql.ErrNoRows
 }
 
 func (controller *AuthorizationController) registerRequestHandler(db *sql.DB, loginBody auth.LoginRequestBody) error {

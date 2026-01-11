@@ -1,4 +1,11 @@
 spring:
+  datasource:
+    url: jdbc:postgresql://localhost:5433/decidish
+    username: user
+    password: 1234
+  jpa:
+    hibernate:
+      ddl-auto: validate
   session:
     store-type: jdbc
     jdbc:
@@ -6,7 +13,7 @@ spring:
   application:
     name: "core"
   flyway:
-    enabled: "true"
+    enabled: "false"
   ssl:
     bundle:
       pem:
