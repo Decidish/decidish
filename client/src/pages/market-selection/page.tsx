@@ -2,6 +2,8 @@ import { useState } from 'react';
 import { MapContainer, TileLayer, Marker, Popup, useMap } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
 import L from 'leaflet';
+import { marketApi } from '../../api/marketApi';
+import { Market } from '../../types/market';
 
 // Fix for default marker icons in React-Leaflet
 delete (L.Icon.Default.prototype as any)._getIconUrl;
@@ -98,14 +100,36 @@ export default function MarketSelection() {
     }
   ];
 
-  const handleSearch = (e: React.FormEvent) => {
+  // State for API data
+  const [markets, setMarkets] = useState<Market[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const handleSearch = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (postalCode.trim()) {
+    if (!postalCode.trim()) return;
+
+    setIsLoading(true);
+    setError(null);
+    setShowMarkets(false);
+
+    try {
+      // Call the backend API
+      const results = await marketApi.searchMarkets(postalCode);
+      if (results.length === 0) {
+          setError("No markets found in this area. Try a different postal code.");
+      }
+      setMarkets(results);
       setShowMarkets(true);
       // Center map on first market
       if (markets.length > 0) {
         setMapCenter([markets[0].lat, markets[0].lng]);
       }
+    } catch (err) {
+      console.error(err);
+      setError("Failed to fetch markets. Is the backend running?");
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -116,6 +140,8 @@ export default function MarketSelection() {
 
   const handleContinue = () => {
     if (selectedMarket) {
+      // Save the REWE ID for the next step (Recipe Generation)
+      localStorage.setItem('selectedMarketId', selectedMarket.reweId.toString());
       window.REACT_APP_NAVIGATE('/recipe-swiper');
     }
   };
@@ -152,29 +178,31 @@ export default function MarketSelection() {
             <p className="text-sm text-gray-600 text-center">Find the nearest store to shop for your ingredients</p>
           </div>
 
-          <div className="bg-white rounded-2xl shadow-lg p-8 mb-6">
-            <form onSubmit={handleSearch} className="mb-6">
-              <label htmlFor="postalCode" className="block text-sm font-medium text-gray-700 mb-2">
-                Enter Your Postal Code
-              </label>
-              <div className="flex gap-3">
-                <input
-                    type="text"
-                    id="postalCode"
-                    value={postalCode}
-                    onChange={(e) => setPostalCode(e.target.value)}
-                    className="flex-1 px-4 py-3 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all"
-                    placeholder="Enter postal code"
-                    required
-                />
-                <button
-                    type="submit"
-                    className="px-6 py-3 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-lg font-medium hover:from-indigo-700 hover:to-purple-700 transition-colors shadow-md hover:shadow-lg cursor-pointer whitespace-nowrap"
-                >
-                  Search
-                </button>
-              </div>
-            </form>
+        <div className="bg-white rounded-2xl shadow-lg p-8 mb-6">
+          <form onSubmit={handleSearch} className="mb-6">
+            <label htmlFor="postalCode" className="block text-sm font-medium text-gray-700 mb-2">
+              Enter Your Postal Code
+            </label>
+            <div className="flex gap-3">
+              <input
+                type="text"
+                id="postalCode"
+                value={postalCode}
+                onChange={(e) => setPostalCode(e.target.value)}
+                className="flex-1 px-4 py-3 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all"
+                placeholder="Enter postal code (e.g. 80331)"
+                required
+              />
+              <button
+                type="submit"
+                disabled={isLoading}
+                className="px-6 py-3 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-lg font-medium hover:from-indigo-700 hover:to-purple-700 transition-colors shadow-md hover:shadow-lg cursor-pointer whitespace-nowrap disabled:opacity-50"
+              >
+                {isLoading ? 'Searching...' : 'Search'}
+              </button>
+            </div>
+            {error && <p className="mt-2 text-sm text-red-600">{error}</p>}
+          </form>
 
             {showMarkets && (
                 <div>
