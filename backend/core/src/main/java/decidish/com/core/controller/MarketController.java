@@ -6,6 +6,7 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.CrossOrigin;
 
 import decidish.com.core.service.MarketService;
 import decidish.com.core.model.rewe.Market;
@@ -13,7 +14,8 @@ import lombok.AllArgsConstructor;
 import java.util.List;
 
 @RestController
-@RequestMapping("/markets")
+@RequestMapping("/api/v1/markets")
+@CrossOrigin(origins = "http://localhost:3000")
 @AllArgsConstructor
 public class MarketController {
 
