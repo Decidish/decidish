@@ -3,7 +3,7 @@
 
 import json
 from typing import Dict, Set
-from mlpipeline.pretrian.preference import preferences, keyword_preference_map
+from mlpipeline.pretrain.preference import preferences, keyword_preference_map
 
 
 def load_recipe(json_path: str = "recipes_db.json"):

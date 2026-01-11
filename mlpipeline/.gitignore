@@ -176,4 +176,4 @@ pyrightconfig.json
 
 # End of https://www.toptal.com/developers/gitignore/api/python
 
-pretrian/recipes_db.json
+pretrain/recipes_db.json

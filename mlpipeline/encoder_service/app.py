@@ -8,8 +8,9 @@ import numpy as np
 import torch
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel, Field
+from pathlib import Path
 
-from mlpipeline.pretrian.model import UserEncoder, UserEncoderConfig
+from mlpipeline.pretrain.model import UserEncoder, UserEncoderConfig
 
 
 class UserItem(BaseModel):
@@ -70,7 +71,9 @@ def encode_users_batch(req:EncodeBatchRequest):
 
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
-    ckpt_path = "mlpipeline/pretrain/user_encoder.pt"
+    HERE = Path(__file__).resolve().parent
+    ROOT = HERE.parent
+    ckpt_path = ROOT / "pretrain" / "checkpoints" / "user_encoder.pt"
 
     if _MODEL is None or _INPUT_DIM != d:
         if not os.path.exists(ckpt_path):
