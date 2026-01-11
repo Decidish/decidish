@@ -2,11 +2,12 @@
 # begin: 2025/12/2 23:16
 
 import torch
+from fastembed import TextEmbedding
 from torch import nn
 import torch.nn.functional as F
 from typing import Optional, Tuple, List
 from dataclasses import dataclass
-from sentence_transformers import SentenceTransformer
+# from sentence_transformers import SentenceTransformer
 
 
 def mean_pool_embeddings(
@@ -83,16 +84,16 @@ class RecipeEncoder(nn.Module):
     def __init__(self, cfg: RecipeEncoderConfig):
         super().__init__()
         self.cfg = cfg
-        self.base_model = SentenceTransformer(cfg.st_model_name)
-        base_dim = self.base_model.get_sentence_embedding_dimension()
+        self.base_model = TextEmbedding(cfg.st_model_name)
+        base_dim = 384
 
         if base_dim != cfg.output_dim:
             print(f"Attention!!! the sentence transformer output dim is not equal to the out_dim")
             cfg.output_dim = base_dim
-
-        if cfg.freeze_base:
-            for p in self.base_model.parameters():
-                p.requires_grad = False
+        #
+        # if cfg.freeze_base:
+        #     for p in self.base_model.parameters():
+        #         p.requires_grad = False
 
         blocks = []
         for _ in range(cfg.num_layers):
