@@ -29,7 +29,7 @@ class MarketControllerUnitTest {
     private MarketService marketService; // We mock the service logic
 
     @Test
-    @DisplayName("GET /markets?plz=... returns 200 and list")
+    @DisplayName("GET /api/v1/markets?plz=... returns 200 and list")
     void testSearchMarkets() throws Exception {
         // Arrange
         String plz = "80809";
@@ -40,7 +40,7 @@ class MarketControllerUnitTest {
         when(marketService.getMarkets(plz)).thenReturn(List.of(mockMarket));
 
         // Act & Assert
-        mockMvc.perform(get("/markets")
+        mockMvc.perform(get("/api/v1/markets")
                         .param("plz", plz)
                         .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk())
@@ -51,7 +51,7 @@ class MarketControllerUnitTest {
     }
 
     @Test
-    @DisplayName("GET /markets/{id}/products returns 200 and updated market")
+    @DisplayName("GET /api/v1/markets/{id}/products returns 200 and updated market")
     void testGetAllProducts() throws Exception {
         // Arrange
         Long marketId = 540945L;
@@ -62,7 +62,7 @@ class MarketControllerUnitTest {
         when(marketService.getAllProducts(marketId)).thenReturn(mockMarket);
 
         // Act & Assert
-        mockMvc.perform(get("/markets/{id}/products", marketId))
+        mockMvc.perform(get("/api/v1/markets/{id}/products", marketId))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.name").value("REWE with Products"));
         
@@ -70,7 +70,7 @@ class MarketControllerUnitTest {
     }
 
     @Test
-    @DisplayName("GET /markets/{id}/query?query={query} returns 200 and updated market")
+    @DisplayName("GET /api/v1/markets/{id}/query?query={query} returns 200 and updated market")
     void testGetAllProductsWithQuery() throws Exception {
         // Arrange
         Long marketId = 540945L;
@@ -82,7 +82,7 @@ class MarketControllerUnitTest {
         when(marketService.getProductsQuerySave(marketId, query)).thenReturn(mockMarket);
 
         // Act & Assert
-        mockMvc.perform(get("/markets/{id}/query", marketId)
+        mockMvc.perform(get("/api/v1/markets/{id}/query", marketId)
                         .param("query", query))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.name").value("REWE with Milk Products"));

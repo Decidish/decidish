@@ -201,7 +201,6 @@ public class MarketService {
     /**
      * @brief Get all products from a given market. First try to fetch from DB only. If no products or data not fresh, call API.
      */
-    // @Cacheable(value = "market_products", key = "#reweId")
     @Cacheable(value = "market_products", key = "#a0")
     public Market getAllProducts(Long reweId) {
         Market market = getMarket(reweId);

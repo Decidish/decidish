@@ -10,8 +10,10 @@ import org.springframework.web.bind.annotation.CrossOrigin;
 
 import decidish.com.core.service.MarketService;
 import decidish.com.core.model.rewe.Market;
+import decidish.com.core.model.rewe.MarketSummaryDto;
 import lombok.AllArgsConstructor;
 import java.util.List;
+import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/api/v1/markets")
@@ -26,13 +28,18 @@ public class MarketController {
      * Usage: GET /markets?plz=80331
      */
     @GetMapping
-    public ResponseEntity<List<Market>> searchMarkets(@RequestParam("plz") String zipCode) {
+    public ResponseEntity<List<MarketSummaryDto>> searchMarkets(@RequestParam("plz") String zipCode) {
         if (zipCode == null || zipCode.length() != 5) {
             return ResponseEntity.badRequest().build();
         }
         
         List<Market> markets = marketService.getMarkets(zipCode);
-        return ResponseEntity.ok(markets);
+
+        // Convert Entity -> DTO
+        List<MarketSummaryDto> dtos = markets.stream()
+            .map(MarketSummaryDto::fromEntity)
+            .collect(Collectors.toList());
+        return ResponseEntity.ok(dtos);
     }
 
     /**

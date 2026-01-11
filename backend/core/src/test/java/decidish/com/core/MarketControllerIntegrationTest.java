@@ -56,7 +56,7 @@ class MarketControllerIntegrationTest {
     }
 
     @Test
-    @DisplayName("GET /markets?plz=... -> Fetches from API, Saves to DB, Returns JSON")
+    @DisplayName("GET /api/v1/markets?plz=... -> Fetches from API, Saves to DB, Returns JSON")
     void testSearchMarkets_EndToEnd() throws Exception {
         // --- 1. ARRANGE: Mock External API ---
         MarketDto dto = new MarketDto(
@@ -69,7 +69,7 @@ class MarketControllerIntegrationTest {
         when(apiClient.searchMarkets(eq(PLZ))).thenReturn(response);
 
         // --- 2. ACT: Perform HTTP Request ---
-        mockMvc.perform(get("/markets")
+        mockMvc.perform(get("/api/v1/markets")
                         .param("plz", PLZ)
                         .contentType(MediaType.APPLICATION_JSON))
                 
@@ -88,7 +88,7 @@ class MarketControllerIntegrationTest {
     }
 
     @Test
-    @DisplayName("GET /markets/{id}/products -> Fetches Products, Updates DB, Returns JSON")
+    @DisplayName("GET /api/v1/markets/{id}/products -> Fetches Products, Updates DB, Returns JSON")
     void testGetAllProducts_EndToEnd() throws Exception {
         // --- 1. ARRANGE: Pre-seed Database ---
         // The service requires the market to exist before fetching products
@@ -112,7 +112,7 @@ class MarketControllerIntegrationTest {
                 .thenReturn(productResponse);
 
         // --- 3. ACT ---
-        mockMvc.perform(get("/markets/{id}/products", MARKET_ID2))
+        mockMvc.perform(get("/api/v1/markets/{id}/products", MARKET_ID2))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.id").value(MARKET_ID2))
                 // Verify products are in the JSON response
@@ -127,7 +127,7 @@ class MarketControllerIntegrationTest {
     }
 
     @Test
-    @DisplayName("GET /markets/{id}/query?query=... -> Fetches Products with Query, Updates DB, Returns JSON")
+    @DisplayName("GET /api/v1/markets/{id}/query?query=... -> Fetches Products with Query, Updates DB, Returns JSON")
     void testGetAllProductsWithQuery_EndToEnd() throws Exception {
         // --- 1. ARRANGE: Pre-seed Database ---
         Market dbMarket = new Market();
@@ -149,7 +149,7 @@ class MarketControllerIntegrationTest {
                 .thenReturn(productResponse);
         
         // --- 3. ACT ---
-        mockMvc.perform(get("/markets/{id}/query", MARKET_ID1)
+        mockMvc.perform(get("/api/v1/markets/{id}/query", MARKET_ID1)
                         .param("query", query))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.id").value(MARKET_ID1))
