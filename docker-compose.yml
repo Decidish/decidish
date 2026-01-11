@@ -3,6 +3,24 @@ services:
   # Databases & Cache
   # ----------------------------------------------------------------
 
+  # Migrations
+#  export GOOSE_DBSTRING="postgres://$DB_USER:$DB_PASSWORD@$DB_HOST:$DB_PORT/$DB_NAME?sslmode=${DB_SSLMODE:-disable}&search_path=${DB_SCHEMA:-public}"
+
+  migrator:
+    build:
+      context: ./migrations
+    environment:
+      DB_USER: ${POSTGRES_USER}
+      DB_PASSWORD: ${POSTGRES_PASSWORD}
+      DB_HOST: db_backend
+      DB_PORT: 5432
+      DB_NAME: ${POSTGRES_DB}
+    depends_on:
+      db_backend:
+        condition: service_healthy
+    networks:
+        - app-network
+
   # PostgreSQL with pgvector
   db_backend:
     image: pgvector/pgvector:pg16
@@ -15,8 +33,14 @@ services:
       POSTGRES_DB: ${POSTGRES_DB}
     volumes:
       - db_backend_data:/var/lib/postgresql/data
+      - ./init_db:/docker-entrypoint-initdb.d
     networks:
       - app-network
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}" ]
+      interval: 5s
+      timeout: 5s
+      retries: 5
 
   db_authorisation:
     image: postgres:16-alpine
@@ -31,6 +55,11 @@ services:
       - db_authorisation_data:/var/lib/postgresql/data
     networks:
       - app-network
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d mydb" ]
+      interval: 5s
+      timeout: 5s
+      retries: 5
 
   # Redis Cache
   redis:
@@ -51,8 +80,6 @@ services:
     container_name: dev_authorization
     ports:
       - "8083:8083"
-    volumes:
-      - ./backend/authorization:/app
     environment:
       JWT_SECRET: ${JWT_SECRET}
       DATABASE_URL: ${DATABASE_URL}
@@ -76,8 +103,10 @@ services:
       - SPRING_DATASOURCE_PASSWORD=${POSTGRES_PASSWORD}
       - REDIS_HOST=redis
     depends_on:
-      - db_backend
-      - redis
+      migrator:
+        condition: service_completed_successfully
+      redis:
+        condition: service_started
     networks:
       - app-network
 
@@ -87,18 +116,21 @@ services:
     container_name: dev_personalization
     ports:
       - "8082:8082"
-    volumes:
-      - ./backend/personalization:/app
     environment:
       - DB_HOST=db_backend
       - REDIS_HOST=redis
       - JWT_SECRET=${JWT_SECRET}
       - DATABASE_URL=${DATABASE_BACKEND_URL}
-      - KAFKA_CONNECTION_URL=${KAFKA_CONNECTION_URL}
+      - EMBEDDER_SERVER_URL=${EMBEDDER_SERVER_URL}
+      - MINIO_ENDPOINT=${MINIO_ENDPOINT}
+      - MINIO_ACCESS_KEY=${MINIO_ACCESS_KEY}
+      - MINIO_SECRET_KEY=${MINIO_SECRET_KEY}
+      - MINIO_USE_SSL=${MINIO_USE_SSL}
+      - MINIO_RECIPES_BUCKET=${MINIO_RECIPES_BUCKET}
+      - MINIO_RECIPES_OBJECT=${MINIO_RECIPES_OBJECT}
     depends_on:
-      - db_backend
-      - redis
-      - kafka-ui
+      migrator:
+        condition: service_completed_successfully
     networks:
       - app-network
 
@@ -111,85 +143,59 @@ services:
     volumes:
       - ./mlpipeline:/app
     environment:
-      - DATABASE_URL=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
+      - DATABASE_URL=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db_backend:5432/${POSTGRES_DB}
     depends_on:
-      - db_backend
+      - personalization-server
+      - core-server
     networks:
       - app-network
 
-  # Client: React Native Web
-  client:
+  client-web:
     build: ./client
     container_name: dev_client
     ports:
-      - "8081:8081"
-    volumes:
-      - ./client:/app
-      - /app/node_modules
-    environment:
-      - API_JAVA=http://core-server:8080
-      - API_GO=http://personalization-server:8082
-      - API_PYTHON=http://mlpipeline:8000
-    depends_on:
-      - core-server
-      - personalization-server
-    networks:
-      - app-network
+      - "3000:3000"
+    deploy:
+      update_config:
+        order: start-first
+    healthcheck:
+      test: [ "CMD", "wget", "-q", "--spider", "http://localhost:3000" ]
+      interval: 10s
+      retries: 3
+      start_period: 5s
 
+  # ----------------------------------------------------------------
+  # Monitoring
+  # ----------------------------------------------------------------
 
-# ----------------------------------------------------------------
-# Kafka & Streaming
-# ----------------------------------------------------------------
-
-  kafka:
-    image: bitnamilegacy/kafka:latest
-    container_name: kafka
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: prometheus
     ports:
-      - "9092:9092" # External Port
-    networks:
-      - app-network
-    environment:
-      # KRaft Basic Settings
-      - KAFKA_CFG_NODE_ID=0
-      - KAFKA_CFG_PROCESS_ROLES=controller,broker
-      - KAFKA_CFG_CONTROLLER_QUORUM_VOTERS=0@kafka:9093
-
-      # LISTENER CONFIGURATION (The Critical Part)
-      # Define 3 listeners:
-      #   - CONTROLLER: Internal management
-      #   - EXTERNAL:   For your laptop (localhost:9092)
-      #   - INTERNAL:   For Docker containers (kafka:29092)
-      - KAFKA_CFG_LISTENERS=PLAINTEXT://:9092,CONTROLLER://:9093,INTERNAL://:29092
-
-      # Advertise the correct address based on who is asking
-      - KAFKA_CFG_ADVERTISED_LISTENERS=PLAINTEXT://localhost:9092,INTERNAL://kafka:29092
-
-      # Map the security protocols
-      - KAFKA_CFG_LISTENER_SECURITY_PROTOCOL_MAP=CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT,INTERNAL:PLAINTEXT
-
-      # Tell Kafka that internal broker communication happens on the INTERNAL listener
-      - KAFKA_CFG_INTER_BROKER_LISTENER_NAME=INTERNAL
-      - KAFKA_CFG_CONTROLLER_LISTENER_NAMES=CONTROLLER
-
-      # 3. FIX FOR "ERROR 3" (Unknown Topic)
-      - KAFKA_CFG_AUTO_CREATE_TOPICS_ENABLE=true
-
+      - "9090:9090"
     volumes:
-      - kafka_data:/bitnami/kafka
-
-  # Optional: Web UI to visualize your data
-  kafka-ui:
-    image: provectuslabs/kafka-ui:latest
-    container_name: kafka-ui
-    ports:
-      - "8090:8080"
-    environment:
-      - KAFKA_CLUSTERS_0_NAME=local
-      - KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS=kafka:29092
-    depends_on:
-      - kafka
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml
+      - prometheus_data:/prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
     networks:
       - app-network
+
+  grafana:
+    image: grafana/grafana:latest
+    container_name: grafana
+    ports:
+      - "3031:3000"
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=secret
+    depends_on:
+      prometheus:
+        condition: service_started
+    volumes:
+      - ./datasources.yml:/etc/grafana/provisioning/datasources/datasources.yml
+    networks:
+      - app-network
+
 
 # ----------------------------------------------------------------
 # Volumes & Networks
@@ -197,7 +203,7 @@ services:
 volumes:
   db_backend_data:
   db_authorisation_data:
-  kafka_data:
+  prometheus_data:
 
 networks:
   app-network:

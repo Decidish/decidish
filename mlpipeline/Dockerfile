@@ -2,6 +2,8 @@ FROM python:3.12-slim
 
 WORKDIR /app
 
+ENV PYTHONDONTWRITEBYTECODE=1
+
 RUN apt-get update && apt-get install -y \
     gcc \
     libpq-dev \
@@ -20,7 +22,9 @@ RUN poetry install --no-root --no-interaction --no-ansi
 
 COPY . .
 
+WORKDIR /app/mlpipeline
+
 EXPOSE 8000
 
 # 7. Run with Uvicorn (Hot Reload)
-CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000", "--reload"]
+CMD ["uvicorn", "app:app", "--host", "0.0.0.0", "--port", "8000", "--reload"]

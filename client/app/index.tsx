@@ -9,7 +9,7 @@ export default function Index(){
     useEffect(()=>{
         async function checkOnboarding() {
             const value = await AsyncStorage.getItem('onboardingCompleted');
-            setCompleted(value === 'true'); //call setcomplete to uupdate the value of complete
+            setCompleted(value === 'true'); //call setcomplete to update the value of complete
             setReady(true);
         }
         checkOnboarding();
@@ -18,9 +18,9 @@ export default function Index(){
     if (!ready) return null;
 
     if (completed) {
-        return <Redirect href="/home" />;
+        return <Redirect href="/recipes" />;
     } else{
-        return <Redirect href="/onboarding/step1" />;
+        return <Redirect href="/home" />;
     }
 }
 

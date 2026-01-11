@@ -1,0 +1,42 @@
+# This workflow will build a golang project
+# For more information see: https://docs.github.com/en/actions/automating-builds-and-tests/building-and-testing-go
+
+name: Deploy To Production
+
+on:
+  push:
+    branches: [ "prod" ]
+
+jobs:
+
+  build:
+    environment: prod
+    runs-on: [self-hosted, prod-server]
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Login to Docker Hub
+      uses: docker/login-action@v3
+      with:
+        username: ${{ secrets.DOCKERHUB_USERNAME }}
+        password: ${{ secrets.DOCKERHUB_TOKEN }}
+    
+    - name: Update Production Stack
+      env:
+        POSTGRES_USER: ${{ secrets.POSTGRES_USER }}
+        POSTGRES_PASSWORD: ${{ secrets.POSTGRES_PASSWORD }}
+        POSTGRES_DB: ${{ secrets.POSTGRES_DB }}
+        JWT_SECRET: ${{ secrets.JWT_SECRET }}
+        DATABASE_URL: ${{ secrets.DATABASE_URL }}
+        DATABASE_BACKEND_URL: ${{ secrets.DATABASE_BACKEND_URL }}
+        KAFKA_CONNECTION_URL: ${{ secrets.KAFKA_CONNECTION_URL }}
+        MINIO_ENDPOINT: ${{ secrets.MINIO_ENDPOINT }}
+        MINIO_ACCESS_KEY: ${{ secrets.MINIO_ACCESS_KEY }}
+        MINIO_SECRET_KEY: ${{ secrets.MINIO_SECRET_KEY }}
+        EMBEDDER_SERVER_URL: ${{ secrets.EMBEDDER_SERVER_URL }}
+        STACK_NAME: prod
+      run: |
+        docker compose -f deploy.yml pull
+        docker stack deploy -c deploy.yml $STACK_NAME --with-registry-auth
+
+

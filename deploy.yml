@@ -1,0 +1,201 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/compose-spec/compose-spec/master/schema/compose-spec.json
+services:
+  # ----------------------------------------------------------------
+  # Databases & Cache
+  # ----------------------------------------------------------------
+
+  # PostgreSQL with pgvector
+  db_backend:
+    image: pgvector/pgvector:pg16
+    ports:
+      - "5433:5432"
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+    volumes:
+      - db_backend_data:/var/lib/postgresql/data
+      - ./init_db:/docker-entrypoint-initdb.d
+    networks:
+      - app-network
+
+  db_authorisation:
+    image: postgres:16-alpine
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+    volumes:
+      - db_authorisation_data:/var/lib/postgresql/data
+    networks:
+      - app-network
+
+  # Redis Cache
+  redis:
+    image: redis:alpine
+    ports:
+      - "6379:6379"
+    networks:
+      - app-network
+
+  # ----------------------------------------------------------------
+  # Application Services
+  # ----------------------------------------------------------------
+
+  # Authorization Server
+  authorization-server:
+    image: decidish/authorization-service:${IMAGE_TAG}
+    ports:
+      - "8083:8083"
+    volumes:
+      - ./backend/authorization:/app
+    environment:
+      JWT_SECRET: ${JWT_SECRET}
+      DATABASE_URL: ${DATABASE_URL}
+      GIN_MODE: "release"
+    depends_on:
+      - db_authorisation
+    deploy:
+      mode: replicated
+      replicas: 3
+      endpoint_mode: vip
+      restart_policy:
+        condition: on-failure
+      update_config:
+        order: start-first
+        failure_action: rollback
+    networks:
+      - app-network
+
+  # Core Server
+  # core-server:
+  #   image: decidish/core-service:latest
+  #   ports:
+  #     - "8080:8080"
+  #   volumes:
+  #     - ./backend/core:/app
+  #     - ~/.gradle:/home/gradle/.gradle
+  #   environment:
+  #     - SPRING_DATASOURCE_URL=jdbc:postgresql://db_backend:5432/${POSTGRES_DB}
+  #     - SPRING_DATASOURCE_USERNAME=${POSTGRES_USER}
+  #     - SPRING_DATASOURCE_PASSWORD=${POSTGRES_PASSWORD}
+  #     - REDIS_HOST=redis
+  #   depends_on:
+  #     - db_backend
+  #     - redis
+  #   networks:
+  #     - app-network
+
+  # Personalization Server
+  personalization-server:
+    image: decidish/personalization-service:${IMAGE_TAG}
+    ports:
+      - "8082:8082"
+    volumes:
+      - ./backend/personalization:/app
+    environment:
+      - DB_HOST=db_backend
+      - JWT_SECRET=${JWT_SECRET}
+      - DATABASE_URL=${DATABASE_BACKEND_URL}
+      - EMBEDDER_SERVER_URL=${EMBEDDER_SERVER_URL}
+      - KAFKA_CONNECTION_URL=${KAFKA_CONNECTION_URL}
+      - MINIO_ENDPOINT=${MINIO_ENDPOINT}
+      - MINIO_ACCESS_KEY=${MINIO_ACCESS_KEY}
+      - MINIO_SECRET_KEY=${MINIO_SECRET_KEY}
+      - MINIO_USE_SSL=${MINIO_USE_SSL}
+      - MINIO_RECIPES_BUCKET=${MINIO_RECIPES_BUCKET}
+      - MINIO_RECIPES_OBJECT=${MINIO_RECIPES_OBJECT}
+      - GIN_MODE=release
+    depends_on:
+      - db_backend
+    deploy:
+      mode: replicated
+      replicas: 3
+      endpoint_mode: vip
+      restart_policy:
+        condition: on-failure
+      update_config:
+        order: start-first
+        failure_action: rollback
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:8082/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+    networks:
+      - app-network
+
+  # MLPipeline
+  mlpipeline:
+    image: decidish/mlpipeline-service:${IMAGE_TAG}
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./mlpipeline:/app
+    environment:
+      - DATABASE_URL=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db_backend:5432/${POSTGRES_DB}
+    depends_on:
+      - db_backend
+    deploy:
+      mode: replicated
+      replicas: 3
+      endpoint_mode: vip
+    networks:
+      - app-network
+
+  client-web:
+    image: decidish/client-web:${IMAGE_TAG}
+    ports:
+      - "3000:3000"
+    deploy:
+      update_config:
+        order: start-first
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://localhost:3000"]
+      interval: 10s
+      retries: 3
+      start_period: 5s
+
+  # ----------------------------------------------------------------
+  # Monitoring
+  # ----------------------------------------------------------------
+
+  prometheus:
+    image: prom/prometheus:latest
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml
+      - prometheus_data:/prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+    networks:
+      - app-network
+
+  grafana:
+    image: grafana/grafana:latest
+    ports:
+      - "3031:3000"
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=secret
+    depends_on:
+      - prometheus
+    volumes:
+      - ./datasources.yml:/etc/grafana/provisioning/datasources/datasources.yml
+    networks:
+      - app-network
+
+# ----------------------------------------------------------------
+# Volumes & Networks
+# ----------------------------------------------------------------
+volumes:
+  db_backend_data:
+  db_authorisation_data:
+  prometheus_data:
+
+networks:
+  app-network:
+    driver: overlay

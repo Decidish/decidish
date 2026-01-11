@@ -1,0 +1,106 @@
+# This workflow will build a golang project
+# For more information see: https://docs.github.com/en/actions/automating-builds-and-tests/building-and-testing-go
+
+name: Execute CI for QA
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+jobs:
+  prepare:
+    runs-on: ubuntu-latest
+    outputs:
+      auth_changed: ${{ steps.filter.outputs.auth }}
+      personalization_changed: ${{ steps.filter.outputs.personalization }}
+      mlpipeline_changed: ${{ steps.filter.outputs.mlpipeline }}
+      client_changed: ${{ steps.filter.outputs.client }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: dorny/paths-filter@v2
+        id: filter
+        with:
+          filters: |
+            auth:
+              - 'backend/authorization/**'
+              - '.github/workflows/authorization-ci.yml'
+            personalization:
+              - 'backend/personalization/**'
+              - '.github/workflows/personalization-ci.yml'
+            mlpipeline:
+              - 'mlpipeline/**'
+              - '.github/workflows/mlpipeline-ci.yml'
+            client:
+              - 'client/**'
+              - '.github/workflows/client-ci.yml'
+
+  auth-ci:
+    needs: prepare
+    if: ${{ needs.prepare.outputs.auth_changed == 'true' || github.ref == 'refs/heads/main' }}
+    uses: ./.github/workflows/authorization-ci.yml
+    with: 
+      environment: qa
+    secrets: inherit
+  
+  personalization-ci:
+    needs: prepare
+    if: ${{ needs.prepare.outputs.personalization_changed == 'true' || github.ref == 'refs/heads/main' }}
+    uses: ./.github/workflows/personalization-ci.yml
+    with: 
+      environment: qa
+    secrets: inherit
+  
+  mlpipeline-ci:
+    needs: prepare
+    if: ${{ needs.prepare.outputs.mlpipeline_changed == 'true' || github.ref == 'refs/heads/main' }}
+    uses: ./.github/workflows/mlpipeline-ci.yml
+    with: 
+      environment: qa
+    secrets: inherit
+  
+  client-ci:
+    needs: prepare
+    if: ${{ needs.prepare.outputs.client_changed == 'true' || github.ref == 'refs/heads/main' }}
+    uses: ./.github/workflows/client-ci.yml
+    with: 
+      environment: qa
+    secrets: inherit
+
+  deploy-qa:
+    if: github.ref == 'refs/heads/main'
+    needs: [prepare, auth-ci, personalization-ci, mlpipeline-ci, client-ci]
+    environment: qa
+    runs-on: [self-hosted, qa-server]
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Login to Docker Hub
+      uses: docker/login-action@v3
+      with:
+        username: ${{ secrets.DOCKERHUB_USERNAME }}
+        password: ${{ secrets.DOCKERHUB_TOKEN }}
+    
+    - name: Update QA Stack
+      env:
+      # This variable tells the Python interpreter *everywhere* # (including inside your running Docker containers) to skip writing bytecode.
+        POSTGRES_USER: ${{ secrets.POSTGRES_USER }}
+        POSTGRES_PASSWORD: ${{ secrets.POSTGRES_PASSWORD }}
+        POSTGRES_DB: ${{ secrets.POSTGRES_DB }}
+        JWT_SECRET: ${{ secrets.JWT_SECRET }}
+        DATABASE_URL: ${{ secrets.DATABASE_URL }}
+        DATABASE_BACKEND_URL: ${{ secrets.DATABASE_BACKEND_URL }}
+        KAFKA_CONNECTION_URL: ${{ secrets.KAFKA_CONNECTION_URL }}
+        MINIO_ENDPOINT: ${{ secrets.MINIO_ENDPOINT }}
+        MINIO_ACCESS_KEY: ${{ secrets.MINIO_ACCESS_KEY }}
+        MINIO_SECRET_KEY: ${{ secrets.MINIO_SECRET_KEY }}
+        MINIO_USE_SSL: ${{ secrets.MINIO_USE_SSL }}
+        MINIO_RECIPES_BUCKET: ${{ secrets.MINIO_RECIPES_BUCKET }}
+        MINIO_RECIPES_OBJECT: ${{ secrets.MINIO_RECIPES_OBJECT }}
+        EMBEDDER_SERVER_URL: ${{ secrets.EMBEDDER_SERVER_URL }}
+        STACK_NAME: qa
+        IMAGE_TAG: qa
+      run: |
+        docker compose -f deploy.yml pull
+        docker stack deploy -c deploy.yml $STACK_NAME --with-registry-auth
