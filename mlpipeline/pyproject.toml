@@ -1,20 +1,34 @@
-[tool.poetry]
+[project]
 name = "mlpipeline"
 version = "0.1.0"
-description = ""
-authors = ["sarpsahinalp <sarp.sahinalp@tum.de>"]
+description = "Add your description here"
 readme = "README.md"
+requires-python = ">=3.13"
+dependencies = [
+    "asyncpg>=0.31.0",
+    "fastapi>=0.128.0",
+    "fastembed>=0.7.4",
+    "httpx>=0.28.1",
+    "minio>=7.2.20",
+    "pgvector>=0.4.2",
+    "psycopg2-binary>=2.9.11",
+    "recipe-scrapers>=15.11.0",
+    "selenium>=4.39.0",
+    "spacy>=3.8.11",
+    "uvicorn>=0.40.0",
+    "webdriver-manager>=4.0.2",
+]
 
-[tool.poetry.dependencies]
-python = "^3.12"
-fastapi = "^0.109.0"
-uvicorn = "^0.27.0"
-psycopg2-binary = "^2.9.9" # Required for Postgres connection
-asyncpg = "^0.31.0"
-pgvector = "^0.4.2"
-pytest = "^9.0.2"
-sklearn-crfsuite = "^0.5.0"
+[dependency-groups]
+dev = [
+    "pytest>=9.0.2",
+    "pytest-asyncio>=1.3.0",
+]
 
-[build-system]
-requires = ["poetry-core"]
-build-backend = "poetry.core.masonry.api"
+[tool.setuptools.packages.find]
+where = ["src"]
+testpaths = ["tests"]
+
+[tool.pytest.ini_options]
+pythonpath = "src"
+testpaths = ["tests"]

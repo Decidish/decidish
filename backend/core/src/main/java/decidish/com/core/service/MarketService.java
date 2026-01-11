@@ -117,7 +117,7 @@ public class MarketService {
             }
             
             sanitizedMarkets.add(m);
-            self.evictSingleCache(m.getReweId());
+            self.evictSingleCache(m.getId());
         }
 
         return sanitizedMarkets;
@@ -221,7 +221,7 @@ public class MarketService {
     private Market getProductsAPI(Market market, String query, int numPages) {
         // 1. Fetch from API (first page to get pagination info)
         log.info("Fetching API...");
-        ProductSearchResponse response = apiClient.searchProducts(query, 1, DEFAULT_OBJECTS_PER_PAGE, market.getReweId());
+        ProductSearchResponse response = apiClient.searchProducts(query, 1, DEFAULT_OBJECTS_PER_PAGE, market.getId());
         if (response == null || response.data() == null) return market;
 
         // 2. Create Lookup Map 
@@ -252,7 +252,7 @@ public class MarketService {
             ++i;
             if(i < numberPages){ // Still pages left
                 // log.info("Fetching from external API for ", reweId);
-                response = apiClient.searchProducts("", i, DEFAULT_OBJECTS_PER_PAGE, market.getReweId());
+                response = apiClient.searchProducts("", i, DEFAULT_OBJECTS_PER_PAGE, market.getId());
                 // System.out.println("API Response: " + response);        
             }
         }while(i<numberPages); //? Maybe refactor this with just a for, numberPages = 1 ini and then update

@@ -30,6 +30,7 @@ share/python-wheels/
 .installed.cfg
 *.egg
 MANIFEST
+# poetry.lock
 
 # PyInstaller
 #  Usually these files are written by a python script from a template
@@ -166,7 +167,7 @@ cython_debug/
 
 ### Python Patch ###
 # Poetry local configuration file - https://python-poetry.org/docs/configuration/#local-configuration
-poetry.toml
+../mlpipeline/poetry.toml
 
 # ruff
 .ruff_cache/

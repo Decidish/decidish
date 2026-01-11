@@ -34,7 +34,7 @@ class MarketControllerUnitTest {
         // Arrange
         String plz = "80809";
         Market mockMarket = new Market();
-        mockMarket.setReweId(1L);
+        mockMarket.setId(1L);
         mockMarket.setName("REWE Test");
         
         when(marketService.getMarkets(plz)).thenReturn(List.of(mockMarket));
@@ -56,7 +56,7 @@ class MarketControllerUnitTest {
         // Arrange
         Long marketId = 540945L;
         Market mockMarket = new Market();
-        mockMarket.setReweId(marketId);
+        mockMarket.setId(marketId);
         mockMarket.setName("REWE with Products");
 
         when(marketService.getAllProducts(marketId)).thenReturn(mockMarket);
@@ -76,7 +76,7 @@ class MarketControllerUnitTest {
         Long marketId = 540945L;
         String query = "milk";
         Market mockMarket = new Market();
-        mockMarket.setReweId(marketId);
+        mockMarket.setId(marketId);
         mockMarket.setName("REWE with Milk Products");
         
         when(marketService.getProductsQuery(marketId, query)).thenReturn(mockMarket);

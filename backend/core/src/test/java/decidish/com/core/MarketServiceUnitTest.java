@@ -57,7 +57,7 @@ class MarketServiceUnitTest {
 
         // 2. Setup Stale DB Data
         staleMarket = new Market();
-        staleMarket.setReweId(OLD_ID);
+        staleMarket.setId(OLD_ID);
         staleMarket.setName("Old Name");
         staleMarket.setAddress(new Address());
         staleMarket.setLastUpdated(LocalDateTime.now().minusWeeks(10));
@@ -135,7 +135,7 @@ class MarketServiceUnitTest {
         assertEquals("Updated Market", staleMarket.getName());
 
         // Verify New Market was created correctly
-        Market newResult = results.stream().filter(m -> m.getReweId().equals(NEW_ID)).findFirst().get();
+        Market newResult = results.stream().filter(m -> m.getId().equals(NEW_ID)).findFirst().get();
         assertEquals("New Market", newResult.getName());
         
         // Verify Interactions

@@ -101,11 +101,11 @@ class MarketRepositoryCacheTest {
     @Test
     void testCache_findByReweId() {
         // 1. First Call - Should hit DB
-        marketRepository.findByReweId(1L);
+        marketRepository.findById(1L);
         assertThat(hibernateStats.getQueryExecutionCount()).isEqualTo(1);
 
         // 2. Second Call - Should hit Cache (DB count stays 1)
-        Optional<Market> cachedResult = marketRepository.findByReweId(1L);
+        Optional<Market> cachedResult = marketRepository.findById(1L);
         assertThat(hibernateStats.getQueryExecutionCount()).isEqualTo(1);
         
         // 3. Verify Content
@@ -123,11 +123,11 @@ class MarketRepositoryCacheTest {
         // Condition: unless = "#reweId == 2L"
         
         // 1. First Call - Hits DB
-        marketRepository.findByReweId(2L);
+        marketRepository.findById(2L);
         assertThat(hibernateStats.getQueryExecutionCount()).isEqualTo(1);
 
         // 2. Second Call - Should Hit DB AGAIN because it was excluded from cache
-        marketRepository.findByReweId(2L);
+        marketRepository.findById(2L);
         assertThat(hibernateStats.getQueryExecutionCount()).isEqualTo(2);
 
         // 3. Verify Cache is empty for this ID
