@@ -76,10 +76,10 @@ def encode_users_batch(req:EncodeBatchRequest):
     ckpt_path = ROOT / "pretrain" / "checkpoints" / "user_encoder.pt"
 
     if _MODEL is None or _INPUT_DIM != d:
-        if not os.path.exists(ckpt_path):
+        if not ckpt_path.exists():
             raise HTTPException(500, f"checkpoint not found: {ckpt_path}")
         try:
-            _MODEL = _load_model(ckpt_path, input_dim=d, device=device)
+            _MODEL = _load_model(str(ckpt_path), input_dim=d, device=device)
         except Exception as e:
             raise HTTPException(500, f"failed to load model: {e}")
         _INPUT_DIM = d
