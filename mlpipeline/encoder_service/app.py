@@ -56,7 +56,7 @@ def _load_model(ckpt_path: str, input_dim: int, device: torch.device) -> UserEnc
 
 @app.post("/encode_users_batch", response_model=EncodeBatchResponse)
 def encode_users_batch(req:EncodeBatchRequest):
-    global _MODEL, _DEVICE, _INPUT_DIM
+    global _MODEL, _INPUT_DIM
 
     if not req.users:
         raise HTTPException(400, "user is empty")
@@ -95,4 +95,4 @@ def encode_users_batch(req:EncodeBatchRequest):
         UserEmbeddingItem(user_id = req.users[i].user_id, user_embedding = z_np[i].astype(float).tolist())
         for i in range(len(req.users))
     ]
-    return EncodeBatchResponse(user=out, embedding_dim = z_np.shape[1])
+    return EncodeBatchResponse(users=out, embedding_dim = z_np.shape[1])
