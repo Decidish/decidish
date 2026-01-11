@@ -104,7 +104,7 @@ class BenchmarkTests {
     
 
     // ==================================================================================
-    // 1. ENDPOINT: GET /markets?plz=...
+    // 1. ENDPOINT: GET /api/v1/markets?plz=...
     // ==================================================================================
 
     @Test
@@ -119,7 +119,7 @@ class BenchmarkTests {
         System.out.println("\n[SEARCH COLD] Fetching from External API & Saving...");
         
         long startTime = System.nanoTime();
-        mockMvc.perform(get("/markets").param("plz", PLZ))
+        mockMvc.perform(get("/api/v1/markets").param("plz", PLZ))
                .andExpect(status().isOk());
         long endTime = System.nanoTime();
 
@@ -138,7 +138,7 @@ class BenchmarkTests {
         marketRepository.deleteAllInBatch();
         
         // marketRepository.save(m); // DB is now full
-        mockMvc.perform(get("/markets").param("plz", PLZ)).andExpect(status().isOk());
+        mockMvc.perform(get("/api/v1/markets").param("plz", PLZ)).andExpect(status().isOk());
         hibernateStats.clear();
 
         // --- STEP 2: EMPTY THE CACHE ---
@@ -150,7 +150,7 @@ class BenchmarkTests {
         System.out.println("\n[SEARCH WARM] Fetching from DB (Cache Miss)...");
 
         long startTime = System.nanoTime();
-        mockMvc.perform(get("/markets").param("plz", PLZ))
+        mockMvc.perform(get("/api/v1/markets").param("plz", PLZ))
                .andExpect(status().isOk());
         long endTime = System.nanoTime();
 
@@ -166,7 +166,7 @@ class BenchmarkTests {
     void benchmarkSearchMarkets_Hot() throws Exception {
         marketRepository.deleteAllInBatch();
         // 1. Warm up the cache
-        mockMvc.perform(get("/markets").param("plz", PLZ)).andExpect(status().isOk());
+        mockMvc.perform(get("/api/v1/markets").param("plz", PLZ)).andExpect(status().isOk());
         // 2. Did it save to DB?
         long dbCount = marketRepository.count();
         System.out.println("Items in DB: " + dbCount);
@@ -181,7 +181,7 @@ class BenchmarkTests {
         System.out.println("\n[SEARCH HOT] Fetching from Cache...");
 
         long startTime = System.nanoTime();
-        mockMvc.perform(get("/markets").param("plz", PLZ))
+        mockMvc.perform(get("/api/v1/markets").param("plz", PLZ))
                .andExpect(status().isOk());
         long endTime = System.nanoTime();
 
@@ -193,7 +193,7 @@ class BenchmarkTests {
 
 
     // ==================================================================================
-    // 2. ENDPOINT: GET /markets/{id}/products
+    // 2. ENDPOINT: GET /api/v1/markets/{id}/products
     // ==================================================================================
 
     @Test
@@ -209,7 +209,7 @@ class BenchmarkTests {
         System.out.println("\n[ALL PRODS COLD] Fetching API & Batch Saving...");
 
         long startTime = System.nanoTime();
-        mockMvc.perform(get("/markets/{id}/products", MARKET_ID))
+        mockMvc.perform(get("/api/v1/markets/{id}/products", MARKET_ID))
                .andExpect(status().isOk());
         long endTime = System.nanoTime();
 
@@ -233,7 +233,7 @@ class BenchmarkTests {
         System.out.println("\n[ALL PRODS WARM] Fetching from DB...");
 
         long startTime = System.nanoTime();
-        mockMvc.perform(get("/markets/{id}/products", MARKET_ID))
+        mockMvc.perform(get("/api/v1/markets/{id}/products", MARKET_ID))
                .andExpect(status().isOk());
         long endTime = System.nanoTime();
 
@@ -250,13 +250,13 @@ class BenchmarkTests {
         setupMarketWithoutProducts(); // Minimal setup, the warm-up will fill it
         
         // 1. Warm up
-        mockMvc.perform(get("/markets/{id}/products", MARKET_ID));
+        mockMvc.perform(get("/api/v1/markets/{id}/products", MARKET_ID));
         hibernateStats.clear();
 
         System.out.println("\n[ALL PRODS HOT] Fetching from Cache...");
 
         long startTime = System.nanoTime();
-        mockMvc.perform(get("/markets/{id}/products", MARKET_ID))
+        mockMvc.perform(get("/api/v1/markets/{id}/products", MARKET_ID))
                .andExpect(status().isOk());
         long endTime = System.nanoTime();
 
@@ -266,7 +266,7 @@ class BenchmarkTests {
 
 
     // ==================================================================================
-    // 3. ENDPOINT: GET /markets/{id}/query?query=...
+    // 3. ENDPOINT: GET /api/v1/markets/{id}/query?query=...
     // ==================================================================================
 
     @Test
@@ -279,7 +279,7 @@ class BenchmarkTests {
         System.out.println("\n[QUERY COLD] Searching API & Saving...");
 
         long startTime = System.nanoTime();
-        mockMvc.perform(get("/markets/{id}/query", MARKET_ID)
+        mockMvc.perform(get("/api/v1/markets/{id}/query", MARKET_ID)
                         .param("query", PRODUCT_QUERY))
                .andExpect(status().isOk());
         long endTime = System.nanoTime();
