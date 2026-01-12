@@ -4,7 +4,7 @@ import java.io.Serializable;
 
 // A lightweight record that carries only the info needed for the selection screen
 public record MarketSummaryDto(
-    Long reweId,
+    Long id,
     String name,
     Address address,
     // Placeholders for frontend UI fields not yet in DB

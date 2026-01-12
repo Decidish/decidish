@@ -86,7 +86,10 @@ public class MarketService {
         // (Logic extracted to helper for readability)
         List<Market> marketsToSave = mergeApiWithDb(apiResponse.markets());
 
-        if (marketsToSave.isEmpty()) return List.of();
+        if (marketsToSave.isEmpty()) {
+            log.info("MARKETS TO SAVE IS EMPTY");
+            return List.of();
+        }
 
         // SAVE & UPDATE CACHE 
         // We call the method on 'self' (the Spring Proxy) so @CachePut works
