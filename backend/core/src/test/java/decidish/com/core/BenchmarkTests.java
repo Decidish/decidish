@@ -1,10 +1,12 @@
 package decidish.com.core;
 
+import decidish.com.core.model.rewe.Address;
 import decidish.com.core.model.rewe.Market;
 import decidish.com.core.model.rewe.Product;
 import decidish.com.core.model.rewe.ProductAttributesDto;
 import decidish.com.core.repository.MarketRepository;
 import jakarta.persistence.EntityManagerFactory;
+import jakarta.transaction.Transactional;
 
 import org.hibernate.SessionFactory;
 import org.hibernate.stat.Statistics;
@@ -25,6 +27,7 @@ import org.springframework.cache.annotation.EnableCaching;
 import org.springframework.core.annotation.Order;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.test.annotation.Rollback;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
 
@@ -297,6 +300,7 @@ class BenchmarkTests {
         Market m = new Market();
         m.setId(MARKET_ID);
         m.setName("Benchmark Market");
+        m.setAddress(new Address());
         marketRepository.save(m);
     }
 
@@ -305,6 +309,7 @@ class BenchmarkTests {
         Market m = new Market();
         m.setId(MARKET_ID);
         m.setName("Benchmark Market");
+        m.setAddress(new Address());
         m = marketRepository.save(m);
 
         List<Product> products = new ArrayList<>();

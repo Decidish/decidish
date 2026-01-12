@@ -50,7 +50,7 @@ public class Product implements Serializable, Persistable<Long>{
     private String imageUrl;
 
     private String grammage;
-    
+
     // The normalized numeric value (e.g. 500.0)
     @Column(name = "normalized_amount")
     private Double normalizedAmount;
@@ -129,10 +129,10 @@ public class Product implements Serializable, Persistable<Long>{
     }
 
     // Avoid div/0
-    public Double getNormalizedAmount() { 
-        return normalizedAmount != null ? normalizedAmount : 1.0; 
-    } 
-    
+    public Double getNormalizedAmount() {
+        return normalizedAmount != null ? normalizedAmount : 1.0;
+    }
+
     // Only compare based on the Database ID (or Business Key reweId)
     @Override
     public boolean equals(Object o) {

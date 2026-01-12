@@ -114,19 +114,19 @@ public class MarketService {
         // for (Market m : savedMarkets) {
         //     // 1. Initialize the list (loads from DB if lazy)
         //     Hibernate.initialize(m.getProducts());
-            
+
         //     // 2. Replace the Hibernate Bag with a plain ArrayList
         //     if (m.getProducts() != null) {
         //         List<Product> plainList = new ArrayList<>(m.getProducts());
         //         m.setProducts(plainList);
         //     }
-            
+
         //     sanitizedMarkets.add(m);
         //     self.evictSingleCache(m.getId());
         // }
         for (Market m : savedMarkets) {
             // Create a copy or cloned object for the return value
-            Market safeCopy = new Market(); 
+            Market safeCopy = new Market();
             BeanUtils.copyProperties(m, safeCopy); // Copy basic fields
             
             // Handle products safely on the copy
@@ -153,8 +153,8 @@ public class MarketService {
      * Uses @CacheEvict to remove specific entries.
      */
     @CacheEvict(value = "markets_id", key = "#a0")
-    public void evictSingleCache(Long reweId) {
-        log.debug("Evicting market_id cache for: {}", reweId);
+    public void evictSingleCache(Long id) {
+        log.debug("Evicting market_id cache for: {}", id);
     }
     
     private List<Market> mergeApiWithDb(List<MarketDto> apiDtos) {
@@ -189,7 +189,7 @@ public class MarketService {
     public Market getProductsQuerySave(Long marketId, String query) {
         
         Market market = getMarket(marketId);
-        return getProductsAPISave(market, query, 1);  
+        return getProductsAPISave(market, query, 1);
     }
 
     /**
@@ -198,19 +198,20 @@ public class MarketService {
     @Transactional
     @CachePut(value = "market_products", key = "#a0.id")
     public Market getAllProductsAPI(Market market) {
-        return getProductsAPISave(market, "", Integer.MAX_VALUE);  
+        return getProductsAPISave(market, "", Integer.MAX_VALUE);
     }
 
     /**
      * @brief Get all products from a given market. First try to fetch from DB only. If no products or data not fresh, call API.
      */
+    // @Cacheable(value = "market_products", key = "#id")
     @Cacheable(value = "market_products", key = "#a0")
-    public Market getAllProducts(Long reweId) {
-        Market market = getMarket(reweId);
+    public Market getAllProducts(Long id) {
+        Market market = getMarket(id);
 
         // Check if products are fresh
         if (!market.getProducts().isEmpty() && isProductFresh(market.getProducts().get(0))) {
-            log.info("DB Hit for Products of Market ID: {}", reweId);
+            log.info("DB Hit for Products of Market ID: {}", id);
             return market;
         }
 
@@ -240,13 +241,13 @@ public class MarketService {
         log.info("Fetching API...");
         ProductSearchResponse response = apiClient.searchProducts(query, 1, DEFAULT_OBJECTS_PER_PAGE, market.getId());
         if (response == null || response.data() == null) return market; //? Change to void
-        
+
 
         // 2. Create Lookup Map 
         // We use a Map to ensure we find existing products quickly
         Map<Long, Product> existingMap = new HashMap<>();
         for (Product p : market.getProducts()) {
-            existingMap.put(p.getId(), p);
+            existingMap.put(p.getReweId(), p);
         }
 
         int queryPages = response.data().products().pagination().pageCount();
@@ -285,27 +286,27 @@ public class MarketService {
     }
 
     /**
-     * Returns a list of Products for a specific search, detached from the Market entity 
+     * Returns a list of Products for a specific search, detached from the Market entity
      * to ensure thread-safety during concurrent processing.
      */
     public List<Product> getProductsQueryNoSave(Long marketId, String query) {
         // 1. Get market to get the REWE ID (Market is read-only here)
         Market market = getMarket(marketId);
-        
+
         // 2. Fetch from API
         ProductSearchResponse response = apiClient.searchProducts(query, 1, DEFAULT_OBJECTS_PER_PAGE, market.getId());
         if (response == null || response.data() == null) return new ArrayList<>();
 
         List<Product> results = new ArrayList<>();
-        
+
         // 3. Convert DTOs to Product Entities (unpersisted)
         for (ProductDto dto : response.data().products().products()) {
             Product p = Product.fromDto(dto);
             // We set the market reference so it's ready for saving later
-            p.setMarket(market); 
+            p.setMarket(market);
             results.add(p);
         }
-        
+
         return results;
     }
 
@@ -314,10 +315,10 @@ public class MarketService {
     // public Market getProductsAPI(Market market, String query, int maxPages) {
 
     //     Long marketId = market.getId();
-        
+
     //     // --- STEP 1: Fetch First Page (Synchronous) ---
     //     log.info("Fetching API Page 1...");
-        
+
     //     ProductSearchResponse firstPage = apiClient.searchProducts(query, 1, DEFAULT_OBJECTS_PER_PAGE, marketId);
     //     if (firstPage == null || firstPage.data() == null) return null;
 
@@ -331,13 +332,13 @@ public class MarketService {
     //     // --- STEP 3: Parallel Fetch (Scatter) ---
     //     if (pagesToFetch > 1) {
     //         log.info("Starting parallel fetch for {} more pages...", pagesToFetch - 1);
-            
+
     //         List<CompletableFuture<List<ProductDto>>> futures = new ArrayList<>();
 
     //         // Start loops from Page 2
     //         for (int i = 2; i <= pagesToFetch; i++) {
     //             final int pageNum = i; // Needed for lambda
-                
+
     //             // Create a task that runs in the background
     //             CompletableFuture<List<ProductDto>> future = CompletableFuture.supplyAsync(() -> {
     //                 try {
@@ -350,7 +351,7 @@ public class MarketService {
     //                 }
     //                 return List.<ProductDto>of(); // Return empty list on failure
     //             });
-                
+
     //             futures.add(future);
     //         }
 
@@ -379,7 +380,7 @@ public class MarketService {
     // @Transactional
     // protected Market updateMarketData(Long marketId, List<ProductDto> dtos) {
     //     Market market = marketRepository.findById(marketId).orElseThrow();
-        
+
     //     // Create Lookup Map for O(1) access
     //     Map<Long, Product> existingMap = new HashMap<>();
     //     for (Product p : market.getProducts()) {
@@ -394,7 +395,7 @@ public class MarketService {
     //             Product newProduct = Product.fromDto(dto);
     //             market.addProduct(newProduct);
     //             // Update map to avoid duplicates if API returns same item twice
-    //             existingMap.put(dto.productId(), newProduct); 
+    //             existingMap.put(dto.productId(), newProduct);
     //         }
     //     }
 

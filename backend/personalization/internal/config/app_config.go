@@ -7,9 +7,9 @@ import (
 )
 
 type ApplicationConfig struct {
-	JWTSecret              string
-	DBConnectionUrl        string
-	EmbedderServerUrl      string
+	JWTSecret         string
+	DBConnectionUrl   string
+	EmbedderServerUrl string
 }
 
 func (config *ApplicationConfig) LoadConfiguration() {

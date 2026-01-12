@@ -68,7 +68,7 @@ export default function MarketSelection() {
   const handleContinue = () => {
     if (selectedMarket) {
       // Save the REWE ID for the next step (Recipe Generation)
-      localStorage.setItem('selectedMarketId', selectedMarket.reweId.toString());
+      localStorage.setItem('selectedMarketId', selectedMarket.id.toString());
       window.REACT_APP_NAVIGATE('/recipe-swiper');
     }
   };
@@ -156,9 +156,9 @@ export default function MarketSelection() {
                           {markets.map((market) => (
                               market.address.latitude &&
                               <Marker
-                                  key={market.reweId}
+                                  key={market.id}
                                   position={[market.address.latitude, market.address.longitude]}
-                                  icon={selectedMarket?.reweId === market.reweId ? selectedIcon : defaultIcon}
+                                  icon={selectedMarket?.id === market.id ? selectedIcon : defaultIcon}
                                   eventHandlers={{
                                     click: () => handleSelectMarket(market)
                                   }}
@@ -185,10 +185,10 @@ export default function MarketSelection() {
                       <div className="max-h-[500px] overflow-y-auto pr-2 space-y-4 custom-scrollbar">
                         {markets.map((market) => (
                             <div
-                                key={market.reweId}
+                                key={market.id}
                                 onClick={() => handleSelectMarket(market)}
                                 className={`p-4 rounded-lg border-2 transition-all cursor-pointer ${
-                                    selectedMarket?.reweId === market.reweId
+                                    selectedMarket?.id === market.id
                                         ? 'border-indigo-600 bg-indigo-50'
                                         : 'border-gray-200 hover:border-indigo-300 bg-white'
                                 }`}
@@ -211,7 +211,7 @@ export default function MarketSelection() {
                                   <span>{market.hours}</span>
                                 </div>
                               </div>
-                              {selectedMarket?.reweId === market.reweId && (
+                              {selectedMarket?.id === market.id && (
                                   <div className="mt-3 pt-3 border-t border-indigo-200 flex items-center gap-2 text-indigo-600">
                                     <i className="ri-check-line text-lg"></i>
                                     <span className="text-sm font-medium">Selected</span>
