@@ -114,6 +114,7 @@ public class Product implements Serializable, Persistable<Long>{
         this.price = dto.listing().currentRetailPrice();
         this.grammage = dto.listing().grammage();
         this.lastUpdated = LocalDateTime.now();
+        this.attributes = dto.attributes();
     }
 
     public void updateFromOther(Product other) {

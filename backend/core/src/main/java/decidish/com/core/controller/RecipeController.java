@@ -39,4 +39,24 @@ public class RecipeController {
         ShoppingListResponse response = recipeService.generateShoppingList(marketId, recipeIds);
         return ResponseEntity.ok(response);
     }
+
+    /**
+     * Triggers the global fuzzy matching pre-processing.
+     * Use this to refresh the Ingredient -> ReweID mappings.
+     * * Endpoint: POST /shopping-list/match
+     */
+    @PostMapping("/match")
+    public ResponseEntity<String> runFuzzyMatching() {
+        log.info("Starting global fuzzy matching pre-processing...");
+        
+        try {
+            var mappings = recipeService.fuzzyMatchingPreProcessing();
+            log.info("Fuzzy matching completed. Created {} global mappings.", mappings.size());
+            
+            return ResponseEntity.ok("Successfully generated " + mappings.size() + " mappings.");
+        } catch (Exception e) {
+            log.error("Fuzzy matching failed: ", e);
+            return ResponseEntity.internalServerError().body("Error: " + e.getMessage());
+        }
+    }
 }

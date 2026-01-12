@@ -3,6 +3,7 @@ package decidish.com.core;
 import decidish.com.core.model.recipes.*;
 import decidish.com.core.model.rewe.Market;
 import decidish.com.core.model.rewe.Product;
+import decidish.com.core.repository.ProductRepository;
 import decidish.com.core.repository.RecipeIngredientRepository;
 import decidish.com.core.service.MarketService;
 import decidish.com.core.service.RecipeService;
@@ -27,9 +28,9 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.doAnswer;
-import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.when;
 
+//! DEPRECATED
 @ExtendWith(MockitoExtension.class)
 @Tag("benchmark")
 class RecipeServiceBenchmarkTest {
@@ -39,6 +40,9 @@ class RecipeServiceBenchmarkTest {
 
     @Mock
     private MarketService marketService;
+
+    @Mock
+    private ProductRepository productRepository;
 
     @Spy
     @InjectMocks
@@ -84,11 +88,29 @@ class RecipeServiceBenchmarkTest {
                 .map(ri -> createMockMapping(ri.getIngredient()))
                 .collect(Collectors.toList());
 
-        // when(recipeIngredientRepository.findProductsForIngredientsInMarket(anyList(), eq(MARKET_ID)))
-        //         .thenReturn(allMatches);
-
-        when(recipeService.getMatches(anyList(), eq(MARKET_ID)))
+        when(recipeIngredientRepository.findProductsForIngredientsInMarket(anyList(), eq(MARKET_ID)))
                 .thenReturn(allMatches);
+
+        // 3. Mock the Product Repository (The new part)
+        // List<Product> mockProducts = allMatches.stream()
+        //         .map(IngredientProduct::getProduct)
+        //         .collect(Collectors.toList());
+
+        List<Product> mockProducts = allMatches.stream()
+                .map(ip -> {
+                    Product p = new Product();
+                    p.setReweId(ip.getId().getProductId());
+                    p.setName("Product for " + ip.getIngredient().getName());
+                    p.setNormalizedAmount(100.0);
+                    return p;
+                })
+                .collect(Collectors.toList());
+                
+        when(productRepository.findByMarketIdAndReweIds(eq(MARKET_ID), anyList()))
+                .thenReturn(mockProducts);
+
+        // when(recipeService.getMatches(anyList(), eq(MARKET_ID)))
+        //         .thenReturn(allMatches);
 
         // 2. Measure
         long start = System.nanoTime();
@@ -157,10 +179,19 @@ class RecipeServiceBenchmarkTest {
 
         // Mock ONLY the internal getMatches call
         // This bypasses the repo query and the Object[] casting logic entirely
-        doReturn(localMatches).when(recipeService).getMatches(anyList(), eq(MARKET_ID));
+        // doReturn(localMatches).when(recipeService).getMatches(anyList(), eq(MARKET_ID));
 
-        // when(recipeIngredientRepository.findProductsForIngredientsInMarket(anyList(), eq(MARKET_ID)))
-        //         .thenReturn(localMatches);
+        when(recipeIngredientRepository.findProductsForIngredientsInMarket(anyList(), eq(MARKET_ID)))
+                .thenReturn(localMatches);
+
+        // when(ingredientProductRepository.saveAll(any())).thenAnswer(i -> i.getArgument(0));
+
+        // List<Product> mockProducts = localMatches.stream()
+        //         .map(IngredientProduct::getProduct)
+        //         .collect(Collectors.toList());
+                
+        // when(productRepository.findByMarketIdAndReweIds(eq(MARKET_ID), anyList()))
+        //         .thenReturn(mockProducts);
 
         // when(recipeService.getMatches(anyList(), eq(MARKET_ID)))
         //         .thenReturn(localMatches);
@@ -173,25 +204,30 @@ class RecipeServiceBenchmarkTest {
 
             String query = invocation.getArgument(1);
             return createMockMarketResponse(query);
-        }).when(marketService).getProductsQuery(eq(MARKET_ID), anyString());
+        }).when(marketService).getProductsQueryNoSave(eq(MARKET_ID), anyString());
     }
 
     private IngredientProduct createMockMapping(Ingredient ing) {
         Product p = new Product();
-        p.setId((long) ing.getId() + 1000);
+        // p.setId((long) ing.getId() + 1000);
+        long productId = (long) ing.getId() + 1000;
+        p.setReweId(productId);
         p.setName("Product for " + ing.getName());
         p.setNormalizedAmount(100.0);
 
         IngredientProduct ip = new IngredientProduct();
+        IngredientProductId id = new IngredientProductId((int)ing.getId(), productId);
+        ip.setId(id);
         ip.setIngredient(ing);
-        ip.setProduct(p);
+        // ip.setProduct(p);
         ip.setConfidence(0.99f);
         return ip;
     }
 
     private Market createMockMarketResponse(String name) {
         Product p = new Product();
-        p.setId(5000L);
+        // p.setId(5000L);
+        p.setReweId(5000L);
         p.setName("API Product " + name);
         p.setNormalizedAmount(100.0);
         

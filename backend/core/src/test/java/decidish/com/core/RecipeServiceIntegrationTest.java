@@ -2,12 +2,16 @@ package decidish.com.core;
 
 import decidish.com.core.model.recipes.*;
 import decidish.com.core.model.rewe.*;
+import decidish.com.core.repository.IngredientProductRepository;
 import decidish.com.core.repository.MarketRepository;
+import decidish.com.core.repository.ProductRepository;
 import decidish.com.core.repository.RecipeIngredientRepository;
 import decidish.com.core.service.MarketService;
 import decidish.com.core.service.RecipeService;
 import jakarta.persistence.EntityManager;
 import jakarta.transaction.Transactional;
+
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
@@ -18,6 +22,7 @@ import org.springframework.test.annotation.Rollback;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.context.transaction.TestTransaction;
+import org.springframework.transaction.support.TransactionTemplate;
 
 import java.math.BigDecimal;
 import java.util.List;
@@ -37,6 +42,15 @@ class RecipeServiceIntegrationTest {
 
     @Autowired
     private RecipeIngredientRepository repository;
+
+    @Autowired
+    private IngredientProductRepository ingredientProductRepository;
+
+    @Autowired
+    private ProductRepository productRepository;
+
+    @Autowired
+    private TransactionTemplate transactionTemplate;
 
     @Autowired
     private MarketRepository marketRepository;
@@ -98,10 +112,10 @@ class RecipeServiceIntegrationTest {
 
         IngredientProduct mapping = new IngredientProduct();
 
-        IngredientProductId mappingId = new IngredientProductId(onion.getId(), reweOnion.getId());
+        IngredientProductId mappingId = new IngredientProductId(onion.getId(), reweOnion.getReweId());
         mapping.setId(mappingId);
         mapping.setIngredient(onion);
-        mapping.setProduct(reweOnion);
+        // mapping.setProduct(reweOnion);
         mapping.setConfidence(0.95f);
         entityManager.merge(mapping);
 
@@ -119,6 +133,7 @@ class RecipeServiceIntegrationTest {
         assertEquals("Pasta", shoppingList.items().get(1).ingredientName());
         // assertEquals(0,shoppingList.items().get(1).options().size());
         assertEquals("Onion", shoppingList.items().get(0).ingredientName());
+        assertFalse(shoppingList.items().get(0).options().isEmpty());
         assertEquals("Ja! Zwiebeln", shoppingList.items().get(0).options().get(0).product().getName());
         
         System.out.println("Shopping List Result:");
@@ -156,8 +171,8 @@ class RecipeServiceIntegrationTest {
         milkCarton = entityManager.merge(milkCarton);
 
         // Mapping
-        IngredientProductId mapId = new IngredientProductId(milk.getId(), milkCarton.getId());
-        IngredientProduct mapping = new IngredientProduct(mapId, milk, milkCarton, 0.99f);
+        IngredientProductId mapId = new IngredientProductId(milk.getId(), milkCarton.getReweId());
+        IngredientProduct mapping = new IngredientProduct(mapId, milk, 0.99f);
         entityManager.merge(mapping);
 
         entityManager.flush();
@@ -188,7 +203,7 @@ class RecipeServiceIntegrationTest {
     void testGenerateShoppingList_Hybrid() {
         // --- DATA SETUP ---
         Market market = new Market(MARKET_ID, "Test Market", null);
-        marketRepository.save(market);
+        marketRepository.saveAndFlush(market);
 
         // Ingredient 1: Onion (Will have local mapping)
         Ingredient onion = new Ingredient("Onion");
@@ -214,9 +229,9 @@ class RecipeServiceIntegrationTest {
 
         // Map Onion locally
         IngredientProduct mapping = new IngredientProduct();
-        mapping.setId(new IngredientProductId(onion.getId(), reweOnion.getId()));
+        mapping.setId(new IngredientProductId(onion.getId(), reweOnion.getReweId()));
         mapping.setIngredient(onion);
-        mapping.setProduct(reweOnion);
+        // mapping.setProduct(reweOnion);
         mapping.setConfidence(0.95f);
         entityManager.merge(mapping);
 
@@ -224,15 +239,19 @@ class RecipeServiceIntegrationTest {
         entityManager.clear();
 
         // --- MOCK API BEHAVIOR ---
+        Market managedMarket = marketRepository.findById(MARKET_ID).orElseThrow();
         // When service asks for Saffron, return a mock product
         Product apiSaffron = new Product(777L, "Premium Saffron", 999, "url", "1g", null);
         apiSaffron.setNormalizedAmount(1.0);
-        
-        Market mockApiMarket = new Market();
-        mockApiMarket.setProducts(List.of(apiSaffron));
+        apiSaffron.setMarket(managedMarket);
+        // Market mockApiMarket = new Market();
+        // mockApiMarket.setProducts(List.of(apiSaffron));
 
-        when(marketService.getProductsQuery(eq(MARKET_ID), eq("Saffron")))
-            .thenReturn(mockApiMarket);
+        when(marketService.getProductsQueryNoSave(eq(MARKET_ID), eq("Saffron")))
+            .thenReturn(List.of(apiSaffron));
+
+        // Ensure the service uses direct executor to avoid async complications in test
+        recipeService.setApiExecutor(Runnable::run);
 
         // --- EXECUTE ---
         ShoppingListResponse response = recipeService.generateShoppingList(MARKET_ID, List.of(r1.getId()));
@@ -277,13 +296,15 @@ class RecipeServiceIntegrationTest {
 
         // Set up some products in the DB (some of them should match the ingredients, others not)
 
+        ProductAttributesDto attrs = new ProductAttributesDto(false,false,false,false,false,false,false,false,false,false,false,false);
+
         List<Product> testProducts = List.of(
-            new Product(1000L, "Tomato Soup", 100, "url", "1L", new ProductAttributesDto(false,false,false,false,false,false,false,false,false,false,false,false)),
-            new Product(1001L, "Fresh Tomato", 100, "url", "1kg", new ProductAttributesDto(false,false,false,false,false,false,false,false,false,false,false,false)),
-            new Product(1002L, "Cucumber Slices", 150, "url", "500g", new ProductAttributesDto(false,false,false,false,false,false,false,false,false,false,false,false)),
-            new Product(1003L, "Lettuce Head", 200, "url", "1pc", new ProductAttributesDto(false,false,false,false,false,false,false,false,false,false,false,false)),
-            new Product(1004L, "Potato Chips", 250, "url", "200g", new ProductAttributesDto(false,false,false,false,false,false,false,false,false,false,false,false)),
-            new Product(1005L, "Carrot Sticks", 180, "url", "300g", new ProductAttributesDto(false,false,false,false,false,false,false,false,false,false,false,false))
+            new Product(1000L, "Tomato Soup", 100, "url", "1L", attrs),
+            new Product(1001L, "Fresh Tomato", 100, "url", "1kg", attrs),
+            new Product(1002L, "Cucumber Slices", 150, "url", "500g", attrs),
+            new Product(1003L, "Lettuce Head", 200, "url", "1pc", attrs),
+            new Product(1004L, "Potato Chips", 250, "url", "200g", attrs),
+            new Product(1005L, "Carrot Sticks", 180, "url", "300g", attrs)
         );
 
         // Assign market to products and persist
@@ -300,12 +321,38 @@ class RecipeServiceIntegrationTest {
 
         // --- STEP 3: ASSERT ---
         assertNotNull(generatedMappings);
-        assertFalse(generatedMappings.isEmpty(), "Generated mappings should not be empty");
-        System.out.println("Generated Ingredient-Product Mappings:");
+        // assertFalse(generatedMappings.isEmpty(), "Generated mappings should not be empty");
+        System.out.println("Generated " + generatedMappings.size() + " Ingredient-Product Mappings:");
         for (IngredientProduct ip : generatedMappings) {
             System.out.println("Ingredient: " + ip.getIngredient().getName() + 
                                " -> Product: " + marketRepository.findProductNameByReweId(ip.getId().getProductId()) +
                                " (Confidence: " + ip.getConfidence() + ")");
         }
+
+        // Basic checks
+        for (IngredientProduct ip : generatedMappings) {
+            assertNotNull(ip.getIngredient(), "Ingredient should not be null");
+            assertTrue(ip.getConfidence() > 0.0f, "Confidence should be greater than 0");
+        }   
+
+        // For threshold 0.6f, we expect only 1 mapping: Lettuce -> Lettuce Head
+        long highConfidenceCount = generatedMappings.stream()
+            .filter(ip -> ip.getConfidence() >= 0.6f)
+            .count();
+        assertEquals(1, highConfidenceCount, "Expected exactly 1 high-confidence mapping (>=0.6f)");
+        assertEquals("Lettuce", generatedMappings.stream()
+            .filter(ip -> ip.getConfidence() >= 0.6f)
+            .findFirst()
+            .get()
+            .getIngredient()
+            .getName(), "High-confidence mapping should be for 'Lettuce'");
+        assertEquals("Lettuce Head", marketRepository.findProductNameByReweId(
+            generatedMappings.stream()
+                .filter(ip -> ip.getConfidence() >= 0.6f)
+                .findFirst()
+                .get()
+                .getId()
+                .getProductId()
+        ), "Mapped product should be 'Lettuce Head'");
     }
 }

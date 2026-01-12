@@ -86,4 +86,34 @@ class RecipeControllerUnitTest {
                 .content(objectMapper.writeValueAsString(recipeIds)))
                 .andExpect(status().isBadRequest());
     }
+
+    @Test
+    @DisplayName("POST /match - Success (Triggers Fuzzy Matching)")
+    void runFuzzyMatching_Success() throws Exception {
+        // GIVEN
+        // Mocking the return of a list with 5 dummy mappings
+        when(recipeService.fuzzyMatchingPreProcessing())
+                .thenReturn(Collections.nCopies(5, new decidish.com.core.model.recipes.IngredientProduct()));
+
+        // WHEN & THEN
+        mockMvc.perform(post("/shopping-list/match")
+                .contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().isOk())
+                // Verify the response body string contains the count
+                .andExpect(content().string("Successfully generated 5 mappings."));
+    }
+
+    @Test
+    @DisplayName("POST /match - Server Error (Service Fails)")
+    void runFuzzyMatching_Error() throws Exception {
+        // GIVEN
+        when(recipeService.fuzzyMatchingPreProcessing())
+                .thenThrow(new RuntimeException("Database connection lost"));
+
+        // WHEN & THEN
+        mockMvc.perform(post("/shopping-list/match")
+                .contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().isInternalServerError())
+                .andExpect(content().string("Error: Database connection lost"));
+    }
 }

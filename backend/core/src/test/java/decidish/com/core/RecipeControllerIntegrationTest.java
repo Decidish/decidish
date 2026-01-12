@@ -68,4 +68,39 @@ class RecipeControllerIntegrationTest {
         assertEquals(1, response.getBody().items().size());
         assertEquals("Test Ingredient", response.getBody().items().get(0).ingredientName());
     }
+
+    @Test
+    @DisplayName("INTEGRATION: POST /shopping-list/match - Success")
+    void testFuzzyMatchingEndpoint() {
+        // GIVEN
+        String url = "http://localhost:" + port + "/shopping-list/match";
+        
+        // Mocking service to return 3 dummy mappings
+        when(recipeService.fuzzyMatchingPreProcessing())
+            .thenReturn(java.util.Collections.nCopies(3, new decidish.com.core.model.recipes.IngredientProduct()));
+
+        // WHEN
+        ResponseEntity<String> response = restTemplate.postForEntity(url, null, String.class);
+
+        // THEN
+        assertEquals(HttpStatus.OK, response.getStatusCode());
+        assertEquals("Successfully generated 3 mappings.", response.getBody());
+    }
+
+    @Test
+    @DisplayName("INTEGRATION: POST /shopping-list/match - Failure handling")
+    void testFuzzyMatchingEndpoint_Failure() {
+        // GIVEN
+        String url = "http://localhost:" + port + "/shopping-list/match";
+        
+        when(recipeService.fuzzyMatchingPreProcessing())
+            .thenThrow(new RuntimeException("SQL Execution Error"));
+
+        // WHEN
+        ResponseEntity<String> response = restTemplate.postForEntity(url, null, String.class);
+
+        // THEN
+        assertEquals(HttpStatus.INTERNAL_SERVER_ERROR, response.getStatusCode());
+        assertTrue(response.getBody().contains("Error: SQL Execution Error"));
+    }
 }

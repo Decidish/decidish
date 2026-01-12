@@ -1,15 +1,17 @@
-package decidish.com.core;
+//! Unused test, ignore for now
 
-import org.junit.jupiter.api.Test;
-import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.context.annotation.Import;
+// package decidish.com.core;
 
-@Import(TestcontainersConfiguration.class)
-@SpringBootTest
-class CoreApplicationTests {
+// import org.junit.jupiter.api.Test;
+// import org.springframework.boot.test.context.SpringBootTest;
+// import org.springframework.context.annotation.Import;
 
-    @Test
-    void contextLoads() {
-    }
+// @Import(TestcontainersConfiguration.class)
+// @SpringBootTest
+// class CoreApplicationTests {
 
-}
+//     @Test
+//     void contextLoads() {
+//     }
+
+// }

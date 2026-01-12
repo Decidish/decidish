@@ -2,6 +2,7 @@ package decidish.com.core;
 
 import decidish.com.core.model.rewe.*;
 import decidish.com.core.service.MarketService;
+import jakarta.persistence.EntityManager;
 import jakarta.transaction.Transactional;
 import decidish.com.core.repository.MarketRepository;
 import org.junit.jupiter.api.BeforeEach;
@@ -149,7 +150,7 @@ class MarketServiceIntegrationTest {
         
         // --- STEP 2: EXECUTE LIVE FETCH ---
         System.out.println("Calling Real REWE API (This may take a few seconds)...");
-        Market updatedMarket = marketService.getProductsQuery(VALID_MARKET_ID, query);  
+        Market updatedMarket = marketService.getProductsQuerySave(VALID_MARKET_ID, query);  
 
         // --- STEP 3: VERIFY PERSISTENCE ---
         assertNotNull(updatedMarket);
@@ -171,7 +172,7 @@ class MarketServiceIntegrationTest {
         System.out.println("Running 2nd Fetch (Should update, not duplicate)...");
 
         // Call it again
-        Market reUpdatedMarket = marketService.getProductsQuery(VALID_MARKET_ID, query);
+        Market reUpdatedMarket = marketService.getProductsQuerySave(VALID_MARKET_ID, query);
 
         // Assertions
         assertEquals(products.size(), reUpdatedMarket.getProducts().size(), 

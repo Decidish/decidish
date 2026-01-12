@@ -25,6 +25,8 @@ import org.springframework.transaction.support.TransactionTemplate;
 
 import jakarta.persistence.EntityManager;
 import java.util.List;
+import java.util.concurrent.Executor;
+import java.util.concurrent.ExecutorService;
 import java.math.BigDecimal;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -34,6 +36,7 @@ import static org.junit.jupiter.api.Assertions.*;
 @SpringBootTest
 @ActiveProfiles("test")
 @Tag("integration")
+@Transactional
 class ShoppingListTests {
 
     @Autowired private RecipeService recipeService;
@@ -43,16 +46,20 @@ class ShoppingListTests {
     @Autowired private RecipeIngredientRepository recipeIngredientRepository;
     @Autowired private ProductRepository productRepository;
     @Autowired private EntityManager entityManager;
-    @Autowired private TransactionTemplate transactionTemplate;
+    // @Autowired private TransactionTemplate transactionTemplate;
 
     private final Long MARKET_ID = 431022L;
     private List<Integer> recipeIds;
 
     @BeforeEach
-    @Transactional
     void setUp() {
+
+        Executor syncExecutor = new org.springframework.core.task.support.ExecutorServiceAdapter(
+            new org.springframework.core.task.SyncTaskExecutor()
+        );
+        recipeService.setApiExecutor(syncExecutor); //! Make API calls synchronous in recipeService for testing, 10 sec sequential, 6 sec parallel
         // We use transactionTemplate to ensure the setup is visible to background threads
-        recipeIds = transactionTemplate.execute(status -> {
+        // recipeIds = transactionTemplate.execute(status -> {
             // 1. Setup Market with products
             if(!marketRepository.existsById(MARKET_ID)) {
                 Market market = new Market(MARKET_ID, "Test Market", new Address());
@@ -60,13 +67,11 @@ class ShoppingListTests {
                 marketService.getAllProducts(MARKET_ID);
             }
 
-            List<Integer> ids = null;
-
             // 3. Load Recipes & Ingredients
             if(recipeIngredientRepository.count() == 0) {
-                ids = loadRecipeIngredients();
+                recipeIds = loadRecipeIngredients();
             } else {
-                ids = recipeIngredientRepository.findAll()
+                recipeIds = recipeIngredientRepository.findAll()
                         .stream()
                         .map(ri -> ri.getRecipe().getId())
                         .distinct()
@@ -81,8 +86,8 @@ class ShoppingListTests {
             entityManager.flush();
             entityManager.clear();
 
-            return ids;
-        });
+            // return recipeIds;
+        // });
     }
 
     @Test
@@ -91,7 +96,7 @@ class ShoppingListTests {
         // Execute the multi-threaded generation
         long startTime = System.currentTimeMillis();
         
-        ShoppingListResponse shoppingList = recipeService.generateShoppingListV4(
+        ShoppingListResponse shoppingList = recipeService.generateShoppingList(
             MARKET_ID,
             recipeIds
         );
@@ -120,26 +125,19 @@ class ShoppingListTests {
         // Print entire shopping list for manual verification
         for (IngredientGroup group : shoppingList.items()) {
             System.out.println("Ingredient: " + group.ingredientName() + " (Needed: " + group.totalAmountNeeded() + ")");
-            for (ShoppingOption option : group.options()) {
-                if (option != null) {
+            if(group.options().isEmpty()) {
+                System.out.println("  No options found for this ingredient.");
+            } else {
+                for (ShoppingOption option : group.options()) {
                     System.out.println("  - Product: " + option.product().getName() + ", Price: " + option.product().getPrice() + ", Needed: " + option.quantityToBuy() + ", Confidence: " + option.confidence() + ", URL: " + option.product().getImageUrl());
-                } else {
-                    System.out.println("  - No products found for this ingredient.");  
                 }
             }
         }
     }
 
-    @AfterEach
-    void tearDown() {
-        // If you used @Rollback(false) or manual commits in setup, 
-        // you would manually clean up here. 
-        // However, with standard @SpringBootTest, everything rolls back.
-    }
-
     // Auxiliary method to load recipe ingredients
     @Transactional
-    private List<Integer> loadRecipeIngredients() {
+    public List<Integer> loadRecipeIngredients() {
         /*
             12 ingredients from Recipe 1
 
@@ -184,21 +182,6 @@ class ShoppingListTests {
         ingredients1 = ingredients1.stream()
             .map(entityManager::merge)
             .toList();
-
-        // List<RecipeIngredient> ri1 = List.of(
-        //     new RecipeIngredient(recipe1, new Ingredient("Rucolasalat"), BigDecimal.valueOf(250.0), "g"),
-        //     new RecipeIngredient(recipe1, new Ingredient("frische Feigen"), BigDecimal.valueOf(4.0), "pieces"),
-        //     new RecipeIngredient(recipe1, new Ingredient("Pekannüsse"), BigDecimal.valueOf(40.0), "g"),
-        //     new RecipeIngredient(recipe1, new Ingredient("REWE Bio Ahornsirup"), BigDecimal.valueOf(1.0), "EL"),
-        //     new RecipeIngredient(recipe1, new Ingredient("REWE Feine Welt Lesvos g.g.A. mildes Olivenöl"), BigDecimal.valueOf(50.0), "ml"),
-        //     new RecipeIngredient(recipe1, new Ingredient("REWE Feine Welt Aceto Balsamico di Modena I.G.P."), BigDecimal.valueOf(25.0), "ml"),
-        //     new RecipeIngredient(recipe1, new Ingredient("REWE Bio Vielblütenhonig"), BigDecimal.valueOf(1.0), "TL"),
-        //     new RecipeIngredient(recipe1, new Ingredient("REWE Feine Welt Rosa Kristallsalz"), null, null),
-        //     new RecipeIngredient(recipe1, new Ingredient("REWE Bio Pfeffer a. d. Mühle"), null, null),
-        //     new RecipeIngredient(recipe1, new Ingredient("Bauchspeck in Scheiben"), BigDecimal.valueOf(100.0), "g"),
-        //     new RecipeIngredient(recipe1, new Ingredient("Roggenbrot"), BigDecimal.valueOf(2.0), "slices"),
-        //     new RecipeIngredient(recipe1, new Ingredient("ja! Butter"), BigDecimal.valueOf(30.0), "g")
-        // );
 
         List<RecipeIngredient> ri1 = ingredients1.stream()
             .map(ing -> {
@@ -252,8 +235,6 @@ class ShoppingListTests {
         */
 
         // Create recipe 2
-        // Recipe recipe2 = new Recipe("Kabeljau in Kokos-Curry-Sauce");
-        // recipe2 = entityManager.merge(recipe2);
 
         Recipe recipe2 = entityManager.merge(new Recipe("Kabeljau in Kokos-Curry-Sauce"));
 
@@ -273,20 +254,6 @@ class ShoppingListTests {
         );
 
         // Create ingredients for recipe 2
-        // List<RecipeIngredient> ingredients2 = List.of(
-        //     new RecipeIngredient(recipe2, new Ingredient("Kabeljaufilet"), BigDecimal.valueOf(800.0), "g"),
-        //     new RecipeIngredient(recipe2, new Ingredient("Limette"), BigDecimal.valueOf(1.0), "pieces"),
-        //     new RecipeIngredient(recipe2, new Ingredient("Schalotten"), BigDecimal.valueOf(2.0), "pieces"),
-        //     new RecipeIngredient(recipe2, new Ingredient("Ingwer"), BigDecimal.valueOf(10.0), "g"),
-        //     new RecipeIngredient(recipe2, new Ingredient("Rapsöl"), BigDecimal.valueOf(2.0), "EL"),
-        //     new RecipeIngredient(recipe2, new Ingredient("Madras Currypulver"), BigDecimal.valueOf(1.0), "TL"),
-        //     new RecipeIngredient(recipe2, new Ingredient("Chiliflocken"), BigDecimal.valueOf(2.0), "TL"),
-        //     new RecipeIngredient(recipe2, new Ingredient("REWE Beste Wahl Kokosmilch (400 g)"), BigDecimal.valueOf(250.0), "ml"),
-        //     new RecipeIngredient(recipe2, new Ingredient("stückige Tomaten (Dose)"), BigDecimal.valueOf(350.0), "g"),
-        //     new RecipeIngredient(recipe2, new Ingredient("Salz"), null, null),
-        //     new RecipeIngredient(recipe2, new Ingredient("Koriander"), BigDecimal.valueOf(3.5), "stems"),
-        //     new RecipeIngredient(recipe2, new Ingredient("Kokosraspeln"), BigDecimal.valueOf(2.0), "EL")
-        // );
 
         ingredients2 = ingredients2.stream()
             .map(entityManager::merge)
@@ -342,8 +309,6 @@ class ShoppingListTests {
         */
 
         // Create recipe 3
-        // Recipe recipe3 = new Recipe("Kartoffelgratin");
-        // recipe3 = entityManager.merge(recipe3);
 
         Recipe recipe3 = entityManager.merge(new Recipe("Kartoffelgratin"));
 
@@ -362,19 +327,6 @@ class ShoppingListTests {
         );
 
         // Create ingredients for recipe 3
-        // List<RecipeIngredient> ingredients3 = List.of(
-        //     new RecipeIngredient(recipe3, new Ingredient("Milch"), BigDecimal.valueOf(450.0), "ml"),
-        //     new RecipeIngredient(recipe3, new Ingredient("Lorbeerblätter"), BigDecimal.valueOf(2.0), "pieces"),
-        //     new RecipeIngredient(recipe3, new Ingredient("Knoblauch"), BigDecimal.valueOf(2.0), "pieces"),
-        //     new RecipeIngredient(recipe3, new Ingredient("Butter"), BigDecimal.valueOf(2.0), "EL"),
-        //     new RecipeIngredient(recipe3, new Ingredient("Weizenmehl Type 405"), BigDecimal.valueOf(2.0), "EL"),
-        //     new RecipeIngredient(recipe3, new Ingredient("Sahne"), BigDecimal.valueOf(50.0), "ml"),
-        //     new RecipeIngredient(recipe3, new Ingredient("Pfeffer"), null, null),
-        // //     new RecipeIngredient(recipe3, new Ingredient("Salz"), null, null),
-        //     new RecipeIngredient(recipe3, new Ingredient("Muskat"), BigDecimal.valueOf(1.0), "pinch"),
-        //     new RecipeIngredient(recipe3, new Ingredient("Kartoffeln"), BigDecimal.valueOf(1000.0), "g"),
-        //     new RecipeIngredient(recipe3, new Ingredient("Gratinkäse"), BigDecimal.valueOf(200.0), "g")
-        // );
 
         ingredients3 = ingredients3.stream()
             .map(entityManager::merge)

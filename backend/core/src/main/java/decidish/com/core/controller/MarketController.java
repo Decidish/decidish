@@ -59,7 +59,7 @@ public class MarketController {
     public ResponseEntity<Market> getProductsQuery(@RequestParam("query") String query, @PathVariable("marketId") Long marketId) {
         try {
             // This service method returns the fully updated Market entity with its products
-            Market updatedMarket = marketService.getProductsQuery(marketId, query);
+            Market updatedMarket = marketService.getProductsQuerySave(marketId, query);
             return ResponseEntity.ok(updatedMarket);
         } catch (RuntimeException e) {
             // Handle case where market is not found (Service throws RuntimeException)

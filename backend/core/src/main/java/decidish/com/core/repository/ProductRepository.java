@@ -6,7 +6,7 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.stereotype.Repository;
 
 import decidish.com.core.model.rewe.Product;
-import io.lettuce.core.dynamic.annotation.Param;
+import org.springframework.data.repository.query.Param;
 import jakarta.transaction.Transactional;
 
 import java.util.List;
@@ -20,6 +20,12 @@ public interface ProductRepository extends JpaRepository<Product, Long> {
     Optional<Product> findByMarketIdAndReweId(
         @Param("marketId") Long marketId, 
         @Param("reweId") Long reweId
+    );
+
+    @Query("SELECT p FROM Product p WHERE p.market.id = :marketId AND p.reweId IN :reweIds")
+    List<Product> findByMarketIdAndReweIds(
+        @Param("marketId") Long marketId, 
+        @Param("reweIds") List<Long> reweIds
     );
 
     @Modifying
