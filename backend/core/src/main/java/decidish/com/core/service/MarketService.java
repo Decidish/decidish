@@ -137,8 +137,8 @@ public class MarketService {
      * Uses @CacheEvict to remove specific entries.
      */
     @CacheEvict(value = "markets_id", key = "#a0")
-    public void evictSingleCache(Long reweId) {
-        log.debug("Evicting market_id cache for: {}", reweId);
+    public void evictSingleCache(Long id) {
+        log.debug("Evicting market_id cache for: {}", id);
     }
     
     private List<Market> mergeApiWithDb(List<MarketDto> apiDtos) {
@@ -180,7 +180,7 @@ public class MarketService {
      * @brief Get all products from a given market. Should be called sparely (40 API calls).
      */
     @Transactional
-    @CachePut(value = "market_products", key = "#a0.reweId")
+    @CachePut(value = "market_products", key = "#a0.id")
     public Market getAllProductsAPI(Market market) {
         return getProductsAPISave(market, "", Integer.MAX_VALUE);  
     }
@@ -188,14 +188,14 @@ public class MarketService {
     /**
      * @brief Get all products from a given market. First try to fetch from DB only. If no products or data not fresh, call API.
      */
-    // @Cacheable(value = "market_products", key = "#reweId")
+    // @Cacheable(value = "market_products", key = "#id")
     @Cacheable(value = "market_products", key = "#a0")
-    public Market getAllProducts(Long reweId) {
-        Market market = getMarket(reweId);
+    public Market getAllProducts(Long id) {
+        Market market = getMarket(id);
 
         // Check if products are fresh
         if (!market.getProducts().isEmpty() && isProductFresh(market.getProducts().get(0))) {
-            log.info("DB Hit for Products of Market ID: {}", reweId);
+            log.info("DB Hit for Products of Market ID: {}", id);
             return market;
         }
 
@@ -224,7 +224,8 @@ public class MarketService {
         // 1. Fetch from API (first page to get pagination info)
         log.info("Fetching API...");
         ProductSearchResponse response = apiClient.searchProducts(query, 1, DEFAULT_OBJECTS_PER_PAGE, market.getId());
-        if (response == null || response.data() == null) return market;
+        if (response == null || response.data() == null) return market; //? Change to void
+        
 
         // 2. Create Lookup Map 
         // We use a Map to ensure we find existing products quickly
@@ -254,7 +255,7 @@ public class MarketService {
             ++i;
             if(i < numberPages){ // Still pages left
                 // log.info("Fetching from external API for ", reweId);
-                response = apiClient.searchProducts("", i, DEFAULT_OBJECTS_PER_PAGE, market.getId());
+                response = apiClient.searchProducts(query, i, DEFAULT_OBJECTS_PER_PAGE, market.getId());
                 // System.out.println("API Response: " + response);        
             }
         }while(i<numberPages); //? Maybe refactor this with just a for, numberPages = 1 ini and then update
@@ -297,7 +298,7 @@ public class MarketService {
     // // NOTE: NO @Transactional here! We want to keep DB connections free while waiting for API.
     // public Market getProductsAPI(Market market, String query, int maxPages) {
 
-    //     Long marketId = market.getReweId();
+    //     Long marketId = market.getId();
         
     //     // --- STEP 1: Fetch First Page (Synchronous) ---
     //     log.info("Fetching API Page 1...");
