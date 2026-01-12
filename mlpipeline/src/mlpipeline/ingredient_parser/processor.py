@@ -1,6 +1,6 @@
 import os
 
-from src.mlpipeline.ingredient_parser.parser import IngredientParser
+from mlpipeline.ingredient_parser.parser import IngredientParser
 from .normalization import UnitGraph
 
 class PipelineProcessor:

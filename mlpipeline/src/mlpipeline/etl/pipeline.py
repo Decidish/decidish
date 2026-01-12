@@ -1,13 +1,13 @@
 import logging
 from typing import AsyncGenerator, Optional
 
-from src.mlpipeline.embedding.embedder import TextEmbedder
+from mlpipeline.embedding.embedder import TextEmbedder
 import psycopg2
 from minio import Minio, S3Error
 
-from src.mlpipeline.config.app_config import AppConfig
-from src.mlpipeline.etl.models import Recipe
-from src.mlpipeline.ingredient_parser.parser import IngredientParser, convert_to_float, clean_unit_label
+from mlpipeline.config.app_config import AppConfig
+from mlpipeline.etl.models import Recipe
+from mlpipeline.ingredient_parser.parser import IngredientParser, convert_to_float, clean_unit_label
 
 
 class Pipeline:

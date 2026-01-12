@@ -5,9 +5,9 @@ import spacy
 import uvicorn
 from fastapi import FastAPI, BackgroundTasks
 
-from src.mlpipeline.config.app_config import AppConfig
-from src.mlpipeline.etl.pipeline import Pipeline
-from src.mlpipeline.ingredient_parser.parser import IngredientParser
+from mlpipeline.config.app_config import AppConfig
+from mlpipeline.etl.pipeline import Pipeline
+from mlpipeline.ingredient_parser.parser import IngredientParser
 
 app = FastAPI(title="Recipe Embedding Service")
 
