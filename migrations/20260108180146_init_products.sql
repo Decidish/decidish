@@ -13,11 +13,11 @@ CREATE INDEX idx_addresses_zip_code ON addresses (zip_code);
 
 CREATE TABLE markets
 (
-    rewe_id      BIGINT NOT NULL,
+    id      BIGINT NOT NULL,
     name         VARCHAR(255),
     address_id   BIGINT,
     last_updated TIMESTAMP WITHOUT TIME ZONE,
-    CONSTRAINT pk_markets PRIMARY KEY (rewe_id)
+    CONSTRAINT pk_markets PRIMARY KEY (id)
 );
 
 CREATE INDEX idx_markets_name ON markets (name);
@@ -58,7 +58,7 @@ ALTER TABLE markets
     ADD CONSTRAINT FK_MARKETS_ON_ADDRESS FOREIGN KEY (address_id) REFERENCES addresses (id);
 
 ALTER TABLE products
-    ADD CONSTRAINT FK_PRODUCTS_ON_MARKET FOREIGN KEY (market_id) REFERENCES markets (rewe_id);
+    ADD CONSTRAINT FK_PRODUCTS_ON_MARKET FOREIGN KEY (market_id) REFERENCES markets (id);
 
 CREATE INDEX idx_products_market_id ON products (market_id);
 

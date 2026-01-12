@@ -77,13 +77,13 @@ class MarketControllerIntegrationTest {
                 .andExpect(status().isOk())
                 .andExpect(content().contentType(MediaType.APPLICATION_JSON))
                 .andExpect(jsonPath("$", hasSize(1)))
-                .andExpect(jsonPath("$[0].reweId").value(MARKET_ID1))
+                .andExpect(jsonPath("$[0].id").value(MARKET_ID1))
                 .andExpect(jsonPath("$[0].name").value("REWE Integration Market"));
 
         // --- 4. ASSERT: Database Verification ---
         // Verify the controller call actually persisted data
         assertEquals(1, marketRepository.count());
-        Market saved = marketRepository.findByReweId(MARKET_ID1).orElseThrow();
+        Market saved = marketRepository.findById(MARKET_ID1).orElseThrow();
         assertEquals("REWE Integration Market", saved.getName());
     }
 
@@ -114,14 +114,14 @@ class MarketControllerIntegrationTest {
         // --- 3. ACT ---
         mockMvc.perform(get("/markets/{id}/products", MARKET_ID2))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.reweId").value(MARKET_ID2))
+                .andExpect(jsonPath("$.id").value(MARKET_ID2))
                 // Verify products are in the JSON response
                 .andExpect(jsonPath("$.products", hasSize(1)))
                 .andExpect(jsonPath("$.products[0].name").value("Integration Milk"))
                 .andExpect(jsonPath("$.products[0].price").value(159));
 
         // --- 4. ASSERT: Database Verification ---
-        Market updatedMarket = marketRepository.findByReweId(MARKET_ID2).get();
+        Market updatedMarket = marketRepository.findById(MARKET_ID2).get();
         assertEquals(1, updatedMarket.getProducts().size());
         assertEquals("Integration Milk", updatedMarket.getProducts().get(0).getName());
     }
@@ -152,14 +152,14 @@ class MarketControllerIntegrationTest {
         mockMvc.perform(get("/markets/{id}/query", MARKET_ID1)
                         .param("query", query))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.reweId").value(MARKET_ID1))
+                .andExpect(jsonPath("$.id").value(MARKET_ID1))
                 // Verify products are in the JSON response
                 .andExpect(jsonPath("$.products", hasSize(1)))
                 .andExpect(jsonPath("$.products[0].name").value("Integration Bread"))
                 .andExpect(jsonPath("$.products[0].price").value(299));
         
         // --- 4. ASSERT: Database Verification ---
-        Market updatedMarket = marketRepository.findByReweId(MARKET_ID1).get();
+        Market updatedMarket = marketRepository.findById(MARKET_ID1).get();
         assertEquals(1, updatedMarket.getProducts().size());
         assertEquals("Integration Bread", updatedMarket.getProducts().get(0).getName());
         assertEquals(299, updatedMarket.getProducts().get(0).getPrice());   

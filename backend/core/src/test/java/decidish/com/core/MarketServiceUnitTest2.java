@@ -62,7 +62,7 @@ class MarketServiceUnitTest2 {
         existingProduct.setMarket(dbMarket);
 
         // Mock Repo to return this market
-        when(marketRepository.findByReweId(marketDbId))
+        when(marketRepository.findById(marketDbId))
                 .thenReturn(Optional.of(dbMarket));
 
         // --- 2. SETUP: API Response (Fresh Data) ---
@@ -103,7 +103,7 @@ class MarketServiceUnitTest2 {
         when(marketRepository.save(any(Market.class)))
             .thenAnswer(invocation -> invocation.getArgument(0));
         // --- 3. EXECUTE ---
-        Market updatedMarket = marketRepository.findByReweId(marketDbId).get();
+        Market updatedMarket = marketRepository.findById(marketDbId).get();
         marketService.getAllProductsAPI(updatedMarket);
 
         // --- 4. VERIFY (The Crucial Part) ---
@@ -148,7 +148,7 @@ class MarketServiceUnitTest2 {
         Long marketReweId = 540L;
         Market dbMarket = new Market(marketReweId,"M1",new Address());
         // Market.builder().reweId(marketReweId).build();
-        when(marketRepository.findByReweId(marketReweId)).thenReturn(Optional.of(dbMarket));
+        when(marketRepository.findById(marketReweId)).thenReturn(Optional.of(dbMarket));
 
         // --- SETUP DIRTY API DATA ---
         // The API sends "Cheese" TWICE with the same ID
@@ -176,7 +176,7 @@ class MarketServiceUnitTest2 {
             .thenAnswer(invocation -> invocation.getArgument(0));
 
         // --- EXECUTE ---
-        Market updatedMarket = marketRepository.findByReweId(540L).get();
+        Market updatedMarket = marketRepository.findById(540L).get();
         marketService.getAllProductsAPI(updatedMarket);
 
         // --- VERIFY ---

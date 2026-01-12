@@ -9,6 +9,7 @@ import java.util.concurrent.CompletableFuture;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
+import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.CachePut;
@@ -107,18 +108,30 @@ public class MarketService {
         // plain "ArrayLists" before passing them to the Redis Serializer.
         List<Market> sanitizedMarkets = new ArrayList<>();
         
+        // for (Market m : savedMarkets) {
+        //     // 1. Initialize the list (loads from DB if lazy)
+        //     Hibernate.initialize(m.getProducts());
+            
+        //     // 2. Replace the Hibernate Bag with a plain ArrayList
+        //     if (m.getProducts() != null) {
+        //         List<Product> plainList = new ArrayList<>(m.getProducts());
+        //         m.setProducts(plainList);
+        //     }
+            
+        //     sanitizedMarkets.add(m);
+        //     self.evictSingleCache(m.getId());
+        // }
         for (Market m : savedMarkets) {
-            // 1. Initialize the list (loads from DB if lazy)
-            Hibernate.initialize(m.getProducts());
+            // Create a copy or cloned object for the return value
+            Market safeCopy = new Market(); 
+            BeanUtils.copyProperties(m, safeCopy); // Copy basic fields
             
-            // 2. Replace the Hibernate Bag with a plain ArrayList
+            // Handle products safely on the copy
             if (m.getProducts() != null) {
-                List<Product> plainList = new ArrayList<>(m.getProducts());
-                m.setProducts(plainList);
+                 Hibernate.initialize(m.getProducts());
+                 safeCopy.setProducts(new ArrayList<>(m.getProducts()));
             }
-            
-            sanitizedMarkets.add(m);
-            self.evictSingleCache(m.getId());
+            sanitizedMarkets.add(safeCopy);
         }
 
         return sanitizedMarkets;
@@ -180,7 +193,7 @@ public class MarketService {
      * @brief Get all products from a given market. Should be called sparely (40 API calls).
      */
     @Transactional
-    @CachePut(value = "market_products", key = "#a0.reweId")
+    @CachePut(value = "market_products", key = "#a0.id")
     public Market getAllProductsAPI(Market market) {
         return getProductsAPISave(market, "", Integer.MAX_VALUE);  
     }
