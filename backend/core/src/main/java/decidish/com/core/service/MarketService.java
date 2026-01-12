@@ -137,8 +137,8 @@ public class MarketService {
      * Uses @CacheEvict to remove specific entries.
      */
     @CacheEvict(value = "markets_id", key = "#a0")
-    public void evictSingleCache(Long id) {
-        log.debug("Evicting market_id cache for: {}", id);
+    public void evictSingleCache(Long reweId) {
+        log.debug("Evicting market_id cache for: {}", reweId);
     }
     
     private List<Market> mergeApiWithDb(List<MarketDto> apiDtos) {
@@ -180,7 +180,7 @@ public class MarketService {
      * @brief Get all products from a given market. Should be called sparely (40 API calls).
      */
     @Transactional
-    @CachePut(value = "market_products", key = "#a0.id")
+    @CachePut(value = "market_products", key = "#a0.reweId")
     public Market getAllProductsAPI(Market market) {
         return getProductsAPISave(market, "", Integer.MAX_VALUE);  
     }
@@ -188,14 +188,14 @@ public class MarketService {
     /**
      * @brief Get all products from a given market. First try to fetch from DB only. If no products or data not fresh, call API.
      */
-    // @Cacheable(value = "market_products", key = "#id")
+    // @Cacheable(value = "market_products", key = "#reweId")
     @Cacheable(value = "market_products", key = "#a0")
-    public Market getAllProducts(Long id) {
-        Market market = getMarket(id);
+    public Market getAllProducts(Long reweId) {
+        Market market = getMarket(reweId);
 
         // Check if products are fresh
         if (!market.getProducts().isEmpty() && isProductFresh(market.getProducts().get(0))) {
-            log.info("DB Hit for Products of Market ID: {}", id);
+            log.info("DB Hit for Products of Market ID: {}", reweId);
             return market;
         }
 
@@ -231,7 +231,7 @@ public class MarketService {
         // We use a Map to ensure we find existing products quickly
         Map<Long, Product> existingMap = new HashMap<>();
         for (Product p : market.getProducts()) {
-            existingMap.put(p.getReweId(), p);
+            existingMap.put(p.getId(), p);
         }
 
         int queryPages = response.data().products().pagination().pageCount();

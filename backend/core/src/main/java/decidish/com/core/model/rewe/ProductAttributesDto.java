@@ -1,6 +1,7 @@
 package decidish.com.core.model.rewe;
 
 import java.io.Serializable;
+
 import jakarta.persistence.Embeddable;
 
 @Embeddable

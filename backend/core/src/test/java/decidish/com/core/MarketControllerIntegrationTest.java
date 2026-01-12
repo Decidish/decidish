@@ -83,7 +83,7 @@ class MarketControllerIntegrationTest {
         // --- 4. ASSERT: Database Verification ---
         // Verify the controller call actually persisted data
         assertEquals(1, marketRepository.count());
-        Market saved = marketRepository.findById(MARKET_ID1).orElseThrow();
+        Market saved = marketRepository.findByReweId(MARKET_ID1).orElseThrow();
         assertEquals("REWE Integration Market", saved.getName());
     }
 
@@ -121,7 +121,7 @@ class MarketControllerIntegrationTest {
                 .andExpect(jsonPath("$.products[0].price").value(159));
 
         // --- 4. ASSERT: Database Verification ---
-        Market updatedMarket = marketRepository.findById(MARKET_ID2).get();
+        Market updatedMarket = marketRepository.findByReweId(MARKET_ID2).get();
         assertEquals(1, updatedMarket.getProducts().size());
         assertEquals("Integration Milk", updatedMarket.getProducts().get(0).getName());
     }
@@ -159,7 +159,7 @@ class MarketControllerIntegrationTest {
                 .andExpect(jsonPath("$.products[0].price").value(299));
         
         // --- 4. ASSERT: Database Verification ---
-        Market updatedMarket = marketRepository.findById(MARKET_ID1).get();
+        Market updatedMarket = marketRepository.findByReweId(MARKET_ID1).get();
         assertEquals(1, updatedMarket.getProducts().size());
         assertEquals("Integration Bread", updatedMarket.getProducts().get(0).getName());
         assertEquals(299, updatedMarket.getProducts().get(0).getPrice());   

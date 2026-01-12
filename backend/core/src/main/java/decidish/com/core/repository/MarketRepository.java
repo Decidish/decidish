@@ -24,7 +24,7 @@ public interface MarketRepository extends JpaRepository<Market, Long> {
     // Find by rewe id
     // @Cacheable(value = "markets_id", unless = "#a0==2L") // For testing
     @Cacheable(value = "markets_id")
-    Optional<Market> findById(Long reweId);
+    Optional<Market> findByReweId(Long reweId);
 
     @Query("SELECT m FROM Market m LEFT JOIN FETCH m.products WHERE m.id = :id")
     Optional<Market> findByIdWithProducts(@Param("id")Long id);

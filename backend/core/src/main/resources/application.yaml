@@ -6,9 +6,6 @@ spring:
   jpa:
     hibernate:
       ddl-auto: validate
-    properties:
-      hibernate:
-        format_sql: true
   session:
     # store-type: jdbc
     # jdbc:
@@ -17,8 +14,9 @@ spring:
   application:
     name: "core"
   flyway:
+    # enabled: "false"
     enabled: "true"
-    baseline-on-migrate: true
+    baseline-on-migrate: "true"
   ssl:
     bundle:
       pem:
