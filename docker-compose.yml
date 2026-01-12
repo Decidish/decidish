@@ -94,14 +94,15 @@ services:
     container_name: dev_core
     ports:
       - "8080:8080"
-    volumes:
-      - ./backend/core:/app
-      - ~/.gradle:/home/gradle/.gradle
     environment:
       - SPRING_DATASOURCE_URL=jdbc:postgresql://db_backend:5432/${POSTGRES_DB}
       - SPRING_DATASOURCE_USERNAME=${POSTGRES_USER}
       - SPRING_DATASOURCE_PASSWORD=${POSTGRES_PASSWORD}
-      - REDIS_HOST=redis
+      - SPRING_DATA_REDIS_HOST=redis
+      - SPRING_DATA_REDIS_PORT=6379
+      - MINIO_ENDPOINT=${MINIO_ENDPOINT}
+      - MINIO_ACCESS_KEY=${MINIO_ACCESS_KEY}
+      - MINIO_SECRET_KEY=${MINIO_SECRET_KEY}
     depends_on:
       migrator:
         condition: service_completed_successfully

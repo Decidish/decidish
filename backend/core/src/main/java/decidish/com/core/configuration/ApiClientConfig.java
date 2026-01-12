@@ -1,8 +1,12 @@
 package decidish.com.core.configuration;
 
 import decidish.com.core.api.rewe.client.ReweApiClient;
+import io.minio.GetObjectArgs;
+import io.minio.MinioClient;
+import io.minio.errors.*;
 import org.springframework.boot.ssl.SslBundle;
-import org.springframework.boot.ssl.SslBundles;
+import org.springframework.boot.ssl.pem.PemSslStoreBundle;
+import org.springframework.boot.ssl.pem.PemSslStoreDetails;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.client.ClientHttpResponse;
@@ -18,16 +22,31 @@ import org.springframework.http.HttpHeaders;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.http.HttpClient;
+import java.nio.charset.StandardCharsets;
 import java.time.Duration;
+import java.util.Arrays;
 import java.util.UUID;
 import java.util.zip.GZIPInputStream;
 
 @Configuration
 public class ApiClientConfig {
 
+
     @Bean
-    public ReweApiClient reweApiClient(RestClient.Builder builder, SslBundles sslBundles) {
-        SslBundle reweBundle = sslBundles.getBundle("rewe-client");
+    public ReweApiClient reweApiClient(RestClient.Builder builder, MinioClient minioClient) {
+        String MINIO_DECIDISH_BUCKET = "decidish-storage";
+
+        String MINIO_PEM = "private_test.pem";
+        String cert = new String(fetchFromMinio(minioClient, MINIO_DECIDISH_BUCKET, MINIO_PEM), StandardCharsets.UTF_8);
+        String MINIO_KEY = "private_test.key";
+        String key = new String(fetchFromMinio(minioClient, MINIO_DECIDISH_BUCKET, MINIO_KEY), StandardCharsets.UTF_8);
+
+        PemSslStoreDetails keyStoreDetails = PemSslStoreDetails.forCertificate(cert)
+                .withPrivateKey(key);
+
+        PemSslStoreBundle pemBundle = new PemSslStoreBundle(keyStoreDetails, null);
+
+        SslBundle reweBundle = SslBundle.of(pemBundle);
 
         JdkClientHttpRequestFactory requestFactory = new JdkClientHttpRequestFactory(
                 HttpClient.newBuilder()
@@ -99,5 +118,14 @@ public class ApiClientConfig {
         // @Override public int getRawStatusCode() throws IOException { return response.getRawStatusCode(); }
         @Override public String getStatusText() throws IOException { return response.getStatusText(); }
         @Override public void close() { response.close(); }
+    }
+
+    private byte[] fetchFromMinio(MinioClient client, String bucket, String name) {
+        try (InputStream stream = client.getObject(
+                GetObjectArgs.builder().bucket(bucket).object(name).build())) {
+            return stream.readAllBytes();
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
     }
 }

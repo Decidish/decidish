@@ -12,17 +12,4 @@ spring:
     #   initialize-schema: always
     store-type: none
   application:
-    name: "core"
-  flyway:
-    # enabled: "false"
-    enabled: "true"
-    baseline-on-migrate: "true"
-  ssl:
-    bundle:
-      pem:
-        rewe-client:
-          keystore:
-            # You can set these defaults here, or override them via Docker Env Vars
-            # The syntax ${ENV_VAR:default} works in YAML too.
-            certificate: "${REWE_CERT_PATH:classpath:certificates/rewe.pem}"
-            private-key: "${REWE_KEY_PATH:classpath:certificates/rewe.key}"
+    name: "shopping-service"
