@@ -122,6 +122,12 @@ services:
       - JWT_SECRET=${JWT_SECRET}
       - DATABASE_URL=${DATABASE_BACKEND_URL}
       - EMBEDDER_SERVER_URL=${EMBEDDER_SERVER_URL}
+      - MINIO_ENDPOINT=${MINIO_ENDPOINT}
+      - MINIO_ACCESS_KEY=${MINIO_ACCESS_KEY}
+      - MINIO_SECRET_KEY=${MINIO_SECRET_KEY}
+      - MINIO_USE_SSL=${MINIO_USE_SSL}
+      - MINIO_RECIPES_BUCKET=${MINIO_RECIPES_BUCKET}
+      - MINIO_RECIPES_OBJECT=${MINIO_RECIPES_OBJECT}
     depends_on:
       migrator:
         condition: service_completed_successfully
@@ -134,19 +140,10 @@ services:
     container_name: dev_mlpipeline
     ports:
       - "8000:8000"
+    volumes:
+      - ./mlpipeline:/app
     environment:
-      - POSTGRES_USER=${POSTGRES_USER}
-      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
-      - POSTGRES_DB=${POSTGRES_DB}
-      - POSTGRES_HOST=db_backend
-      - POSTGRES_PORT=5432
-      - POSTGRES_SSL_MODE=${POSTGRES_SSL_MODE}
-      - MINIO_ENDPOINT=${MINIO_ENDPOINT}
-      - MINIO_ACCESS_KEY=${MINIO_ACCESS_KEY}
-      - MINIO_SECRET_KEY=${MINIO_SECRET_KEY}
-      - MINIO_USE_SSL=${MINIO_USE_SSL}
-      - MINIO_RECIPES_BUCKET=${MINIO_RECIPES_BUCKET}
-      - MINIO_RECIPES_OBJECT=${MINIO_RECIPES_OBJECT}
+      - DATABASE_URL=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db_backend:5432/${POSTGRES_DB}
     depends_on:
       - personalization-server
       - core-server

@@ -1,4 +1,4 @@
-FROM python:3.13-slim
+FROM python:3.12-slim
 
 WORKDIR /app
 
@@ -15,15 +15,16 @@ RUN pip install poetry
 # This makes it easier to run commands without activating a venv.
 ENV POETRY_VIRTUALENVS_CREATE=false
 
-COPY ../mlpipeline/pyproject.toml ./ poetry.lock ./
+COPY pyproject.toml poetry.lock* ./
 
-RUN poetry install
+# --no-root: triggers an error if your project doesn't have a package structure yet, safer to skip for now
+RUN poetry install --no-root --no-interaction --no-ansi
 
-WORKDIR /app
+COPY . .
 
-COPY ../mlpipeline .
+WORKDIR /app/mlpipeline
 
 EXPOSE 8000
 
 # 7. Run with Uvicorn (Hot Reload)
-CMD ["poetry", "run" , "python", "-m", "mlpipeline.app"]
+CMD ["uvicorn", "app:app", "--host", "0.0.0.0", "--port", "8000", "--reload"]

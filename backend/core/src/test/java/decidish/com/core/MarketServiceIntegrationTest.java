@@ -2,6 +2,7 @@ package decidish.com.core;
 
 import decidish.com.core.model.rewe.*;
 import decidish.com.core.service.MarketService;
+import jakarta.persistence.EntityManager;
 import jakarta.transaction.Transactional;
 import decidish.com.core.repository.MarketRepository;
 import org.junit.jupiter.api.BeforeEach;
@@ -10,6 +11,7 @@ import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.cache.CacheManager;
 import org.springframework.test.context.ActiveProfiles; // If you use application-test.properties
 
 import java.util.List;
@@ -30,6 +32,9 @@ class MarketServiceIntegrationTest {
     @Autowired
     private MarketRepository marketRepository;
 
+    @Autowired
+    private CacheManager cacheManager;
+
     // A real, valid REWE Market ID (e.g., REWE City Munich)
     // You can find this ID in the URL on the rewe website
     private final Long VALID_MARKET_ID = 431022L; 
@@ -39,7 +44,9 @@ class MarketServiceIntegrationTest {
     void setup() {
         // Clear DB to ensure we are actually persisting fresh data
         marketRepository.deleteAll();
-        marketService.setSelf(marketService); 
+        marketService.setSelf(marketService);
+        cacheManager.getCacheNames()
+            .forEach(cacheName -> cacheManager.getCache(cacheName).clear()); 
     }
 
     @Test
@@ -143,7 +150,7 @@ class MarketServiceIntegrationTest {
         
         // --- STEP 2: EXECUTE LIVE FETCH ---
         System.out.println("Calling Real REWE API (This may take a few seconds)...");
-        Market updatedMarket = marketService.getProductsQuery(VALID_MARKET_ID, query);  
+        Market updatedMarket = marketService.getProductsQuerySave(VALID_MARKET_ID, query);  
 
         // --- STEP 3: VERIFY PERSISTENCE ---
         assertNotNull(updatedMarket);
@@ -165,7 +172,7 @@ class MarketServiceIntegrationTest {
         System.out.println("Running 2nd Fetch (Should update, not duplicate)...");
 
         // Call it again
-        Market reUpdatedMarket = marketService.getProductsQuery(VALID_MARKET_ID, query);
+        Market reUpdatedMarket = marketService.getProductsQuerySave(VALID_MARKET_ID, query);
 
         // Assertions
         assertEquals(products.size(), reUpdatedMarket.getProducts().size(), 

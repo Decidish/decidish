@@ -1,6 +1,6 @@
 CREATE TABLE addresses
 (
-    id       BIGINT NOT NULL,
+    id       BIGSERIAL NOT NULL,
     street   VARCHAR(255),
     zip_code VARCHAR(5),
     city     VARCHAR(255),
@@ -27,13 +27,15 @@ CREATE INDEX idx_markets_name ON markets (name);
 
 CREATE TABLE products
 (
-    id            BIGINT NOT NULL,
+    id            BIGSERIAL NOT NULL,
+    rewe_id       BIGINT NOT NULL,
     name          VARCHAR(255),
     market_id     BIGINT NOT NULL,
     price         INT,
     image_url     VARCHAR(255),
     grammage      VARCHAR(255),
     last_updated  TIMESTAMP,
+    normalized_amount FLOAT,
 
     is_bulky_good      BOOLEAN,
     is_organic         BOOLEAN,
@@ -59,3 +61,30 @@ CREATE INDEX idx_products_market_id ON products (market_id);
 
 -- 2. Index on name (Useful for product searching)
 CREATE INDEX idx_products_name ON products (name);
+
+CREATE TABLE IF NOT EXISTS ingredients (
+    id BIGSERIAL PRIMARY KEY,
+    name VARCHAR(255)
+);
+
+-- Matching ingredients to products
+CREATE TABLE ingredient_product (
+    ingredient_id BIGINT NOT NULL,
+    product_id BIGINT NOT NULL,
+    confidence FLOAT NOT NULL, -- in range [0.0, 1.0]
+    PRIMARY KEY (ingredient_id, product_id),
+    CONSTRAINT fk_ipm_ingredient FOREIGN KEY (ingredient_id) REFERENCES ingredients(id),
+    CONSTRAINT fk_ipm_product FOREIGN KEY (product_id) REFERENCES products(id)
+);
+
+-- For fuzzy matching, we need the pg_trgm extension
+
+CREATE EXTENSION IF NOT EXISTS pg_trgm;
+
+-- Index on ingredients.name for faster similarity searches
+
+CREATE INDEX idx_ingredients_name_trgm ON ingredients USING gin (name gin_trgm_ops);
+
+CREATE INDEX idx_products_name_trgm
+ON products
+USING gin (name gin_trgm_ops);

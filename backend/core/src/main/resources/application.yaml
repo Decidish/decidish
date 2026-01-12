@@ -2,22 +2,21 @@ spring:
   datasource:
     url: jdbc:postgresql://localhost:5433/decidish
     username: user
-    password: password
+    password: 1234
   jpa:
     hibernate:
       ddl-auto: validate
-    properties:
-      hibernate:
-        format_sql: true
   session:
-    store-type: jdbc
-    jdbc:
-      initialize-schema: always
+    # store-type: jdbc
+    # jdbc:
+    #   initialize-schema: always
+    store-type: none
   application:
     name: "core"
   flyway:
+    # enabled: "false"
     enabled: "true"
-    baseline-on-migrate: true
+    baseline-on-migrate: "true"
   ssl:
     bundle:
       pem:

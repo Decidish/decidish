@@ -37,7 +37,7 @@ public class Market implements Serializable, Persistable<Long>{
     private LocalDateTime lastUpdated;
 
     // boolean isOpen;
-
+    // TODO: maybe change relation to many-to-many for efficiency 
     @OneToMany(mappedBy = "market", cascade = CascadeType.ALL, fetch = FetchType.LAZY, orphanRemoval = true)
     @JsonManagedReference
     @ToString.Exclude

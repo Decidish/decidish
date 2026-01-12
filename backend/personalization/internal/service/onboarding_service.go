@@ -40,6 +40,7 @@ func (service OnboardingService) CreateUserPreferences(ctx *gin.Context) {
 		return
 	}
 
+	// TODO: We have a duel write problem
 	tx, err := service.DB.Begin()
 
 	if err != nil {
@@ -85,5 +86,6 @@ func (service OnboardingService) CreateUserPreferences(ctx *gin.Context) {
 		return
 	}
 
+	ctx.Header("Access-Control-Allow-Origin", "http://localhost:8081")
 	ctx.JSON(http.StatusCreated, userPreferences)
 }

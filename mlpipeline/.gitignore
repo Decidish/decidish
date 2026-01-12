@@ -30,7 +30,6 @@ share/python-wheels/
 .installed.cfg
 *.egg
 MANIFEST
-# poetry.lock
 
 # PyInstaller
 #  Usually these files are written by a python script from a template
@@ -167,7 +166,7 @@ cython_debug/
 
 ### Python Patch ###
 # Poetry local configuration file - https://python-poetry.org/docs/configuration/#local-configuration
-../mlpipeline/poetry.toml
+poetry.toml
 
 # ruff
 .ruff_cache/
@@ -176,5 +175,3 @@ cython_debug/
 pyrightconfig.json
 
 # End of https://www.toptal.com/developers/gitignore/api/python
-
-pretrain/recipes_db.json
