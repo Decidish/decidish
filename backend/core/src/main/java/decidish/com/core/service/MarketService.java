@@ -5,9 +5,11 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.CompletableFuture;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
+import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.CachePut;
@@ -60,7 +62,7 @@ public class MarketService {
      * 3. If Miss: Runs the method body (DB Check -> API Fetch -> Save).
      */
     @Transactional
-    @Cacheable(value = "markets", key = "#plz")
+    @Cacheable(value = "markets", key = "#a0")
     public List<Market> getMarkets(String plz) {
         
         // DB CHECK (Warm Path)
@@ -84,7 +86,10 @@ public class MarketService {
         // (Logic extracted to helper for readability)
         List<Market> marketsToSave = mergeApiWithDb(apiResponse.markets());
 
-        if (marketsToSave.isEmpty()) return List.of();
+        if (marketsToSave.isEmpty()) {
+            log.info("MARKETS TO SAVE IS EMPTY");
+            return List.of();
+        }
 
         // SAVE & UPDATE CACHE 
         // We call the method on 'self' (the Spring Proxy) so @CachePut works
@@ -98,7 +103,7 @@ public class MarketService {
      * This ensures the cache is in sync with the DB.
      */
     @Transactional
-    @CachePut(value = "markets", key = "#plz")
+    @CachePut(value = "markets", key = "#a1")
     public List<Market> saveAndRefresh(List<Market> markets, String plz) {
         List<Market> savedMarkets = marketRepository.saveAll(markets);
 
@@ -106,24 +111,36 @@ public class MarketService {
         // plain "ArrayLists" before passing them to the Redis Serializer.
         List<Market> sanitizedMarkets = new ArrayList<>();
         
+        // for (Market m : savedMarkets) {
+        //     // 1. Initialize the list (loads from DB if lazy)
+        //     Hibernate.initialize(m.getProducts());
+            
+        //     // 2. Replace the Hibernate Bag with a plain ArrayList
+        //     if (m.getProducts() != null) {
+        //         List<Product> plainList = new ArrayList<>(m.getProducts());
+        //         m.setProducts(plainList);
+        //     }
+            
+        //     sanitizedMarkets.add(m);
+        //     self.evictSingleCache(m.getId());
+        // }
         for (Market m : savedMarkets) {
-            // 1. Initialize the list (loads from DB if lazy)
-            Hibernate.initialize(m.getProducts());
+            // Create a copy or cloned object for the return value
+            Market safeCopy = new Market(); 
+            BeanUtils.copyProperties(m, safeCopy); // Copy basic fields
             
-            // 2. Replace the Hibernate Bag with a plain ArrayList
+            // Handle products safely on the copy
             if (m.getProducts() != null) {
-                List<Product> plainList = new ArrayList<>(m.getProducts());
-                m.setProducts(plainList);
+                 Hibernate.initialize(m.getProducts());
+                 safeCopy.setProducts(new ArrayList<>(m.getProducts()));
             }
-            
-            sanitizedMarkets.add(m);
-            self.evictSingleCache(m.getId());
+            sanitizedMarkets.add(safeCopy);
         }
 
         return sanitizedMarkets;
     }
 
-    @Cacheable(value = "markets_id", key = "#id")
+    @Cacheable(value = "markets_id", key = "#a0")
     @Transactional(readOnly = true)
     public Market getMarket(Long id) {
         // This ensures 'products' are inside the object BEFORE it goes to Redis
@@ -135,7 +152,7 @@ public class MarketService {
      * Helper to evict individual ID caches.
      * Uses @CacheEvict to remove specific entries.
      */
-    @CacheEvict(value = "markets_id", key = "#reweId")
+    @CacheEvict(value = "markets_id", key = "#a0")
     public void evictSingleCache(Long reweId) {
         log.debug("Evicting market_id cache for: {}", reweId);
     }
@@ -169,25 +186,25 @@ public class MarketService {
      * @brief Query a certain product for a given market. Only first page. One API call.
      */
     @Transactional
-    public Market getProductsQuery(Long marketId, String query) {
+    public Market getProductsQuerySave(Long marketId, String query) {
         
         Market market = getMarket(marketId);
-        return getProductsAPI(market, query, 1);  
+        return getProductsAPISave(market, query, 1);  
     }
 
     /**
      * @brief Get all products from a given market. Should be called sparely (40 API calls).
      */
     @Transactional
-    @CachePut(value = "market_products", key = "#market.id")
+    @CachePut(value = "market_products", key = "#a0.id")
     public Market getAllProductsAPI(Market market) {
-        return getProductsAPI(market, "", Integer.MAX_VALUE);  
+        return getProductsAPISave(market, "", Integer.MAX_VALUE);  
     }
 
     /**
      * @brief Get all products from a given market. First try to fetch from DB only. If no products or data not fresh, call API.
      */
-    @Cacheable(value = "market_products", key = "#reweId")
+    @Cacheable(value = "market_products", key = "#a0")
     public Market getAllProducts(Long reweId) {
         Market market = getMarket(reweId);
 
@@ -218,11 +235,12 @@ public class MarketService {
      */
     @Transactional
     //? Probably make void in the future
-    private Market getProductsAPI(Market market, String query, int numPages) {
+    private Market getProductsAPISave(Market market, String query, int numPages) {
         // 1. Fetch from API (first page to get pagination info)
         log.info("Fetching API...");
         ProductSearchResponse response = apiClient.searchProducts(query, 1, DEFAULT_OBJECTS_PER_PAGE, market.getId());
-        if (response == null || response.data() == null) return market;
+        if (response == null || response.data() == null) return market; //? Change to void
+        
 
         // 2. Create Lookup Map 
         // We use a Map to ensure we find existing products quickly
@@ -252,7 +270,7 @@ public class MarketService {
             ++i;
             if(i < numberPages){ // Still pages left
                 // log.info("Fetching from external API for ", reweId);
-                response = apiClient.searchProducts("", i, DEFAULT_OBJECTS_PER_PAGE, market.getId());
+                response = apiClient.searchProducts(query, i, DEFAULT_OBJECTS_PER_PAGE, market.getId());
                 // System.out.println("API Response: " + response);        
             }
         }while(i<numberPages); //? Maybe refactor this with just a for, numberPages = 1 ini and then update
@@ -260,8 +278,126 @@ public class MarketService {
         // 4. Save
         // save() is smart enough to handle both INSERTS and UPDATES in one go.
         Market savedMarket = marketRepository.save(market);
+        marketRepository.flush();
         // Does not work: Force Hibernate to fetch the products BEFORE the transaction closes
         // Hibernate.initialize(savedMarket.getProducts());
         return savedMarket;
     }
+
+    /**
+     * Returns a list of Products for a specific search, detached from the Market entity 
+     * to ensure thread-safety during concurrent processing.
+     */
+    public List<Product> getProductsQueryNoSave(Long marketId, String query) {
+        // 1. Get market to get the REWE ID (Market is read-only here)
+        Market market = getMarket(marketId);
+        
+        // 2. Fetch from API
+        ProductSearchResponse response = apiClient.searchProducts(query, 1, DEFAULT_OBJECTS_PER_PAGE, market.getId());
+        if (response == null || response.data() == null) return new ArrayList<>();
+
+        List<Product> results = new ArrayList<>();
+        
+        // 3. Convert DTOs to Product Entities (unpersisted)
+        for (ProductDto dto : response.data().products().products()) {
+            Product p = Product.fromDto(dto);
+            // We set the market reference so it's ready for saving later
+            p.setMarket(market); 
+            results.add(p);
+        }
+        
+        return results;
+    }
+
+    //! Don't delete yet, multi-threading can be useful in the future, but causes issues now
+    // // NOTE: NO @Transactional here! We want to keep DB connections free while waiting for API.
+    // public Market getProductsAPI(Market market, String query, int maxPages) {
+
+    //     Long marketId = market.getId();
+        
+    //     // --- STEP 1: Fetch First Page (Synchronous) ---
+    //     log.info("Fetching API Page 1...");
+        
+    //     ProductSearchResponse firstPage = apiClient.searchProducts(query, 1, DEFAULT_OBJECTS_PER_PAGE, marketId);
+    //     if (firstPage == null || firstPage.data() == null) return null;
+
+    //     // Collect all found products into a single list
+    //     List<ProductDto> allFoundProducts = new ArrayList<>(firstPage.data().products().products());
+
+    //     // --- STEP 2: Calculate Pages ---
+    //     int totalApiPages = firstPage.data().products().pagination().pageCount();
+    //     int pagesToFetch = Math.min(maxPages, totalApiPages);
+
+    //     // --- STEP 3: Parallel Fetch (Scatter) ---
+    //     if (pagesToFetch > 1) {
+    //         log.info("Starting parallel fetch for {} more pages...", pagesToFetch - 1);
+            
+    //         List<CompletableFuture<List<ProductDto>>> futures = new ArrayList<>();
+
+    //         // Start loops from Page 2
+    //         for (int i = 2; i <= pagesToFetch; i++) {
+    //             final int pageNum = i; // Needed for lambda
+                
+    //             // Create a task that runs in the background
+    //             CompletableFuture<List<ProductDto>> future = CompletableFuture.supplyAsync(() -> {
+    //                 try {
+    //                     var response = apiClient.searchProducts(query, pageNum, DEFAULT_OBJECTS_PER_PAGE, marketId);
+    //                     if (response != null && response.data() != null) {
+    //                         return response.data().products().products();
+    //                     }
+    //                 } catch (Exception e) {
+    //                     log.error("Failed to fetch page " + pageNum, e);
+    //                 }
+    //                 return List.<ProductDto>of(); // Return empty list on failure
+    //             });
+                
+    //             futures.add(future);
+    //         }
+
+    //         // --- STEP 4: Wait for All (Gather) ---
+    //         // This blocks the main thread until ALL requests are done
+    //         CompletableFuture.allOf(futures.toArray(new CompletableFuture[0])).join();
+
+    //         // Extract data from futures
+    //         for (var future : futures) {
+    //             try {
+    //                 allFoundProducts.addAll(future.get());
+    //             } catch (Exception e) {
+    //                 // Should not happen since we used join(), but good practice
+    //             }
+    //         }
+    //     }
+
+    //     log.info("Finished fetching. Total items found: {}", allFoundProducts.size());
+
+    //     // --- STEP 5: Save to DB (Transactional) ---
+    //     // Now we call a separate method that handles the DB Lock
+    //     return updateMarketData(marketId, allFoundProducts);
+    // }
+
+    // // Separate helper method just for the DB write
+    // @Transactional
+    // protected Market updateMarketData(Long marketId, List<ProductDto> dtos) {
+    //     Market market = marketRepository.findById(marketId).orElseThrow();
+        
+    //     // Create Lookup Map for O(1) access
+    //     Map<Long, Product> existingMap = new HashMap<>();
+    //     for (Product p : market.getProducts()) {
+    //         existingMap.put(p.getId(), p);
+    //     }
+
+    //     // Update or Insert
+    //     for (ProductDto dto : dtos) {
+    //         if (existingMap.containsKey(dto.productId())) {
+    //             existingMap.get(dto.productId()).updateFromDto(dto);
+    //         } else {
+    //             Product newProduct = Product.fromDto(dto);
+    //             market.addProduct(newProduct);
+    //             // Update map to avoid duplicates if API returns same item twice
+    //             existingMap.put(dto.productId(), newProduct); 
+    //         }
+    //     }
+
+    //     return marketRepository.save(market);
+    // }
 }

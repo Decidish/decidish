@@ -1,67 +1,73 @@
+MINIO_ENDPOINT: http://localhost:9000
+MINIO_ACCESS_KEY: test-access-key
+MINIO_SECRET_KEY: test-secret-key
+
 spring:
   cache:
     type: redis
     redis:
-      time-to-live: 60m # Global default (60 minutes)
+      time-to-live: 60m 
       cache-null-values: false
       key-prefix: "decidish:"
       use-key-prefix: true
-# Turn off Spring Banner
+
   main:
     banner-mode: off
+
   datasource:
     url: jdbc:postgresql://localhost:5433/decidish
     username: user
-    password: password
+    password: 1234
     driver-class-name: org.postgresql.Driver
+
   jpa:
-    # Force Hibernate to use Postgres dialect
     database-platform: org.hibernate.dialect.PostgreSQLDialect
     hibernate:
-      # Ensure a clean database for every test: drops and recreates schema
-      ddl-auto: create-drop
-    # show-sql: true
-    # 1. Stop printing SQL statements to the console
-    show-sql: false 
+      ddl-auto: none
+    show-sql: true 
     properties:
       hibernate:
-        # 2. Stop printing the "Session Metrics" block at end of transaction
         generate_statistics: false
-        # 3. Stop adding comments to generated SQL
         use_sql_comments: false
-        # 4. Stop generic formatting
-        format_sql: false
+        format_sql: true
+  logging:
+    level:
+      org.hibernate.SQL: DEBUG
+      org.hibernate.type.descriptor.sql: TRACE
+
   sql:
     init:
-      # Disable any manual data.sql scripts
       mode: never
+
   session:
-    store-type: jdbc
-    jdbc:
-      initialize-schema: always
+    store-type: none
+
   application:
     name: "core"
+
   flyway:
-    enabled: "false"
+    enabled: "true"
+    baseline-on-migrate: "true"
+    validate-on-migrate: "false"
+    baseline-version: 0
+    locations: classpath:db/migration
+
+  # --- SSL FALLBACK CONFIGURATION ---
+  # This is used by ApiClientConfig.java ONLY if MinIO connection fails.
   ssl:
     bundle:
       pem:
         rewe-client:
           keystore:
-            # You can set these defaults here, or override them via Docker Env Vars
-            # The syntax ${ENV_VAR:default} works in YAML too.
-            certificate: "${REWE_CERT_PATH:classpath:certificates/rewe.pem}"
-            private-key: "${REWE_KEY_PATH:classpath:certificates/rewe.key}"
-# Mute standard logging
+            # Point these to your local certificate files
+            certificate: "classpath:certificates/rewe.pem"
+            private-key: "classpath:certificates/rewe.key"
+
 logging:
   level:
     root: ERROR
     org.springframework: ERROR
-    # Your app package
     decidish.com: INFO
-    # Database connection pool noise
     com.zaxxer: ERROR
-    # 5. The Nuclear Option: Turn off all Hibernate logging
     org.hibernate: OFF
-    # Specifically mute SQL binding parameters (just in case)
     org.hibernate.type.descriptor.sql: OFF

@@ -1,5 +1,6 @@
 package decidish.com.core.model.rewe;
 
+import java.io.Serial;
 import java.io.Serializable;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
@@ -15,15 +16,19 @@ import com.fasterxml.jackson.annotation.JsonManagedReference;
 
 @Entity
 @Table(name = "markets")
-@Data
-@EqualsAndHashCode 
+// @Data
+// @EqualsAndHashCode 
+@EqualsAndHashCode(onlyExplicitlyIncluded = true)
 @Getter @Setter
 // Serializable: helps convert object to bytes, useful for redis cache
 public class Market implements Serializable, Persistable<Long>{
 
+    @Serial
+    private static final long serialVersionUID = 1L;
     // EXTERNAL REWE ID
     @Id
     // @Column(name = "rewe_id", unique = true, nullable = false)
+    @EqualsAndHashCode.Include
     private Long id;
 
     private String name;
@@ -105,6 +110,8 @@ public class Market implements Serializable, Persistable<Long>{
         Long marketId = dto.id();
         String name = dto.name();
         Address address = new Address();
+        address.setLatitude(dto.location().latitude());
+        address.setLongitude(dto.location().longitude());
         address.setStreet(dto.addressLine1());
         address.setZipCode(dto.rawValues().postalCode());
         address.setCity(dto.rawValues().city());
