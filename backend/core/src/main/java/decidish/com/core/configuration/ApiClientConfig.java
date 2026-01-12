@@ -3,50 +3,68 @@ package decidish.com.core.configuration;
 import decidish.com.core.api.rewe.client.ReweApiClient;
 import io.minio.GetObjectArgs;
 import io.minio.MinioClient;
-import io.minio.errors.*;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.boot.ssl.SslBundle;
+import org.springframework.boot.ssl.SslBundles;
 import org.springframework.boot.ssl.pem.PemSslStoreBundle;
 import org.springframework.boot.ssl.pem.PemSslStoreDetails;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.http.client.ClientHttpResponse;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpRequest;
 import org.springframework.http.client.ClientHttpRequestExecution;
 import org.springframework.http.client.ClientHttpRequestInterceptor;
+import org.springframework.http.client.ClientHttpResponse;
 import org.springframework.http.client.JdkClientHttpRequestFactory;
 import org.springframework.web.client.RestClient;
 import org.springframework.web.client.support.RestClientAdapter;
 import org.springframework.web.service.invoker.HttpServiceProxyFactory;
-import org.springframework.http.HttpRequest;
-import org.springframework.http.HttpHeaders;
 
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.http.HttpClient;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
-import java.util.Arrays;
 import java.util.UUID;
 import java.util.zip.GZIPInputStream;
 
 @Configuration
 public class ApiClientConfig {
 
+    private static final Logger log = LoggerFactory.getLogger(ApiClientConfig.class);
 
     @Bean
-    public ReweApiClient reweApiClient(RestClient.Builder builder, MinioClient minioClient) {
-        String MINIO_DECIDISH_BUCKET = "decidish-storage";
+    public ReweApiClient reweApiClient(RestClient.Builder builder, MinioClient minioClient, SslBundles sslBundles) {
+        SslBundle reweBundle;
 
-        String MINIO_PEM = "private_test.pem";
-        String cert = new String(fetchFromMinio(minioClient, MINIO_DECIDISH_BUCKET, MINIO_PEM), StandardCharsets.UTF_8);
-        String MINIO_KEY = "private_test.key";
-        String key = new String(fetchFromMinio(minioClient, MINIO_DECIDISH_BUCKET, MINIO_KEY), StandardCharsets.UTF_8);
+        try {
+            // --- TRY: Fetch from MinIO (Production / Docker Environment) ---
+            String MINIO_DECIDISH_BUCKET = "decidish-storage";
+            String MINIO_PEM = "private_test.pem";
+            String MINIO_KEY = "private_test.key";
 
-        PemSslStoreDetails keyStoreDetails = PemSslStoreDetails.forCertificate(cert)
-                .withPrivateKey(key);
+            log.info("Attempting to load SSL certificates from MinIO bucket: {}", MINIO_DECIDISH_BUCKET);
+            
+            String cert = new String(fetchFromMinio(minioClient, MINIO_DECIDISH_BUCKET, MINIO_PEM), StandardCharsets.UTF_8);
+            String key = new String(fetchFromMinio(minioClient, MINIO_DECIDISH_BUCKET, MINIO_KEY), StandardCharsets.UTF_8);
 
-        PemSslStoreBundle pemBundle = new PemSslStoreBundle(keyStoreDetails, null);
-
-        SslBundle reweBundle = SslBundle.of(pemBundle);
+            PemSslStoreDetails keyStoreDetails = PemSslStoreDetails.forCertificate(cert)
+                    .withPrivateKey(key);
+            PemSslStoreBundle pemBundle = new PemSslStoreBundle(keyStoreDetails, null);
+            reweBundle = SslBundle.of(pemBundle);
+            
+        } catch (Exception e) {
+            // --- FALLBACK: Use Local Files (Test Environment) ---
+            log.warn("Failed to connect to MinIO ({}). Falling back to local 'rewe-client' SSL bundle from YAML.", e.getMessage());
+            
+            try {
+                // This fetches the "ssl.bundle.pem.rewe-client" defined in application-test.yaml
+                reweBundle = sslBundles.getBundle("rewe-client");
+            } catch (Exception ex) {
+                throw new IllegalStateException("MinIO is down AND no local 'rewe-client' SSL bundle found in config. Cannot start.", ex);
+            }
+        }
 
         JdkClientHttpRequestFactory requestFactory = new JdkClientHttpRequestFactory(
                 HttpClient.newBuilder()
@@ -59,14 +77,10 @@ public class ApiClientConfig {
         // Build the RestClient with Headers and SSL
         RestClient restClient = builder
                 .requestFactory(requestFactory)
-                
-                // --- Static Headers (from your python header dict) ---
                 .defaultHeader("user-agent", "REWE-Mobile-Client/3.18.5.33032 Android/14 Phone/Google_Pixel_8_Pro")
                 .defaultHeader("rd-service-types", "PICKUP")
                 .defaultHeader("Connection", "Keep-Alive")
                 .defaultHeader("Accept-Encoding", "gzip")
-
-                // --- Dynamic Headers (UUIDs generated per request) ---
                 .requestInterceptor((request, body, execution) -> {
                     request.getHeaders().add("rdfa", UUID.randomUUID().toString());
                     request.getHeaders().add("Correlation-Id", UUID.randomUUID().toString());
@@ -75,22 +89,18 @@ public class ApiClientConfig {
                 .requestInterceptor(new GzipInterceptor())
                 .build();
 
-        // 3. Create the Proxy
         RestClientAdapter adapter = RestClientAdapter.create(restClient);
         HttpServiceProxyFactory factory = HttpServiceProxyFactory.builderFor(adapter).build();
 
         return factory.createClient(ReweApiClient.class);
     }
     
-    /**
-     * Interceptor that unzips the response if the server sent GZIP.
-     */
+    // ... Interceptors and helper methods remain unchanged ...
+
     static class GzipInterceptor implements ClientHttpRequestInterceptor {
         @Override
         public ClientHttpResponse intercept(HttpRequest request, byte[] body, ClientHttpRequestExecution execution) throws IOException {
             ClientHttpResponse response = execution.execute(request, body);
-
-            // Check if content is gzipped
             String encoding = response.getHeaders().getFirst(HttpHeaders.CONTENT_ENCODING);
             if (encoding != null && encoding.toLowerCase().contains("gzip")) {
                 return new GzipHttpResponse(response);
@@ -99,33 +109,21 @@ public class ApiClientConfig {
         }
     }
 
-    /**
-     * Wrapper that forces the InputStream through GZIPInputStream
-     */
     static class GzipHttpResponse implements ClientHttpResponse {
         private final ClientHttpResponse response;
-
         public GzipHttpResponse(ClientHttpResponse response) { this.response = response; }
-
-        @Override
-        public InputStream getBody() throws IOException {
-            return new GZIPInputStream(response.getBody());
-        }
-
-        // Standard delegation for other methods
+        @Override public InputStream getBody() throws IOException { return new GZIPInputStream(response.getBody()); }
         @Override public HttpHeaders getHeaders() { return response.getHeaders(); }
         @Override public org.springframework.http.HttpStatusCode getStatusCode() throws IOException { return response.getStatusCode(); }
-        // @Override public int getRawStatusCode() throws IOException { return response.getRawStatusCode(); }
         @Override public String getStatusText() throws IOException { return response.getStatusText(); }
         @Override public void close() { response.close(); }
     }
 
-    private byte[] fetchFromMinio(MinioClient client, String bucket, String name) {
+    private byte[] fetchFromMinio(MinioClient client, String bucket, String name) throws Exception {
+        // Removed try-catch here so the Exception propagates up to trigger the Fallback logic
         try (InputStream stream = client.getObject(
                 GetObjectArgs.builder().bucket(bucket).object(name).build())) {
             return stream.readAllBytes();
-        } catch (Exception e) {
-            throw new RuntimeException(e);
         }
     }
 }

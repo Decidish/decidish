@@ -3,6 +3,8 @@ package decidish.com.core;
 import decidish.com.core.api.rewe.client.ReweApiClient;
 import decidish.com.core.model.rewe.*;
 import decidish.com.core.repository.MarketRepository;
+import jakarta.persistence.EntityManager;
+
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -39,6 +41,12 @@ class MarketControllerIntegrationTest {
 
     @Autowired
     private MarketRepository marketRepository;
+    
+    @Autowired
+    private org.springframework.cache.CacheManager cacheManager;
+    
+    @Autowired
+    private EntityManager entityManager;
 
     @MockitoBean
     private ReweApiClient apiClient;
@@ -49,6 +57,18 @@ class MarketControllerIntegrationTest {
 
     @BeforeEach
     void setup() {
+        // 2. Clear the Cache BEFORE the test
+        // This forces the Service to actually run, fetch from API, and save to DB
+        for (String name : cacheManager.getCacheNames()) {
+            var cache = cacheManager.getCache(name);
+            if (cache != null) {
+                cache.clear();
+            }
+        }
+        // var cache = cacheManager.getCache("markets");
+        // if (cache != null) {
+        //     cache.clear();
+        // }
         // DB is cleared automatically by @Transactional rollback, 
         // but explicit delete is safe if Transactional is disabled.
         marketRepository.deleteAll();
@@ -72,6 +92,7 @@ class MarketControllerIntegrationTest {
         mockMvc.perform(get("/api/v1/markets")
                         .param("plz", PLZ)
                         .contentType(MediaType.APPLICATION_JSON))
+                        .andDo(org.springframework.test.web.servlet.result.MockMvcResultHandlers.print())
                 
                 // --- 3. ASSERT: Response Verification ---
                 .andExpect(status().isOk())
@@ -80,6 +101,10 @@ class MarketControllerIntegrationTest {
                 .andExpect(jsonPath("$[0].reweId").value(MARKET_ID1))
                 .andExpect(jsonPath("$[0].name").value("REWE Integration Market"));
 
+        System.out.println(">>> REPO CLASS: " + marketRepository.getClass().getName());
+        System.out.println(">>> DB COUNT BEFORE FLUSH: " + marketRepository.count());
+
+        marketRepository.flush();
         // --- 4. ASSERT: Database Verification ---
         // Verify the controller call actually persisted data
         assertEquals(1, marketRepository.count());
@@ -158,6 +183,10 @@ class MarketControllerIntegrationTest {
                 .andExpect(jsonPath("$.products[0].name").value("Integration Bread"))
                 .andExpect(jsonPath("$.products[0].price").value(299));
         
+        // entityManager.flush(); // Ensure all Service changes are written to DB
+        marketRepository.flush();
+        entityManager.clear(); // Wipe the L1 cache so findById() MUST hit the DB
+                           
         // --- 4. ASSERT: Database Verification ---
         Market updatedMarket = marketRepository.findById(MARKET_ID1).get();
         assertEquals(1, updatedMarket.getProducts().size());
