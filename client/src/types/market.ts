@@ -18,7 +18,7 @@ export interface Product {
 }
 
 export interface Market {
-  reweId: number; // Matches Java 'private Long reweId'
+  id: number; // Matches Java 'private Long reweId'
   name: string;
   address: Address; // Matches Java 'private Address address'
   lastUpdated?: string; // ISO date string from LocalDateTime
