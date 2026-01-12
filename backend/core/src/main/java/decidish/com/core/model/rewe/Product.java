@@ -109,7 +109,6 @@ public class Product implements Serializable, Persistable<Long>{
     public void updateFromDto(ProductDto dto) {
         this.reweId = dto.productId();
         this.name = dto.title();
-        this.lastUpdated = LocalDateTime.now();
         this.imageUrl = dto.imageURL();
         this.price = dto.listing().currentRetailPrice();
         this.grammage = dto.listing().grammage();
