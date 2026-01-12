@@ -2,8 +2,9 @@ import { useState } from 'react';
 import { MapContainer, TileLayer, Marker, Popup, useMap } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
 import L from 'leaflet';
-import { marketApi } from '../../api/marketApi';
-import { Market } from '../../types/market';
+import { marketApi } from '@/api/marketApi';
+import { Market } from '@/types/market';
+import * as React from "react";
 
 // Fix for default marker icons in React-Leaflet
 delete (L.Icon.Default.prototype as any)._getIconUrl;
@@ -12,17 +13,6 @@ L.Icon.Default.mergeOptions({
   iconUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-icon.png',
   shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-shadow.png',
 });
-
-interface Market {
-  id: number;
-  name: string;
-  address: string;
-  distance: string;
-  hours: string;
-  rating: number;
-  lat: number;
-  lng: number;
-}
 
 // Component to handle map view changes
 function MapViewController({ center }: { center: [number, number] }) {
@@ -36,69 +26,6 @@ export default function MarketSelection() {
   const [showMarkets, setShowMarkets] = useState(false);
   const [selectedMarket, setSelectedMarket] = useState<Market | null>(null);
   const [mapCenter, setMapCenter] = useState<[number, number]>([40.7128, -74.0060]); // Default: New York
-
-  const markets: Market[] = [
-    {
-      id: 1,
-      name: 'Fresh Valley Market',
-      address: '123 Main Street, Downtown',
-      distance: '0.8 miles',
-      hours: '7:00 AM - 10:00 PM',
-      rating: 4.8,
-      lat: 40.7128,
-      lng: -74.0060
-    },
-    {
-      id: 2,
-      name: 'Green Harvest Grocery',
-      address: '456 Oak Avenue, Midtown',
-      distance: '1.2 miles',
-      hours: '6:00 AM - 11:00 PM',
-      rating: 4.6,
-      lat: 40.7180,
-      lng: -74.0100
-    },
-    {
-      id: 3,
-      name: 'Organic Oasis',
-      address: '789 Pine Road, Westside',
-      distance: '1.5 miles',
-      hours: '8:00 AM - 9:00 PM',
-      rating: 4.9,
-      lat: 40.7100,
-      lng: -74.0150
-    },
-    {
-      id: 4,
-      name: 'City Fresh Foods',
-      address: '321 Elm Street, Eastside',
-      distance: '2.1 miles',
-      hours: '7:00 AM - 10:00 PM',
-      rating: 4.5,
-      lat: 40.7200,
-      lng: -73.9950
-    },
-    {
-      id: 5,
-      name: 'Farmers Choice Market',
-      address: '654 Maple Drive, Northside',
-      distance: '2.4 miles',
-      hours: '6:30 AM - 9:30 PM',
-      rating: 4.7,
-      lat: 40.7250,
-      lng: -74.0080
-    },
-    {
-      id: 6,
-      name: 'Neighborhood Grocers',
-      address: '987 Cedar Lane, Southside',
-      distance: '2.8 miles',
-      hours: '7:00 AM - 11:00 PM',
-      rating: 4.4,
-      lat: 40.7050,
-      lng: -74.0020
-    }
-  ];
 
   // State for API data
   const [markets, setMarkets] = useState<Market[]>([]);
@@ -123,7 +50,7 @@ export default function MarketSelection() {
       setShowMarkets(true);
       // Center map on first market
       if (markets.length > 0) {
-        setMapCenter([markets[0].lat, markets[0].lng]);
+        setMapCenter([markets[0].address.latitude, markets[0].address.longitude]);
       }
     } catch (err) {
       console.error(err);
@@ -135,7 +62,7 @@ export default function MarketSelection() {
 
   const handleSelectMarket = (market: Market) => {
     setSelectedMarket(market);
-    setMapCenter([market.lat, market.lng]);
+    setMapCenter([market.address.latitude, market.address.longitude]);
   };
 
   const handleContinue = () => {
@@ -227,10 +154,11 @@ export default function MarketSelection() {
                               url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
                           />
                           {markets.map((market) => (
+                              market.address.latitude &&
                               <Marker
-                                  key={market.id}
-                                  position={[market.lat, market.lng]}
-                                  icon={selectedMarket?.id === market.id ? selectedIcon : defaultIcon}
+                                  key={market.reweId}
+                                  position={[market.address.latitude, market.address.longitude]}
+                                  icon={selectedMarket?.reweId === market.reweId ? selectedIcon : defaultIcon}
                                   eventHandlers={{
                                     click: () => handleSelectMarket(market)
                                   }}
@@ -238,12 +166,12 @@ export default function MarketSelection() {
                                 <Popup>
                                   <div className="p-2">
                                     <h3 className="font-semibold text-gray-900 mb-1">{market.name}</h3>
-                                    <p className="text-xs text-gray-600 mb-1">{market.address}</p>
+                                    <p className="text-xs text-gray-600 mb-1">{`${market.address.street}, ${market.address.zipCode}  ${market.address.city}`}</p>
                                     <div className="flex items-center gap-1 mb-1">
                                       <i className="ri-star-fill text-yellow-500 text-xs"></i>
                                       <span className="text-xs font-medium text-gray-700">{market.rating}</span>
                                     </div>
-                                    <p className="text-xs text-gray-500">{market.hours}</p>
+                                    {/*<p className="text-xs text-gray-500">{market.hours}</p>*/}
                                   </div>
                                 </Popup>
                               </Marker>
@@ -257,10 +185,10 @@ export default function MarketSelection() {
                       <div className="max-h-[500px] overflow-y-auto pr-2 space-y-4 custom-scrollbar">
                         {markets.map((market) => (
                             <div
-                                key={market.id}
+                                key={market.reweId}
                                 onClick={() => handleSelectMarket(market)}
                                 className={`p-4 rounded-lg border-2 transition-all cursor-pointer ${
-                                    selectedMarket?.id === market.id
+                                    selectedMarket?.reweId === market.reweId
                                         ? 'border-indigo-600 bg-indigo-50'
                                         : 'border-gray-200 hover:border-indigo-300 bg-white'
                                 }`}
@@ -272,7 +200,7 @@ export default function MarketSelection() {
                                   <span className="text-sm font-medium text-gray-700">{market.rating}</span>
                                 </div>
                               </div>
-                              <p className="text-sm text-gray-600 mb-2">{market.address}</p>
+                              <p className="text-sm text-gray-600 mb-2">{`${market.address.street}, ${market.address.zipCode}  ${market.address.city}`}</p>
                               <div className="flex items-center gap-4 text-xs text-gray-500">
                                 <div className="flex items-center gap-1">
                                   <i className="ri-map-pin-line"></i>
@@ -283,7 +211,7 @@ export default function MarketSelection() {
                                   <span>{market.hours}</span>
                                 </div>
                               </div>
-                              {selectedMarket?.id === market.id && (
+                              {selectedMarket?.reweId === market.reweId && (
                                   <div className="mt-3 pt-3 border-t border-indigo-200 flex items-center gap-2 text-indigo-600">
                                     <i className="ri-check-line text-lg"></i>
                                     <span className="text-sm font-medium">Selected</span>

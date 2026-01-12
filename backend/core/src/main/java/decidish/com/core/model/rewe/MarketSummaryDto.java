@@ -17,7 +17,7 @@ public record MarketSummaryDto(
     // Helper constructor to map from Entity
     public static MarketSummaryDto fromEntity(Market market) {
         return new MarketSummaryDto(
-            market.getReweId(),
+            market.getId(),
             market.getName(),
             market.getAddress(),
             "Unknown",        // Default distance

@@ -19,6 +19,8 @@ public class Address implements Serializable{
     //@SequenceGenerator(name = "address_seq", sequenceName = "address_seq", allocationSize = 50)
     private Long id;
 
+    double latitude;
+    double longitude;
     String street;
     String zipCode;
     String city;

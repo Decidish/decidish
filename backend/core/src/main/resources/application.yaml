@@ -2,28 +2,14 @@ spring:
   datasource:
     url: jdbc:postgresql://localhost:5433/decidish
     username: user
-    password: password
+    password: 1234
   jpa:
     hibernate:
       ddl-auto: validate
-    properties:
-      hibernate:
-        format_sql: true
   session:
-    store-type: jdbc
-    jdbc:
-      initialize-schema: always
+    # store-type: jdbc
+    # jdbc:
+    #   initialize-schema: always
+    store-type: none
   application:
-    name: "core"
-  flyway:
-    enabled: "true"
-    baseline-on-migrate: true
-  ssl:
-    bundle:
-      pem:
-        rewe-client:
-          keystore:
-            # You can set these defaults here, or override them via Docker Env Vars
-            # The syntax ${ENV_VAR:default} works in YAML too.
-            certificate: "${REWE_CERT_PATH:classpath:certificates/rewe.pem}"
-            private-key: "${REWE_KEY_PATH:classpath:certificates/rewe.key}"
+    name: "shopping-service"

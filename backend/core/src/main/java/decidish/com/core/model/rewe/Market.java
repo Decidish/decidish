@@ -105,6 +105,8 @@ public class Market implements Serializable, Persistable<Long>{
         Long marketId = dto.id();
         String name = dto.name();
         Address address = new Address();
+        address.setLatitude(dto.location().latitude());
+        address.setLongitude(dto.location().longitude());
         address.setStreet(dto.addressLine1());
         address.setZipCode(dto.rawValues().postalCode());
         address.setCity(dto.rawValues().city());

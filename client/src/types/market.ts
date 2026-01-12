@@ -1,8 +1,10 @@
 export interface Address {
-    id : number;
+  id : number;
   street: string;
   zipCode: string;
   city: string;
+  latitude: number;
+  longitude: number;
 }
 
 export interface Product {

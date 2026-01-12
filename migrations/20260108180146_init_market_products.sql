@@ -6,6 +6,8 @@ CREATE TABLE addresses
     street   VARCHAR(255),
     zip_code VARCHAR(255),
     city     VARCHAR(255),
+    latitude DOUBLE PRECISION,
+    longitude DOUBLE PRECISION,
     CONSTRAINT pk_addresses PRIMARY KEY (id)
 );
 
