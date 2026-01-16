@@ -1,4 +1,4 @@
-package decidish.com.core;
+package decidish.com.core.integration;
 
 import decidish.com.core.model.rewe.*;
 import decidish.com.core.service.MarketService;
@@ -20,13 +20,13 @@ import java.util.List;
 import static org.junit.jupiter.api.Assertions.*;
 
 @SpringBootTest
-@ActiveProfiles("test") // Use manual settings
+@ActiveProfiles("integration") // Use manual settings
 // Use Real Containers (Postgres + Redis)
-@Import(TestcontainersConfiguration.class)
+
 // @AutoConfigureTestDatabase(replace = AutoConfigureTestDatabase.Replace.NONE)
-@Tag("e2e") // Useful to skip this test in CI builds
+ // Useful to skip this test in CI builds
 @Transactional
-class MarketServiceIntegrationTest {
+class MarketServiceIT {
         @Autowired
         private MarketService marketService;
 

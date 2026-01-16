@@ -1,0 +1,5 @@
+spring:
+  config:
+    activate:
+      on-profile: e2e
+  # Testcontainers should handle datasource, but we can set defaults or specific properties here

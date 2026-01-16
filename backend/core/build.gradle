@@ -99,28 +99,26 @@ protobuf {
 
 tasks.named('test') {
     useJUnitPlatform()
+    systemProperty "spring.profiles.active", System.getProperty("spring.profiles.active", "unit")
+    filter {
+        includeTestsMatching "*UT"
+    }
 }
 
-tasks.register('unitTest', Test) {
-    useJUnitPlatform {
-        includeTags 'unit'
+tasks.register('integration', Test) {
+    useJUnitPlatform()
+    systemProperty "spring.profiles.active", "integration"
+    filter {
+        includeTestsMatching "*IT"
     }
-    description = 'Runs unit tests.'
-    group = 'verification'
+    shouldRunAfter test
 }
 
-tasks.register('integrationTest', Test) {
-    useJUnitPlatform {
-        includeTags 'integration'
+tasks.register('e2e', Test) {
+    useJUnitPlatform()
+    systemProperty "spring.profiles.active", "e2e"
+    filter {
+        includeTestsMatching "*E2ETest"
     }
-    description = 'Runs integration tests.'
-    group = 'verification'
-}
-
-tasks.register('e2eTest', Test) {
-    useJUnitPlatform {
-        includeTags 'e2e'
-    }
-    description = 'Runs end-to-end tests.'
-    group = 'verification'
+    shouldRunAfter integration
 }

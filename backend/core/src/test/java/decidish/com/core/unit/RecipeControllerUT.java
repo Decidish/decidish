@@ -1,4 +1,4 @@
-package decidish.com.core;
+package decidish.com.core.unit;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 
@@ -26,7 +26,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 @Tag("unit")
 @WebMvcTest(RecipeController.class)
-class RecipeControllerUnitTest {
+class RecipeControllerUT {
 
         @Autowired
         private MockMvc mockMvc;

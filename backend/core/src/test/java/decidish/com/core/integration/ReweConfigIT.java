@@ -1,4 +1,4 @@
-package decidish.com.core;
+package decidish.com.core.integration;
 
 import decidish.com.core.configuration.ApiClientConfig;
 import decidish.com.core.api.rewe.client.ReweApiClient;
@@ -24,7 +24,7 @@ import java.util.List;
     FlywayAutoConfiguration.class
 })
 
-class ReweConfigTest {
+class ReweConfigIT {
 
     @Autowired
     private ReweApiClient client; // Spring injects the bean built by ApiClientConfig

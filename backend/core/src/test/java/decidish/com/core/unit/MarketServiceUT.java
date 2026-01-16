@@ -1,4 +1,4 @@
-package decidish.com.core;
+package decidish.com.core.unit;
 
 import decidish.com.core.api.rewe.client.ReweApiClient;
 import decidish.com.core.model.rewe.*;
@@ -26,7 +26,7 @@ import static org.mockito.Mockito.*;
 // Pure Unit Test: No Spring, No Docker, No DB. Just Java logic.
 @Tag("unit")
 @ExtendWith(MockitoExtension.class)
-class MarketServiceUnitTest {
+class MarketServiceUT {
 
         @Mock
         private MarketRepository marketRepository;

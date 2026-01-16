@@ -1,6 +1,6 @@
 //! Unused test, ignore for now
 
-// package decidish.com.core;
+// package decidish.com.core.unit;
 
 // import org.junit.jupiter.api.Test;
 // import org.springframework.boot.test.context.SpringBootTest;
@@ -8,7 +8,7 @@
 
 // @Import(TestcontainersConfiguration.class)
 // @SpringBootTest
-// class CoreApplicationTests {
+// class CoreApplicationUT {
 
 //     @Test
 //     void contextLoads() {

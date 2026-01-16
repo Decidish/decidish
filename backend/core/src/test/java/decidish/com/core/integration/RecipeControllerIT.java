@@ -1,4 +1,4 @@
-package decidish.com.core;
+package decidish.com.core.integration;
 
 import decidish.com.core.model.recipes.IngredientGroup;
 import decidish.com.core.model.recipes.ShoppingListResponse;
@@ -27,9 +27,9 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.when;
 
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
-@ActiveProfiles("test")
+@ActiveProfiles("integration")
 @Tag("integration")
-class RecipeControllerIntegrationTest {
+class RecipeControllerIT {
 
     @LocalServerPort
     private int port;

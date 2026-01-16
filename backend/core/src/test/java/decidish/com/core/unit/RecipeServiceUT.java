@@ -1,4 +1,4 @@
-package decidish.com.core;
+package decidish.com.core.unit;
 
 import decidish.com.core.model.recipes.*;
 import decidish.com.core.model.rewe.Market;
@@ -35,7 +35,7 @@ import static org.mockito.Mockito.*;
 
 @Tag("unit")
 @ExtendWith(MockitoExtension.class)
-class RecipeServiceUnitTest {
+class RecipeServiceUT {
 
     @Mock
     private RecipeIngredientRepository recipeIngredientRepository;

@@ -1,4 +1,4 @@
-package decidish.com.core;
+package decidish.com.core.unit;
 
 import decidish.com.core.model.rewe.*;
 import decidish.com.core.repository.MarketRepository;
@@ -25,7 +25,7 @@ import static org.mockito.Mockito.when;
 
 @Tag("unit")
 @ExtendWith(MockitoExtension.class) // Pure Unit Test (Fast, no Spring Context)
-class MarketServiceUnitTest2 {
+class MarketServicePart2UT {
 
         @Mock
         private MarketRepository marketRepository;

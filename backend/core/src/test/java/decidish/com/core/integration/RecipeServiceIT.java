@@ -1,4 +1,4 @@
-package decidish.com.core;
+package decidish.com.core.integration;
 
 import decidish.com.core.model.recipes.*;
 import decidish.com.core.model.rewe.*;
@@ -34,12 +34,12 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.when;
 
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
-@ActiveProfiles("test")
-// @Import(TestcontainersConfiguration.class)
+@ActiveProfiles("integration")
+// 
 @AutoConfigureTestDatabase(replace = AutoConfigureTestDatabase.Replace.ANY)
 @Tag("integration")
 @Transactional
-class RecipeServiceIntegrationTest {
+class RecipeServiceIT {
 
         @Autowired
         private RecipeService recipeService;
