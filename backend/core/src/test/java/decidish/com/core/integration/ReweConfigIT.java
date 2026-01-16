@@ -122,8 +122,12 @@ class ReweConfigIT {
 
         // Verify Response
         assertNotNull(response);
+        // System.out.println(response);
         ProductsData data = response.data();
+        // System.out.println(data);
+        assertNotNull(data, "Response 'data' should not be null");
         ProductsSearchInfo info = data.products();
+        assertNotNull(info, "Response 'data.products' (SearchInfo) is null. The API might have returned an error or empty structure.");
         List<ProductDto> products = info.products();
         System.out.println("Product Details for market " + marketId + ":");
         System.out.println("Name: " + products.get(0).title());
