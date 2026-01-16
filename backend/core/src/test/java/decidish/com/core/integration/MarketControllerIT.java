@@ -68,8 +68,8 @@ class MarketControllerIT {
                 // --- 1. ARRANGE: Mock External API ---
                 MarketDto dto = new MarketDto(
                                 MARKET_ID1, "REWE Integration Market", "MARKET",
-                                "Test St.", "1", new Location(48.1, 11.5), new RawValues(PLZ, "Munich"));
-                MarketSearchResponse response = new MarketSearchResponse(List.of(dto));
+                                "Test St.", "1","Munich", new Location(48.1, 11.5),new ServiceFlags(true));
+                MarketSearchResponse response = new MarketSearchResponse(new MarketSearchData(new MarketsSearched(List.of(dto))));
 
                 // When the Service calls the Client, return this mock
                 when(apiClient.searchMarkets(eq(PLZ))).thenReturn(response);

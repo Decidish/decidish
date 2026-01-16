@@ -47,8 +47,6 @@ class MarketServiceIT {
 
         @Test
         @DisplayName("LIVE API: Fetch Markets -> Persist to Postgres -> Verify Update")
-        // ! If this fails is probably because you forgot to change the @Cacheable in
-        // MarketRepository (use the non-testing ones)
         void testSearchMarkets_Live() {
                 // --- STEP 1: EXECUTE LIVE FETCH ---
                 System.out.println("Calling Real REWE API (This may take a few seconds)...");
@@ -56,11 +54,11 @@ class MarketServiceIT {
 
                 // --- STEP 2: VERIFY PERSISTENCE ---
                 assertNotNull(markets);
-                System.out.println("Found " + markets.size() + " products.");
+                System.out.println("Found " + markets.size() + " markets.");
 
                 // Basic Sanity Checks
                 assertFalse(markets.isEmpty(),
-                                "Real API should return products (unless searching for '*') returns nothing on Web API");
+                                "Real API should return markets (unless searching for '*') returns nothing on Web API");
 
                 Market firstMarket = markets.get(0);
                 System.out.println(

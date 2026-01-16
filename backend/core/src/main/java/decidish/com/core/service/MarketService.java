@@ -44,9 +44,8 @@ public class MarketService {
 
     /**
      * READ PATH (Hot)
-     * 1. Checks Cache ("markets::12345").
-     * 2. If Hit: Returns instantly.
-     * 3. If Miss: Runs the method body (DB Check -> API Fetch -> Save).
+     * 1. If Hit: Returns instantly.
+     * 2. If Miss: Runs the method body (DB Check -> API Fetch -> Save).
      */
 
     @Transactional
@@ -67,68 +66,30 @@ public class MarketService {
         log.info("Fetching API...");
         MarketSearchResponse apiResponse = apiClient.searchMarkets(plz);
 
-        if (apiResponse == null || apiResponse.markets() == null)
+        if (apiResponse == null){
+            log.info("api returned null");            
             return List.of();
+        }
+        List<MarketDto> markets = apiResponse.data().marketSearch().markets();
+        if (markets== null){
+            log.info("api returned no markets");            
+            return List.of();
+        }
 
         // MERGE LOGIC
         // (Logic extracted to helper for readability)
-        List<Market> marketsToSave = mergeApiWithDb(apiResponse.markets());
+        List<Market> marketsToSave = mergeApiWithDb(markets);
 
         if (marketsToSave.isEmpty()) {
             log.info("MARKETS TO SAVE IS EMPTY");
             return List.of();
         }
 
-        // SAVE & UPDATE CACHE
-        // We call the method on 'self' (the Spring Proxy) so @CachePut works
-        return saveAndRefresh(marketsToSave, plz);
+        return marketRepository.saveAll(marketsToSave);
     }
 
-    /**
-     * WRITE PATH
-     * 1. Saves to Database.
-     * 2. @CachePut: Takes the return value and FORCES it into the 'markets' cache.
-     * This ensures the cache is in sync with the DB.
-     */
-
-    @Transactional
-    public List<Market> saveAndRefresh(List<Market> markets, String plz) {
-        List<Market> savedMarkets = marketRepository.saveAll(markets);
-
-        // Hibernate returns "PersistentBag" lists. We must unwrap them into
-        // plain "ArrayLists" before passing them to the Redis Serializer.
-        List<Market> sanitizedMarkets = new ArrayList<>();
-
-        // for (Market m : savedMarkets) {
-        // // 1. Initialize the list (loads from DB if lazy)
-        // Hibernate.initialize(m.getProducts());
-
-        // // 2. Replace the Hibernate Bag with a plain ArrayList
-        // if (m.getProducts() != null) {
-        // List<Product> plainList = new ArrayList<>(m.getProducts());
-        // m.setProducts(plainList);
-        // }
-
-        // sanitizedMarkets.add(m);
-        // }
-        for (Market m : savedMarkets) {
-            // Create a copy or cloned object for the return value
-            Market safeCopy = new Market();
-            BeanUtils.copyProperties(m, safeCopy); // Copy basic fields
-
-            // Handle products safely on the copy
-            if (m.getProducts() != null) {
-                Hibernate.initialize(m.getProducts());
-                safeCopy.setProducts(new ArrayList<>(m.getProducts()));
-            }
-            sanitizedMarkets.add(safeCopy);
-        }
-
-        return sanitizedMarkets;
-    }
 
     @Transactional(readOnly = true)
-
     public Market getMarket(Long id) {
         // This ensures 'products' are inside the object BEFORE it goes to Redis
         return marketRepository.findByIdWithProducts(id)
@@ -136,7 +97,7 @@ public class MarketService {
     }
 
     private List<Market> mergeApiWithDb(List<MarketDto> apiDtos) {
-        List<Long> apiIds = apiDtos.stream().map(MarketDto::id).toList();
+        List<Long> apiIds = apiDtos.stream().map(MarketDto::wwIdent).toList();
 
         // Fetch fresh entities directly from DB for the update.
         // We ignore the cache here because we need the latest version
@@ -148,8 +109,8 @@ public class MarketService {
         List<Market> finalBatch = new ArrayList<>();
 
         for (MarketDto dto : apiDtos) {
-            if (marketMap.containsKey(dto.id())) {
-                Market existing = marketMap.get(dto.id());
+            if (marketMap.containsKey(dto.wwIdent())) {
+                Market existing = marketMap.get(dto.wwIdent());
                 existing.updateFromDto(dto);
                 finalBatch.add(existing);
             } else {
