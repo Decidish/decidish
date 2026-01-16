@@ -1,4 +1,4 @@
-package decidish.com.core;
+package decidish.com.core.integration;
 
 import decidish.com.core.model.rewe.Address;
 import decidish.com.core.model.rewe.Market;
@@ -38,12 +38,10 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 @SpringBootTest
 @AutoConfigureMockMvc(print = MockMvcPrint.NONE)
-@ActiveProfiles("test")
+@ActiveProfiles("integration")
 @AutoConfigureTestDatabase(replace = AutoConfigureTestDatabase.Replace.NONE)
 @Tag("benchmark")
-@Tag("e2e")
-
-class BenchmarkTests {
+class BenchmarkIT {
 
     @Autowired
     private EntityManagerFactory entityManagerFactory;

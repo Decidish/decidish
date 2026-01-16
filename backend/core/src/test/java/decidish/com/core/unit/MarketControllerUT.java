@@ -1,4 +1,4 @@
-package decidish.com.core;
+package decidish.com.core.unit;
 
 import decidish.com.core.model.rewe.Market;
 import decidish.com.core.service.MarketService;
@@ -22,7 +22,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 @Tag("unit")
 @WebMvcTest(MarketController.class)
-class MarketControllerUnitTest {
+class MarketControllerUT {
 
     @Autowired
     private MockMvc mockMvc; // Simulates HTTP requests

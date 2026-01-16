@@ -1,4 +1,4 @@
-package decidish.com.core;
+package decidish.com.core.unit;
 
 import decidish.com.core.api.rewe.client.ReweApiClient;
 import decidish.com.core.model.rewe.*;
@@ -19,14 +19,19 @@ import java.util.List;
 import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyList;
+import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.anyInt;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
 
 // Pure Unit Test: No Spring, No Docker, No DB. Just Java logic.
 @Tag("unit")
 @ExtendWith(MockitoExtension.class)
-class MarketServiceUnitTest {
+class MarketServiceUT {
 
         @Mock
         private MarketRepository marketRepository;
@@ -168,4 +173,84 @@ class MarketServiceUnitTest {
                 // CRITICAL UPDATE: Verify saveAll was never called
                 verify(marketRepository, never()).saveAll(any());
         }
+
+        @Test
+        @DisplayName("getMarket: Should return market if found")
+        void testGetMarket_Success() {
+                // Arrange
+                Market m = new Market();
+                m.setId(NEW_ID);
+                when(marketRepository.findByIdWithProducts(NEW_ID)).thenReturn(Optional.of(m));
+
+                // Act
+                Market result = marketService.getMarket(NEW_ID);
+
+                // Assert
+                assertEquals(NEW_ID, result.getId());
+        }
+
+        @Test
+        @DisplayName("getMarket: Should throw RuntimeException if not found")
+        void testGetMarket_NotFound() {
+                // Arrange
+                when(marketRepository.findByIdWithProducts(anyLong())).thenReturn(Optional.empty());
+
+                // Act & Assert
+                assertThrows(RuntimeException.class, () -> marketService.getMarket(999L));
+        }
+
+        @Test
+        @DisplayName("getAllProducts: Should return from DB if fresh")
+        void testGetAllProducts_Fresh() {
+                // Arrange
+                Market m = new Market();
+                m.setId(NEW_ID);
+                Product p = new Product();
+                p.setLastUpdated(LocalDateTime.now()); // Fresh
+                m.setProducts(List.of(p));
+
+                when(marketRepository.findByIdWithProducts(NEW_ID)).thenReturn(Optional.of(m));
+
+                // Act
+                Market result = marketService.getAllProducts(NEW_ID);
+
+                // Assert
+                assertEquals(1, result.getProducts().size());
+                verify(apiClient, never()).searchProducts(anyString(), anyInt(), anyInt(), anyLong());
+        }
+
+        @Test
+        @DisplayName("getProductsQuerySave: Should call API and Save")
+        void testGetProductsQuerySave() {
+                // Arrange
+                Market m = new Market();
+                m.setId(NEW_ID);
+                m.setProducts(new java.util.ArrayList<>());
+
+                when(marketRepository.findByIdWithProducts(NEW_ID)).thenReturn(Optional.of(m));
+
+                // Mock API Response
+                ProductPrice price = new ProductPrice(199, 0, "500g", null, null);
+                ProductDto pDto = new ProductDto(100L, "Milk", "url", null, 1, null, "1", price);
+
+                Pagination pagination = new Pagination(20, 1, 1, 1);
+                ProductsSearchInfo info = new ProductsSearchInfo(pagination, List.of(pDto));
+                ProductsData data = new ProductsData(info);
+                ProductSearchResponse response = new ProductSearchResponse(data);
+
+                when(apiClient.searchProducts(anyString(), anyInt(), anyInt(), anyLong()))
+                                .thenReturn(response);
+
+                // Mock Save
+                when(marketRepository.save(any(Market.class))).thenAnswer(i -> i.getArgument(0));
+
+                // Act
+                Market result = marketService.getProductsQuerySave(NEW_ID, "Milk");
+
+                // Assert
+                assertEquals(1, result.getProducts().size());
+                assertEquals("Milk", result.getProducts().get(0).getName());
+                verify(marketRepository).save(any(Market.class));
+        }
+
 }

@@ -1,4 +1,5 @@
-package decidish.com.core;
+package decidish.com.core.e2e;
+import decidish.com.core.TestcontainersConfiguration;
 
 import decidish.com.core.model.rewe.Address;
 import decidish.com.core.model.rewe.Market;
@@ -32,11 +33,11 @@ import java.math.BigDecimal;
 import static org.junit.jupiter.api.Assertions.*;
 
 @SpringBootTest
-@ActiveProfiles("test")
-@Import(TestcontainersConfiguration.class)
+@ActiveProfiles("e2e")
+// @Import(TestcontainersConfiguration.class)
 @Tag("e2e")
 @Transactional
-class ShoppingListTests {
+class ShoppingListE2ETest {
 
     @Autowired
     private RecipeService recipeService;

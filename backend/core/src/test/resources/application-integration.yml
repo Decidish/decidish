@@ -1,0 +1,7 @@
+# Inherits everything from application.yml
+# You can add specific logging or wiremock settings here
+
+logging:
+  level:
+    # See SQL in integration tests for debugging
+    org.hibernate.SQL: DEBUG

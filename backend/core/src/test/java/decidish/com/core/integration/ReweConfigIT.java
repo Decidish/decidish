@@ -1,6 +1,7 @@
-package decidish.com.core;
+package decidish.com.core.integration;
 
 import decidish.com.core.configuration.ApiClientConfig;
+import decidish.com.core.configuration.MinioConfig;
 import decidish.com.core.api.rewe.client.ReweApiClient;
 import decidish.com.core.model.rewe.*;
 
@@ -10,21 +11,25 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.autoconfigure.EnableAutoConfiguration;
 import org.springframework.boot.autoconfigure.flyway.FlywayAutoConfiguration;
 import org.springframework.boot.autoconfigure.jdbc.DataSourceAutoConfiguration;
+import org.springframework.boot.autoconfigure.session.SessionAutoConfiguration;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.test.context.ActiveProfiles;
 
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 
 import java.util.List;
 
-@SpringBootTest(classes = ApiClientConfig.class) // Only load your Config class
+@SpringBootTest(classes = { ApiClientConfig.class, MinioConfig.class })
 @EnableAutoConfiguration(exclude = {
-    // Exclude DB stuff so the test doesn't crash if you don't have Postgres running
-    DataSourceAutoConfiguration.class,
-    FlywayAutoConfiguration.class
+        // Exclude DB stuff so the test doesn't crash if you don't have Postgres running
+        DataSourceAutoConfiguration.class,
+        FlywayAutoConfiguration.class,
+        SessionAutoConfiguration.class
 })
+@ActiveProfiles("test") 
 
-class ReweConfigTest {
+class ReweConfigIT {
 
     @Autowired
     private ReweApiClient client; // Spring injects the bean built by ApiClientConfig
@@ -59,8 +64,7 @@ class ReweConfigTest {
         System.out.println("Longitude: " + response.markets().get(0).location().longitude());
         System.out.println("Postal Code: " + response.markets().get(0).rawValues().postalCode());
         System.out.println("City: " + response.markets().get(0).rawValues().city());
-        
-        
+
         // String response = client.searchMarkets(zipCode);
 
         // System.out.println("Raw Response Received:");
@@ -84,9 +88,11 @@ class ReweConfigTest {
         assertFalse(response.openingTimes().isEmpty(), "Opening hours should not be empty");
         System.out.println("Market Details for ID " + marketId + ":");
         System.out.println("Market Name: " + response.marketItem().name());
-        System.out.println("Market Address: " + response.marketItem().addressLine1() + ", " + response.marketItem().rawValues().postalCode() + " " + response.marketItem().rawValues().city());
+        System.out.println("Market Address: " + response.marketItem().addressLine1() + ", "
+                + response.marketItem().rawValues().postalCode() + " " + response.marketItem().rawValues().city());
         System.out.println("Market Type ID: " + response.marketItem().typeId());
-        System.out.println("Market Location: Lat " + response.marketItem().location().latitude() + ", Lon " + response.marketItem().location().longitude());
+        System.out.println("Market Location: Lat " + response.marketItem().location().latitude() + ", Lon "
+                + response.marketItem().location().longitude());
         System.out.println("Market ID: " + response.marketItem().id());
         System.out.println("Market Opening Times:");
         for (OpeningTime time : response.openingTimes()) {
@@ -111,13 +117,17 @@ class ReweConfigTest {
         Long marketId = 431022L;
         String product = "Kase";
         ProductSearchResponse response = client.searchProducts(
-            product, 1, 30, 
-            marketId);
+                product, 1, 30,
+                marketId);
 
         // Verify Response
         assertNotNull(response);
+        // System.out.println(response);
         ProductsData data = response.data();
+        // System.out.println(data);
+        assertNotNull(data, "Response 'data' should not be null");
         ProductsSearchInfo info = data.products();
+        assertNotNull(info, "Response 'data.products' (SearchInfo) is null. The API might have returned an error or empty structure.");
         List<ProductDto> products = info.products();
         System.out.println("Product Details for market " + marketId + ":");
         System.out.println("Name: " + products.get(0).title());
@@ -126,7 +136,7 @@ class ReweConfigTest {
         System.out.println("articleId: " + products.get(0).articleId());
         System.out.println("price: " + products.get(0).listing().currentRetailPrice());
         System.out.println("grammage: " + products.get(0).listing().grammage());
-        if(products.get(0).listing().discount() != null){
+        if (products.get(0).listing().discount() != null) {
             System.out.println("discount: " + products.get(0).listing().discount().__typename());
         }
         Pagination pagination = info.pagination();

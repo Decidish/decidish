@@ -1,4 +1,4 @@
-package decidish.com.core;
+package decidish.com.core.integration;
 
 import decidish.com.core.api.rewe.client.ReweApiClient;
 import decidish.com.core.model.rewe.*;
@@ -33,13 +33,12 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 @SpringBootTest
 @AutoConfigureMockMvc // Initializes MockMvc with the full context
-@ActiveProfiles("test")
-// @Import(TestcontainersConfiguration.class)
+@ActiveProfiles("integration")
 @AutoConfigureTestDatabase(replace = AutoConfigureTestDatabase.Replace.ANY) // Use H2
 @Tag("integration")
 @Transactional // Rollback DB after every test
 
-class MarketControllerIntegrationTest {
+class MarketControllerIT {
 
         @Autowired
         private MockMvc mockMvc;

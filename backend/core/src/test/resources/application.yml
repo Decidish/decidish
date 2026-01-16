@@ -1,0 +1,37 @@
+# --- GLOBAL TEST DEFAULTS (Applied to Unit, Integration, and E2E) ---
+
+# 1. MinIO Dummies (Prevents BeanCreationException)
+MINIO_ENDPOINT: http://localhost:9000
+MINIO_ACCESS_KEY: test-access-key
+MINIO_SECRET_KEY: test-secret-key
+
+spring:
+  main:
+    banner-mode: off
+  
+  # Default to H2 if no profile specified (Safe default)
+  datasource:
+    url: jdbc:h2:mem:testdb;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE
+    driverClassName: org.h2.Driver
+    username: sa
+    password:
+  
+  jpa:
+    database-platform: org.hibernate.dialect.H2Dialect
+    hibernate:
+      ddl-auto: create-drop # Clean schema every run
+    show-sql: false # Keep logs clean by default
+
+  # 2. SSL Fallback (Used by ApiClientConfig when MinIO fails)
+  ssl:
+    bundle:
+      pem:
+        rewe-client:
+          keystore:
+            certificate: "classpath:certificates/rewe.pem"
+            private-key: "classpath:certificates/rewe.key"
+
+logging:
+  level:
+    root: ERROR
+    decidish.com: INFO
