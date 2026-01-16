@@ -34,7 +34,6 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @SpringBootTest
 @AutoConfigureMockMvc // Initializes MockMvc with the full context
 @ActiveProfiles("integration")
-// 
 @AutoConfigureTestDatabase(replace = AutoConfigureTestDatabase.Replace.ANY) // Use H2
 @Tag("integration")
 @Transactional // Rollback DB after every test

@@ -77,10 +77,14 @@ public class ApiClientConfig {
         // Build the RestClient with Headers and SSL
         RestClient restClient = builder
                 .requestFactory(requestFactory)
+                // --- FIX: Add Base URL ---
+                .baseUrl("https://mobile-api.rewe.de")
+                
                 .defaultHeader("user-agent", "REWE-Mobile-Client/3.18.5.33032 Android/14 Phone/Google_Pixel_8_Pro")
                 .defaultHeader("rd-service-types", "PICKUP")
                 .defaultHeader("Connection", "Keep-Alive")
                 .defaultHeader("Accept-Encoding", "gzip")
+                // .defaultHeader("Accept", "application/json") // Added Accept header
                 .requestInterceptor((request, body, execution) -> {
                     request.getHeaders().add("rdfa", UUID.randomUUID().toString());
                     request.getHeaders().add("Correlation-Id", UUID.randomUUID().toString());
