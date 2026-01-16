@@ -34,7 +34,7 @@ import static org.junit.jupiter.api.Assertions.*;
 
 @SpringBootTest
 @ActiveProfiles("e2e")
-@Import(TestcontainersConfiguration.class)
+// @Import(TestcontainersConfiguration.class)
 @Tag("e2e")
 @Transactional
 class ShoppingListE2ETest {
