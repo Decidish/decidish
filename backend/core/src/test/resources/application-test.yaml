@@ -3,14 +3,6 @@ MINIO_ACCESS_KEY: test-access-key
 MINIO_SECRET_KEY: test-secret-key
 
 spring:
-  cache:
-    type: redis
-    redis:
-      time-to-live: 60m
-      cache-null-values: false
-      key-prefix: "decidish:"
-      use-key-prefix: true
-
   main:
     banner-mode: off
 

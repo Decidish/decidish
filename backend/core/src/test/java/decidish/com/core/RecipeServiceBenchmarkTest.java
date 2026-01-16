@@ -33,6 +33,7 @@ import static org.mockito.Mockito.when;
 //! DEPRECATED
 @ExtendWith(MockitoExtension.class)
 @Tag("benchmark")
+@Tag("unit")
 class RecipeServiceBenchmarkTest {
 
     @Mock
@@ -93,8 +94,8 @@ class RecipeServiceBenchmarkTest {
 
         // 3. Mock the Product Repository (The new part)
         // List<Product> mockProducts = allMatches.stream()
-        //         .map(IngredientProduct::getProduct)
-        //         .collect(Collectors.toList());
+        // .map(IngredientProduct::getProduct)
+        // .collect(Collectors.toList());
 
         List<Product> mockProducts = allMatches.stream()
                 .map(ip -> {
@@ -105,12 +106,12 @@ class RecipeServiceBenchmarkTest {
                     return p;
                 })
                 .collect(Collectors.toList());
-                
+
         when(productRepository.findByMarketIdAndReweIds(eq(MARKET_ID), anyList()))
                 .thenReturn(mockProducts);
 
         // when(recipeService.getMatches(anyList(), eq(MARKET_ID)))
-        //         .thenReturn(allMatches);
+        // .thenReturn(allMatches);
 
         // 2. Measure
         long start = System.nanoTime();
@@ -146,7 +147,7 @@ class RecipeServiceBenchmarkTest {
      * This tests if the Parallelism is actually working.
      *
      * Theoretical Sequential Time: 45 * 200ms = 9000ms (9 seconds)
-     * Expected Parallel Time:      ~200ms - 400ms (depending on thread pool size)
+     * Expected Parallel Time: ~200ms - 400ms (depending on thread pool size)
      */
     @Test
     @DisplayName("BENCHMARK: 90% Missing (45 API Calls - Stress Test)")
@@ -159,7 +160,7 @@ class RecipeServiceBenchmarkTest {
         long end = System.nanoTime();
 
         printResult("Many Missing (45 Missing)", missingCount, start, end);
-        
+
         // Assertion to ensure we actually got results back
         assertFalse(response.items().isEmpty());
     }
@@ -179,28 +180,33 @@ class RecipeServiceBenchmarkTest {
 
         // Mock ONLY the internal getMatches call
         // This bypasses the repo query and the Object[] casting logic entirely
-        // doReturn(localMatches).when(recipeService).getMatches(anyList(), eq(MARKET_ID));
+        // doReturn(localMatches).when(recipeService).getMatches(anyList(),
+        // eq(MARKET_ID));
 
         when(recipeIngredientRepository.findProductsForIngredientsInMarket(anyList(), eq(MARKET_ID)))
                 .thenReturn(localMatches);
 
-        // when(ingredientProductRepository.saveAll(any())).thenAnswer(i -> i.getArgument(0));
+        // when(ingredientProductRepository.saveAll(any())).thenAnswer(i ->
+        // i.getArgument(0));
 
         // List<Product> mockProducts = localMatches.stream()
-        //         .map(IngredientProduct::getProduct)
-        //         .collect(Collectors.toList());
-                
+        // .map(IngredientProduct::getProduct)
+        // .collect(Collectors.toList());
+
         // when(productRepository.findByMarketIdAndReweIds(eq(MARKET_ID), anyList()))
-        //         .thenReturn(mockProducts);
+        // .thenReturn(mockProducts);
 
         // when(recipeService.getMatches(anyList(), eq(MARKET_ID)))
-        //         .thenReturn(localMatches);
+        // .thenReturn(localMatches);
 
         // 3. Mock API with Latency
         // For any call to getProductsQuery, sleep 200ms then return a product
         doAnswer(invocation -> {
             // SIMULATE NETWORK LATENCY
-            try { TimeUnit.MILLISECONDS.sleep(MOCK_API_LATENCY_MS); } catch (InterruptedException ignored) {}
+            try {
+                TimeUnit.MILLISECONDS.sleep(MOCK_API_LATENCY_MS);
+            } catch (InterruptedException ignored) {
+            }
 
             String query = invocation.getArgument(1);
             return createMockMarketResponse(query);
@@ -216,7 +222,7 @@ class RecipeServiceBenchmarkTest {
         p.setNormalizedAmount(100.0);
 
         IngredientProduct ip = new IngredientProduct();
-        IngredientProductId id = new IngredientProductId((int)ing.getId(), productId);
+        IngredientProductId id = new IngredientProductId((int) ing.getId(), productId);
         ip.setId(id);
         ip.setIngredient(ing);
         // ip.setProduct(p);
@@ -230,7 +236,7 @@ class RecipeServiceBenchmarkTest {
         p.setReweId(5000L);
         p.setName("API Product " + name);
         p.setNormalizedAmount(100.0);
-        
+
         Market m = new Market();
         m.setProducts(List.of(p));
         return m;
@@ -245,11 +251,12 @@ class RecipeServiceBenchmarkTest {
         System.out.printf("Simulated Latency: %d ms per call%n", MOCK_API_LATENCY_MS);
         System.out.println("----------------------------------------------------------------");
         System.out.printf("TOTAL EXECUTION TIME: %d ms%n", durationMs);
-        
+
         if (apiCalls > 0) {
             long theoreticalSequential = apiCalls * MOCK_API_LATENCY_MS;
             System.out.printf("Theoretical Sequential Time: %d ms%n", theoreticalSequential);
-            System.out.printf("Speedup Factor: %.2fx faster than sequential%n", (double) theoreticalSequential / durationMs);
+            System.out.printf("Speedup Factor: %.2fx faster than sequential%n",
+                    (double) theoreticalSequential / durationMs);
         }
         System.out.println("----------------------------------------------------------------\n");
     }

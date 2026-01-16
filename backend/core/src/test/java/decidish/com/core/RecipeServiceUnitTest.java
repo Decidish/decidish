@@ -12,6 +12,7 @@ import decidish.com.core.service.MarketService;
 import decidish.com.core.service.RecipeService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -32,12 +33,13 @@ import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
 
+@Tag("unit")
 @ExtendWith(MockitoExtension.class)
 class RecipeServiceUnitTest {
 
     @Mock
     private RecipeIngredientRepository recipeIngredientRepository;
-    
+
     @Mock
     private MarketService marketService;
 
@@ -64,7 +66,7 @@ class RecipeServiceUnitTest {
 
     @BeforeEach
     void setup() {
-        // 1. Setup Mock Ingredient and 
+        // 1. Setup Mock Ingredient and
         Ingredient tomato = new Ingredient("Tomato");
         tomato.setId(1);
 
@@ -72,7 +74,8 @@ class RecipeServiceUnitTest {
         riTomato = new RecipeIngredient();
         riTomato.setIngredient(tomato);
 
-        ProductAttributesDto attrs = new ProductAttributesDto(false,false,false,false,false,false,false,false,false,false,false,false);
+        ProductAttributesDto attrs = new ProductAttributesDto(false, false, false, false, false, false, false, false,
+                false, false, false, false);
 
         // 3. Setup Mock Product and its mapping
         Product reweTomato = new Product(555L, "Rewe Bio Tomato", 199, "url", "500g", attrs);
@@ -84,8 +87,8 @@ class RecipeServiceUnitTest {
         mappingTomato.setConfidence(0.99f); // Best match
 
         // when(transactionTemplate.execute(any())).thenAnswer(invocation -> {
-        //     TransactionCallback<?> callback = invocation.getArgument(0);
-        //     return callback.doInTransaction(null);
+        // TransactionCallback<?> callback = invocation.getArgument(0);
+        // return callback.doInTransaction(null);
         // });
 
     }
@@ -103,21 +106,22 @@ class RecipeServiceUnitTest {
         tomatoProduct.setNormalizedAmount(500.0);
 
         // 2. Create the ID and ensure the productId matches
-        IngredientProductId tomatoId = new IngredientProductId(1, TOMATO_REWE_ID); 
+        IngredientProductId tomatoId = new IngredientProductId(1, TOMATO_REWE_ID);
         mappingTomato.setId(tomatoId);
         // mappingTomato.setProduct(tomatoProduct);
 
         // 3. Mocks
 
         when(recipeIngredientRepository.findForShoppingList(RECIPE_IDS))
-            .thenReturn(List.of(riTomato));
+                .thenReturn(List.of(riTomato));
 
         when(recipeIngredientRepository.findProductsForIngredientsInMarket(anyList(), eq(MARKET_ID)))
-            .thenReturn(List.of(mappingTomato));
+                .thenReturn(List.of(mappingTomato));
 
-        // This mock must return a product where getReweId() matches mappingTomato.getId().getProductId()
+        // This mock must return a product where getReweId() matches
+        // mappingTomato.getId().getProductId()
         when(productRepository.findByMarketIdAndReweIds(eq(MARKET_ID), anyList()))
-            .thenReturn(List.of(tomatoProduct));
+                .thenReturn(List.of(tomatoProduct));
 
         // --- ACT ---
         ShoppingListResponse results = recipeService.generateShoppingList(MARKET_ID, RECIPE_IDS);
@@ -143,18 +147,18 @@ class RecipeServiceUnitTest {
         });
 
         when(recipeIngredientRepository.findForShoppingList(RECIPE_IDS))
-            .thenReturn(List.of(riTomato));
-        
+                .thenReturn(List.of(riTomato));
+
         // Return no mappings
         when(recipeIngredientRepository.findProductsForIngredientsInMarket(anyList(), eq(MARKET_ID)))
-            .thenReturn(List.of());
+                .thenReturn(List.of());
 
         Product mockApiProduct = new Product();
         mockApiProduct.setReweId(123L);
         mockApiProduct.setNormalizedAmount(500.0);
 
         when(marketService.getProductsQueryNoSave(eq(MARKET_ID), anyString()))
-            .thenReturn(List.of(mockApiProduct));
+                .thenReturn(List.of(mockApiProduct));
 
         // Act
         ShoppingListResponse results = recipeService.generateShoppingList(MARKET_ID, RECIPE_IDS);
@@ -162,12 +166,12 @@ class RecipeServiceUnitTest {
         // Assert
 
         // Assert
-        assertFalse(results.items().get(0).options().isEmpty(), 
-            "Options should NOT be empty because the API fallback returned a product");
+        assertFalse(results.items().get(0).options().isEmpty(),
+                "Options should NOT be empty because the API fallback returned a product");
 
         assertEquals(123L, results.items().get(0).options().get(0).product().getReweId());
     }
-    
+
     @Test
     void generateShoppingList_AllLocalMatches_ShouldNotCallApi() {
         // GIVEN
@@ -195,14 +199,14 @@ class RecipeServiceUnitTest {
         // MOCK
         when(recipeIngredientRepository.findForShoppingList(List.of(recipeId))).thenReturn(List.of(ri));
         when(recipeIngredientRepository.findProductsForIngredientsInMarket(anyList(), eq(marketId)))
-            .thenReturn(List.of(mapping));
+                .thenReturn(List.of(mapping));
 
         // Mock productRepository to return the product for the mapping
         when(productRepository.findByMarketIdAndReweIds(eq(marketId), anyList()))
-            .thenReturn(List.of(product));
+                .thenReturn(List.of(product));
 
         // when(recipeService.getMatches(anyList(), eq(marketId)))
-        //     .thenReturn(List.of(mapping));
+        // .thenReturn(List.of(mapping));
 
         // WHEN
         ShoppingListResponse response = recipeService.generateShoppingList(marketId, List.of(recipeId));
@@ -212,7 +216,7 @@ class RecipeServiceUnitTest {
         assertEquals(1, response.items().size());
         assertEquals("Flour", response.items().get(0).ingredientName());
         assertEquals(1, response.items().get(0).options().size());
-        
+
         // Verify API was NOT called because we found local matches
         verify(marketService, never()).getProductsQueryNoSave(anyLong(), anyString());
     }
@@ -233,21 +237,21 @@ class RecipeServiceUnitTest {
         // MOCK: Return ingredient but NO local mappings
         when(recipeIngredientRepository.findForShoppingList(List.of(recipeId))).thenReturn(List.of(ri));
         when(recipeIngredientRepository.findProductsForIngredientsInMarket(anyList(), eq(marketId)))
-            .thenReturn(Collections.emptyList());
+                .thenReturn(Collections.emptyList());
 
         // MOCK API Response
         Product apiProduct = new Product();
         apiProduct.setReweId(888L);
         apiProduct.setName("Imported Spice");
         apiProduct.setNormalizedAmount(50.0);
-        
+
         // Market marketResponse = new Market();
         // marketResponse.setProducts(List.of(apiProduct));
 
         when(marketService.getProductsQueryNoSave(eq(marketId), eq("Exotic Spice"))).thenReturn(List.of(apiProduct));
 
         when(productRepository.findByMarketIdAndReweId(eq(marketId), anyLong()))
-            .thenReturn(Optional.empty());
+                .thenReturn(Optional.empty());
 
         // Mock transaction template
         when(transactionTemplate.execute(any())).thenAnswer(invocation -> {
@@ -269,7 +273,7 @@ class RecipeServiceUnitTest {
         // Verify API WAS called
         verify(marketService, times(1)).getProductsQueryNoSave(eq(marketId), eq("Exotic Spice"));
     }
-    
+
     @Test
     @DisplayName("UNIT: Aggregates quantities from multiple recipes (200g + 300g = 500g)")
     void testGenerateShoppingList_Aggregation() {
@@ -290,7 +294,7 @@ class RecipeServiceUnitTest {
 
         // Mock Repo returning disjoint list
         when(recipeIngredientRepository.findForShoppingList(anyList()))
-            .thenReturn(List.of(ri1, ri2));
+                .thenReturn(List.of(ri1, ri2));
 
         // --- PRODUCT SETUP ---
         // Product is a 1kg bag (1000g)
@@ -298,7 +302,6 @@ class RecipeServiceUnitTest {
         flourBag.setReweId(99L);
         flourBag.setName("Gold Flour 1kg");
         flourBag.setNormalizedAmount(1000.0);
-
 
         IngredientProduct mapping = new IngredientProduct();
         IngredientProductId id = new IngredientProductId(flour.getId(), flourBag.getReweId());
@@ -308,11 +311,11 @@ class RecipeServiceUnitTest {
         mapping.setConfidence(1.0f);
 
         when(recipeIngredientRepository.findProductsForIngredientsInMarket(anyList(), eq(MARKET_ID)))
-            .thenReturn(List.of(mapping));
+                .thenReturn(List.of(mapping));
 
         // Mock productRepository to return the product for the mapping
         when(productRepository.findByMarketIdAndReweIds(eq(MARKET_ID), anyList()))
-            .thenReturn(List.of(flourBag));
+                .thenReturn(List.of(flourBag));
 
         // --- WHEN ---
         ShoppingListResponse response = recipeService.generateShoppingList(MARKET_ID, List.of(10, 11));
@@ -320,7 +323,7 @@ class RecipeServiceUnitTest {
         // --- THEN ---
         assertNotNull(response);
         assertEquals(1, response.items().size(), "Should aggregate into exactly 1 item entry");
-        
+
         IngredientGroup group = response.items().get(0);
         assertEquals("Flour", group.ingredientName());
         assertEquals(500.0, group.totalAmountNeeded(), 0.01, "Total needed should be 200 + 300 = 500");
@@ -331,7 +334,7 @@ class RecipeServiceUnitTest {
         assertEquals(1, option.quantityToBuy(), "500g needed / 1000g pack = 0.5 -> Ceil to 1");
         assertEquals(1000.0, option.totalProductAmount(), "Buying 1 pack of 1000g = 1000g total");
     }
-    
+
     @Test
     @DisplayName("UNIT: Calculates correct pack count (Need 250g, Pack 100g -> Buy 3)")
     void testGenerateShoppingList_PackCalculation() {
@@ -360,20 +363,20 @@ class RecipeServiceUnitTest {
         mapping.setConfidence(1.0f);
 
         when(recipeIngredientRepository.findProductsForIngredientsInMarket(anyList(), eq(MARKET_ID)))
-            .thenReturn(List.of(mapping));
+                .thenReturn(List.of(mapping));
 
         // Mock productRepository to return the product for the mapping
         when(productRepository.findByMarketIdAndReweIds(eq(MARKET_ID), anyList()))
-            .thenReturn(List.of(sugarPacket));
+                .thenReturn(List.of(sugarPacket));
 
         // --- WHEN ---
         ShoppingListResponse response = recipeService.generateShoppingList(MARKET_ID, List.of(1));
 
         // --- THEN ---
         ShoppingOption option = response.items().get(0).options().get(0);
-        
+
         // Math: 250 / 100 = 2.5 -> Ceil to 3
-        assertEquals(3, option.quantityToBuy()); 
+        assertEquals(3, option.quantityToBuy());
         assertEquals(300.0, option.totalProductAmount(), "3 packs * 100g = 300g total");
     }
 }

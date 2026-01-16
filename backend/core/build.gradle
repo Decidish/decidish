@@ -33,7 +33,7 @@ ext {
 
 dependencies {
     implementation 'com.fasterxml.jackson.datatype:jackson-datatype-hibernate6'
-    implementation 'org.springframework.boot:spring-boot-starter-data-redis'
+
     implementation 'com.fasterxml.jackson.core:jackson-databind'
     implementation 'org.springframework.boot:spring-boot-starter-actuator'
     implementation 'org.springframework.boot:spring-boot-starter-batch'
@@ -99,4 +99,28 @@ protobuf {
 
 tasks.named('test') {
     useJUnitPlatform()
+}
+
+tasks.register('unitTest', Test) {
+    useJUnitPlatform {
+        includeTags 'unit'
+    }
+    description = 'Runs unit tests.'
+    group = 'verification'
+}
+
+tasks.register('integrationTest', Test) {
+    useJUnitPlatform {
+        includeTags 'integration'
+    }
+    description = 'Runs integration tests.'
+    group = 'verification'
+}
+
+tasks.register('e2eTest', Test) {
+    useJUnitPlatform {
+        includeTags 'e2e'
+    }
+    description = 'Runs end-to-end tests.'
+    group = 'verification'
 }
