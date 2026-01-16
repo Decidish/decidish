@@ -52,11 +52,10 @@ class MarketServiceUT {
         @BeforeEach
         void setup() {
                 // 1. Setup API Data
-                RawValues raw = new RawValues(PLZ, "Munich");
                 Location loc = new Location(10.0, 10.0);
-                MarketDto newDto = new MarketDto(NEW_ID, "New Market", "MARKET", "St", "1", loc, raw);
-                MarketDto oldDto = new MarketDto(OLD_ID, "Updated Market", "MARKET", "St", "1", loc, raw);
-                apiResponse = new MarketSearchResponse(List.of(newDto, oldDto));
+                MarketDto newDto = new MarketDto(NEW_ID, "New Market", "MARKET", "St", "1","Munchen", loc, new ServiceFlags(true));
+                MarketDto oldDto = new MarketDto(OLD_ID, "Updated Market", "MARKET", "St", "1","Munchen", loc, new ServiceFlags(true));
+                apiResponse = new MarketSearchResponse(new MarketSearchData(new MarketsSearched(List.of(newDto, oldDto))));
 
                 // 2. Setup Stale DB Data
                 staleMarket = new Market();
@@ -159,7 +158,7 @@ class MarketServiceUT {
 
                 // 2. API returns Empty Response
                 when(apiClient.searchMarkets(any()))
-                                .thenReturn(new MarketSearchResponse(Collections.emptyList()));
+                                .thenReturn(new MarketSearchResponse(new MarketSearchData( new MarketsSearched(Collections.emptyList()))));
 
                 // Act
                 List<Market> result = marketService.getMarkets(PLZ);

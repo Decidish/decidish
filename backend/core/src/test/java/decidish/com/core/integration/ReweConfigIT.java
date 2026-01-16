@@ -50,20 +50,20 @@ class ReweConfigIT {
 
         // 3. Verify Response
         assertNotNull(response);
-        assertNotNull(response.markets(), "Markets list should not be null");
-        assertFalse(response.markets().isEmpty(), "Should find markets in " + zipCode);
+        List<MarketDto> markets = response.data().marketSearch().markets();
+        assertNotNull(markets, "Markets list should not be null");
+        assertFalse(markets.isEmpty(), "Should find markets in " + zipCode);
 
         System.out.println("Connection Successful!");
-        System.out.println("Found " + response.markets().size() + " markets.");
-        System.out.println("Name: " + response.markets().get(0).name());
-        System.out.println("Id: " + response.markets().get(0).id());
-        System.out.println("Type ID: " + response.markets().get(0).typeId());
-        System.out.println("Address Line 1: " + response.markets().get(0).addressLine1());
-        System.out.println("Address Line 2: " + response.markets().get(0).addressLine2());
-        System.out.println("Latitude: " + response.markets().get(0).location().latitude());
-        System.out.println("Longitude: " + response.markets().get(0).location().longitude());
-        System.out.println("Postal Code: " + response.markets().get(0).rawValues().postalCode());
-        System.out.println("City: " + response.markets().get(0).rawValues().city());
+        System.out.println("Found " + markets.size() + " markets.");
+        System.out.println("Name: " + markets.get(0).name());
+        System.out.println("Id: " + markets.get(0).wwIdent());
+        System.out.println("Type ID: " + markets.get(0).typeId());
+        System.out.println("Street: " + markets.get(0).street());
+        System.out.println("Latitude: " + markets.get(0).location().latitude());
+        System.out.println("Longitude: " + markets.get(0).location().longitude());
+        System.out.println("Postal Code: " + markets.get(0).zipcode());
+        System.out.println("City: " + markets.get(0).city());
 
         // String response = client.searchMarkets(zipCode);
 
@@ -88,12 +88,12 @@ class ReweConfigIT {
         assertFalse(response.openingTimes().isEmpty(), "Opening hours should not be empty");
         System.out.println("Market Details for ID " + marketId + ":");
         System.out.println("Market Name: " + response.marketItem().name());
-        System.out.println("Market Address: " + response.marketItem().addressLine1() + ", "
-                + response.marketItem().rawValues().postalCode() + " " + response.marketItem().rawValues().city());
+        System.out.println("Market Address: " + response.marketItem().street() + ", "
+                + response.marketItem().zipcode() + " " + response.marketItem().city());
         System.out.println("Market Type ID: " + response.marketItem().typeId());
         System.out.println("Market Location: Lat " + response.marketItem().location().latitude() + ", Lon "
                 + response.marketItem().location().longitude());
-        System.out.println("Market ID: " + response.marketItem().id());
+        System.out.println("Market ID: " + response.marketItem().wwIdent());
         System.out.println("Market Opening Times:");
         for (OpeningTime time : response.openingTimes()) {
             System.out.println(time.days() + ": " + time.hours());

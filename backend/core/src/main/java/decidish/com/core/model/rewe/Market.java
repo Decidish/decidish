@@ -33,6 +33,9 @@ public class Market implements Persistable<Long> {
     @OneToOne(cascade = CascadeType.ALL) // So it also saves the new created address
     @JoinColumn(name = "address_id")
     private Address address;
+    
+    @Column(name = "has_pickup")
+    private boolean hasPickup = true;
 
     // TimeStamp
     @Column(name = "last_updated")
@@ -92,25 +95,22 @@ public class Market implements Persistable<Long> {
             this.address = new Address();
         }
 
-        if (this.address == null) {
-            this.address = new Address();
-        }
-
-        this.address.setStreet(dto.addressLine1());
-        this.address.setZipCode(dto.rawValues().postalCode());
-        this.address.setCity(dto.rawValues().city());
+        this.address.setStreet(dto.street());
+        this.address.setZipCode(dto.zipcode());
+        this.address.setCity(dto.city());
+        this.hasPickup = dto.serviceFlags().hasPickup();
     }
 
     // Convert DTO to Entity
     public static Market fromDto(MarketDto dto) {
-        Long marketId = dto.id();
+        Long marketId = dto.wwIdent();
         String name = dto.name();
         Address address = new Address();
         address.setLatitude(dto.location().latitude());
         address.setLongitude(dto.location().longitude());
-        address.setStreet(dto.addressLine1());
-        address.setZipCode(dto.rawValues().postalCode());
-        address.setCity(dto.rawValues().city());
+        address.setStreet(dto.street());
+        address.setZipCode(dto.zipcode());
+        address.setCity(dto.city());
 
         return new Market(marketId, name, address
         // ,dto.isOpen()

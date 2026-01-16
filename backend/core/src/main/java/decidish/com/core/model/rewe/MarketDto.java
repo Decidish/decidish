@@ -4,11 +4,12 @@ import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 
 @JsonIgnoreProperties(ignoreUnknown = true)
 public record MarketDto( 
-    Long id,
+    Long wwIdent,
     String name,
     String typeId,       // MARKET 
-    String addressLine1, // e.g. "Keferloherstr. 75"
-    String addressLine2, // e.g. "80807 München"
-    Location location,
-    RawValues rawValues
+    String street, // e.g. "Keferloherstr. 75"
+    String zipcode, // e.g. "80807"
+    String city, // e.g "München"
+    Location location, 
+    ServiceFlags serviceFlags
 ) {} 
