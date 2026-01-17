@@ -36,7 +36,7 @@ class MarketServiceIT {
         // A real, valid REWE Market ID (e.g., REWE City Munich)
         // You can find this ID in the URL on the rewe website
         private final Long VALID_MARKET_ID = 431022L;
-        private final String PLZ = "80809";
+        private final String PLZ = "80995";
 
         @BeforeEach
         void setup() {
@@ -58,7 +58,7 @@ class MarketServiceIT {
 
                 // Basic Sanity Checks
                 assertFalse(markets.isEmpty(),
-                                "Real API should return markets (unless searching for '*') returns nothing on Web API");
+                                "Real API should return (for this zipcode some have pickup = true) markets (unless searching for '*') returns nothing on Web API");
 
                 Market firstMarket = markets.get(0);
                 System.out.println(
@@ -82,6 +82,18 @@ class MarketServiceIT {
                 // Verify DB Row Count
                 long dbMarketCount = marketRepository.findAll().size();
                 assertEquals(markets.size(), dbMarketCount, "Database rows match in-memory list");
+        }
+
+        @Test
+        @DisplayName("LIVE API: Fetch Markets none have pickup flag = true so empty")
+        void testSearchMarketsNoPickup_Live() {
+                System.out.println("Calling Real REWE API (This may take a few seconds)...");
+                List<Market> markets = marketService.getMarkets("80809");
+
+                assertNotNull(markets);
+                System.out.println("Found " + markets.size() + " markets.");
+
+                assertTrue(markets.isEmpty(),"Pickup = false for all the markets of this zipcode");
         }
 
         @Test

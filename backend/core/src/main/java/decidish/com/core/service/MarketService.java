@@ -109,13 +109,15 @@ public class MarketService {
         List<Market> finalBatch = new ArrayList<>();
 
         for (MarketDto dto : apiDtos) {
-            if (marketMap.containsKey(dto.wwIdent())) {
-                Market existing = marketMap.get(dto.wwIdent());
-                existing.updateFromDto(dto);
-                finalBatch.add(existing);
-            } else {
-                Market newMarket = Market.fromDto(dto);
-                finalBatch.add(newMarket);
+            if(dto.serviceFlags().hasPickup() == true){
+                if (marketMap.containsKey(dto.wwIdent())) {
+                    Market existing = marketMap.get(dto.wwIdent());
+                    existing.updateFromDto(dto);
+                    finalBatch.add(existing);
+                } else {
+                    Market newMarket = Market.fromDto(dto);
+                    finalBatch.add(newMarket);
+                }
             }
         }
         return finalBatch;
