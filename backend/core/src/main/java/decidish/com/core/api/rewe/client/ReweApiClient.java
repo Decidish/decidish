@@ -30,6 +30,7 @@ public interface ReweApiClient {
     //     @RequestParam("search") String zipCode
     // );
 
+    //! NO LONG NECESSARY
     // e.g.,
     // https://mobile-client-api.rewe.de/api/stationary-markets/marketId=431022
     @GetExchange(REWE_API_BASE_URL + MARKET_DETAILS_PATH)   
