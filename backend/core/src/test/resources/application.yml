@@ -1,10 +1,5 @@
 # --- GLOBAL TEST DEFAULTS (Applied to Unit, Integration, and E2E) ---
 
-# 1. MinIO Dummies (Prevents BeanCreationException)
-MINIO_ENDPOINT: http://localhost:9000
-MINIO_ACCESS_KEY: test-access-key
-MINIO_SECRET_KEY: test-secret-key
-
 spring:
   main:
     banner-mode: off
