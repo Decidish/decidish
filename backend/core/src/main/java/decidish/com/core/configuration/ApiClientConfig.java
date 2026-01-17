@@ -5,6 +5,7 @@ import io.minio.GetObjectArgs;
 import io.minio.MinioClient;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.ssl.SslBundle;
 import org.springframework.boot.ssl.SslBundles;
 import org.springframework.boot.ssl.pem.PemSslStoreBundle;
@@ -33,31 +34,40 @@ import java.util.zip.GZIPInputStream;
 public class ApiClientConfig {
 
     private static final Logger log = LoggerFactory.getLogger(ApiClientConfig.class);
+    @Value("${minio.bucket.name:decidish-storage}")
+    private String bucketName;
+
+    @Value("${minio.cert.pem:private_test.pem}")
+    private String pemFileName;
+
+    @Value("${minio.cert.key:private_test.key}")
+    private String keyFileName;
 
     @Bean
     public ReweApiClient reweApiClient(RestClient.Builder builder, MinioClient minioClient, SslBundles sslBundles) {
         SslBundle reweBundle;
 
         try {
-            String MINIO_DECIDISH_BUCKET = "decidish-storage";
-            String MINIO_PEM = "private_test.pem";
-            String MINIO_KEY = "private_test.key";
-
-            log.info("Attempting to load SSL certificates from MinIO bucket: {}", MINIO_DECIDISH_BUCKET);
+            log.info("Attempting to fetch SSL certificates from MinIO bucket: {}", bucketName);
             
-            String cert = new String(fetchFromMinio(minioClient, MINIO_DECIDISH_BUCKET, MINIO_PEM), StandardCharsets.UTF_8);
-            String key = new String(fetchFromMinio(minioClient, MINIO_DECIDISH_BUCKET, MINIO_KEY), StandardCharsets.UTF_8);
+            // 1. Fetch content from MinIO
+            String cert = fetchStringFromMinio(minioClient, bucketName, pemFileName);
+            String key = fetchStringFromMinio(minioClient, bucketName, keyFileName);
 
+            // 2. Create in-memory SSL Bundle
             PemSslStoreDetails keyStoreDetails = PemSslStoreDetails.forCertificate(cert).withPrivateKey(key);
             PemSslStoreBundle pemBundle = new PemSslStoreBundle(keyStoreDetails, null);
             reweBundle = SslBundle.of(pemBundle);
             
+            log.info("Successfully loaded SSL certificates from MinIO.");
+
         } catch (Exception e) {
-            log.warn("Failed to connect to MinIO ({}). Falling back to local 'rewe-client' SSL bundle.", e.getMessage());
+            log.warn("Failed to connect to MinIO or fetch certs ({}). Falling back to local 'rewe-client' SSL bundle from YAML.", e.getMessage());
             try {
+                // Fallback: Use the file-based bundle defined in application.yml
                 reweBundle = sslBundles.getBundle("rewe-client");
             } catch (Exception ex) {
-                throw new IllegalStateException("MinIO is down AND no local 'rewe-client' SSL bundle found. Cannot start.", ex);
+                throw new IllegalStateException("CRITICAL: MinIO is unreachable AND no local 'rewe-client' SSL bundle found. Application cannot start.", ex);
             }
         }
 
@@ -91,6 +101,19 @@ public class ApiClientConfig {
         HttpServiceProxyFactory factory = HttpServiceProxyFactory.builderFor(adapter).build();
 
         return factory.createClient(ReweApiClient.class);
+    }
+    
+    /**
+     * Helper to fetch a file from MinIO and convert it to a String.
+     */
+    private String fetchStringFromMinio(MinioClient client, String bucket, String objectName) throws Exception {
+        try (InputStream stream = client.getObject(
+                GetObjectArgs.builder()
+                        .bucket(bucket)
+                        .object(objectName)
+                        .build())) {
+            return new String(stream.readAllBytes(), StandardCharsets.UTF_8);
+        }
     }
     
     // --- UPDATED: Robust Retry Strategy for 429s ---
