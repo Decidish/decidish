@@ -83,7 +83,7 @@ class UnitGraph:
             if conn:
                 conn.close()
 
-    def normalize(self, amount: float, unit: str, ingredient_name: str) -> float:
+    def normalize(self, amount: float, unit: str, ingredient_name: str) -> float | None:
         """
         Main API: Converts input to Grams (g).
         Returns None if conversion is impossible.

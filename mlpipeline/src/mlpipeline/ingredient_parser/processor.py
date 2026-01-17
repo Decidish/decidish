@@ -1,15 +1,12 @@
 import os
 
 from mlpipeline.ingredient_parser.parser import IngredientParser
-from .normalization import UnitGraph
+from mlpipeline.ingredient_parser.normalization import UnitGraph
 
 class PipelineProcessor:
-    def __init__(self, db_url, ingredient_parser: IngredientParser):
+    def __init__(self, ingredient_parser: IngredientParser, unit_graph: UnitGraph):
         # Load Normalization
-        if not db_url:
-            db_url = os.getenv("CORE_DATABASE_URL", "postgresql://user:password@localhost:5433/decidish?sslmode=disable")
-        self.graph = UnitGraph(db_url)
-
+        self.graph = unit_graph
         self.extractor = ingredient_parser
 
     def process_recipe_text(self, raw_text: str):

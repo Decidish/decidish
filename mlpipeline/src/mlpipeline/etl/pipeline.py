@@ -50,13 +50,7 @@ class Pipeline:
                 response.close()
                 response.release_conn()
 
-    def process_recipe(self, line: str) -> tuple[int, Optional[Exception]]:
-        try:
-            recipe_data = Recipe.model_validate_json(line)
-        except Exception as e:
-            print(f"Error processing recipe: {e}")
-            return -1, e
-
+    def process_recipe(self, recipe_data: Recipe) -> tuple[int, Optional[Exception]]:
         try:
             with self.conn.cursor() as cursor:
                 insert_query = """
@@ -160,6 +154,7 @@ class Pipeline:
             print(f"Error processing categories: {err}")
             raise err
     
+    # TODO: Use preprocessed if present otherwise parse using an API request to the gemini to get the information needed
     def process_ingredients(self, recipe_id: int, ingredients: list[str], cursor):
         try:
             docs = self.parser.process_texts(ingredients)
@@ -213,7 +208,12 @@ class Pipeline:
     def process_recipe_batch(self, batch: list[str]) -> list[dict]:
         processed_recipes = []
         for line in batch:
-            recipe_id, err = self.process_recipe(line)
+            try:
+                recipe_data = Recipe.model_validate_json(line)
+            except Exception as e:
+                print(f"Error processing recipe: {e}")
+                continue
+            recipe_id, err = self.process_recipe(recipe_data)
             if err is not None:
                 raise err
             if recipe_id == -1:

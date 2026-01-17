@@ -6,9 +6,9 @@ from typing import Iterator
 import spacy
 from spacy.tokens import Doc
 
-
+# TODO: Update this ingredient parser to use another model
 class IngredientParser:
-    def __init__(self, nlp: spacy.Language):
+    def __init__(self, nlp: spacy.Language): # type: ignore
         # Try to use GPU if available
         # spacy.require_gpu()
         self.nlp = nlp
