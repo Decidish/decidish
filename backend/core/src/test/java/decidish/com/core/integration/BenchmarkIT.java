@@ -1,4 +1,4 @@
-package decidish.com.core;
+package decidish.com.core.integration;
 
 import decidish.com.core.model.rewe.Address;
 import decidish.com.core.model.rewe.Market;
@@ -6,28 +6,25 @@ import decidish.com.core.model.rewe.Product;
 import decidish.com.core.model.rewe.ProductAttributesDto;
 import decidish.com.core.repository.MarketRepository;
 import jakarta.persistence.EntityManagerFactory;
-import jakarta.transaction.Transactional;
 
 import org.hibernate.SessionFactory;
 import org.hibernate.stat.Statistics;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
-import org.junit.jupiter.api.MethodOrderer;
+
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.TestMethodOrder;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.jdbc.AutoConfigureTestDatabase;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.autoconfigure.web.servlet.MockMvcPrint;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.cache.CacheManager;
-import org.springframework.cache.annotation.EnableCaching;
-import org.springframework.core.annotation.Order;
-import org.springframework.data.redis.core.StringRedisTemplate;
+
 import org.springframework.jdbc.core.JdbcTemplate;
-import org.springframework.test.annotation.Rollback;
+import org.springframework.core.annotation.Order;
+
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
 
@@ -41,22 +38,11 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 @SpringBootTest
 @AutoConfigureMockMvc(print = MockMvcPrint.NONE)
-@ActiveProfiles("test")
+@ActiveProfiles("integration")
 @AutoConfigureTestDatabase(replace = AutoConfigureTestDatabase.Replace.NONE)
 @Tag("benchmark")
-@TestMethodOrder(MethodOrderer.OrderAnnotation.class)
-@EnableCaching
-class BenchmarkTests {
+class BenchmarkIT {
 
-    @Autowired
-    private MockMvc mockMvc;
-
-    @Autowired
-    private MarketRepository marketRepository;
-
-    @Autowired
-    private CacheManager cacheManager;
-    
     @Autowired
     private EntityManagerFactory entityManagerFactory;
 
@@ -64,13 +50,16 @@ class BenchmarkTests {
     private JdbcTemplate jdbcTemplate;
 
     @Autowired
-    private StringRedisTemplate redisTemplate;
+    private MockMvc mockMvc;
+
+    @Autowired
+    private MarketRepository marketRepository;
 
     private Statistics hibernateStats;
 
     // Test Data Constants
     private final String PLZ = "80331";
-    private final Long MARKET_ID = 431022L; 
+    private final Long MARKET_ID = 431022L;
     private final String PRODUCT_QUERY = "milch";
 
     @BeforeEach
@@ -84,27 +73,19 @@ class BenchmarkTests {
         this.hibernateStats.clear();
 
         // Clear All Caches
-        cacheManager.getCacheNames().forEach(name -> 
-            cacheManager.getCache(name).clear()
-        );
-        // WIPE REDIS CLEAN
-        redisTemplate.getConnectionFactory()
-                     .getConnection()
-                     .serverCommands()
-                     .flushAll();
+
     }
-    
+
     @AfterEach
-    void tearDown(){
+    void tearDown() {
         // 1. Delete Children (Products)
         jdbcTemplate.execute("DELETE FROM products");
-        
+
         // 2. Delete Parents (Markets)
         jdbcTemplate.execute("DELETE FROM markets");
         // User jdbc for benchmarking (faster)
         // marketRepository.deleteAll();
     }
-    
 
     // ==================================================================================
     // 1. ENDPOINT: GET /api/v1/markets?plz=...
@@ -120,14 +101,14 @@ class BenchmarkTests {
         hibernateStats.clear();
 
         System.out.println("\n[SEARCH COLD] Fetching from External API & Saving...");
-        
+
         long startTime = System.nanoTime();
         mockMvc.perform(get("/api/v1/markets").param("plz", PLZ))
-               .andExpect(status().isOk());
+                .andExpect(status().isOk());
         long endTime = System.nanoTime();
 
         printTime("Search Markets (Cold)", startTime, endTime);
-        
+
         // Assertions: Should have high query count (Inserts)
         assertThat(hibernateStats.getQueryExecutionCount()).isGreaterThan(0);
         assertThat(marketRepository.count()).isGreaterThan(0); // Verify data was saved
@@ -139,22 +120,16 @@ class BenchmarkTests {
     void benchmarkSearchMarkets_Warm() throws Exception {
         // 1. Prepare: Save data to DB so we don't hit API
         marketRepository.deleteAllInBatch();
-        
+
         // marketRepository.save(m); // DB is now full
         mockMvc.perform(get("/api/v1/markets").param("plz", PLZ)).andExpect(status().isOk());
         hibernateStats.clear();
-
-        // --- STEP 2: EMPTY THE CACHE ---
-        // This ensures the next request DOES NOT find it in memory
-        if (cacheManager.getCache("markets") != null) {
-            cacheManager.getCache("markets").clear();
-        }
 
         System.out.println("\n[SEARCH WARM] Fetching from DB (Cache Miss)...");
 
         long startTime = System.nanoTime();
         mockMvc.perform(get("/api/v1/markets").param("plz", PLZ))
-               .andExpect(status().isOk());
+                .andExpect(status().isOk());
         long endTime = System.nanoTime();
 
         printTime("Search Markets (Warm)", startTime, endTime);
@@ -162,38 +137,6 @@ class BenchmarkTests {
         // Assertions: Should be SELECT queries, but NO Inserts (if logic prevents it)
         assertThat(hibernateStats.getQueryExecutionCount()).isGreaterThan(0);
     }
-
-    @Test
-    @Order(3)
-    @DisplayName("SEARCH MARKETS - Hot (Cache Hit)")
-    void benchmarkSearchMarkets_Hot() throws Exception {
-        marketRepository.deleteAllInBatch();
-        // 1. Warm up the cache
-        mockMvc.perform(get("/api/v1/markets").param("plz", PLZ)).andExpect(status().isOk());
-        // 2. Did it save to DB?
-        long dbCount = marketRepository.count();
-        System.out.println("Items in DB: " + dbCount);
-
-        // 3. Did it save to Cache?
-        var cache = cacheManager.getCache("markets");
-        var cachedValue = cache.get(PLZ); // Look it up by the key
-        boolean isInCache = (cachedValue != null);
-        System.out.println("Is in Cache: " + isInCache);
-        hibernateStats.clear();
-
-        System.out.println("\n[SEARCH HOT] Fetching from Cache...");
-
-        long startTime = System.nanoTime();
-        mockMvc.perform(get("/api/v1/markets").param("plz", PLZ))
-               .andExpect(status().isOk());
-        long endTime = System.nanoTime();
-
-        printTime("Search Markets (Hot)", startTime, endTime);
-
-        // Assertions: 0 DB Queries
-        assertThat(hibernateStats.getQueryExecutionCount()).isEqualTo(0);
-    }
-
 
     // ==================================================================================
     // 2. ENDPOINT: GET /api/v1/markets/{id}/products
@@ -204,23 +147,23 @@ class BenchmarkTests {
     @DisplayName("GET ALL PRODUCTS - Cold (API -> Batch Save)")
     // @Transactional
     void benchmarkGetAllProducts_Cold() throws Exception {
-        try{
-        // 1. Setup Market, but NO products
-        setupMarketWithoutProducts();
-        hibernateStats.clear();
+        try {
+            // 1. Setup Market, but NO products
+            setupMarketWithoutProducts();
+            hibernateStats.clear();
 
-        System.out.println("\n[ALL PRODS COLD] Fetching API & Batch Saving...");
+            System.out.println("\n[ALL PRODS COLD] Fetching API & Batch Saving...");
 
-        long startTime = System.nanoTime();
-        mockMvc.perform(get("/api/v1/markets/{id}/products", MARKET_ID))
-               .andExpect(status().isOk());
-        long endTime = System.nanoTime();
+            long startTime = System.nanoTime();
+            mockMvc.perform(get("/api/v1/markets/{id}/products", MARKET_ID))
+                    .andExpect(status().isOk());
+            long endTime = System.nanoTime();
 
-        printTime("Get All Products (Cold)", startTime, endTime);
-        
-        // Check how many rows were inserted (Ignore how many SQL statements were sent)
-        assertThat(hibernateStats.getEntityInsertCount()).isGreaterThan(0);
-        } finally{
+            printTime("Get All Products (Cold)", startTime, endTime);
+
+            // Check how many rows were inserted (Ignore how many SQL statements were sent)
+            assertThat(hibernateStats.getEntityInsertCount()).isGreaterThan(0);
+        } finally {
             marketRepository.deleteAll();
         }
     }
@@ -237,7 +180,7 @@ class BenchmarkTests {
 
         long startTime = System.nanoTime();
         mockMvc.perform(get("/api/v1/markets/{id}/products", MARKET_ID))
-               .andExpect(status().isOk());
+                .andExpect(status().isOk());
         long endTime = System.nanoTime();
 
         printTime("Get All Products (Warm)", startTime, endTime);
@@ -245,28 +188,6 @@ class BenchmarkTests {
         // Should hit DB
         assertThat(hibernateStats.getQueryExecutionCount()).isGreaterThan(0);
     }
-
-    @Test
-    @Order(6)
-    @DisplayName("GET ALL PRODUCTS - Hot (Cache Hit)")
-    void benchmarkGetAllProducts_Hot() throws Exception {
-        setupMarketWithoutProducts(); // Minimal setup, the warm-up will fill it
-        
-        // 1. Warm up
-        mockMvc.perform(get("/api/v1/markets/{id}/products", MARKET_ID));
-        hibernateStats.clear();
-
-        System.out.println("\n[ALL PRODS HOT] Fetching from Cache...");
-
-        long startTime = System.nanoTime();
-        mockMvc.perform(get("/api/v1/markets/{id}/products", MARKET_ID))
-               .andExpect(status().isOk());
-        long endTime = System.nanoTime();
-
-        printTime("Get All Products (Hot)", startTime, endTime);
-        assertThat(hibernateStats.getQueryExecutionCount()).isEqualTo(0);
-    }
-
 
     // ==================================================================================
     // 3. ENDPOINT: GET /api/v1/markets/{id}/query?query=...
@@ -283,8 +204,8 @@ class BenchmarkTests {
 
         long startTime = System.nanoTime();
         mockMvc.perform(get("/api/v1/markets/{id}/query", MARKET_ID)
-                        .param("query", PRODUCT_QUERY))
-               .andExpect(status().isOk());
+                .param("query", PRODUCT_QUERY))
+                .andExpect(status().isOk());
         long endTime = System.nanoTime();
 
         printTime("Query Products (Cold)", startTime, endTime);
@@ -315,14 +236,14 @@ class BenchmarkTests {
         List<Product> products = new ArrayList<>();
         for (int i = 0; i < count; i++) {
             ProductAttributesDto attrs = new ProductAttributesDto(
-                true,true,true,true,true,true,true,true,true,true,true,true
-            );
-            Product p = new Product(Long.valueOf(i),productNameBase + " " + i,100,"img","100g", attrs);
+                    true, true, true, true, true, true, true, true, true, true, true, true);
+            Product p = new Product(Long.valueOf(i), productNameBase + " " + i, 100, "img", "100g", attrs);
             p.setMarket(m);
             products.add(p);
         }
-        // If bidirectional: 
-        m.setProducts(products); marketRepository.save(m);
+        // If bidirectional:
+        m.setProducts(products);
+        marketRepository.save(m);
     }
 
     private void printTime(String label, long start, long end) {

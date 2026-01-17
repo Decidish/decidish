@@ -18,6 +18,7 @@ CREATE TABLE markets
     id      BIGINT NOT NULL,
     name         VARCHAR(255),
     address_id   BIGINT,
+    has_pickup   BOOLEAN,
     last_updated TIMESTAMP WITHOUT TIME ZONE,
     CONSTRAINT pk_markets PRIMARY KEY (id)
 );

@@ -35,6 +35,9 @@ jobs:
             client:
               - 'client/**'
               - '.github/workflows/client-ci.yml'
+            core:
+              - 'backend/core/**'
+              - '.github/workflows/core-ci.yml'
 
   auth-ci:
     needs: prepare
@@ -68,9 +71,17 @@ jobs:
       environment: qa
     secrets: inherit
 
+  core-ci:
+    needs: prepare
+    if: ${{ needs.prepare.outputs.core_changed == 'true' || github.ref == 'refs/heads/main' }}
+    uses: ./.github/workflows/core-ci.yml
+    with: 
+      environment: qa
+    secrets: inherit
+
   deploy-qa:
     if: github.ref == 'refs/heads/main'
-    needs: [prepare, auth-ci, personalization-ci, mlpipeline-ci, client-ci]
+    needs: [prepare, auth-ci, personalization-ci, mlpipeline-ci, client-ci, core-ci] 
     environment: qa
     runs-on: [self-hosted, qa-server]
     steps:

@@ -1,9 +1,10 @@
-package decidish.com.core;
+package decidish.com.core.unit;
 
 import decidish.com.core.model.rewe.Market;
 import decidish.com.core.service.MarketService;
 import decidish.com.core.controller.MarketController;
 import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
@@ -19,8 +20,9 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+@Tag("unit")
 @WebMvcTest(MarketController.class)
-class MarketControllerUnitTest {
+class MarketControllerUT {
 
     @Autowired
     private MockMvc mockMvc; // Simulates HTTP requests
@@ -36,13 +38,13 @@ class MarketControllerUnitTest {
         Market mockMarket = new Market();
         mockMarket.setId(1L);
         mockMarket.setName("REWE Test");
-        
+
         when(marketService.getMarkets(plz)).thenReturn(List.of(mockMarket));
 
         // Act & Assert
         mockMvc.perform(get("/api/v1/markets")
-                        .param("plz", plz)
-                        .contentType(MediaType.APPLICATION_JSON))
+                .param("plz", plz)
+                .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.size()").value(1))
                 .andExpect(jsonPath("$[0].name").value("REWE Test"));
@@ -65,7 +67,7 @@ class MarketControllerUnitTest {
         mockMvc.perform(get("/api/v1/markets/{id}/products", marketId))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.name").value("REWE with Products"));
-        
+
         verify(marketService).getAllProducts(marketId);
     }
 
@@ -78,12 +80,12 @@ class MarketControllerUnitTest {
         Market mockMarket = new Market();
         mockMarket.setId(marketId);
         mockMarket.setName("REWE with Milk Products");
-        
+
         when(marketService.getProductsQuerySave(marketId, query)).thenReturn(mockMarket);
 
         // Act & Assert
         mockMvc.perform(get("/api/v1/markets/{id}/query", marketId)
-                        .param("query", query))
+                .param("query", query))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.name").value("REWE with Milk Products"));
 

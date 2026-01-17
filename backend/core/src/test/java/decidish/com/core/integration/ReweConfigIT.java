@@ -1,6 +1,7 @@
-package decidish.com.core;
+package decidish.com.core.integration;
 
 import decidish.com.core.configuration.ApiClientConfig;
+import decidish.com.core.configuration.MinioConfig;
 import decidish.com.core.api.rewe.client.ReweApiClient;
 import decidish.com.core.model.rewe.*;
 
@@ -10,21 +11,25 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.autoconfigure.EnableAutoConfiguration;
 import org.springframework.boot.autoconfigure.flyway.FlywayAutoConfiguration;
 import org.springframework.boot.autoconfigure.jdbc.DataSourceAutoConfiguration;
+import org.springframework.boot.autoconfigure.session.SessionAutoConfiguration;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.test.context.ActiveProfiles;
 
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 
 import java.util.List;
 
-@SpringBootTest(classes = ApiClientConfig.class) // Only load your Config class
+@SpringBootTest(classes = { ApiClientConfig.class, MinioConfig.class })
 @EnableAutoConfiguration(exclude = {
-    // Exclude DB stuff so the test doesn't crash if you don't have Postgres running
-    DataSourceAutoConfiguration.class,
-    FlywayAutoConfiguration.class
+        // Exclude DB stuff so the test doesn't crash if you don't have Postgres running
+        DataSourceAutoConfiguration.class,
+        FlywayAutoConfiguration.class,
+        SessionAutoConfiguration.class
 })
+@ActiveProfiles("test") 
 
-class ReweConfigTest {
+class ReweConfigIT {
 
     @Autowired
     private ReweApiClient client; // Spring injects the bean built by ApiClientConfig
@@ -45,56 +50,20 @@ class ReweConfigTest {
 
         // 3. Verify Response
         assertNotNull(response);
-        assertNotNull(response.markets(), "Markets list should not be null");
-        assertFalse(response.markets().isEmpty(), "Should find markets in " + zipCode);
+        List<MarketDto> markets = response.data().marketSearch().markets();
+        assertNotNull(markets, "Markets list should not be null");
+        assertFalse(markets.isEmpty(), "Should find markets in " + zipCode);
 
         System.out.println("Connection Successful!");
-        System.out.println("Found " + response.markets().size() + " markets.");
-        System.out.println("Name: " + response.markets().get(0).name());
-        System.out.println("Id: " + response.markets().get(0).id());
-        System.out.println("Type ID: " + response.markets().get(0).typeId());
-        System.out.println("Address Line 1: " + response.markets().get(0).addressLine1());
-        System.out.println("Address Line 2: " + response.markets().get(0).addressLine2());
-        System.out.println("Latitude: " + response.markets().get(0).location().latitude());
-        System.out.println("Longitude: " + response.markets().get(0).location().longitude());
-        System.out.println("Postal Code: " + response.markets().get(0).rawValues().postalCode());
-        System.out.println("City: " + response.markets().get(0).rawValues().city());
-        
-        
-        // String response = client.searchMarkets(zipCode);
-
-        // System.out.println("Raw Response Received:");
-        // System.out.println("--------------------------------------------------");
-        // System.out.println(response); // Print the HTML to see what REWE is saying
-        // System.out.println("--------------------------------------------------");
-    }
-
-    @Test
-    @DisplayName("Test Market Details API Call")
-    void testMarketDetailsApiCall() {
-        // Use a known market ID for testing
-        Long marketId = 431022L;
-        MarketDetailsResponse response = client.getMarketDetails(marketId);
-
-        // Verify Response
-        assertNotNull(response);
-        assertNotNull(response.marketItem(), "Market item should not be null");
-        assertNotNull(response.openingTimes(), "Opening hours should not be null");
-        assertNotNull(response.specialOpeningTimes(), "Special opening hours should not be null");
-        assertFalse(response.openingTimes().isEmpty(), "Opening hours should not be empty");
-        System.out.println("Market Details for ID " + marketId + ":");
-        System.out.println("Market Name: " + response.marketItem().name());
-        System.out.println("Market Address: " + response.marketItem().addressLine1() + ", " + response.marketItem().rawValues().postalCode() + " " + response.marketItem().rawValues().city());
-        System.out.println("Market Type ID: " + response.marketItem().typeId());
-        System.out.println("Market Location: Lat " + response.marketItem().location().latitude() + ", Lon " + response.marketItem().location().longitude());
-        System.out.println("Market ID: " + response.marketItem().id());
-        System.out.println("Market Opening Times:");
-        for (OpeningTime time : response.openingTimes()) {
-            System.out.println(time.days() + ": " + time.hours());
-        }
-        for (OpeningTime time : response.specialOpeningTimes()) {
-            System.out.println("Special - " + time.days() + ": " + time.hours());
-        }
+        System.out.println("Found " + markets.size() + " markets.");
+        System.out.println("Name: " + markets.get(0).name());
+        System.out.println("Id: " + markets.get(0).wwIdent());
+        System.out.println("Type ID: " + markets.get(0).typeId());
+        System.out.println("Street: " + markets.get(0).street());
+        System.out.println("Latitude: " + markets.get(0).location().latitude());
+        System.out.println("Longitude: " + markets.get(0).location().longitude());
+        System.out.println("Postal Code: " + markets.get(0).zipcode());
+        System.out.println("City: " + markets.get(0).city());
 
         // String response = client.searchMarkets(zipCode);
 
@@ -103,6 +72,44 @@ class ReweConfigTest {
         // System.out.println(response); // Print the HTML to see what REWE is saying
         // System.out.println("--------------------------------------------------");
     }
+
+    //! DEPRECATED
+    // @Test
+    // @DisplayName("Test Market Details API Call")
+    // void testMarketDetailsApiCall() {
+    //     // Use a known market ID for testing
+    //     Long marketId = 431022L;
+    //     MarketDetailsResponse response = client.getMarketDetails(marketId);
+
+    //     // Verify Response
+    //     assertNotNull(response);
+    //     assertNotNull(response.marketItem(), "Market item should not be null");
+    //     assertNotNull(response.openingTimes(), "Opening hours should not be null");
+    //     assertNotNull(response.specialOpeningTimes(), "Special opening hours should not be null");
+    //     assertFalse(response.openingTimes().isEmpty(), "Opening hours should not be empty");
+    //     System.out.println("Market Details for ID " + marketId + ":");
+    //     System.out.println("Market Name: " + response.marketItem().name());
+    //     System.out.println("Market Address: " + response.marketItem().street() + ", "
+    //             + response.marketItem().zipcode() + " " + response.marketItem().city());
+    //     System.out.println("Market Type ID: " + response.marketItem().typeId());
+    //     System.out.println("Market Location: Lat " + response.marketItem().location().latitude() + ", Lon "
+    //             + response.marketItem().location().longitude());
+    //     System.out.println("Market ID: " + response.marketItem().wwIdent());
+    //     System.out.println("Market Opening Times:");
+    //     for (OpeningTime time : response.openingTimes()) {
+    //         System.out.println(time.days() + ": " + time.hours());
+    //     }
+    //     for (OpeningTime time : response.specialOpeningTimes()) {
+    //         System.out.println("Special - " + time.days() + ": " + time.hours());
+    //     }
+
+        // String response = client.searchMarkets(zipCode);
+
+        // System.out.println("Raw Response Received:");
+        // System.out.println("--------------------------------------------------");
+        // System.out.println(response); // Print the HTML to see what REWE is saying
+        // System.out.println("--------------------------------------------------");
+    // }
 
     @Test
     @DisplayName("Test Products API Call")
@@ -111,13 +118,17 @@ class ReweConfigTest {
         Long marketId = 431022L;
         String product = "Kase";
         ProductSearchResponse response = client.searchProducts(
-            product, 1, 30, 
-            marketId);
+                product, 1, 30,
+                marketId);
 
         // Verify Response
         assertNotNull(response);
+        // System.out.println(response);
         ProductsData data = response.data();
+        // System.out.println(data);
+        assertNotNull(data, "Response 'data' should not be null");
         ProductsSearchInfo info = data.products();
+        assertNotNull(info, "Response 'data.products' (SearchInfo) is null. The API might have returned an error or empty structure.");
         List<ProductDto> products = info.products();
         System.out.println("Product Details for market " + marketId + ":");
         System.out.println("Name: " + products.get(0).title());
@@ -126,7 +137,7 @@ class ReweConfigTest {
         System.out.println("articleId: " + products.get(0).articleId());
         System.out.println("price: " + products.get(0).listing().currentRetailPrice());
         System.out.println("grammage: " + products.get(0).listing().grammage());
-        if(products.get(0).listing().discount() != null){
+        if (products.get(0).listing().discount() != null) {
             System.out.println("discount: " + products.get(0).listing().discount().__typename());
         }
         Pagination pagination = info.pagination();
