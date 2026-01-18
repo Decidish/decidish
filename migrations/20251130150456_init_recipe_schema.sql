@@ -49,6 +49,8 @@ CREATE TABLE recipe_ingredients (
     ingredient_id INT references ingredients(id),
     quantity DECIMAL(8, 2),
     unit VARCHAR(50),
+    original TEXT,
+    info TEXT,
 
     PRIMARY KEY (recipe_id, ingredient_id)
 );

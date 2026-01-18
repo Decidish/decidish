@@ -150,7 +150,6 @@ services:
       - MINIO_RECIPES_OBJECT=${MINIO_RECIPES_OBJECT}
     depends_on:
       - personalization-server
-      - core-server
     networks:
       - app-network
 
