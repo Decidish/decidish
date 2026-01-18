@@ -55,9 +55,8 @@ func (repo RecommenderRepository) GetRecommendedRecipesForUser(tx *sql.Tx, userI
 		RecipeIngredients AS (
 			SELECT
 				ri.recipe_id,
-				STRING_AGG(i.name, ', ') AS all_ingredients
+				STRING_AGG(ri.original, ', ') AS all_ingredients
 			FROM recipe_ingredients ri
-			JOIN ingredients i ON ri.ingredient_id = i.id
 			GROUP BY ri.recipe_id
 		),
 		RecipeCategories AS (
