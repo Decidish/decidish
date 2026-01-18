@@ -716,6 +716,7 @@ dependencies = [
     { name = "fastembed" },
     { name = "httpx" },
     { name = "minio" },
+    { name = "ollama" },
     { name = "pgvector" },
     { name = "psycopg2-binary" },
     { name = "recipe-scrapers" },
@@ -738,6 +739,7 @@ requires-dist = [
     { name = "fastembed", specifier = ">=0.7.4" },
     { name = "httpx", specifier = ">=0.28.1" },
     { name = "minio", specifier = ">=7.2.20" },
+    { name = "ollama", specifier = ">=0.6.1" },
     { name = "pgvector", specifier = ">=0.4.2" },
     { name = "psycopg2-binary", specifier = ">=2.9.11" },
     { name = "recipe-scrapers", specifier = ">=15.11.0" },
@@ -877,6 +879,19 @@ wheels = [
     { url = "https://files.pythonhosted.org/packages/37/a4/b073f3e9d77f9aec8debe8ca7f9f6a09e888ad1ba7488f0c3b36a94c03ac/numpy-2.4.1-cp313-cp313t-win32.whl", hash = "sha256:382ad67d99ef49024f11d1ce5dcb5ad8432446e4246a4b014418ba3a1175a1f4", size = 6081138, upload-time = "2026-01-10T06:43:48.854Z" },
     { url = "https://files.pythonhosted.org/packages/16/16/af42337b53844e67752a092481ab869c0523bc95c4e5c98e4dac4e9581ac/numpy-2.4.1-cp313-cp313t-win_amd64.whl", hash = "sha256:62fea415f83ad8fdb6c20840578e5fbaf5ddd65e0ec6c3c47eda0f69da172510", size = 12447478, upload-time = "2026-01-10T06:43:50.476Z" },
     { url = "https://files.pythonhosted.org/packages/6c/f8/fa85b2eac68ec631d0b631abc448552cb17d39afd17ec53dcbcc3537681a/numpy-2.4.1-cp313-cp313t-win_arm64.whl", hash = "sha256:a7870e8c5fc11aef57d6fea4b4085e537a3a60ad2cdd14322ed531fdca68d261", size = 10382981, upload-time = "2026-01-10T06:43:52.575Z" },
+]
+
+[[package]]
+name = "ollama"
+version = "0.6.1"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "httpx" },
+    { name = "pydantic" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/9d/5a/652dac4b7affc2b37b95386f8ae78f22808af09d720689e3d7a86b6ed98e/ollama-0.6.1.tar.gz", hash = "sha256:478c67546836430034b415ed64fa890fd3d1ff91781a9d548b3325274e69d7c6", size = 51620, upload-time = "2025-11-13T23:02:17.416Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/47/4f/4a617ee93d8208d2bcf26b2d8b9402ceaed03e3853c754940e2290fed063/ollama-0.6.1-py3-none-any.whl", hash = "sha256:fc4c984b345735c5486faeee67d8a265214a31cbb828167782dc642ce0a2bf8c", size = 14354, upload-time = "2025-11-13T23:02:16.292Z" },
 ]
 
 [[package]]

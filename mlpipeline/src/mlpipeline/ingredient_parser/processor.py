@@ -1,5 +1,3 @@
-import os
-
 from mlpipeline.ingredient_parser.parser import IngredientParser
 from mlpipeline.ingredient_parser.normalization import UnitGraph
 
