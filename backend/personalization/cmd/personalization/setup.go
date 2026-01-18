@@ -3,6 +3,7 @@ package main
 import (
 	"database/sql"
 	"log"
+	"personalization/internal/client"
 	"personalization/internal/config"
 	"personalization/internal/controller"
 	"personalization/internal/driver"
@@ -64,7 +65,7 @@ func createOnboardingMappings(config config.ApplicationConfig, r *gin.RouterGrou
 }
 
 func createRecipeMappings(config config.ApplicationConfig, r *gin.Engine, db *sql.DB) {
-	recipeService := service.NewRecipeService(config, db)
+	recipeService := service.NewRecipeService(config, db, client.NewClient())
 	recipeController := controller.NewRecipeController(recipeService)
 
 	recipeController.AddMappings(r)

@@ -22,30 +22,15 @@ class AppConfig:
         self.db_host = os.getenv("POSTGRES_HOST", "localhost")
         self.db_port = os.getenv("POSTGRES_PORT", "5432")
         self.db_ssl_mode = os.getenv("POSTGRES_SSL_MODE", "disable")
+        self.db_connection_string = os.getenv("DATABASE_BACKEND_CONNECTION_STRING", "")
 
-        self.minio_endpoint = os.getenv("MINIO_ENDPOINT", "")
+        if not self.db_connection_string:
+            raise ValueError("DATABASE_BACKEND_CONNECTION_STRING environment variable is not set.")
 
-        if self.minio_endpoint == "":
-            raise ValueError("MINIO_ENDPOINT environment variable is required")
+        self.google_api_key = os.getenv("GOOGLE_API_KEY", "")
 
-        self.minio_access_key = os.getenv("MINIO_ACCESS_KEY", "")
-
-        if self.minio_access_key == "":
-            raise ValueError("MINIO_ACCESS_KEY environment variable is required")
-
-        self.minio_secret_key = os.getenv("MINIO_SECRET_KEY", "")
-
-        if self.minio_secret_key == "":
-            raise ValueError("MINIO_SECRET_KEY environment variable is required")
-
-        self.minio_recipes_bucket = os.getenv("MINIO_RECIPES_BUCKET", "")
-
-        if self.minio_recipes_bucket == "":
-            raise ValueError("MINIO_RECIPES_BUCKET environment variable is required")
-
-        self.minio_recipes_object_name = os.getenv("MINIO_RECIPES_OBJECT", "")
-
-        if self.minio_recipes_object_name == "":
-            raise ValueError("MINIO_RECIPES_OBJECT environment variable is required")
-
-        self.minio_use_ssl = os.getenv("MINIO_USE_SSL", "false").lower() == "true"
+        if not all([self.db_name, self.db_user, self.db_password]):
+            raise ValueError("Database configuration is incomplete. Please set POSTGRES_DB, POSTGRES_USER, and POSTGRES_PASSWORD environment variables.")
+        
+        if not self.google_api_key:
+            raise ValueError("Google API key is not set. Please set GOOGLE_API_KEY environment variable.")

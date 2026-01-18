@@ -25,6 +25,7 @@ class Pipeline:
             self.set_running_job_status(job_id)
 
             recipe_json = scrape_recipe(recipe_url)
+
             recipe_data = RawRecipe.model_validate_json(recipe_json)
             recipe_id, err = self.process_recipe(recipe_data)
             self.create_recipe_embeddings_batch([{
@@ -150,13 +151,14 @@ class Pipeline:
     def process_ingredients(self, recipe_id: int, ingredients: list[str], cursor):
         """
         Processes raw ingredient strings and imports them into the database.
+        Batches in groups of 10 to optimize API calls.
         """
-        # TODO: Process the ingredients using the ingredient parser and then import processed ingredients.
-        for ingredient_str in ingredients:
-            # TODO: Actually parse here
-            parsed = Ingredient() # type: ignore
-
-            self.import_processed_ingredient(recipe_id, parsed, cursor)
+        batch_size = 10
+        for i in range(0, len(ingredients), batch_size):
+            batch = ingredients[i:i + batch_size]
+            parsed = self.parser.parse_ingredients(batch)
+            for ingredient in parsed:
+                self.import_processed_ingredient(recipe_id, ingredient, cursor)
 
     def import_processed_ingredient(self, recipe_id: int, ingredient: Ingredient, cursor):
         """

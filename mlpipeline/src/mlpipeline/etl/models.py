@@ -4,9 +4,18 @@ from typing import Generic, List, TypeVar
 T = TypeVar('T')
 
 class Nutrients(BaseModel):
-    serving_size: str = Field(alias="servingSize")
-    calories: str
-
+    serving_size: str | None = Field(default=None, alias="servingSize")
+    calories: str | None = Field(default=None, alias="calories")
+    carbohydrate_content: str | None = Field(default=None, alias="carbohydrateContent")
+    cholesterol_content: str | None = Field(default=None, alias="cholesterolContent")
+    fiber_content: str | None = Field(default=None, alias="fiberContent")
+    protein_content: str | None = Field(default=None, alias="proteinContent")
+    saturated_fat_content: str | None = Field(default=None, alias="saturatedFatContent")
+    sodium_content: str | None = Field(default=None, alias="sodiumContent")
+    sugar_content: str | None = Field(default=None, alias="sugarContent")
+    fat_content: str | None = Field(default=None, alias="fatContent")
+    unsaturated_fat_content: str | None = Field(default=None, alias="unsaturatedFatContent")
+    
 class Ingredient(BaseModel):
     original: str
     amount: float | None = None

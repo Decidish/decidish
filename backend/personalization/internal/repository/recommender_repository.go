@@ -5,6 +5,30 @@ import (
 	"strings"
 )
 
+type Nutrients struct {
+	ServingSize string `json:"servingSize"`
+	Calories    string `json:"calories"`
+}
+
+type Recipe struct {
+	Category    string `json:"category"`
+	CookTime    int    `json:"cook_time"`
+	Description string `json:"description"`
+	Image       string `json:"image"`
+
+	Ingredients  []string  `json:"ingredients"`
+	Instructions string    `json:"instructions"`
+	KeyWords     []string  `json:"keywords"`
+	Nutrients    Nutrients `json:"nutrients"`
+
+	PrepTime  int     `json:"prep_time"`
+	Ratings   float64 `json:"ratings"`
+	TotalTime int     `json:"total_time"`
+
+	Title  string `json:"title"`
+	Yields string `json:"yields"`
+}
+
 type RecommenderRepository struct{}
 
 func NewRecommenderRepository() RecommenderRepository {

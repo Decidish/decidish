@@ -7,11 +7,13 @@ import spacy
 import uvicorn
 from fastapi import FastAPI, BackgroundTasks
 
-# from mlpipeline.config.app_config import AppConfig
 from mlpipeline.etl.pipeline import Pipeline
 from mlpipeline.ingredient_parser.parser import IngredientParser
 
 from mlpipeline.config.app_config import AppConfig
+from google import genai
+
+from mlpipeline.ingredient_parser.unit_graph import UnitGraph
 
 app = FastAPI(title="Recipe Embedding Service")
 
@@ -20,13 +22,15 @@ logging.basicConfig(
     format="%(asctime)s [%(levelname)s] %(message)s",
     handlers=[logging.StreamHandler()]
 )
-
+    
 logger = logging.getLogger(__name__)
 
 app_config = AppConfig()
 
 nlp_model = spacy.load(app_config.model_path)
-ingredient_parser = IngredientParser(nlp_model)
+unit_graph = UnitGraph(app_config.db_connection_string)
+client = genai.Client(api_key=app_config.google_api_key)
+ingredient_parser = IngredientParser(client, unit_graph)
 embedder = TextEmbedder()
 
 def get_db_connection():
