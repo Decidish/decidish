@@ -1,14 +1,17 @@
 import logging
 
 import psycopg2
-from mlpipeline.src.mlpipeline.embedding.embedder import TextEmbedder
+from pydantic import BaseModel
+from mlpipeline.embedding.embedder import TextEmbedder
 import spacy
 import uvicorn
 from fastapi import FastAPI, BackgroundTasks
 
-from mlpipeline.config.app_config import AppConfig
+# from mlpipeline.config.app_config import AppConfig
 from mlpipeline.etl.pipeline import Pipeline
 from mlpipeline.ingredient_parser.parser import IngredientParser
+
+from mlpipeline.config.app_config import AppConfig
 
 app = FastAPI(title="Recipe Embedding Service")
 
@@ -35,7 +38,8 @@ def get_db_connection():
         port=app_config.db_port
     )
 
-async def run_add_recipe_background_task(recipe_json: str):
+# Scrape the given recipe URL and add it to the database in a background task
+async def run_add_recipe_background_task(recipe_url: str, job_id: int):
     print("Starting background task to add a recipe", flush=True)
     """
     Wrapper to handle the DB connection lifecycle for the background task.
@@ -47,7 +51,7 @@ async def run_add_recipe_background_task(recipe_json: str):
         pipeline: Pipeline = Pipeline(conn, ingredient_parser, embedder, app_config)
 
         print("Starting to add recipe", flush=True)
-        # TODO: Process the requested recipe url with recipe scraper
+        pipeline.scrape_process_recipe(recipe_url, job_id)
         print("Finished adding recipe", flush=True)
     except Exception as e:
         print(f"Add Recipe Failed: {e}", flush=True)
@@ -56,7 +60,7 @@ async def run_add_recipe_background_task(recipe_json: str):
             conn.close()
 
 
-async def run_etl_background_task():
+async def run_etl_background_task(job_id: int):
     print("Starting background ETL task for REWE Recipes", flush=True)
     """
     Wrapper to handle the DB connection lifecycle for the background task.
@@ -68,7 +72,7 @@ async def run_etl_background_task():
         pipeline = Pipeline(conn, ingredient_parser, embedder, app_config)
 
         print("Starting ETL job", flush=True)
-        await pipeline.run_etl()
+        pipeline.run_etl(job_id)
 
         print("Finished ETL Job for REWE Recipes", flush=True)
     except Exception as e:
@@ -77,19 +81,28 @@ async def run_etl_background_task():
         if conn:
             conn.close()
 
+class AddRecipeRequest(BaseModel):
+    recipe_url: str
+    job_id: int
+
 # Create background task!
 @app.post("/recipes/add")
 async def add_recipe(
     background_tasks: BackgroundTasks,
+    request: AddRecipeRequest
 ):
-    pass
+    background_tasks.add_task(run_add_recipe_background_task, request.recipe_url, request.job_id)
+    return {"status": "Recipe addition started"}
+
+class AddReweRecipesRequest(BaseModel):
+    job_id: int
 
 @app.post("/recipes/add/rewe")
 async def add_rewe_recipes(
         background_tasks: BackgroundTasks,
+        request: AddReweRecipesRequest
 ):
-    background_tasks.add_task(run_etl_background_task)
-    # await run_etl_background_task()
+    background_tasks.add_task(run_etl_background_task, request.job_id)
     return {"status": "Import started"}
 
 if __name__ == "__main__":

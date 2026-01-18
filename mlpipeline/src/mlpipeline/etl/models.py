@@ -1,16 +1,25 @@
 from pydantic import BaseModel, Field, ConfigDict
-from typing import List
+from typing import Generic, List, TypeVar
+
+T = TypeVar('T')
 
 class Nutrients(BaseModel):
     serving_size: str = Field(alias="servingSize")
     calories: str
 
-class Recipe(BaseModel):
+class Ingredient(BaseModel):
+    original: str
+    amount: float | None = None
+    unit: str | None = None
+    food: str | None = None
+    info: str | None = None
+
+class BaseRecipe(BaseModel, Generic[T]):
     category: str | None = None
     cook_time: int | None = None
     description: str
     image: str
-    ingredients: List[str]
+    ingredients: List[T]
     instructions: str
     keywords: List[str] | None = None
     nutrients: Nutrients
@@ -22,3 +31,10 @@ class Recipe(BaseModel):
     yields: str
 
     model_config = ConfigDict(populate_by_name=True)
+
+
+class ProcessedRecipe(BaseRecipe[Ingredient]):
+    pass
+
+class RawRecipe(BaseRecipe[str]):
+    pass

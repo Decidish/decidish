@@ -1,13 +1,14 @@
 import logging
-from typing import AsyncGenerator, Optional
+from typing import Generator, Optional
 
 from mlpipeline.embedding.embedder import TextEmbedder
 import psycopg2
-from minio import Minio, S3Error
+from pgvector.psycopg2 import register_vector
 
 from mlpipeline.config.app_config import AppConfig
-from mlpipeline.etl.models import Recipe
-from mlpipeline.ingredient_parser.parser import IngredientParser, convert_to_float, clean_unit_label
+from mlpipeline.etl.models import BaseRecipe, Ingredient, ProcessedRecipe, RawRecipe
+from mlpipeline.ingredient_parser.parser import IngredientParser
+from mlpipeline.scraper.recipe_scraper import scrape_recipe
 
 
 class Pipeline:
@@ -16,41 +17,29 @@ class Pipeline:
         self.parser = parser
         self.embedder = embedder
         self.config = config
-        self.minioClient = Minio(
-            config.minio_endpoint,
-            access_key=config.minio_access_key,
-            secret_key=config.minio_secret_key,
-            secure=config.minio_use_ssl
-        )
+        # Register pgvector support with psycopg2
+        register_vector(conn)
 
-
-    async def get_minio_batch(self) -> AsyncGenerator[list[str], None]:
+    def scrape_process_recipe(self, recipe_url: str, job_id: int):
         try:
-            # This does NOT download the whole file; it opens a connection.
-            batch_size = 200
-            response = self.minioClient.get_object(self.config.minio_recipes_bucket, self.config.minio_recipes_object_name)
+            self.set_running_job_status(job_id)
 
-            # The response object acts like an open file handle.
-            current_batch = []
-            for line in response:
-                if line.strip():
-                    data_string = line.decode('utf-8')
-                    current_batch.append(data_string)
-                    if len(current_batch) >= batch_size:
-                        yield current_batch
-                        current_batch = []
+            recipe_json = scrape_recipe(recipe_url)
+            recipe_data = RawRecipe.model_validate_json(recipe_json)
+            recipe_id, err = self.process_recipe(recipe_data)
+            self.create_recipe_embeddings_batch([{
+                'id': recipe_id,
+                'text': recipe_json
+            }])
+            if err is not None:
+                raise err
+            
+            self.set_done_job_status(job_id)
+        except Exception as e:
+            print(f"Error scraping recipe {recipe_url}: {e}")
+            raise e
 
-            if current_batch:
-                yield current_batch
-
-        except S3Error as err:
-            print(f"Minio Error: {err}")
-        finally:
-            if response:
-                response.close()
-                response.release_conn()
-
-    def process_recipe(self, recipe_data: Recipe) -> tuple[int, Optional[Exception]]:
+    def process_recipe(self, recipe_data: BaseRecipe) -> tuple[int, Optional[Exception]]:
         try:
             with self.conn.cursor() as cursor:
                 insert_query = """
@@ -89,8 +78,12 @@ class Pipeline:
                 if recipe_data.category:
                     self.process_categories(recipe_id, recipe_data.category.split(" "), cursor)
 
-                # Insert ingredients
-                self.process_ingredients(recipe_id, recipe_data.ingredients, cursor)
+                if isinstance(recipe_data, ProcessedRecipe):
+                    for ingredient in recipe_data.ingredients:
+                        self.import_processed_ingredient(recipe_id, ingredient, cursor)
+                else:
+                    self.process_ingredients(recipe_id, recipe_data.ingredients, cursor)
+
                 return recipe_id, None
         except Exception as e:
             print(f"Database insertion error: {e}")   
@@ -154,62 +147,111 @@ class Pipeline:
             print(f"Error processing categories: {err}")
             raise err
     
-    # TODO: Use preprocessed if present otherwise parse using an API request to the gemini to get the information needed
     def process_ingredients(self, recipe_id: int, ingredients: list[str], cursor):
+        """
+        Processes raw ingredient strings and imports them into the database.
+        """
+        # TODO: Process the ingredients using the ingredient parser and then import processed ingredients.
+        for ingredient_str in ingredients:
+            # TODO: Actually parse here
+            parsed = Ingredient() # type: ignore
+
+            self.import_processed_ingredient(recipe_id, parsed, cursor)
+
+    def import_processed_ingredient(self, recipe_id: int, ingredient: Ingredient, cursor):
+        """
+        Imports already processed ingredients into the database.
+        """
+        qty = ingredient.amount
+        unit = ingredient.unit
+        name = ingredient.food
+        original = ingredient.original
+        info = ingredient.info
+
+        cursor.execute("""
+                        WITH ins AS (
+                            INSERT INTO ingredients (name) VALUES (%s)
+                            ON CONFLICT (name) DO NOTHING
+                            RETURNING id
+                        )
+                        SELECT id FROM ins
+                        UNION ALL
+                        SELECT id FROM ingredients WHERE name = %s
+                        LIMIT 1;
+                    """, (name, name))
+        
+        ingredient_id = cursor.fetchone()[0]
+
+        cursor.execute("""
+        INSERT INTO recipe_ingredients (recipe_id, ingredient_id, quantity, unit, original, info) VALUES (%s, %s, %s, %s, %s, %s) ON CONFLICT DO NOTHING;
+        """, (recipe_id, ingredient_id, qty, unit, original, info))
+
+    def set_error_job_status(self, job_id: int):
+        """
+        Sets the job status to 'error' in the database.
+        """
+        with self.conn.cursor() as cursor:
+            cursor.execute("UPDATE jobs SET status = 'error' WHERE id = %s;", (job_id,))
+            self.conn.commit()
+
+    def set_running_job_status(self, job_id: int):
+        """
+        Sets the job status to 'running' in the database.
+        """
+        with self.conn.cursor() as cursor:
+            cursor.execute("UPDATE jobs SET status = 'running' WHERE id = %s;", (job_id,))
+            self.conn.commit()
+    
+    def set_done_job_status(self, job_id: int):
+        """
+        Sets the job status to 'done' in the database.
+        """
+        with self.conn.cursor() as cursor:
+            cursor.execute("UPDATE jobs SET status = 'done' WHERE id = %s;", (job_id,))
+            self.conn.commit()
+
+    ############################################################################
+    # ETL Pipeline for REWE Recipes done only once
+    ############################################################################
+    def run_etl(self, job_id: int):
+        processed = 0
+        logging.log(logging.INFO, f"Starting ETL Job {job_id}...")
+        self.set_running_job_status(job_id)
+
+        for batch in self.get_rewe_recipes_batch("data/test_recipes_enriched.jsonl"):
+            processed_recipes = self.process_recipe_batch(batch)
+            self.create_recipe_embeddings_batch(processed_recipes)
+            processed += len(batch)
+            self.conn.commit()
+
+        self.set_done_job_status(job_id)
+
+    def create_recipe_embeddings_batch(self, recipe_data: list[dict]):
+        # recipe_data is the list returned from step 1
+        
+        ids = [item['id'] for item in recipe_data]
+        texts = [item['text'] for item in recipe_data]
+
         try:
-            docs = self.parser.process_texts(ingredients)
+            embeddings = self.embedder.embed_recipes(texts)
 
-            for doc in docs:
-                qty = None
-                unit = None
-                name = ""
+            # Convert numpy arrays to lists for pgvector
+            # Format: [(id, [vector_values]), (id, [vector_values]), ...]
+            insert_data = [(id, embedding.tolist()) for id, embedding in zip(ids, embeddings)]
 
-                for ent in doc.ents:
-                    if ent.label_ == "QUANTITY":
-                        try:
-                            qty = convert_to_float(ent.text)
-                        except:
-                            # print(ValueError("Could not convert quantity to float", ent.text))
-                            continue
-                    elif ent.label_ == "UNIT":
-                        unit = clean_unit_label(ent.text.strip())
-                    elif ent.label_ == "FOOD":
-                        name = ent.text
-
-                if qty is None:
-                    qty = "1"
-                if unit is None:
-                    unit = ""
-
-                if name == "":
-                    name = doc.text
-                name = name.strip()
-
-                cursor.execute("""
-                    WITH ins AS (
-                        INSERT INTO ingredients (name) VALUES (%s)
-                        ON CONFLICT (name) DO NOTHING
-                        RETURNING id
-                    )
-                    SELECT id FROM ins
-                    UNION ALL
-                    SELECT id FROM ingredients WHERE name = %s
-                    LIMIT 1;
-                """, (name, name))
-                ingredient_id = cursor.fetchone()[0]
-
-                cursor.execute("""
-                    INSERT INTO recipe_ingredients (recipe_id, ingredient_id, quantity, unit) VALUES (%s, %s, %s, %s) ON CONFLICT DO NOTHING;
-                """, (recipe_id, ingredient_id, qty, unit))
-        except Exception as err:
-            print(f"Error processing ingredients: {err}")
-            raise err
+            with self.conn.cursor() as cursor:
+                query = "INSERT INTO recipe_embeddings (recipe_id, embedding) VALUES (%s, %s::vector) ON CONFLICT (recipe_id) DO NOTHING;"
+                cursor.executemany(query, insert_data)
+            
+        except Exception as e:
+            logging.error(f"Failed to insert embedding batch: {e}")
+            raise e
 
     def process_recipe_batch(self, batch: list[str]) -> list[dict]:
         processed_recipes = []
         for line in batch:
             try:
-                recipe_data = Recipe.model_validate_json(line)
+                recipe_data = ProcessedRecipe.model_validate_json(line)
             except Exception as e:
                 print(f"Error processing recipe: {e}")
                 continue
@@ -223,39 +265,19 @@ class Pipeline:
                 'text': line
                 })
         return processed_recipes
-        
-    def create_recipe_embeddings_batch(self, recipe_data: list[dict]):
-        # recipe_data is the list returned from step 1
-        
-        ids = [item['id'] for item in recipe_data]
-        texts = [item['text'] for item in recipe_data]
-
-        try:
-            # fastembed returns a generator, convert to list to trigger the batch
-            embeddings = list(self.embedder.embed_recipes(texts))
-            
-            # 3. Zip IDs and Vectors together for the SQL query
-            # Format: [(id, vector), (id, vector), ...]
-            insert_data = list(zip(ids, embeddings))
-
-            with self.conn.cursor() as cursor:
-                # 4. Use executemany for massive speed boost
-                # Note: Syntax varies by DB. For Postgres/pgvector it is usually:
-                query = "INSERT INTO recipe_embeddings (recipe_id, embedding) VALUES (%s, %s)"
-                
-                # If using pgvector, you might need to cast to vector: VALUES (%s, %s::vector)
-                cursor.executemany(query, insert_data)
-            
-        except Exception as e:
-            logging.error(f"Failed to insert embedding batch: {e}")
-            raise e
-
-    async def run_etl(self, job_id: str = "2"):
-        processed = 0
-        logging.log(logging.INFO, f"Starting ETL Job {job_id}...")
-
-        async for batch in self.get_minio_batch():
-            processed_recipes = self.process_recipe_batch(batch)
-            self.create_recipe_embeddings_batch(processed_recipes)
-            processed += len(batch)
-            self.conn.commit()
+    
+    def get_rewe_recipes_batch(self, path_to_recipes: str) -> Generator[list[str], None, None]:
+        """
+        Generator that yields batches of recipe data from MinIO.
+        """
+        # This does NOT download the whole file; it opens a connection.
+        batch_size = 200
+        with open(path_to_recipes, 'rb') as f:
+            batch = []
+            for line in f:
+                batch.append(line.decode('utf-8'))
+                if len(batch) >= batch_size:
+                    yield batch
+                    batch = []
+            if batch:
+                yield batch

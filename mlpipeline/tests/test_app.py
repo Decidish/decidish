@@ -18,7 +18,7 @@ def test_add_rewe_recipes_endpoint():
 
     with patch("mlpipeline.app.run_etl_background_task") as mock_etl_task:
 
-        response = client.post("/recipes/add/rewe")
+        response = client.post("/recipes/add/rewe", json={"job_id": 123})
 
         assert response.status_code == 200
         assert response.json() == {"status": "Import started"}
