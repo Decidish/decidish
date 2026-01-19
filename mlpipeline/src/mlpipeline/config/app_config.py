@@ -27,10 +27,5 @@ class AppConfig:
         if not self.db_connection_string:
             raise ValueError("DATABASE_BACKEND_CONNECTION_STRING environment variable is not set.")
 
-        self.google_api_key = os.getenv("GOOGLE_API_KEY", "")
-
         if not all([self.db_name, self.db_user, self.db_password]):
             raise ValueError("Database configuration is incomplete. Please set POSTGRES_DB, POSTGRES_USER, and POSTGRES_PASSWORD environment variables.")
-        
-        if not self.google_api_key:
-            raise ValueError("Google API key is not set. Please set GOOGLE_API_KEY environment variable.")

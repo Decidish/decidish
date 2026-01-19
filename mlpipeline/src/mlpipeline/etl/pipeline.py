@@ -20,14 +20,14 @@ class Pipeline:
         # Register pgvector support with psycopg2
         register_vector(conn)
 
-    def scrape_process_recipe(self, recipe_url: str, job_id: int):
+    async def scrape_process_recipe(self, recipe_url: str, job_id: int):
         try:
             self.set_running_job_status(job_id)
 
             recipe_json = scrape_recipe(recipe_url)
 
             recipe_data = RawRecipe.model_validate_json(recipe_json)
-            recipe_id, err = self.process_recipe(recipe_data)
+            recipe_id, err = await self.process_recipe(recipe_data)
             self.create_recipe_embeddings_batch([{
                 'id': recipe_id,
                 'text': recipe_json
@@ -40,7 +40,7 @@ class Pipeline:
             print(f"Error scraping recipe {recipe_url}: {e}")
             raise e
 
-    def process_recipe(self, recipe_data: BaseRecipe) -> tuple[int, Optional[Exception]]:
+    async def process_recipe(self, recipe_data: BaseRecipe) -> tuple[int, Optional[Exception]]:
         try:
             with self.conn.cursor() as cursor:
                 insert_query = """
@@ -83,7 +83,7 @@ class Pipeline:
                     for ingredient in recipe_data.ingredients:
                         self.import_processed_ingredient(recipe_id, ingredient, cursor)
                 else:
-                    self.process_ingredients(recipe_id, recipe_data.ingredients, cursor)
+                    await self.process_ingredients(recipe_id, recipe_data.ingredients, cursor)
 
                 return recipe_id, None
         except Exception as e:
@@ -148,7 +148,7 @@ class Pipeline:
             print(f"Error processing categories: {err}")
             raise err
     
-    def process_ingredients(self, recipe_id: int, ingredients: list[str], cursor):
+    async def process_ingredients(self, recipe_id: int, ingredients: list[str], cursor):
         """
         Processes raw ingredient strings and imports them into the database.
         Batches in groups of 10 to optimize API calls.
@@ -156,7 +156,7 @@ class Pipeline:
         batch_size = 10
         for i in range(0, len(ingredients), batch_size):
             batch = ingredients[i:i + batch_size]
-            parsed = self.parser.parse_ingredients(batch)
+            parsed = await self.parser.parse_ingredients(batch)
             for ingredient in parsed:
                 self.import_processed_ingredient(recipe_id, ingredient, cursor)
 
@@ -215,18 +215,19 @@ class Pipeline:
     ############################################################################
     # ETL Pipeline for REWE Recipes done only once
     ############################################################################
-    def run_etl(self, job_id: int):
+    async def run_etl(self, job_id: int):
         processed = 0
         logging.log(logging.INFO, f"Starting ETL Job {job_id}...")
         self.set_running_job_status(job_id)
 
-        for batch in self.get_rewe_recipes_batch("data/test_recipes_enriched.jsonl"):
-            processed_recipes = self.process_recipe_batch(batch)
+        for batch in self.get_rewe_recipes_batch("data/recipes_enriched.jsonl"):
+            processed_recipes = await self.process_recipe_batch(batch)
             self.create_recipe_embeddings_batch(processed_recipes)
             processed += len(batch)
             self.conn.commit()
 
         self.set_done_job_status(job_id)
+        logging.log(logging.INFO, f"Finished ETL Job {job_id}...")
 
     def create_recipe_embeddings_batch(self, recipe_data: list[dict]):
         # recipe_data is the list returned from step 1
@@ -249,7 +250,7 @@ class Pipeline:
             logging.error(f"Failed to insert embedding batch: {e}")
             raise e
 
-    def process_recipe_batch(self, batch: list[str]) -> list[dict]:
+    async def process_recipe_batch(self, batch: list[str]) -> list[dict]:
         processed_recipes = []
         for line in batch:
             try:
@@ -257,7 +258,7 @@ class Pipeline:
             except Exception as e:
                 print(f"Error processing recipe: {e}")
                 continue
-            recipe_id, err = self.process_recipe(recipe_data)
+            recipe_id, err = await self.process_recipe(recipe_data)
             if err is not None:
                 raise err
             if recipe_id == -1:
@@ -273,7 +274,7 @@ class Pipeline:
         Generator that yields batches of recipe data from MinIO.
         """
         # This does NOT download the whole file; it opens a connection.
-        batch_size = 200
+        batch_size = 1000
         with open(path_to_recipes, 'rb') as f:
             batch = []
             for line in f:

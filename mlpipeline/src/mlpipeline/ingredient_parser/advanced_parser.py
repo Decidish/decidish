@@ -19,13 +19,13 @@ MAX_CONCURRENT_REQUESTS = 10
 
 # --- SCHEMA (Bilingual Support) ---
 class IngredientParsed(BaseModel):
-    amount: Optional[float] = Field(description="Decimal value. Example: '1/2' -> 0.5. Null if no number.")
+    amount: Optional[float] = Field(description="Amount of detected unit. Decimal value. Example: '1/2' -> 0.5. Null if no number.")
     unit: str = Field(description="The unit detected. Standardize slightly (e.g. 'tbsp.' -> 'tbsp', 'Pck.' -> 'Pck').")
     food: str = Field(description="Main ingredient name (English or German).")
     additional_info: str = Field(description="Adjectives/Prep (e.g. 'diced', 'gewürfelt').")
 
 # --- SINGLE INGREDIENT PROCESSOR (Bilingual) ---
-async def parse_single_ingredient(client, text: str, semaphore: asyncio.Semaphore):
+async def parse_single_ingredient(client, text: str, semaphore: asyncio.Semaphore) -> Optional[IngredientParsed]:
     async with semaphore: 
         try:
             # We provide a bilingual lookup list to the model
@@ -45,8 +45,8 @@ async def parse_single_ingredient(client, text: str, semaphore: asyncio.Semaphor
                 {'role': 'assistant', 'content': json.dumps({"amount": 175.0, "unit": "g", "food": "Frischkäse", "additional_info": "Natur"})},
                 
                 # 2. English Imperial (Cup)
-                {'role': 'user', 'content': 'Extract from: 1/2 cup all-purpose flour'},
-                {'role': 'assistant', 'content': json.dumps({"amount": 0.5, "unit": "cup", "food": "flour", "additional_info": "all-purpose"})},
+                {'role': 'user', 'content': 'Extract from: 1 1/2 cup all-purpose flour'},
+                {'role': 'assistant', 'content': json.dumps({"amount": 1.5, "unit": "cup", "food": "flour", "additional_info": "all-purpose"})},
                 
                 # 3. German Abbreviation (EL)
                 {'role': 'user', 'content': 'Extract from: 3 EL Olivenöl'},

@@ -11,9 +11,11 @@ from mlpipeline.etl.pipeline import Pipeline
 from mlpipeline.ingredient_parser.parser import IngredientParser
 
 from mlpipeline.config.app_config import AppConfig
-from google import genai
 
 from mlpipeline.ingredient_parser.unit_graph import UnitGraph
+import asyncio
+from ollama import AsyncClient
+from pydantic import BaseModel
 
 app = FastAPI(title="Recipe Embedding Service")
 
@@ -22,15 +24,27 @@ logging.basicConfig(
     format="%(asctime)s [%(levelname)s] %(message)s",
     handlers=[logging.StreamHandler()]
 )
-    
+
+# TODO: Change this to environment variable inside configs
+OLLAMA_HOST = "https://ollama.decidish.win" # Ensure this points to your GPU instance
+MODEL = "llama3.1:8b" # GPU recommended: 8B is smarter and fast on GPU.
+
+# GPU TUNING
+# For now single recipes at a time to avoid OOMs.
+RECIPE_BATCH_SIZE = 1
+# We allow many more in-flight requests to saturate the OLLAMA_NUM_PARALLEL slots
+MAX_CONCURRENT_REQUESTS = 10
+
 logger = logging.getLogger(__name__)
 
 app_config = AppConfig()
 
+client = AsyncClient(host=OLLAMA_HOST, timeout=30.0) # Faster timeout for GPU
+semaphore = asyncio.Semaphore(MAX_CONCURRENT_REQUESTS)
+
 nlp_model = spacy.load(app_config.model_path)
 unit_graph = UnitGraph(app_config.db_connection_string)
-client = genai.Client(api_key=app_config.google_api_key)
-ingredient_parser = IngredientParser(client, unit_graph)
+ingredient_parser = IngredientParser(client, unit_graph, semaphore)
 embedder = TextEmbedder()
 
 def get_db_connection():
@@ -55,7 +69,7 @@ async def run_add_recipe_background_task(recipe_url: str, job_id: int):
         pipeline: Pipeline = Pipeline(conn, ingredient_parser, embedder, app_config)
 
         print("Starting to add recipe", flush=True)
-        pipeline.scrape_process_recipe(recipe_url, job_id)
+        await pipeline.scrape_process_recipe(recipe_url, job_id)
         print("Finished adding recipe", flush=True)
     except Exception as e:
         print(f"Add Recipe Failed: {e}", flush=True)
@@ -76,7 +90,7 @@ async def run_etl_background_task(job_id: int):
         pipeline = Pipeline(conn, ingredient_parser, embedder, app_config)
 
         print("Starting ETL job", flush=True)
-        pipeline.run_etl(job_id)
+        await pipeline.run_etl(job_id)
 
         print("Finished ETL Job for REWE Recipes", flush=True)
     except Exception as e:
