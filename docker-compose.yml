@@ -56,7 +56,7 @@ services:
     networks:
       - app-network
     healthcheck:
-      test: [ "CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d mydb" ]
+      test: [ "CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}" ]
       interval: 5s
       timeout: 5s
       retries: 5
@@ -84,7 +84,8 @@ services:
       JWT_SECRET: ${JWT_SECRET}
       DATABASE_URL: ${DATABASE_URL}
     depends_on:
-      - db_authorisation
+      db_authorisation:
+        condition: service_healthy
     networks:
       - app-network
 
@@ -143,7 +144,6 @@ services:
       - POSTGRES_PORT=5432
       - POSTGRES_SSL_MODE=${POSTGRES_SSL_MODE}
       - DATABASE_BACKEND_CONNECTION_STRING=${DATABASE_BACKEND_CONNECTION_STRING}
-      - GOOGLE_API_KEY=${GOOGLE_API_KEY}
     depends_on:
       - personalization-server
     networks:

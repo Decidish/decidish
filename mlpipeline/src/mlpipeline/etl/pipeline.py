@@ -198,18 +198,18 @@ class Pipeline:
 
     def set_running_job_status(self, job_id: int):
         """
-        Sets the job status to 'running' in the database.
+        Sets the job status to 'processing' in the database.
         """
         with self.conn.cursor() as cursor:
-            cursor.execute("UPDATE jobs SET status = 'running' WHERE id = %s;", (job_id,))
+            cursor.execute("UPDATE jobs SET status = 'processing' WHERE id = %s;", (job_id,))
             self.conn.commit()
     
     def set_done_job_status(self, job_id: int):
         """
-        Sets the job status to 'done' in the database.
+        Sets the job status to 'success' in the database.
         """
         with self.conn.cursor() as cursor:
-            cursor.execute("UPDATE jobs SET status = 'done' WHERE id = %s;", (job_id,))
+            cursor.execute("UPDATE jobs SET status = 'success' WHERE id = %s;", (job_id,))
             self.conn.commit()
 
     ############################################################################

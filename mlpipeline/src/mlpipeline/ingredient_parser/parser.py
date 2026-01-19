@@ -39,7 +39,7 @@ class IngredientParser:
                     return Ingredient(
                         original=raw,
                         amount=normalized["normalized"],
-                        unit=clean_unit_label(response.unit),
+                        unit="g",
                         food=response.food,
                         info=response.additional_info
                     )
