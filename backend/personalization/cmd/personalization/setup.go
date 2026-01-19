@@ -57,11 +57,10 @@ func createRecommendRecipesMappings(r *gin.RouterGroup, db *sql.DB) {
 }
 
 func createOnboardingMappings(config config.ApplicationConfig, r *gin.RouterGroup, db *sql.DB) {
-	userRepo := repository.UserPreferenceRepository{}
-	onboardingService := service.NewOnboardingService(config, userRepo, db, client.NewClient())
-	onboardingController := controller.NewOnboardingController(*onboardingService)
+	userService := service.NewUserService(config, db, client.NewClient())
+	userController := controller.NewUserController(*userService)
 
-	onboardingController.AddMappings(r)
+	userController.AddMappings(r)
 }
 
 func createRecipeMappings(config config.ApplicationConfig, r *gin.Engine, db *sql.DB) {

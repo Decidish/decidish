@@ -1,8 +1,12 @@
 import psycopg2
+import torch
 from mlpipeline.etl.pipeline import Pipeline
-from typing import Optional
+from typing import List, Optional
+import numpy as np
 
+from mlpipeline.api.schemas import EncodeBatchResponse, UserEmbeddingItem, UserItem
 
+    
 class Tasks:
     """Encapsulates background task logic and its dependencies.
 
@@ -59,6 +63,37 @@ class Tasks:
             if conn:
                 conn.close()
 
+    def run_user_embedding_task(self, users: List[UserItem], device: torch.device, _MODEL: torch.nn.Module):
+        """
+        Synchronous task: encode a batch of user vectors using the UserEncoder model.
+        """
+        conn = None
+
+        try:
+            conn = self._get_db_connection()
+            x = np.asarray([u.user_vector for u in users], dtype=np.float32)
+            x = torch.from_numpy(x).to(device)
+
+            with torch.inference_mode():
+                z = _MODEL(x)
+                z_np = z.detach().cpu().numpy()
+
+            with conn.cursor() as cur:
+                for i in range(len(users)):
+                    user_id = users[i].user_id
+                    user_embedding = z_np[i].astype(float).tolist()
+                    # Upsert user embedding into the database
+                    cur.execute("""
+                        INSERT INTO user_embeddings (user_id, embedding)
+                        VALUES (%s, %s)
+                        ON CONFLICT (user_id) DO UPDATE SET embedding = EXCLUDED.embedding
+                    """, (user_id, user_embedding))
+        except Exception as e:
+            print(f"ETL Job Failed: {e}", flush=True)
+        finally:
+            if conn:
+                conn.close()
+
 
 # Module-level runner to preserve the existing function-based import API.
 runner: Optional[Tasks] = None
@@ -82,3 +117,9 @@ async def run_etl_background_task(job_id: int):
     if runner is None:
         raise RuntimeError("tasks runner not initialized; call init(...) from app startup")
     return await runner.run_etl_background_task(job_id)
+
+def run_user_embedding_task(users: List[UserItem], device: torch.device, _MODEL: torch.nn.Module):
+    """Wrapper that delegates to the registered `Tasks` instance."""
+    if runner is None:
+        raise RuntimeError("tasks runner not initialized; call init(...) from app startup")
+    return runner.run_user_embedding_task(users, device, _MODEL)

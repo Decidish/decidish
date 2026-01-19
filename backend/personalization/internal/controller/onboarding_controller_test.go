@@ -7,14 +7,16 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-type mockOnboardingService struct {
+type mockUserService struct {
 	called bool
 }
 
-func (m *mockOnboardingService) CreateUserPreferences(c *gin.Context) {
+func (m *mockUserService) CreateUserPreferences(c *gin.Context) {
 	m.called = true
 	c.JSON(201, gin.H{"ok": true})
 }
+
+func (m *mockUserService) SetSelectedUserMarketId(c *gin.Context) {}
 
 func TestOnboardingEndpoint_CallsService(t *testing.T) {
 	// Arrange
@@ -22,11 +24,11 @@ func TestOnboardingEndpoint_CallsService(t *testing.T) {
 	router := gin.New()
 	group := router.Group("/")
 
-	mock := &mockOnboardingService{}
-	ctrl := NewOnboardingController(mock)
+	mock := &mockUserService{}
+	ctrl := NewUserController(mock)
 	ctrl.AddMappings(group)
 
-	req := httptest.NewRequest("POST", "/onboarding", nil)
+	req := httptest.NewRequest("POST", "/user/preferences", nil)
 	w := httptest.NewRecorder()
 
 	// Act

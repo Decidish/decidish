@@ -2,7 +2,7 @@ from typing import Optional
 from fastapi import APIRouter, BackgroundTasks, HTTPException
 
 from mlpipeline.pretrain.model import UserEncoder, UserEncoderConfig, UserEncoderConfig
-from .tasks import run_add_recipe_background_task, run_etl_background_task
+from .tasks import run_add_recipe_background_task, run_etl_background_task, run_user_embedding_task
 from .schemas import AddRecipeRequest, AddReweRecipesRequest, EncodeBatchRequest, EncodeBatchResponse, UserEmbeddingItem
 import torch
 import numpy as np
@@ -82,15 +82,11 @@ def encode_users_batch(req: EncodeBatchRequest):
             raise HTTPException(500, f"failed to load model: {e}")
         _INPUT_DIM = d
 
-    x = np.asarray([u.user_vector for u in req.users], dtype=np.float32)
-    x = torch.from_numpy(x).to(device)
+    try:
+        run_user_embedding_task(req.users, device, _MODEL)
+    except Exception as e:
+        raise HTTPException(500, f"failed to encode users: {e}")
 
-    with torch.inference_mode():
-        z = _MODEL(x)
-        z_np = z.detach().cpu().numpy()
-
-    out = [
-        UserEmbeddingItem(user_id=req.users[i].user_id, user_embedding=z_np[i].astype(float).tolist())
-        for i in range(len(req.users))
-    ]
-    return EncodeBatchResponse(users=out, embedding_dim=z_np.shape[1])
+    return {
+        "status": "User encoding completed successfully",
+    }
