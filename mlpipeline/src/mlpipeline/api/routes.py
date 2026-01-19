@@ -1,3 +1,4 @@
+import logging
 from typing import Optional
 from fastapi import APIRouter, BackgroundTasks, HTTPException
 
@@ -83,10 +84,12 @@ def encode_users_batch(req: EncodeBatchRequest):
         _INPUT_DIM = d
 
     try:
-        run_user_embedding_task(req.users, device, _MODEL)
+        z_np = run_user_embedding_task(req.users, device, _MODEL)
+        out = [
+            UserEmbeddingItem(user_id = req.users[i].user_id, user_embedding = z_np[i].astype(float).tolist())
+            for i in range(len(req.users))
+        ]
+        return EncodeBatchResponse(users=out, embedding_dim = z_np.shape[1])
     except Exception as e:
+        logging.log(msg="failed to encode users", level=logging.ERROR, exc_info=e)
         raise HTTPException(500, f"failed to encode users: {e}")
-
-    return {
-        "status": "User encoding completed successfully",
-    }

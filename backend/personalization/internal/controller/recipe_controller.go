@@ -15,8 +15,6 @@ func NewRecipeController(service service.RecipeService) *RecipeController {
 }
 
 func (controller RecipeController) AddMappings(r *gin.Engine) {
-	// TODO: For future, where we can add more recipes
 	r.POST("/recipes/add/", controller.AddRecipe)
-	// TODO: ETL from rewe recipes
 	r.POST("/recipes/add/rewe/", controller.AddReweRecipes)
 }

@@ -82,7 +82,7 @@ class Pipeline:
 
                 # Insert categories
                 if recipe_data.category:
-                    self.process_categories(recipe_id, recipe_data.category.split(" "), cursor)
+                    self.process_categories(recipe_id, recipe_data.category.split(","), cursor)
 
                 if isinstance(recipe_data, ProcessedRecipe):
                     for ingredient in recipe_data.ingredients:

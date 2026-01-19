@@ -42,12 +42,6 @@ func enablePrometheusMetrics(r *gin.Engine) {
 	p.Use(r)
 }
 
-func createUserActionMappings(r *gin.RouterGroup) {
-	userActionController := controller.UserActionController{}
-
-	userActionController.AddMappings(r)
-}
-
 func createRecommendRecipesMappings(r *gin.RouterGroup, db *sql.DB) {
 	recipeRepo := repository.NewRecommenderRepository()
 	recipeService := service.NewRecommenderService(recipeRepo, db)
@@ -56,7 +50,7 @@ func createRecommendRecipesMappings(r *gin.RouterGroup, db *sql.DB) {
 	recipeController.AddMappings(r)
 }
 
-func createOnboardingMappings(config config.ApplicationConfig, r *gin.RouterGroup, db *sql.DB) {
+func createUserMappings(config config.ApplicationConfig, r *gin.RouterGroup, db *sql.DB) {
 	userService := service.NewUserService(config, db, client.NewClient())
 	userController := controller.NewUserController(*userService)
 

@@ -21,6 +21,16 @@ type EncodeBatchRequest struct {
 	Users []UserItem `json:"users"`
 }
 
+type UserEmbeddingItem struct {
+	UserId        string    `json:"user_id"`
+	UserEmbedding []float64 `json:"user_embedding"`
+}
+
+type EncodeBatchResponse struct {
+	Users        []UserEmbeddingItem `json:"users"`
+	EmbeddingDim int                 `json:"embedding_dim"`
+}
+
 type IUserService interface {
 	CreateUserPreferences(ctx *gin.Context)
 	SetSelectedUserMarketId(ctx *gin.Context)
@@ -34,9 +44,9 @@ type UserService struct {
 
 func NewUserService(applicationConfig config.ApplicationConfig, db *sql.DB, mlClient *client.Client) *UserService {
 	return &UserService{
-		ApplicationConfig:        applicationConfig,
-		DB:                       db,
-		MLClient:                 mlClient,
+		ApplicationConfig: applicationConfig,
+		DB:                db,
+		MLClient:          mlClient,
 	}
 }
 
@@ -63,16 +73,25 @@ func (service UserService) CreateUserPreferences(ctx *gin.Context) {
 	defer tx.Rollback()
 
 	// Save to database
-	err = repository.AddUserPreferenceVector(tx, userId, userPreferences)
+	err = repository.AddUserPreference(tx, userId, userPreferences)
 	if err != nil {
 		ctx.JSON(http.StatusInternalServerError, err)
 		return
 	}
 
 	// Populate the request
-	req := EncodeBatchRequest{}
+	req := EncodeBatchRequest{
+		Users: []UserItem{
+			{
+				UserId:     userId,
+				UserVector: userPreferences.PreferenceVector,
+			},
+		},
+	}
 
-	status, err := service.MLClient.PostJSON(ctx.Request.Context(), fmt.Sprintf("%s/encode_users_batch", service.EmbedderServerUrl), req, nil, nil)
+	var encodeResp EncodeBatchResponse
+
+	status, err := service.MLClient.PostJSON(ctx.Request.Context(), fmt.Sprintf("%s/encode_users_batch", service.EmbedderServerUrl), req, &encodeResp, nil)
 	if err != nil {
 		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "failed calling embedder", "details": err.Error()})
 		return
@@ -80,6 +99,14 @@ func (service UserService) CreateUserPreferences(ctx *gin.Context) {
 	if status < 200 || status >= 300 {
 		ctx.JSON(status, gin.H{"error": "embedder returned non-2xx", "status_code": status})
 		return
+	}
+
+	for _, user := range encodeResp.Users {
+		err := repository.AddOrUpdateEmbeddings(tx, user.UserId, user.UserEmbedding)
+		if err != nil {
+			ctx.JSON(http.StatusInternalServerError, err)
+			return
+		}
 	}
 
 	err = tx.Commit()
