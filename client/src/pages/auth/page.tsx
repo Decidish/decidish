@@ -1,3 +1,4 @@
+import { authApi } from '@/api/auth/authApi';
 import { useState } from 'react';
 
 export default function Auth() {
@@ -9,9 +10,14 @@ export default function Auth() {
     name: ''
   });
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    // Navigate to questionnaire after successful auth
+    // TODO: Handle errors gracefully here
+    if (isLogin) {
+      await authApi.login(formData.email, formData.password);
+    } else {
+      await authApi.register(formData.email, formData.password);
+    }
     window.REACT_APP_NAVIGATE('/questionnaire');
   };
 

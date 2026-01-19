@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { MapContainer, TileLayer, Marker, Popup, useMap } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
 import L from 'leaflet';
-import { marketApi } from '@/api/marketApi';
+import { marketApi } from '@/api/market-selection/marketApi';
 import { Market } from '@/types/market';
 import * as React from "react";
 
