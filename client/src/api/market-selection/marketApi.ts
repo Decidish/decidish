@@ -1,5 +1,5 @@
-import apiClient from './client';
-import { Market } from '../types/market';
+import apiClient from '../client';
+import { Market } from '@/types/market';
 
 export const marketApi = {
   /**
