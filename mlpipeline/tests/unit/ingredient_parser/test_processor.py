@@ -11,10 +11,11 @@ from mlpipeline.ingredient_parser.processor import PipelineProcessor
 class TestPipelineProcessor(unittest.TestCase):
 
     def test_process_product(self):
-        proc = PipelineProcessor(db_url="mock", ingredient_parser=None) # type: ignore
+        # Mock ingredient parser and unit graph
+        mock_parser = MagicMock()
+        mock_graph = MagicMock()
+        proc = PipelineProcessor(ingredient_parser=mock_parser, unit_graph=mock_graph)
         # Mock the graph normalization result
-        proc.graph = MagicMock()
-
         proc.graph.normalize.return_value = 100.0
         
         result = proc.process_product_data(1, "kg", "Apple")
@@ -25,7 +26,9 @@ class TestPipelineProcessor(unittest.TestCase):
 
     def test_process_recipe(self):
         # 1. Initialize Processor
-        proc = PipelineProcessor(db_url="mock", ingredient_parser=None) # type: ignore
+        mock_parser = MagicMock()
+        mock_graph = MagicMock()
+        proc = PipelineProcessor(ingredient_parser=mock_parser, unit_graph=mock_graph)
         proc.graph = MagicMock()
         
         # 2. FORCE replace the extractor with a Mock object we control

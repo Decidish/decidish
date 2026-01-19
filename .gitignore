@@ -9,3 +9,5 @@ node_modules/
 /bin/
 *.un~
 *.p12
+**/recipes.jsonl
+**/example_recipes_enriched.jsonl

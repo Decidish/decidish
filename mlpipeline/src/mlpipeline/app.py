@@ -1,14 +1,19 @@
 import logging
-
-import psycopg2
+import numpy as np
 import spacy
 import uvicorn
-from fastapi import FastAPI, BackgroundTasks
+import asyncio
+from ollama import AsyncClient
+from fastapi import FastAPI
 
 from mlpipeline.config.app_config import AppConfig
-from mlpipeline.etl.pipeline import Pipeline
+from mlpipeline.ingredient_parser.unit_graph import UnitGraph
 from mlpipeline.ingredient_parser.parser import IngredientParser
+from mlpipeline.embedding.embedder import TextEmbedder
+from mlpipeline.api import tasks as api_tasks
+from mlpipeline.api import routes
 
+# Initialize FastAPI app
 app = FastAPI(title="Recipe Embedding Service")
 
 logging.basicConfig(
@@ -17,52 +22,23 @@ logging.basicConfig(
     handlers=[logging.StreamHandler()]
 )
 
+# Configuration and global objects
+OLLAMA_HOST = "https://ollama.decidish.win"  # TODO: Move to environment/config
+MAX_CONCURRENT_REQUESTS = 10
 logger = logging.getLogger(__name__)
-
 app_config = AppConfig()
+client = AsyncClient(host=OLLAMA_HOST, timeout=30.0)
+semaphore = asyncio.Semaphore(MAX_CONCURRENT_REQUESTS)
+unit_graph = UnitGraph(app_config.db_connection_string)
+ingredient_parser = IngredientParser(client, unit_graph, semaphore)
+embedder = TextEmbedder()
 
-nlp_model = spacy.load(app_config.model_path)
-ingredient_parser = IngredientParser(nlp_model)
+# Initialize and inject dependencies into the tasks runner used by routes
+api_tasks.init(app_config, ingredient_parser, embedder)
 
+# Register API routers (routes defined in mlpipeline.api.routes)
+app.include_router(routes.router)
 
-
-def get_db_connection():
-    return psycopg2.connect(
-        dbname=app_config.db_name,
-        user=app_config.db_user,
-        password=app_config.db_password,
-        host=app_config.db_host,
-        port=app_config.db_port
-    )
-
-async def run_etl_background_task():
-    print("Starting background ETL task for REWE Recipes", flush=True)
-    """
-    Wrapper to handle the DB connection lifecycle for the background task.
-    """
-    conn = None
-    try:
-        conn = get_db_connection()
-
-        pipeline = Pipeline(conn, ingredient_parser, app_config)
-
-        print("Starting ETL job", flush=True)
-        await pipeline.run_etl()
-
-        print("Finished ETL Job for REWE Recipes", flush=True)
-    except Exception as e:
-        print(f"ETL Job Failed: {e}", flush=True)
-    finally:
-        if conn:
-            conn.close()
-
-@app.post("/recipes/add/rewe")
-async def add_rewe_recipes(
-        background_tasks: BackgroundTasks,
-):
-    background_tasks.add_task(run_etl_background_task)
-    # await run_etl_background_task()
-    return {"status": "Import started"}
 
 if __name__ == "__main__":
     uvicorn.run("mlpipeline.app:app", host="0.0.0.0", port=8000, reload=False)

@@ -1,0 +1,23 @@
+meta {
+  name: Import Random Recipe
+  type: http
+  seq: 4
+}
+
+post {
+  url: http://localhost:8000/recipes/add
+  body: json
+  auth: inherit
+}
+
+body:json {
+  {
+    "job_id": 2,
+    "recipe_url": "https://www.allrecipes.com/million-dollar-soup-recipe-11823470" 
+  }
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}

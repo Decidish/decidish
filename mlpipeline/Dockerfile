@@ -29,5 +29,7 @@ RUN uv sync --frozen
 
 EXPOSE 8000
 
+ENV PYTHONPATH=src
+
 # Run with uv run (automatically uses the virtual environment)
-CMD ["uv", "run", "python", "-m", "src.mlpipeline.app"]
+CMD ["uv", "run", "python", "-m", "mlpipeline.app"]

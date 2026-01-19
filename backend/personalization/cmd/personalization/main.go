@@ -32,7 +32,6 @@ func main() {
 		MaxAge:           12 * time.Hour,
 	}))
 
-	// TODO: Make sure this endpoint is now visible to users
 	createRecipeMappings(appConfig, r, db)
 
 	// Enables prometheus metrics
@@ -43,9 +42,8 @@ func main() {
 
 	protected.Use(middleware.AuthMiddleware(appConfig))
 	{
-		createUserActionMappings(protected)
 		createRecommendRecipesMappings(protected, db)
-		createOnboardingMappings(appConfig, protected, db)
+		createUserMappings(appConfig, protected, db)
 	}
 
 	if err := r.Run(":8082"); err != nil {

@@ -3,6 +3,7 @@ package main
 import (
 	"database/sql"
 	"log"
+	"personalization/internal/client"
 	"personalization/internal/config"
 	"personalization/internal/controller"
 	"personalization/internal/driver"
@@ -41,12 +42,6 @@ func enablePrometheusMetrics(r *gin.Engine) {
 	p.Use(r)
 }
 
-func createUserActionMappings(r *gin.RouterGroup) {
-	userActionController := controller.UserActionController{}
-
-	userActionController.AddMappings(r)
-}
-
 func createRecommendRecipesMappings(r *gin.RouterGroup, db *sql.DB) {
 	recipeRepo := repository.NewRecommenderRepository()
 	recipeService := service.NewRecommenderService(recipeRepo, db)
@@ -55,16 +50,15 @@ func createRecommendRecipesMappings(r *gin.RouterGroup, db *sql.DB) {
 	recipeController.AddMappings(r)
 }
 
-func createOnboardingMappings(config config.ApplicationConfig, r *gin.RouterGroup, db *sql.DB) {
-	userRepo := repository.UserPreferenceRepository{}
-	onboardingService := service.NewOnboardingService(config, userRepo, db)
-	onboardingController := controller.NewOnboardingController(*onboardingService)
+func createUserMappings(config config.ApplicationConfig, r *gin.RouterGroup, db *sql.DB) {
+	userService := service.NewUserService(config, db, client.NewClient())
+	userController := controller.NewUserController(*userService)
 
-	onboardingController.AddMappings(r)
+	userController.AddMappings(r)
 }
 
 func createRecipeMappings(config config.ApplicationConfig, r *gin.Engine, db *sql.DB) {
-	recipeService := service.NewRecipeService(config, db)
+	recipeService := service.NewRecipeService(config, db, client.NewClient())
 	recipeController := controller.NewRecipeController(recipeService)
 
 	recipeController.AddMappings(r)
