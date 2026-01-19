@@ -28,6 +28,10 @@ class Pipeline:
 
             recipe_data = RawRecipe.model_validate_json(recipe_json)
             recipe_id, err = await self.process_recipe(recipe_data)
+
+            if recipe_id == -1:
+                raise Exception("Recipe already exists in the database. Or could not be inserted.")
+
             self.create_recipe_embeddings_batch([{
                 'id': recipe_id,
                 'text': recipe_json
@@ -37,7 +41,8 @@ class Pipeline:
             
             self.set_done_job_status(job_id)
         except Exception as e:
-            print(f"Error scraping recipe {recipe_url}: {e}")
+            logging.error(f"ETL Job {job_id} failed: {e}")
+            self.set_error_job_status(job_id)
             raise e
 
     async def process_recipe(self, recipe_data: BaseRecipe) -> tuple[int, Optional[Exception]]:
@@ -216,18 +221,23 @@ class Pipeline:
     # ETL Pipeline for REWE Recipes done only once
     ############################################################################
     async def run_etl(self, job_id: int):
-        processed = 0
-        logging.log(logging.INFO, f"Starting ETL Job {job_id}...")
-        self.set_running_job_status(job_id)
+        try:
+            processed = 0
+            logging.log(logging.INFO, f"Starting ETL Job {job_id}...")
+            self.set_running_job_status(job_id)
 
-        for batch in self.get_rewe_recipes_batch("data/recipes_enriched.jsonl"):
-            processed_recipes = await self.process_recipe_batch(batch)
-            self.create_recipe_embeddings_batch(processed_recipes)
-            processed += len(batch)
-            self.conn.commit()
+            for batch in self.get_rewe_recipes_batch("data/recipes_enriched.jsonl"):
+                processed_recipes = await self.process_recipe_batch(batch)
+                self.create_recipe_embeddings_batch(processed_recipes)
+                processed += len(batch)
+                self.conn.commit()
 
-        self.set_done_job_status(job_id)
-        logging.log(logging.INFO, f"Finished ETL Job {job_id}...")
+            self.set_done_job_status(job_id)
+            logging.log(logging.INFO, f"Finished ETL Job {job_id}...")
+        except Exception as e:
+            logging.error(f"ETL Job {job_id} failed: {e}")
+            self.set_error_job_status(job_id)
+            raise e
 
     def create_recipe_embeddings_batch(self, recipe_data: list[dict]):
         # recipe_data is the list returned from step 1
@@ -256,7 +266,7 @@ class Pipeline:
             try:
                 recipe_data = ProcessedRecipe.model_validate_json(line)
             except Exception as e:
-                print(f"Error processing recipe: {e}")
+                logging.error(f"Error processing recipe: {e}")
                 continue
             recipe_id, err = await self.process_recipe(recipe_data)
             if err is not None:

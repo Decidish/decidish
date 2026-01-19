@@ -90,11 +90,11 @@ func (repo RecommenderRepository) GetRecommendedRecipesForUser(tx *sql.Tx, userI
 		LEFT JOIN RecipeIngredients rid ON re.id = rid.recipe_id
 		LEFT JOIN RecipeCategories rcd ON re.id = rcd.recipe_id`, userId)
 
-	defer query.Close()
-
 	if err != nil {
 		return nil, err
 	}
+	
+	defer query.Close()
 
 	var recipes []Recipe
 

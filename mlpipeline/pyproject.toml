@@ -15,6 +15,7 @@ dependencies = [
     "recipe-scrapers>=15.11.0",
     "selenium>=4.39.0",
     "spacy>=3.8.11",
+    "torch>=2.9.1",
     "uvicorn>=0.40.0",
     "webdriver-manager>=4.0.2",
 ]
@@ -28,3 +29,10 @@ dev = [
 [tool.pytest.ini_options]
 pythonpath = ["src"]
 testpaths = ["tests"]
+
+[tool.uv.sources]
+torch = { index = "pytorch-cpu" }
+
+[[tool.uv.index]]
+name = "pytorch-cpu"
+url = "https://download.pytorch.org/whl/cpu"

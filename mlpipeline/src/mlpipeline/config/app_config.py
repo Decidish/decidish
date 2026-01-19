@@ -4,14 +4,9 @@ class AppConfig:
     def __init__(self):
         self.test_mode = os.getenv("TEST_MODE", "false").lower() == "true"
 
-        self.model_path = os.getenv("MODEL_PATH", "src/mlpipeline/ingredient_parser/model-best/model")
-
         if self.test_mode:
             print("WARNING: Running in TEST MODE! No data will be persisted.")
             return
-
-        if not os.path.exists(self.model_path):
-            raise ValueError(f"MODEL_PATH does not exist: {self.model_path}")
 
         self.debug_mode = os.getenv("DEBUG_MODE", "false").lower() == "true"
         self.max_connections = os.getenv("MAX_CONNECTIONS", "10")

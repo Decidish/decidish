@@ -1,38 +1,14 @@
-# Chen Jia
-# begin: 2026/1/6 23:34
+from typing import Optional
+from fastapi import APIRouter, BackgroundTasks, HTTPException
 
-import os
-from typing import List, Optional
-
-import numpy as np
+from mlpipeline.pretrain.model import UserEncoder, UserEncoderConfig, UserEncoderConfig
+from .tasks import run_add_recipe_background_task, run_etl_background_task
+from .schemas import AddRecipeRequest, AddReweRecipesRequest, EncodeBatchRequest, EncodeBatchResponse, UserEmbeddingItem
 import torch
-from fastapi import FastAPI, HTTPException
-from pydantic import BaseModel, Field
+import numpy as np
 from pathlib import Path
 
-from mlpipeline.pretrain.model import UserEncoder, UserEncoderConfig
-
-
-class UserItem(BaseModel):
-    user_id: str
-    user_vector: List[float]
-
-
-class EncodeBatchRequest(BaseModel):
-    users: List[UserItem]
-
-
-class UserEmbeddingItem(BaseModel):
-    user_id: str
-    user_embedding: List[float]
-
-
-class EncodeBatchResponse(BaseModel):
-    users: List[UserEmbeddingItem]
-    embedding_dim: int
-
-
-app = FastAPI(title="User Encoder Service")
+router = APIRouter()
 
 _MODEL: Optional[UserEncoder] = None
 _INPUT_DIM: Optional[int] = None
@@ -54,8 +30,30 @@ def _load_model(ckpt_path: str, input_dim: int, device: torch.device) -> UserEnc
 
     return model
 
-@app.post("/encode_users_batch", response_model=EncodeBatchResponse)
-def encode_users_batch(req:EncodeBatchRequest):
+# Route to add a single recipe (background task)
+@router.post("/recipes/add")
+async def add_recipe(background_tasks: BackgroundTasks, request: AddRecipeRequest):
+    """
+    Endpoint to add a single recipe. Triggers a background task for scraping and processing.
+    """
+    background_tasks.add_task(run_add_recipe_background_task, request.recipe_url, request.job_id)
+    return {"status": "Recipe addition started"}
+
+# Route to add REWE recipes (background task)
+@router.post("/recipes/add/rewe")
+async def add_rewe_recipes(background_tasks: BackgroundTasks, request: AddReweRecipesRequest):
+    """
+    Endpoint to add REWE recipes. Triggers a background ETL task.
+    """
+    background_tasks.add_task(run_etl_background_task, request.job_id)
+    return {"status": "Import started"}
+
+# Route to encode a batch of users
+@router.post("/encode_users_batch", response_model=EncodeBatchResponse)
+def encode_users_batch(req: EncodeBatchRequest):
+    """
+    Endpoint to encode a batch of user vectors using the UserEncoder model.
+    """
     global _MODEL, _INPUT_DIM
 
     if not req.users:
@@ -84,7 +82,7 @@ def encode_users_batch(req:EncodeBatchRequest):
             raise HTTPException(500, f"failed to load model: {e}")
         _INPUT_DIM = d
 
-    x = np.asarray([u.user_vector for u in req.users], dtype = np.float32)
+    x = np.asarray([u.user_vector for u in req.users], dtype=np.float32)
     x = torch.from_numpy(x).to(device)
 
     with torch.inference_mode():
@@ -92,7 +90,7 @@ def encode_users_batch(req:EncodeBatchRequest):
         z_np = z.detach().cpu().numpy()
 
     out = [
-        UserEmbeddingItem(user_id = req.users[i].user_id, user_embedding = z_np[i].astype(float).tolist())
+        UserEmbeddingItem(user_id=req.users[i].user_id, user_embedding=z_np[i].astype(float).tolist())
         for i in range(len(req.users))
     ]
-    return EncodeBatchResponse(users=out, embedding_dim = z_np.shape[1])
+    return EncodeBatchResponse(users=out, embedding_dim=z_np.shape[1])

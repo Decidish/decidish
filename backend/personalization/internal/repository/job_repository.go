@@ -2,8 +2,6 @@ package repository
 
 import "database/sql"
 
-type JobRepository struct{}
-
 func CreateJob(tx *sql.Tx, name string, status string) (int, error) {
 	var id int
 	err := tx.QueryRow(`
