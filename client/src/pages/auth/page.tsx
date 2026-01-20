@@ -3,6 +3,9 @@ import { useState } from 'react';
 
 export default function Auth() {
   const [isLogin, setIsLogin] = useState(true);
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  
   const [formData, setFormData] = useState({
     email: '',
     password: '',
@@ -12,13 +15,53 @@ export default function Auth() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setError(null);
+    setIsLoading(true);
     // TODO: Handle errors gracefully here
-    if (isLogin) {
-      await authApi.login(formData.email, formData.password);
-    } else {
-      await authApi.register(formData.email, formData.password);
+    try {
+      if (!isLogin && formData.password !== formData.confirmPassword) {
+        throw new Error("Passwords do not match");
+      }
+
+      if (isLogin) {
+        await authApi.login(formData.email, formData.password);
+        // Navigate on success
+        // @ts-ignore
+        if (window.REACT_APP_NAVIGATE) {
+          // @ts-ignore
+          window.REACT_APP_NAVIGATE('/recipe-swiper');
+        } else {
+          console.warn("Navigation function not found");
+        }
+      } else {
+        // Register first
+        await authApi.register(formData.email, formData.password);
+        // Then Login automatically to get the cookie
+        await authApi.login(formData.email, formData.password);
+        // Navigate on success
+        // @ts-ignore
+        if (window.REACT_APP_NAVIGATE) {
+          // @ts-ignore
+          window.REACT_APP_NAVIGATE('/questionnaire');
+        } else {
+          console.warn("Navigation function not found");
+        }
+      }
+      
+
+    } catch (err: any) {
+      console.error(err);
+      const message = err.response?.data?.error || err.message || "Authentication failed. Please try again.";
+      setError(message);
+    } finally {
+      setIsLoading(false);
     }
-    window.REACT_APP_NAVIGATE('/questionnaire');
+    // if (isLogin) {
+    //   await authApi.login(formData.email, formData.password);
+    // } else {
+    //   await authApi.register(formData.email, formData.password);
+    // }
+    // window.REACT_APP_NAVIGATE('/questionnaire');
   };
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -46,6 +89,12 @@ export default function Auth() {
         </div>
 
         <div className="bg-white rounded-2xl shadow-lg p-8">
+          {error && (
+            <div className="mb-4 p-3 bg-red-50 border border-red-200 text-red-700 text-sm rounded-lg flex items-center gap-2 animate-pulse">
+              <i className="ri-error-warning-line"></i>
+              {error}
+            </div>
+          )}
           <form onSubmit={handleSubmit} className="space-y-5">
             {!isLogin && (
               <div>
@@ -129,9 +178,17 @@ export default function Auth() {
 
             <button
               type="submit"
-              className="w-full bg-gradient-to-r from-indigo-600 to-purple-600 text-white py-3 px-6 rounded-lg font-medium hover:from-indigo-700 hover:to-purple-700 transition-colors shadow-md hover:shadow-lg whitespace-nowrap cursor-pointer"
+              disabled={isLoading}
+              className={`w-full bg-gradient-to-r from-indigo-600 to-purple-600 text-white py-3 px-6 rounded-lg font-medium hover:from-indigo-700 hover:to-purple-700 transition-colors shadow-md hover:shadow-lg whitespace-nowrap cursor-pointer flex justify-center items-center gap-2 ${isLoading ? 'opacity-70 cursor-not-allowed' : ''}`}
             >
-              {isLogin ? 'Sign In' : 'Create Account'}
+              {isLoading ? (
+                <>
+                  <i className="ri-loader-4-line animate-spin"></i>
+                  <span>Processing...</span>
+                </>
+              ) : (
+                <span>{isLogin ? 'Sign In' : 'Create Account'}</span>
+              )}
             </button>
           </form>
 
@@ -139,7 +196,11 @@ export default function Auth() {
             <p className="text-sm text-gray-600">
               {isLogin ? "Don't have an account?" : 'Already have an account?'}
               <button
-                onClick={() => setIsLogin(!isLogin)}
+                onClick={() => {
+                    setIsLogin(!isLogin);
+                    setError(null);
+                    setFormData(prev => ({...prev, password: '', confirmPassword: ''}));
+                }}
                 className="ml-2 text-indigo-600 hover:text-indigo-700 font-medium cursor-pointer whitespace-nowrap"
               >
                 {isLogin ? 'Sign Up' : 'Sign In'}
