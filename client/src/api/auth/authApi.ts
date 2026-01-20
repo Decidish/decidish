@@ -1,9 +1,9 @@
-import authClient from "./authClient";
+import apiClient from "../client";
 
 export const authApi = {
   login: async (username: string, password: string): Promise<void> => {
     try {
-      await authClient.post('/login', {
+      await apiClient.post('/auth/login', {
         username: username,
         password: password
       });
@@ -14,13 +14,14 @@ export const authApi = {
   },
 
   register: async (username: string, password: string): Promise<void> => {
+    // TODO: There should be no auto login, does this even work right now???
     try {
-      await authClient.post('/register', {
+      await apiClient.post('/auth/register', {
         username: username,
         password: password
       });
       // auto-login
-      await authClient.post('/login', {
+      await apiClient.post('/auth/login', {
         username: username,
         password: password
       });
