@@ -25,19 +25,20 @@ export default function Auth() {
 
       if (isLogin) {
         await authApi.login(formData.email, formData.password);
-        // Navigate on success
-        // @ts-ignore
-        if (window.REACT_APP_NAVIGATE) {
-          // @ts-ignore
-          window.REACT_APP_NAVIGATE('/recipe-swiper');
-        } else {
-          console.warn("Navigation function not found");
-        }
+        // // Navigate on success
+        // // @ts-ignore
+        // if (window.REACT_APP_NAVIGATE) {
+        //   // @ts-ignore
+        //   window.REACT_APP_NAVIGATE('/recipe-swiper');
+        // } else {
+        //   console.warn("Navigation function not found");
+        // }
       } else {
         // Register first
         await authApi.register(formData.email, formData.password);
         // Then Login automatically to get the cookie
         await authApi.login(formData.email, formData.password);
+      }
         // Navigate on success
         // @ts-ignore
         if (window.REACT_APP_NAVIGATE) {
@@ -46,7 +47,6 @@ export default function Auth() {
         } else {
           console.warn("Navigation function not found");
         }
-      }
       
 
     } catch (err: any) {
