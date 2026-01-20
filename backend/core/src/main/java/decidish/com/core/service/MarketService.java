@@ -270,12 +270,16 @@ public class MarketService {
         for (Market market : markets) {
             log.info("Updating products for Market ID: {}", market.getId());
 
-            // Time this operation in seconds
-            long startTime = System.currentTimeMillis();
-            getAllProductsAPI(market);
-            long endTime = System.currentTimeMillis();
-            long duration = (endTime - startTime) / 1000;
-            log.info("Finished updating Market ID: {} in {} seconds", market.getId(), duration);
+            try {
+                // Time this operation in seconds
+                long startTime = System.currentTimeMillis();
+                getAllProductsAPI(market);
+                long endTime = System.currentTimeMillis();
+                long duration = (endTime - startTime) / 1000;
+                log.info("Successfully updated Market ID: {} in {} seconds", market.getId(), duration);
+            } catch (Exception e) {
+                log.error("Error updating Market with id {}: {}", market.getId(), e.getMessage());
+            }
         }
     } 
 
