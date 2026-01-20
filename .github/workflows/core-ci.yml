@@ -54,6 +54,10 @@ jobs:
       # The 'e2e' task will hit localhost:5433, connecting to the 'services.postgres' above.
       - name: Run Tests (Unit, Integration, E2E)
         working-directory: ${{ env.SERVICE_DIR }}
+        env:
+          MINIO_ENDPOINT: ${{ secrets.MINIO_ENDPOINT }}
+          MINIO_ACCESS_KEY: ${{ secrets.MINIO_ACCESS_KEY }}
+          MINIO_SECRET_KEY: ${{ secrets.MINIO_SECRET_KEY }}
         run: ./gradlew test integration e2e --no-daemon
 
       - name: Upload Test Report
