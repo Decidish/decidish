@@ -2,11 +2,7 @@ import os
 
 class AppConfig:
     def __init__(self):
-        self.test_mode = os.getenv("TEST_MODE", "false").lower() == "true"
-
-        if self.test_mode:
-            print("WARNING: Running in TEST MODE! No data will be persisted.")
-            return
+        self.db_connection_string = os.getenv("DATABASE_BACKEND_CONNECTION_STRING", "")
 
         self.debug_mode = os.getenv("DEBUG_MODE", "false").lower() == "true"
         self.max_connections = os.getenv("MAX_CONNECTIONS", "10")
@@ -17,7 +13,6 @@ class AppConfig:
         self.db_host = os.getenv("POSTGRES_HOST", "localhost")
         self.db_port = os.getenv("POSTGRES_PORT", "5432")
         self.db_ssl_mode = os.getenv("POSTGRES_SSL_MODE", "disable")
-        self.db_connection_string = os.getenv("DATABASE_BACKEND_CONNECTION_STRING", "")
 
         if not self.db_connection_string:
             raise ValueError("DATABASE_BACKEND_CONNECTION_STRING environment variable is not set.")
