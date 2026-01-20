@@ -8,7 +8,7 @@ export const marketApi = {
    */
   searchMarkets: async (postalCode: string): Promise<Market[]> => {
     try {
-      const response = await apiClient.get<Market[]>('/markets', {
+      const response = await apiClient.get<Market[]>('shopping/markets', {
         params: { plz: postalCode } // Java controller expects "plz", not "postalCode"
       });
       return response.data;

@@ -1,4 +1,4 @@
-import personalizationClient from '../personalizationClient';
+import apiClient from "../client";
 
 export interface UserPreferences {
   allergies: string[];
@@ -12,7 +12,7 @@ export const userApi = {
   // Calls POST /user/preferences
   savePreferences: async (data: UserPreferences): Promise<void> => {
     try {
-      await personalizationClient.post('/user/preferences', data);
+      await apiClient.post('/personalization/api/v1/user/preferences', data);
     } catch (error) {
       console.error("Failed to save preferences:", error);
       throw error;
