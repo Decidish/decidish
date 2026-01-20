@@ -55,7 +55,6 @@ func (controller *AuthorizationController) loginMapping(db *sql.DB, r *gin.Engin
 
 		http.SetCookie(c.Writer, &cookie)
 
-		c.Header("Access-Control-Allow-Origin", "http://localhost:8081")
 		c.JSON(http.StatusOK, gin.H{
 			"message": "Successfully logged in",
 		})
@@ -77,7 +76,7 @@ func (controller *AuthorizationController) registerMapping(db *sql.DB, r *gin.En
 
 		if err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{
-				"error": fmt.Sprintf("Error registering user: %s", registerBody.Username),
+				"error": fmt.Sprintf("Error registering user: %s, %s", registerBody.Username, err.Error()),
 			})
 			return
 		}
