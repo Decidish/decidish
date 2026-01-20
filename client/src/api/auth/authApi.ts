@@ -1,40 +1,31 @@
-import apiClient from '../client';
-
-// type LoginRequestBody struct {
-// 	Username string `json:"username" binding:"required"`
-// 	Password string `json:"password" binding:"required"`
-// }
-
+import authClient from "./authClient";
 
 export const authApi = {
-  /**
-   * Adds a recipe by its URL.
-   * @param recipeUrl - The URL of the recipe to be added.
-   */
   login: async (username: string, password: string): Promise<void> => {
     try {
-      await apiClient.post('/login', {
+      await authClient.post('/login', {
         username: username,
         password: password
       });
     } catch (error) {
-      console.error("Error adding recipe:", error);
+      console.error("Login failed:", error);
       throw error;
     }
   },
 
-  /**
-   * Adds a recipe by its URL.
-   * @param recipeUrl - The URL of the recipe to be added.
-   */
   register: async (username: string, password: string): Promise<void> => {
     try {
-      await apiClient.post('/register', {
+      await authClient.post('/register', {
+        username: username,
+        password: password
+      });
+      // auto-login
+      await authClient.post('/login', {
         username: username,
         password: password
       });
     } catch (error) {
-      console.error("Error adding recipe:", error);
+      console.error("Registration failed:", error);
       throw error;
     }
   },
