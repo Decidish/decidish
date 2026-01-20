@@ -32,7 +32,7 @@ public class Product implements Persistable<Long> {
     @EqualsAndHashCode.Include
     private Long id;
 
-    @Column(name = "rewe_id", unique = true)
+    @Column(name = "rewe_id", unique = false) // Not unique globally, only per market
     private Long reweId; // Id from REWE system
 
     private String name;

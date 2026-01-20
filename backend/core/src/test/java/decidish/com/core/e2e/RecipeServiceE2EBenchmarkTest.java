@@ -1,6 +1,7 @@
-// ! Multi-threading causes issues, ignore for now
+// // ! Multi-threading causes issues, ignore for now
 
 // package decidish.com.core.e2e;
+
 // import decidish.com.core.TestcontainersConfiguration;
 
 // import decidish.com.core.model.recipes.*;
@@ -12,6 +13,8 @@
 // import decidish.com.core.repository.RecipeIngredientRepository;
 // import decidish.com.core.service.RecipeService;
 // import jakarta.persistence.EntityManager;
+// import jakarta.persistence.criteria.CriteriaBuilder.In;
+
 // import org.junit.jupiter.api.BeforeEach;
 // import org.junit.jupiter.api.DisplayName;
 // import org.junit.jupiter.api.Tag;
@@ -31,213 +34,243 @@
 // import static org.junit.jupiter.api.Assertions.*;
 
 // @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
-// @ActiveProfiles("e2e") // Ensure this profile has REAL DB config and REAL API
-// keys
+// // @ActiveProfiles("e2e") // Ensure this profile has REAL DB config and REAL API keys
+// @ActiveProfiles("test") 
 // @Tag("e2e-benchmark")
 // public class RecipeServiceE2EBenchmarkTest {
 
-// @Autowired
-// private RecipeService recipeService;
+//     @Autowired
+//     private RecipeService recipeService;
 
-// @Autowired
-// private IngredientProductRepository ingredientProductRepository;
+//     @Autowired
+//     private IngredientProductRepository ingredientProductRepository;
 
-// @Autowired
-// private RecipeIngredientRepository recipeIngredientRepository;
+//     @Autowired
+//     private RecipeIngredientRepository recipeIngredientRepository;
 
-// @Autowired
-// private MarketRepository marketRepository;
+//     @Autowired
+//     private MarketRepository marketRepository;
 
-// @Autowired
-// private EntityManager entityManager;
+//     @Autowired
+//     private EntityManager entityManager;
 
-// @Autowired
-// private TransactionTemplate transactionTemplate;
+//     @Autowired
+//     private TransactionTemplate transactionTemplate;
 
-// // Use a real Market ID that exists in the external API (e.g., REWE Munich)
-// private final Long MARKET_ID = 431022L;
+//     // Use a real Market ID that exists in the external API (e.g., REWE Munich)
+//     private final Long MARKET_ID = 431022L;
 
-// // A list of 50 real items to ensure the API actually searches for something
-// valid
-// private final String[] REAL_INGREDIENTS = {
-// "Milch", "Butter", "Eier", "Mehl", "Zucker", "Salz", "Pfeffer", "Tomaten",
-// "Gurke", "Paprika",
-// "Apfel", "Banane", "Birne", "Brot", "Käse", "Wurst", "Schinken", "Reis",
-// "Nudeln", "Kartoffeln",
-// "Zwiebeln", "Knoblauch", "Öl", "Essig", "Senf", "Ketchup", "Mayo", "Joghurt",
-// "Quark", "Sahne",
-// "Schokolade", "Keks", "Chips", "Wasser", "Saft", "Bier", "Wein", "Kaffee",
-// "Tee", "Honig",
-// "Marmelade", "Nutella", "Müsli", "Haferflocken", "Mais", "Erbsen", "Bohnen",
-// "Thunfisch", "Lachs", "Hähnchen"
-// };
+//     // A list of 50 real items to ensure the API actually searches for something
+//     // valid
+//     private final String[] REAL_INGREDIENTS = {
+//             "Milch", "Butter", "Eier", "Mehl", "Zucker", "Salz", "Pfeffer", "Tomaten",
+//             "Gurke", "Paprika",
+//             "Apfel", "Banane", "Birne", "Brot", "Käse", "Wurst", "Schinken", "Reis",
+//             "Nudeln", "Kartoffeln",
+//             "Zwiebeln", "Knoblauch", "Öl", "Essig", "Senf", "Ketchup", "Mayo", "Joghurt",
+//             "Quark", "Sahne",
+//             "Schokolade", "Keks", "Chips", "Wasser", "Saft", "Bier", "Wein", "Kaffee",
+//             "Tee", "Honig",
+//             "Marmelade", "Nutella", "Müsli", "Haferflocken", "Mais", "Erbsen", "Bohnen",
+//             "Thunfisch", "Lachs", "Hähnchen"
+//     };
 
-// @BeforeEach
-// void setup() {
-// // Force a separate, committed transaction for setup
-// transactionTemplate.setPropagationBehavior(TransactionDefinition.PROPAGATION_REQUIRES_NEW);
+//     @BeforeEach
+//     void setup() {
+//         // Force a separate, committed transaction for setup
+//         transactionTemplate.setPropagationBehavior(TransactionDefinition.PROPAGATION_REQUIRES_NEW);
 
-// transactionTemplate.execute(status -> {
-// // Clean slate
-// ingredientProductRepository.deleteAll();
-// recipeIngredientRepository.deleteAll();
-// entityManager.createQuery("DELETE FROM Recipe").executeUpdate();
+//         transactionTemplate.execute(status -> {
+//             // Clean slate
+//             ingredientProductRepository.deleteAll();
+//             recipeIngredientRepository.deleteAll();
+//             entityManager.createQuery("DELETE FROM Recipe").executeUpdate();
 
-// // Use a native delete or ensure the market is gone first
-// marketRepository.deleteById(MARKET_ID);
-// marketRepository.flush();
+//             // Use a native delete or ensure the market is gone first
+//             marketRepository.deleteById(MARKET_ID);
+//             marketRepository.flush();
 
-// Market market = new Market(MARKET_ID, "Benchmark Market", new Address());
-// marketRepository.saveAndFlush(market);
+//             Market market = new Market(MARKET_ID, "Benchmark Market", new Address());
+//             marketRepository.saveAndFlush(market);
 
-// return null;
-// });
-// }
+//             return null;
+//         });
+//     }
+    
 
-// @Test
-// @DisplayName("E2E BENCHMARK: 100% Local Cache (0 API Calls)")
-// @Transactional
-// void benchmark_AllLocal_NoApi() {
-// // Setup: Map ALL 50 ingredients locally
-// List<Integer> recipeIds = setupScenario(50, 0); // 50 items, 0 missing
+//     @Test
+//     @DisplayName("E2E BENCHMARK: 100% Local Cache (0 API Calls)")
+//     @Transactional
+//     void benchmark_AllLocal_NoApi() {
+//         // Setup: Map ALL 50 ingredients locally
+//         List<Integer> recipeIds = setupScenario(50, 0); // 50 items, 0 missing
 
-// long start = System.nanoTime();
-// ShoppingListResponse response = recipeService.generateShoppingList(MARKET_ID,
-// recipeIds);
-// long end = System.nanoTime();
+//         long start = System.nanoTime();
+//         ShoppingListResponse response = recipeService.generateShoppingList(MARKET_ID,
+//                 recipeIds);
+//         long end = System.nanoTime();
 
-// printResult("Full Local Cache", 0, start, end);
-// assertEquals(50, response.items().size());
-// }
+//         printResult("Full Local Cache", 0, start, end);
+//         assertEquals(50, response.items().size());
+//     }
 
-// @Test
-// @DisplayName("E2E BENCHMARK: 10% Missing (5 Real API Calls)")
-// @Transactional
-// void benchmark_FewMissing_RealApi() {
-// // Setup: Map 45 locally, leave 5 unmapped (forcing 5 API calls)
-// List<Integer> recipeIds = setupScenario(50, 5);
+//     @Test
+//     @DisplayName("E2E BENCHMARK: 10% Missing (5 Real API Calls)")
+//     @Transactional
+//     void benchmark_FewMissing_RealApi() {
+//         // Setup: Map 45 locally, leave 5 unmapped (forcing 5 API calls)
+//         List<Integer> recipeIds = setupScenario(50, 5);
 
-// long start = System.nanoTime();
-// ShoppingListResponse response = recipeService.generateShoppingList(MARKET_ID,
-// recipeIds);
-// long end = System.nanoTime();
+//         long start = System.nanoTime();
+//         ShoppingListResponse response = recipeService.generateShoppingList(MARKET_ID,
+//                 recipeIds);
+//         long end = System.nanoTime();
 
-// printResult("Hybrid (5 Missing)", 5, start, end);
-// assertEquals(50, response.items().size());
+//         printResult("Hybrid (5 Missing)", 5, start, end);
+//         assertEquals(50, response.items().size());
 
-// // Validation: Ensure we actually got data back from the API for the missing
-// items
-// long itemsWithOptions = response.items().stream().filter(i ->
-// !i.options().isEmpty()).count();
-// System.out.println("Items with found products: " + itemsWithOptions + "/50");
-// }
+//         // Validation: Ensure we actually got data back from the API for the missing
+//         // items
+//         long itemsWithOptions = response.items().stream().filter(i -> !i.options().isEmpty()).count();
+//         System.out.println("Items with found products: " + itemsWithOptions + "/50");
+//     }
 
-// @Test
-// @DisplayName("E2E BENCHMARK: 70% Missing (35 Real API Calls - STRESS)")
-// @Transactional
-// void benchmark_AllMissing_RealApi() {
-// // Setup: Map 0 locally. All 50 ingredients must be fetched from API.
-// List<Integer> recipeIds = setupScenario(50, 35);
+//     @Test
+//     @DisplayName("E2E BENCHMARK: 70% Missing (35 Real API Calls - STRESS)")
+//     @Transactional
+//     void benchmark_AllMissing_RealApi() {
+//         // Setup: Map 0 locally. All 50 ingredients must be fetched from API.
+//         List<Integer> recipeIds = setupScenario(50, 35);
 
-// System.out.println("Starting Stress Test: 50 Parallel API Requests...");
-// long start = System.nanoTime();
-// ShoppingListResponse response = recipeService.generateShoppingList(MARKET_ID,
-// recipeIds);
-// long end = System.nanoTime();
+//         System.out.println("Starting Stress Test: 50 Parallel API Requests...");
+//         long start = System.nanoTime();
+//         ShoppingListResponse response = recipeService.generateShoppingList(MARKET_ID,
+//                 recipeIds);
+//         long end = System.nanoTime();
 
-// printResult("Full API Stress (50 Missing)", 50, start, end);
+//         printResult("Full API Stress (50 Missing)", 50, start, end);
 
-// // Validation
-// assertEquals(50, response.items().size());
-// long itemsWithOptions = response.items().stream().filter(i ->
-// !i.options().isEmpty()).count();
-// System.out.println("Items successfully resolved via API: " + itemsWithOptions
-// + "/50");
+//         // Validation
+//         assertEquals(50, response.items().size());
+//         long itemsWithOptions = response.items().stream().filter(i -> !i.options().isEmpty()).count();
+//         System.out.println("Items successfully resolved via API: " + itemsWithOptions
+//                 + "/50");
 
-// if (itemsWithOptions < 50) {
-// System.err.println("WARNING: Some items returned no products. Check API rate
-// limits or market availability.");
-// }
-// }
+//         if (itemsWithOptions < 50) {
+//             System.err
+//                     .println("WARNING: Some items returned no products. Check API rate limits or market availability.");
+//         }
+//     }
 
-// // --- Helper Methods ---
+//     // --- Helper Methods ---
 
-// /**
-// * Sets up recipes and ingredients in the DB.
-// * @param totalItems Total ingredients to create
-// * @param missingItems Number of ingredients NOT to map to products (forcing
-// API calls)
-// * @return List of Recipe IDs created
-// */
-// private List<Integer> setupScenario(int totalItems, int missingItems) {
-// List<RecipeIngredient> batchIngredients = new ArrayList<>();
+//     /**
+//      * Sets up recipes and ingredients in the DB.
+//      * 
+//      * @param totalItems   Total ingredients to create
+//      * @param missingItems Number of ingredients NOT to map to products (forcing
+//      *                     API calls)
+//      * @return List of Recipe IDs created
+//      */
+//     // private List<Integer> setupScenario(int totalItems, int missingItems) {
+//     //     List<RecipeIngredient> batchIngredients = new ArrayList<>();
 
-// Recipe recipe = new Recipe("Benchmark Recipe " + System.currentTimeMillis());
-// // This ensures ID is generated correctly by DB and returned in the managed
-// entity
-// recipe = entityManager.merge(recipe);
+//     //     Recipe recipe = new Recipe("Benchmark Recipe " + System.currentTimeMillis());
+//     //     // This ensures ID is generated correctly by DB and returned in the managed
+//     //     // entity
+//     //     recipe = entityManager.merge(recipe);
 
-// int mappedCount = totalItems - missingItems;
+//     //     int mappedCount = totalItems - missingItems;
 
-// for (int i = 0; i < totalItems; i++) {
-// String name = REAL_INGREDIENTS[i];
+//     //     for (int i = 0; i < totalItems; i++) {
+//     //         String name = REAL_INGREDIENTS[i];
 
-// Ingredient ing = new Ingredient();
-// ing.setName(name);
-// ing = entityManager.merge(ing); // Persist
+//     //         Ingredient ing = new Ingredient();
+//     //         ing.setName(name);
+//     //         ing = entityManager.merge(ing); // Persist
 
-// // Link to Recipe
-// RecipeIngredient ri = new RecipeIngredient(recipe, ing, BigDecimal.ONE,
-// "unit");
-// batchIngredients.add(ri);
+//     //         // Link to Recipe
+//     //         RecipeIngredient ri = new RecipeIngredient(recipe, ing, BigDecimal.ONE,
+//     //                 "unit");
+//     //         batchIngredients.add(ri);
 
-// // Create Local Mapping (Mock Product in DB) ONLY for the first 'mappedCount'
-// items
-// if (i < mappedCount) {
-// createLocalMapping(ing);
-// }
-// }
+//     //         // Create Local Mapping (Mock Product in DB) ONLY for the first 'mappedCount'
+//     //         // items
+//     //         if (i < mappedCount) {
+//     //             createLocalMapping(ing);
+//     //         }
+//     //     }
 
-// recipeIngredientRepository.saveAll(batchIngredients);
-// entityManager.flush();
-// entityManager.clear();
+//     //     recipeIngredientRepository.saveAll(batchIngredients);
+//     //     entityManager.flush();
+//     //     entityManager.clear();
 
-// return List.of(recipe.getId());
-// }
+//     //     return List.of(recipe.getId());
+//     // }
+//     private List<Integer> setupScenario(int totalItems, int missingItems) {
+//         // 1. Force a NEW transaction that commits IMMEDIATELY when this block finishes.
+//         //    This makes the data visible to the parallel threads spawned by the Service.
+//         transactionTemplate.setPropagationBehavior(TransactionDefinition.PROPAGATION_REQUIRES_NEW);
 
-// private void createLocalMapping(Ingredient ing) {
-// Product p = new Product();
-// p.setName("Local " + ing.getName());
-// p.setMarket(entityManager.getReference(Market.class, MARKET_ID));
-// p.setNormalizedAmount(1.0);
-// p.setReweId(1234L);
+//         return transactionTemplate.execute(status -> {
+//             Recipe recipe = new Recipe("Benchmark Recipe " + System.currentTimeMillis());
+//             recipe = entityManager.merge(recipe);
 
-// // Let DB generate the ID
-// p = entityManager.merge(p);
+//             int mappedCount = totalItems - missingItems;
 
-// IngredientProductId mapId = new IngredientProductId(ing.getId(),
-// p.getReweId());
-// IngredientProduct ip = new IngredientProduct(mapId, ing, 1.0f);
-// entityManager.merge(ip);
-// }
+//             for (int i = 0; i < totalItems; i++) {
+//                 // Safely cycle through ingredients
+//                 String name = REAL_INGREDIENTS[i % REAL_INGREDIENTS.length] + (i >= REAL_INGREDIENTS.length ? " " + i : "");
 
-// private void printResult(String label, int apiCalls, long startNano, long
-// endNano) {
-// long durationMs = TimeUnit.NANOSECONDS.toMillis(endNano - startNano);
-// System.out.println("\n================================================================");
-// System.out.printf("SCENARIO: %s%n", label);
-// System.out.printf("Total Ingredients: 50%n");
-// System.out.printf("External API Calls: %d%n", apiCalls);
-// System.out.println("----------------------------------------------------------------");
-// System.out.printf("TOTAL TIME: %d ms (%.2f seconds)%n", durationMs,
-// durationMs / 1000.0);
+//                 Ingredient ing = new Ingredient();
+//                 ing.setName(name);
+//                 ing = entityManager.merge(ing);
 
-// if (apiCalls > 0) {
-// double avgTime = (double) durationMs / apiCalls;
-// System.out.printf("Effective Avg Time per Item: %.2f ms%n", avgTime);
-// System.out.println("Note: Lower is better. Low effective time proves
-// parallelism.");
-// }
-// System.out.println("================================================================\n");
-// }
+//                 RecipeIngredient ri = new RecipeIngredient(recipe, ing, BigDecimal.ONE, "unit");
+//                 entityManager.persist(ri);
+
+//                 // Create local mapping if within count
+//                 if (i < mappedCount) {
+//                     createLocalMapping(ing);
+//                 }
+//             }
+            
+//             entityManager.flush();
+//             return List.of(recipe.getId());
+//         }); 
+//     }
+
+//     private void createLocalMapping(Ingredient ing) {
+//         Product p = new Product();
+//         p.setName("Local " + ing.getName());
+//         p.setMarket(entityManager.getReference(Market.class, MARKET_ID));
+//         p.setNormalizedAmount(1.0);
+//         p.setReweId(1234L + ing.getId());
+
+//         // Let DB generate the ID
+//         p = entityManager.merge(p);
+
+//         IngredientProductId mapId = new IngredientProductId(ing.getId(),
+//                 p.getReweId());
+//         IngredientProduct ip = new IngredientProduct(mapId, ing, 1.0f);
+//         entityManager.merge(ip);
+//     }
+
+//     private void printResult(String label, int apiCalls, long startNano, long endNano) {
+//         long durationMs = TimeUnit.NANOSECONDS.toMillis(endNano - startNano);
+//         System.out.println("\n================================================================");
+//         System.out.printf("SCENARIO: %s%n", label);
+//         System.out.printf("Total Ingredients: 50%n");
+//         System.out.printf("External API Calls: %d%n", apiCalls);
+//         System.out.println("----------------------------------------------------------------");
+//         System.out.printf("TOTAL TIME: %d ms (%.2f seconds)%n", durationMs,
+//                 durationMs / 1000.0);
+
+//         if (apiCalls > 0) {
+//             double avgTime = (double) durationMs / apiCalls;
+//             System.out.printf("Effective Avg Time per Item: %.2f ms%n", avgTime);
+//             System.out.println("Note: Lower is better. Low effective time proves parallelism.");
+//         }
+//         System.out.println("================================================================\n");
+//     }
 // }

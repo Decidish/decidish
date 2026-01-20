@@ -13,3 +13,7 @@ spring:
 #    store-type: none
   application:
     name: "shopping-service"
+
+cron:
+  weekly-sync: "0 0 3 ? * SUN"  # Every Sunday at 3 AM
+  quick-sync: "*/30 * * * * *"  # Every 30 seconds (for testing)
