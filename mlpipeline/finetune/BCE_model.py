@@ -15,6 +15,7 @@ class BCEConfig:
     dim: int = 384
     hidden: int = 768,
     temperature: float = 0.07
+    dropout: float = 0.0
     keep_recipe_embedding: bool = True
     lr_user: float = 1e-3
     lr_recipe: float = 5e-4

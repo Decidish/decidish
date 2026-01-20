@@ -178,3 +178,4 @@ pyrightconfig.json
 
 pretrain/recipes_db.json
 pretrain/recipe.json
+finetune/ckpts_weekly_user_adapter

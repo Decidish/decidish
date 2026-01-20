@@ -2,15 +2,16 @@
 # begin: 2026/1/6 23:34
 
 import os
-from typing import List, Optional
+from typing import List, Optional, Dict, Any
 
 import numpy as np
 import torch
 from fastapi import FastAPI, HTTPException
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, conlist
 from pathlib import Path
 
 from mlpipeline.pretrain.model import UserEncoder, UserEncoderConfig
+from mlpipeline.finetune.tune_user_embedding import CoreCfg, ModelCache, compute_updated_user_embeddings
 
 
 class UserItem(BaseModel):
@@ -31,6 +32,8 @@ class EncodeBatchResponse(BaseModel):
     users: List[UserEmbeddingItem]
     embedding_dim: int
 
+
+# === Finetuing Phase ===
 
 app = FastAPI(title="User Encoder Service")
 
@@ -54,8 +57,9 @@ def _load_model(ckpt_path: str, input_dim: int, device: torch.device) -> UserEnc
 
     return model
 
+
 @app.post("/encode_users_batch", response_model=EncodeBatchResponse)
-def encode_users_batch(req:EncodeBatchRequest):
+def encode_users_batch(req: EncodeBatchRequest):
     global _MODEL, _INPUT_DIM
 
     if not req.users:
@@ -84,7 +88,7 @@ def encode_users_batch(req:EncodeBatchRequest):
             raise HTTPException(500, f"failed to load model: {e}")
         _INPUT_DIM = d
 
-    x = np.asarray([u.user_vector for u in req.users], dtype = np.float32)
+    x = np.asarray([u.user_vector for u in req.users], dtype=np.float32)
     x = torch.from_numpy(x).to(device)
 
     with torch.inference_mode():
@@ -92,7 +96,95 @@ def encode_users_batch(req:EncodeBatchRequest):
         z_np = z.detach().cpu().numpy()
 
     out = [
-        UserEmbeddingItem(user_id = req.users[i].user_id, user_embedding = z_np[i].astype(float).tolist())
+        UserEmbeddingItem(user_id=req.users[i].user_id, user_embedding=z_np[i].astype(float).tolist())
         for i in range(len(req.users))
     ]
-    return EncodeBatchResponse(users=out, embedding_dim = z_np.shape[1])
+    return EncodeBatchResponse(users=out, embedding_dim=z_np.shape[1])
+
+
+DIM = int(os.getenv("EMB_DIM", "384"))
+
+FloatVec384 = conlist(float, min_length=DIM, max_length=DIM)
+
+
+class TuneRequest(BaseModel):
+    user_emb: List[FloatVec384]
+    recipe_emb: List[FloatVec384]
+    like: List[int]
+
+    # pipeline switches
+    use_weekly_user_adapter: bool = True
+    do_online_bce: bool = True
+
+    # online BCE knobs (optional)
+    bce_steps: int = 5
+    bce_lr: float = 5e-2
+    bce_temperature: float = 0.07
+    bce_l2_anchor: float = 1e-2
+    bce_clip_grad_norm: float = 5.0
+    bce_pos_weight: Optional[float] = None
+
+    max_batch_size: int = 512
+
+
+class TuneResponse(BaseModel):
+    updated_user_emb: List[List[float]]
+    metrics: Dict[str, float]
+    model_info: Dict[str, Any]
+
+
+app = FastAPI(title="Embedding Tuning API")
+
+core_cfg = CoreCfg(
+    dim=DIM,
+    hidden=int(os.getenv("ADAPTER_HIDDEN", str(DIM))),
+    dropout=float(os.getenv("ADAPTER_DROPOUT", "0.0")),
+    adapter_temperature=float(os.getenv("ADAPTER_TEMPERATURE", "0.07")),
+    ckpt_dir=os.getenv("ADAPTER_CKPT_DIR", "./ckpts_weekly_user_adapter"),
+    device="cuda" if os.getenv("FORCE_CPU", "0") != "1" else "cpu",
+)
+
+model_cache = ModelCache(core_cfg)
+
+
+@app.get("/health")
+def health():
+    model, info = model_cache.get(reload_if_changed=True)
+    return {"status": "ok", **info}
+
+
+@app.post("/tune", response_model=TuneResponse)
+def tune(req: TuneRequest):
+    B = len(req.user_emb)
+    if B == 0:
+        raise HTTPException(400, "Empty batch")
+    if B > req.max_batch_size:
+        raise HTTPException(400, f"Batch too large: {B} > {req.max_batch_size}")
+    if len(req.recipe_emb) != B or len(req.like) != B:
+        raise HTTPException(400, "user_emb, recipe_emb, like must have same batch size")
+
+    batch = {
+        "user_emb": req.user_emb,
+        "recipe_emb": req.recipe_emb,
+        "like": req.like,
+    }
+
+    try:
+        out = compute_updated_user_embeddings(
+            batch=batch,
+            model_cache=model_cache,
+            use_weekly_user_adapter=req.use_weekly_user_adapter,
+            do_online_bce=req.do_online_bce,
+            bce_steps=req.bce_steps,
+            bce_lr=req.bce_lr,
+            bce_temperature=req.bce_temperature,
+            bce_l2_anchor=req.bce_l2_anchor,
+            bce_clip_grad_norm=req.bce_clip_grad_norm,
+            bce_pos_weight=req.bce_pos_weight,
+        )
+    except ValueError as e:
+        raise HTTPException(400, str(e))
+    except Exception as e:
+        raise HTTPException(500, f"Internal error: {e}")
+
+    return out
