@@ -5,6 +5,7 @@ import L from 'leaflet';
 import { marketApi } from '@/api/market-selection/marketApi';
 import { Market } from '@/types/market';
 import * as React from "react";
+import { userApi } from '@/api/market-selection/saveMarketApi';
 
 // Fix for default marker icons in React-Leaflet
 delete (L.Icon.Default.prototype as any)._getIconUrl;
@@ -30,6 +31,7 @@ export default function MarketSelection() {
   // State for API data
   const [markets, setMarkets] = useState<Market[]>([]);
   const [isLoading, setIsLoading] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const handleSearch = async (e: React.FormEvent) => {
@@ -65,8 +67,18 @@ export default function MarketSelection() {
     setMapCenter([market.address.latitude, market.address.longitude]);
   };
 
-  const handleContinue = () => {
+  const handleContinue = async() => {
     if (selectedMarket) {
+      setIsSaving(true);
+      try {
+        console.log("Saving selected market");
+        await userApi.saveMarket(selectedMarket.id.toString());
+        console.log("Selected market saved");
+      } catch (error) {
+        alert("Failed to save selected market. Please try again.");
+      } finally {
+        setIsSaving(false);
+      } 
       // Save the REWE ID for the next step (Recipe Generation)
       localStorage.setItem('selectedMarketId', selectedMarket.id.toString());
       window.REACT_APP_NAVIGATE('/recipe-swiper');
