@@ -1,6 +1,7 @@
 # Chen Jia
 # begin: 2026/1/11 22:13
 import os
+from pathlib import Path
 
 import torch
 from torch import nn
@@ -212,8 +213,11 @@ if __name__ == "__main__":
 
     device = "cuda" if torch.cuda.is_available() else "cpu"
 
+    HERE = Path(__file__).resolve().parent
+    CKPT_PATH = HERE / "checkpoints" / "recipe_encoder.pt"
+
     cfg = RecipeHeadConfig(output_dim=384, hidden_dim=512, num_layers=3, dropout=0.1)
-    model = load_recipe_head("checkpoints/recipe_encoder.pt", cfg, device=device)
+    model = load_recipe_head(str(CKPT_PATH), cfg, device=device)
 
     conn = get_conn()
     try:
