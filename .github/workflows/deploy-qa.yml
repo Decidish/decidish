@@ -16,6 +16,7 @@ jobs:
       personalization_changed: ${{ steps.filter.outputs.personalization }}
       mlpipeline_changed: ${{ steps.filter.outputs.mlpipeline }}
       client_changed: ${{ steps.filter.outputs.client }}
+      core_changed: ${{ steps.filter.outputs.core }}
     steps:
       - uses: actions/checkout@v4
 
