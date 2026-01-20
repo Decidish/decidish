@@ -17,15 +17,6 @@ spring:
       ddl-auto: create-drop # Clean schema every run
     show-sql: false # Keep logs clean by default
 
-  # 2. SSL Fallback (Used by ApiClientConfig when MinIO fails)
-  ssl:
-    bundle:
-      pem:
-        rewe-client:
-          keystore:
-            certificate: "classpath:certificates/rewe.pem"
-            private-key: "classpath:certificates/rewe.key"
-
 logging:
   level:
     root: ERROR
