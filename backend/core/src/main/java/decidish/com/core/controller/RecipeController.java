@@ -11,6 +11,7 @@ import java.util.List;
 
 @RestController
 @RequestMapping("/shopping-list")
+@CrossOrigin(origins = {"http://localhost:3000", "https://qa.decidish.win"}, allowCredentials = "true")
 @RequiredArgsConstructor
 @Slf4j
 public class RecipeController {
