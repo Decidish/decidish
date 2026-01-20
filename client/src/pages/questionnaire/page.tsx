@@ -1,4 +1,7 @@
+import { all } from 'axios';
 import { useState } from 'react';
+import { userApi } from '@/api/questionnaire/userApi';
+import { UserPreferences } from '@/api/questionnaire/userApi';
 
 interface Preferences {
   low_sugar: number;
@@ -40,6 +43,7 @@ interface Preferences {
 
 export default function Questionnaire() {
   const [currentStep, setCurrentStep] = useState(0);
+  const [isLoading,setIsLoading] = useState(false);
   const [preferences, setPreferences] = useState<Preferences>({
     low_sugar: 0.0,
     low_carb: 0.0,
@@ -153,7 +157,8 @@ export default function Questionnaire() {
     }
   };
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
+    setIsLoading(true);
     const preferenceVector = Object.keys(preferences).map(key => preferences[key as keyof Preferences]);
     
     console.log('Preference Vector (35 dimensions):', preferenceVector);
@@ -162,7 +167,26 @@ export default function Questionnaire() {
     console.log('Budget:', budget);
     console.log('Skill Level:', skillLevel);
     
-    window.REACT_APP_NAVIGATE('/recipe-swiper');
+    const payload: UserPreferences = {
+      allergies,
+      cooking_time: cookingTime,
+      budget,
+      skill_level: skillLevel,
+      preference_vector: preferenceVector
+    };
+
+
+    try {
+      console.log("Saving preferences");
+      await userApi.savePreferences(payload);
+      console.log("Preferences saved");
+    } catch (error) {
+      alert("Failed to save preferences. Please try again.");
+    } finally {
+      setIsLoading(false);
+    } 
+    
+    window.REACT_APP_NAVIGATE('/market-selection');
   };
 
   const PreferenceCard = ({ 
