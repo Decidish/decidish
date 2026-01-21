@@ -25,7 +25,6 @@ import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.anyInt;
-import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
 
 // Pure Unit Test: No Spring, No Docker, No DB. Just Java logic.
@@ -46,16 +45,19 @@ class MarketServiceUT {
         private final Long NEW_ID = 540945L;
         private final Long OLD_ID = 540946L;
 
-        private MarketSearchResponse apiResponse;
+        private MarketPickupResponse apiResponse;
         private Market staleMarket;
 
         @BeforeEach
         void setup() {
                 // 1. Setup API Data
-                Location loc = new Location(10.0, 10.0);
-                MarketDto newDto = new MarketDto(NEW_ID, "New Market", "MARKET", "St", "1","Munchen", loc, new ServiceFlags(true));
-                MarketDto oldDto = new MarketDto(OLD_ID, "Updated Market", "MARKET", "St", "1","Munchen", loc, new ServiceFlags(true));
-                apiResponse = new MarketSearchResponse(new MarketSearchData(new MarketsSearched(List.of(newDto, oldDto))));
+                // Location loc = new Location(10.0, 10.0);
+                // MarketPickupDto newDto = new MarketPickupDto(NEW_ID, "New Market", "MARKET", "St", "1","Munchen", loc, new ServiceFlags(true));
+                // MarketPickupDto oldDto = new MarketPickupDto(OLD_ID, "Updated Market", "MARKET", "St", "1","Munchen", loc, new ServiceFlags(true));
+                MarketPickupDto newDto = new MarketPickupDto(NEW_ID, "New Market", "New Market GmbH", false, "/map", 10.0, 10.0, "80331", "Street", "München", "PICKUP");
+                MarketPickupDto oldDto = new MarketPickupDto(OLD_ID, "Updated Market", "Updated Market GmbH", false, "/map", 10.0, 10.0, "80331", "Street", "München", "PICKUP");
+                // apiResponse = new MarketSearchResponse(new MarketSearchData(new MarketsSearched(List.of(newDto, oldDto))));
+                apiResponse = new MarketPickupResponse(new MarketPickupData(new MarketPickupPortfolio(List.of(newDto, oldDto))));
 
                 // 2. Setup Stale DB Data
                 staleMarket = new Market();
@@ -134,11 +136,11 @@ class MarketServiceUT {
                 assertEquals(2, results.size()); // Should now pass!
 
                 // Verify "Old Name" was updated in memory
-                assertEquals("Updated Market", staleMarket.getName());
+                assertEquals("Updated Market GmbH", staleMarket.getName());
 
                 // Verify New Market was created correctly
                 Market newResult = results.stream().filter(m -> m.getId().equals(NEW_ID)).findFirst().get();
-                assertEquals("New Market", newResult.getName());
+                assertEquals("New Market GmbH", newResult.getName());
 
                 // Verify Interactions
                 verify(marketRepository).saveAll(anyList()); // Verify batch save was called
@@ -157,8 +159,11 @@ class MarketServiceUT {
                                 .thenReturn(Optional.of(Collections.emptyList()));
 
                 // 2. API returns Empty Response
+                // when(apiClient.searchMarkets(any()))
+                //                 .thenReturn(new MarketSearchResponse(new MarketSearchData( new MarketsSearched(Collections.emptyList()))));
+
                 when(apiClient.searchMarkets(any()))
-                                .thenReturn(new MarketSearchResponse(new MarketSearchData( new MarketsSearched(Collections.emptyList()))));
+                                .thenReturn(new MarketPickupResponse(new MarketPickupData( new MarketPickupPortfolio(Collections.emptyList()))));
 
                 // Act
                 List<Market> result = marketService.getMarkets(PLZ);

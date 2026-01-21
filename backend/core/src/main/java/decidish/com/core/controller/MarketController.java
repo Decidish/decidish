@@ -42,6 +42,7 @@ public class MarketController {
         return ResponseEntity.ok(dtos);
     }
 
+
     /**
      * Endpoint to fetch (and update) all products for a specific market.
      * Usage: GET /markets/540945/products

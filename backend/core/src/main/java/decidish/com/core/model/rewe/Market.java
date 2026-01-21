@@ -24,7 +24,6 @@ public class Market implements Persistable<Long> {
 
     // EXTERNAL REWE ID
     @Id
-    // @Column(name = "rewe_id", unique = true, nullable = false)
     @EqualsAndHashCode.Include
     private Long id;
 
@@ -33,9 +32,6 @@ public class Market implements Persistable<Long> {
     @OneToOne(cascade = CascadeType.ALL) // So it also saves the new created address
     @JoinColumn(name = "address_id")
     private Address address;
-    
-    @Column(name = "has_pickup")
-    private boolean hasPickup = true;
 
     // TimeStamp
     @Column(name = "last_updated")
@@ -87,33 +83,37 @@ public class Market implements Persistable<Long> {
         // this.isOpen = isOpen;
     }
 
-    public void updateFromDto(MarketDto dto) {
-        this.name = dto.name();
-        this.lastUpdated = LocalDateTime.now();
+    public static Market fromPickupDto(MarketPickupDto dto) {
+        Address address = new Address();
+        setAddressFields(address, dto);
 
+        return new Market(Long.valueOf(dto.wwIdent()), dto.companyName(), address);
+    }
+
+    public void updateFromPickupDto(MarketPickupDto dto) {
+        this.name = dto.companyName();
+        this.lastUpdated = LocalDateTime.now();
+        // this.hasPickup = dto.isPickupStation(); // all are pickup now
+        updateAddressFromPickupDto(dto);
+    }
+
+    private void updateAddressFromPickupDto(MarketPickupDto dto) {
         if (this.address == null) {
             this.address = new Address();
         }
-
-        this.address.setStreet(dto.street());
+        this.address.setLatitude(dto.latitude());
+        this.address.setLongitude(dto.longitude());
+        this.address.setStreet(dto.streetWithHouseNumber());
         this.address.setZipCode(dto.zipCode());
         this.address.setCity(dto.city());
-        this.hasPickup = dto.serviceFlags().hasPickup();
     }
 
-    // Convert DTO to Entity
-    public static Market fromDto(MarketDto dto) {
-        Long marketId = dto.wwIdent();
-        String name = dto.name();
-        Address address = new Address();
-        address.setLatitude(dto.location().latitude());
-        address.setLongitude(dto.location().longitude());
-        address.setStreet(dto.street());
+    private static void setAddressFields(Address address, MarketPickupDto dto) {
+        address.setLatitude(dto.latitude());
+        address.setLongitude(dto.longitude());
+        address.setStreet(dto.streetWithHouseNumber());
         address.setZipCode(dto.zipCode());
         address.setCity(dto.city());
-
-        return new Market(marketId, name, address
-        // ,dto.isOpen()
-        );
     }
+
 }
