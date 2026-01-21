@@ -2,6 +2,7 @@ package decidish.com.core.api.rewe.client;
 
 import decidish.com.core.model.rewe.MarketSearchResponse;
 import decidish.com.core.model.rewe.MarketDetailsResponse;
+import decidish.com.core.model.rewe.MarketPickupResponse;
 import decidish.com.core.model.rewe.ProductSearchResponse;
 
 import org.springframework.web.bind.annotation.PathVariable;
@@ -17,6 +18,7 @@ public interface ReweApiClient {
     public static final String REWE_API_BASE_URL = "https://mobile-clients-api.rewe.de/api";
 
     public static final String MARKET_SEARCH_PATH = "/stationary-markets";
+    public static final String MARKET_PICKUP_PATH = "/service-portfolio/";
     public static final String MARKET_DETAILS_PATH = "/stationary-markets/{marketId}";
     public static final String PRODUCT_SEARCH_PATH = "/products";
 
@@ -29,6 +31,11 @@ public interface ReweApiClient {
     // String searchMarkets(
     //     @RequestParam("search") String zipCode
     // );
+
+    @GetExchange(REWE_API_BASE_URL + MARKET_PICKUP_PATH)
+    MarketPickupResponse searchMarketsPickup(
+        @RequestParam("plz") String zipCode
+    );
 
     //! NO LONG NECESSARY
     // e.g.,

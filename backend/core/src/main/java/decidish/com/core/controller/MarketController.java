@@ -33,7 +33,8 @@ public class MarketController {
             return ResponseEntity.badRequest().build();
         }
         
-        List<Market> markets = marketService.getMarkets(zipCode);
+        // List<Market> markets = marketService.getMarkets(zipCode);
+        List<Market> markets = marketService.getMarketsPickUp(zipCode);
 
         // Convert Entity -> DTO
         List<MarketSummaryDto> dtos = markets.stream()
@@ -41,6 +42,7 @@ public class MarketController {
             .collect(Collectors.toList());
         return ResponseEntity.ok(dtos);
     }
+
 
     /**
      * Endpoint to fetch (and update) all products for a specific market.

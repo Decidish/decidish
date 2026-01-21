@@ -21,6 +21,8 @@ import decidish.com.core.model.rewe.Product;
 import decidish.com.core.model.rewe.ProductDto;
 import decidish.com.core.model.rewe.ProductSearchResponse;
 import decidish.com.core.model.rewe.MarketDto;
+import decidish.com.core.model.rewe.MarketPickupDto;
+import decidish.com.core.model.rewe.MarketPickupResponse;
 import decidish.com.core.repository.MarketRepository;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -88,6 +90,46 @@ public class MarketService {
         return marketRepository.saveAll(marketsToSave);
     }
 
+    @Transactional
+    public List<Market> getMarketsPickUp(String plz) {
+
+        // DB CHECK (Warm Path)
+        List<Market> dbMarkets = marketRepository.getMarketsByAddress(plz).orElse(List.of());
+        // Check freshness (Only runs on Cache Miss)
+        if (!dbMarkets.isEmpty() && isMarketFresh(dbMarkets.get(0))) {
+            log.info("DB Hit (Fresh) for PLZ: {}", plz);
+            // We return here, and Spring automatically puts this result into Redis
+            return dbMarkets;
+        }
+
+        log.info(dbMarkets.isEmpty() ? "Repo is empty" : "Data is not fresh");
+
+        // API FETCH (Cold Path)
+        log.info("Fetching API...");
+        MarketPickupResponse apiResponse = apiClient.searchMarketsPickup(plz);
+
+        if (apiResponse == null){
+            log.info("api returned null");            
+            return List.of();
+        }
+        List<MarketPickupDto> markets = apiResponse.data().servicePortfolio().pickupMarkets();
+        if (markets== null){
+            log.info("api returned no markets");            
+            return List.of();
+        }
+
+        // MERGE LOGIC
+        // (Logic extracted to helper for readability)
+        List<Market> marketsToSave = mergeApiWithDbPickUp(markets);
+
+        if (marketsToSave.isEmpty()) {
+            log.info("MARKETS TO SAVE IS EMPTY");
+            return List.of();
+        }
+
+        return marketRepository.saveAll(marketsToSave);
+    }
+
 
     @Transactional(readOnly = true)
     public Market getMarket(Long id) {
@@ -121,6 +163,33 @@ public class MarketService {
             }
         }
         return finalBatch;
+    }
+
+    private List<Market> mergeApiWithDbPickUp(List<MarketPickupDto> apiDtos) {
+        List<Long> apiIds = apiDtos.stream().map(MarketPickupDto::wwIdent).toList();
+
+        // Fetch fresh entities directly from DB for the update.
+        // We ignore the cache here because we need the latest version
+        List<Market> dbEntities = marketRepository.findAllById(apiIds);
+
+        // Convert to Map for fast lookup
+        Map<Long, Market> marketMap = dbEntities.stream()
+                .collect(Collectors.toMap(Market::getId, Function.identity()));
+        List<Market> finalBatch = new ArrayList<>();
+
+        for (MarketPickupDto dto : apiDtos) {
+            // if(dto.serviceFlags().hasPickup() == true){
+                if (marketMap.containsKey(dto.wwIdent())) {
+                    Market existing = marketMap.get(dto.wwIdent());
+                    existing.updateFromPickupDto(dto);
+                    finalBatch.add(existing);
+                } else {
+                    Market newMarket = Market.fromPickupDto(dto);
+                    finalBatch.add(newMarket);
+                }
+            // }
+        }
+        return marketRepository.saveAll(finalBatch);
     }
 
     /**

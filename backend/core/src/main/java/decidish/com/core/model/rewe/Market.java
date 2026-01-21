@@ -90,30 +90,60 @@ public class Market implements Persistable<Long> {
     public void updateFromDto(MarketDto dto) {
         this.name = dto.name();
         this.lastUpdated = LocalDateTime.now();
+        this.hasPickup = dto.serviceFlags().hasPickup();
+        updateAddress(dto);
+    }
 
+    private void updateAddress(MarketDto dto) {
         if (this.address == null) {
             this.address = new Address();
         }
+        setAddressFields(this.address, dto);
+    }
 
-        this.address.setStreet(dto.street());
-        this.address.setZipCode(dto.zipCode());
-        this.address.setCity(dto.city());
-        this.hasPickup = dto.serviceFlags().hasPickup();
+    private static void setAddressFields(Address address, MarketDto dto) {
+        address.setStreet(dto.street());
+        address.setZipCode(dto.zipCode());
+        address.setCity(dto.city());
     }
 
     // Convert DTO to Entity
     public static Market fromDto(MarketDto dto) {
-        Long marketId = dto.wwIdent();
-        String name = dto.name();
         Address address = new Address();
         address.setLatitude(dto.location().latitude());
         address.setLongitude(dto.location().longitude());
-        address.setStreet(dto.street());
+        setAddressFields(address, dto);
+
+        return new Market(dto.wwIdent(), dto.name(), address);
+    }
+
+    public static Market fromPickupDto(MarketPickupDto dto) {
+        Address address = new Address();
+        address.setLatitude(dto.latitude());
+        address.setLongitude(dto.longitude());
+        address.setStreet(dto.streetWithHouseNumber());
         address.setZipCode(dto.zipCode());
         address.setCity(dto.city());
 
-        return new Market(marketId, name, address
-        // ,dto.isOpen()
-        );
+        return new Market(Long.valueOf(dto.wwIdent()), dto.displayName(), address);
     }
+
+    public void updateFromPickupDto(MarketPickupDto dto) {
+        this.name = dto.displayName();
+        this.lastUpdated = LocalDateTime.now();
+        this.hasPickup = dto.isPickupStation();
+        updateAddressFromPickupDto(dto);
+    }
+
+    private void updateAddressFromPickupDto(MarketPickupDto dto) {
+        if (this.address == null) {
+            this.address = new Address();
+        }
+        this.address.setLatitude(dto.latitude());
+        this.address.setLongitude(dto.longitude());
+        this.address.setStreet(dto.streetWithHouseNumber());
+        this.address.setZipCode(dto.zipCode());
+        this.address.setCity(dto.city());
+    }
+
 }
