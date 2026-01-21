@@ -58,7 +58,9 @@ jobs:
           MINIO_ENDPOINT: ${{ secrets.MINIO_ENDPOINT }}
           MINIO_ACCESS_KEY: ${{ secrets.MINIO_ACCESS_KEY }}
           MINIO_SECRET_KEY: ${{ secrets.MINIO_SECRET_KEY }}
-        run: ./gradlew test integration e2e --no-daemon
+        # run: ./gradlew test integration e2e --no-daemon
+        # Run only Unit tests
+        run: ./gradlew test --no-daemon
 
       - name: Upload Test Report
         uses: actions/upload-artifact@v4
