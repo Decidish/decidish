@@ -55,6 +55,7 @@ export default function RecipeSwiper() {
   const [recipes, setRecipes] = useState<UIRecipe[]>([]);
   const [loading, setLoading] = useState(true);
   const [loadingProducts, setLoadingProducts] = useState(false);
+  const [isEditing, setIsEditing] = useState(false);
 
   // FETCH RECIPES FROM BACKEND
   useEffect(() => {
@@ -87,7 +88,7 @@ export default function RecipeSwiper() {
       setLoadingProducts(true);
       try {
         // Fetch products for just this one recipe
-        const listResponse = await productsApi.generateShoppingList(1, [recipe.id]); // Market ID 1 hardcoded for now
+        const listResponse = await productsApi.generateShoppingList(441070, [recipe.id]); // Market ID hardcoded for now
         
         // Update the specific recipe in our state with the new data
         setRecipes(prevRecipes => prevRecipes.map(r => {
@@ -127,7 +128,7 @@ export default function RecipeSwiper() {
     }));
 
     // if (currentRecipe && currentIngredientIndex < currentRecipe.ingredients.length - 1) {
-    if(currentRecipe?.richIngredients && currentIngredientIndex < currentRecipe.richIngredients.length -1){
+    if(!isEditing && currentRecipe?.richIngredients && currentIngredientIndex < currentRecipe.richIngredients.length -1){
       setCurrentIngredientIndex(currentIngredientIndex + 1);
       setShowAllProducts(false);
     } else {
@@ -141,6 +142,7 @@ export default function RecipeSwiper() {
   const handleEditProduct = (ingredientId: number) => {
     const ingredientIndex = currentRecipe?.richIngredients.findIndex(ing => ing.ingredientId === ingredientId);
     if (ingredientIndex !== undefined && ingredientIndex !== -1) {
+      setIsEditing(true);
       setCurrentIngredientIndex(ingredientIndex);
       setShowReviewModal(false);
       setShowIngredientModal(true);
@@ -151,7 +153,7 @@ export default function RecipeSwiper() {
     if (currentRecipe) {
       setLikedRecipes([...likedRecipes, currentRecipe]);
       // PARSING NOTE: personalization sends 'yields' ("4 servings"), usually a string. 
-      //  default to 4 if missing.
+      // default to 4 if missing.
       const recipeServings = parseInt(currentRecipe.yields) || 4;
       const newServingsCollected = servingsCollected + recipeServings;
       setServingsCollected(newServingsCollected);
@@ -162,13 +164,18 @@ export default function RecipeSwiper() {
       // Close modal and continue
       setShowReviewModal(false);
       setCurrentRecipe(null);
+      setIsEditing(false);
 
       // Move to next recipe
+      let nextIndex = 0;
       if (currentIndex < recipes.length - 1) {
-        setCurrentIndex(currentIndex + 1);
+        nextIndex = currentIndex + 1;
       } else {
-        setCurrentIndex(0);
+        nextIndex = 0; // Loop back to the start
       }
+      
+      setCurrentIndex(nextIndex);
+      setCurrentRecipe(recipes[nextIndex]);
     }
   };
 
@@ -331,13 +338,13 @@ export default function RecipeSwiper() {
                   <div className="flex items-center justify-between mb-2">
                     <h3 className="text-xl font-bold text-gray-900">Select Product</h3>
                     <span className="text-sm text-gray-600">
-                  {currentIngredientIndex + 1} of {currentRecipe.ingredients.length}
+                  {currentIngredientIndex + 1} of {currentRecipe.richIngredients.length}
                 </span>
                   </div>
                   <div className="w-full bg-gray-200 rounded-full h-2 mb-3">
                     <div
                         className="bg-gradient-to-r from-[#2F855A] to-emerald-600 h-2 rounded-full transition-all"
-                        style={{ width: `${((currentIngredientIndex + 1) / currentRecipe.ingredients.length) * 100}%` }}
+                        style={{ width: `${((currentIngredientIndex + 1) / currentRecipe.richIngredients.length) * 100}%` }}
                     ></div>
                   </div>
                   <div className="bg-emerald-50 rounded-lg p-3 border border-emerald-200">
@@ -397,7 +404,8 @@ export default function RecipeSwiper() {
                                 {/* <span className="text-sm font-medium text-gray-700">{product.weight}{product.unit}</span> */}
                                 <span className="text-sm font-medium text-gray-700">{product.grammage}</span>
                                 {/* <span className="text-lg font-bold text-[#2F855A]">${product.price.toFixed(2)}</span> */}
-                                <span className="text-lg font-bold text-[#2F855A]">{(calculateReviewTotal() / 100).toFixed(2)}€</span>
+                                {/* <span className="text-lg font-bold text-[#2F855A]">{(calculateReviewTotal() / 100).toFixed(2)}€</span> */}
+                                <span className="text-lg font-bold text-[#2F855A]">{(product.price / 100).toFixed(2)}€</span>
                               </div>
                             </div>
                             <i className="ri-arrow-right-line text-2xl text-gray-400 group-hover:text-[#2F855A] transition-colors"></i>
@@ -518,7 +526,7 @@ export default function RecipeSwiper() {
                                     {/* <span className="text-sm font-medium text-gray-700">{product.weight}{product.unit}</span> */}
                                     <span className="text-sm font-medium text-gray-700">{product.grammage}</span>
                                     {/* <span className="text-lg font-bold text-[#2F855A]">${product.price.toFixed(2)}</span> */}
-                                    <span className="text-lg font-bold text-[#2F855A]">{(calculateReviewTotal() / 100).toFixed(2)}€</span>
+                                    <span className="text-lg font-bold text-[#2F855A]">{(product.price / 100).toFixed(2)}€</span>
                                     </div>
                                   </div>
                                 </div>
@@ -538,7 +546,7 @@ export default function RecipeSwiper() {
                     <div className="flex items-center justify-between text-white">
                       <div>
                         <p className="text-sm opacity-90 mb-1">Total Cost</p>
-                        <p className="text-3xl font-bold">${calculateReviewTotal().toFixed(2)}</p>
+                        <p className="text-3xl font-bold">{(calculateReviewTotal()/100).toFixed(2)}€</p>
                       </div>
                       <div className="w-16 h-16 flex items-center justify-center bg-white/20 rounded-full">
                         <i className="ri-shopping-cart-line text-3xl"></i>
