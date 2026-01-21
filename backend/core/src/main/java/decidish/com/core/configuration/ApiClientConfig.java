@@ -49,6 +49,7 @@ public class ApiClientConfig {
         SslBundle reweBundle;
 
         try {
+            minioClient.traceOn(System.out);
             log.info("Attempting to fetch SSL certificates from MinIO bucket: {}", bucketName);
             
             // 1. Fetch content from MinIO

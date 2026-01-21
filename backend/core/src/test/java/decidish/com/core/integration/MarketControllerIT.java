@@ -66,10 +66,15 @@ class MarketControllerIT {
         @DisplayName("GET /api/v1/markets?plz=... -> Fetches from API, Saves to DB, Returns JSON")
         void testSearchMarkets_EndToEnd() throws Exception {
                 // --- 1. ARRANGE: Mock External API ---
-                MarketDto dto = new MarketDto(
-                                MARKET_ID1, "REWE Integration Market", "MARKET",
-                                "Test St.", "1","Munich", new Location(48.1, 11.5),new ServiceFlags(true));
-                MarketSearchResponse response = new MarketSearchResponse(new MarketSearchData(new MarketsSearched(List.of(dto))));
+                // MarketDto dto = new MarketDto(
+                //                 MARKET_ID1, "REWE Integration Market", "MARKET",
+                //                 "Test St.", "1","Munich", new Location(48.1, 11.5),new ServiceFlags(true));
+                // MarketSearchResponse response = new MarketSearchResponse(new MarketSearchData(new MarketsSearched(List.of(dto))));
+
+                MarketPickupDto dto = new MarketPickupDto(
+                                MARKET_ID1, "REWE Integration Market", "REWE Integration Market GmbH", false,
+                                "/map", 48.1, 11.5, "80331", "Test St.", "Munich", "PICKUP");
+                MarketPickupResponse response = new MarketPickupResponse(new MarketPickupData(new MarketPickupPortfolio(List.of(dto))));
 
                 // When the Service calls the Client, return this mock
                 when(apiClient.searchMarkets(eq(PLZ))).thenReturn(response);
@@ -85,7 +90,7 @@ class MarketControllerIT {
                                 .andExpect(content().contentType(MediaType.APPLICATION_JSON))
                                 .andExpect(jsonPath("$", hasSize(1)))
                                 .andExpect(jsonPath("$[0].id").value(MARKET_ID1))
-                                .andExpect(jsonPath("$[0].name").value("REWE Integration Market"));
+                                .andExpect(jsonPath("$[0].name").value("REWE Integration Market GmbH"));
 
                 System.out.println(">>> REPO CLASS: " + marketRepository.getClass().getName());
                 System.out.println(">>> DB COUNT BEFORE FLUSH: " + marketRepository.count());
@@ -95,7 +100,7 @@ class MarketControllerIT {
                 // Verify the controller call actually persisted data
                 assertEquals(1, marketRepository.count());
                 Market saved = marketRepository.findById(MARKET_ID1).orElseThrow();
-                assertEquals("REWE Integration Market", saved.getName());
+                assertEquals("REWE Integration Market GmbH", saved.getName());
         }
 
         @Test

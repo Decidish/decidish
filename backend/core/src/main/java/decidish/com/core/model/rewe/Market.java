@@ -24,7 +24,6 @@ public class Market implements Persistable<Long> {
 
     // EXTERNAL REWE ID
     @Id
-    // @Column(name = "rewe_id", unique = true, nullable = false)
     @EqualsAndHashCode.Include
     private Long id;
 
@@ -33,9 +32,6 @@ public class Market implements Persistable<Long> {
     @OneToOne(cascade = CascadeType.ALL) // So it also saves the new created address
     @JoinColumn(name = "address_id")
     private Address address;
-    
-    @Column(name = "has_pickup")
-    private boolean hasPickup = true;
 
     // TimeStamp
     @Column(name = "last_updated")
@@ -87,51 +83,17 @@ public class Market implements Persistable<Long> {
         // this.isOpen = isOpen;
     }
 
-    public void updateFromDto(MarketDto dto) {
-        this.name = dto.name();
-        this.lastUpdated = LocalDateTime.now();
-        this.hasPickup = dto.serviceFlags().hasPickup();
-        updateAddress(dto);
-    }
-
-    private void updateAddress(MarketDto dto) {
-        if (this.address == null) {
-            this.address = new Address();
-        }
-        setAddressFields(this.address, dto);
-    }
-
-    private static void setAddressFields(Address address, MarketDto dto) {
-        address.setStreet(dto.street());
-        address.setZipCode(dto.zipCode());
-        address.setCity(dto.city());
-    }
-
-    // Convert DTO to Entity
-    public static Market fromDto(MarketDto dto) {
-        Address address = new Address();
-        address.setLatitude(dto.location().latitude());
-        address.setLongitude(dto.location().longitude());
-        setAddressFields(address, dto);
-
-        return new Market(dto.wwIdent(), dto.name(), address);
-    }
-
     public static Market fromPickupDto(MarketPickupDto dto) {
         Address address = new Address();
-        address.setLatitude(dto.latitude());
-        address.setLongitude(dto.longitude());
-        address.setStreet(dto.streetWithHouseNumber());
-        address.setZipCode(dto.zipCode());
-        address.setCity(dto.city());
+        setAddressFields(address, dto);
 
-        return new Market(Long.valueOf(dto.wwIdent()), dto.displayName(), address);
+        return new Market(Long.valueOf(dto.wwIdent()), dto.companyName(), address);
     }
 
     public void updateFromPickupDto(MarketPickupDto dto) {
-        this.name = dto.displayName();
+        this.name = dto.companyName();
         this.lastUpdated = LocalDateTime.now();
-        this.hasPickup = dto.isPickupStation();
+        // this.hasPickup = dto.isPickupStation(); // all are pickup now
         updateAddressFromPickupDto(dto);
     }
 
@@ -144,6 +106,12 @@ public class Market implements Persistable<Long> {
         this.address.setStreet(dto.streetWithHouseNumber());
         this.address.setZipCode(dto.zipCode());
         this.address.setCity(dto.city());
+    }
+
+    private static void setAddressFields(Address address, MarketPickupDto dto) {
+        address.setStreet(dto.streetWithHouseNumber());
+        address.setZipCode(dto.zipCode());
+        address.setCity(dto.city());
     }
 
 }

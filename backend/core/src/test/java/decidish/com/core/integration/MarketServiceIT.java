@@ -7,11 +7,9 @@ import jakarta.transaction.Transactional;
 import decidish.com.core.repository.MarketRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
-import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.context.annotation.Import;
 
 import org.springframework.test.context.ActiveProfiles; // If you use application-test.properties
 
@@ -82,18 +80,6 @@ class MarketServiceIT {
                 // Verify DB Row Count
                 long dbMarketCount = marketRepository.findAll().size();
                 assertEquals(markets.size(), dbMarketCount, "Database rows match in-memory list");
-        }
-
-        @Test
-        @DisplayName("LIVE API: Fetch Markets none have pickup flag = true so empty")
-        void testSearchMarketsNoPickup_Live() {
-                System.out.println("Calling Real REWE API (This may take a few seconds)...");
-                List<Market> markets = marketService.getMarkets("80809");
-
-                assertNotNull(markets);
-                System.out.println("Found " + markets.size() + " markets.");
-
-                assertTrue(markets.isEmpty(),"Pickup = false for all the markets of this zipcode");
         }
 
         @Test

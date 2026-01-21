@@ -1,7 +1,9 @@
 package decidish.com.core.integration;
 
 import decidish.com.core.api.rewe.client.ReweApiClient;
+import decidish.com.core.model.rewe.Market;
 import decidish.com.core.model.rewe.MarketDetailsResponse;
+import decidish.com.core.model.rewe.MarketPickupResponse;
 import decidish.com.core.model.rewe.MarketSearchResponse;
 import decidish.com.core.model.rewe.ProductSearchResponse;
 import org.junit.jupiter.api.DisplayName;
@@ -29,7 +31,9 @@ class ReweApiClientIT {
     @Test
     @DisplayName("searchMarkets: Should return markets for valid zip code (LIVE)")
     void testSearchMarkets() {
-        MarketSearchResponse response = reweApiClient.searchMarkets(VALID_ZIP_CODE);
+        // MarketSearchResponse response = reweApiClient.searchMarkets(VALID_ZIP_CODE);
+
+        MarketPickupResponse response = reweApiClient.searchMarkets(VALID_ZIP_CODE);
 
         assertNotNull(response, "Response should not be null");
         // Depending on the API response structure, we might check for logic errors or

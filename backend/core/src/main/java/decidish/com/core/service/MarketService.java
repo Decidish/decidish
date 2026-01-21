@@ -5,28 +5,23 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
-import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 
 import org.springframework.stereotype.Service;
 
 import decidish.com.core.api.rewe.client.ReweApiClient;
 import decidish.com.core.model.rewe.Market;
-import decidish.com.core.model.rewe.MarketSearchResponse;
 import decidish.com.core.model.rewe.Product;
 import decidish.com.core.model.rewe.ProductDto;
 import decidish.com.core.model.rewe.ProductSearchResponse;
-import decidish.com.core.model.rewe.MarketDto;
 import decidish.com.core.model.rewe.MarketPickupDto;
 import decidish.com.core.model.rewe.MarketPickupResponse;
 import decidish.com.core.repository.MarketRepository;
 import org.springframework.transaction.annotation.Transactional;
 
-import org.hibernate.Hibernate;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -49,7 +44,6 @@ public class MarketService {
      * 1. If Hit: Returns instantly.
      * 2. If Miss: Runs the method body (DB Check -> API Fetch -> Save).
      */
-
     @Transactional
     public List<Market> getMarkets(String plz) {
 
@@ -66,15 +60,15 @@ public class MarketService {
 
         // API FETCH (Cold Path)
         log.info("Fetching API...");
-        MarketSearchResponse apiResponse = apiClient.searchMarkets(plz);
+        MarketPickupResponse apiResponse = apiClient.searchMarkets(plz);
 
-        if (apiResponse == null){
-            log.info("api returned null");            
+        if (apiResponse == null) {
+            log.info("api returned null");
             return List.of();
         }
-        List<MarketDto> markets = apiResponse.data().marketSearch().markets();
-        if (markets== null){
-            log.info("api returned no markets");            
+        List<MarketPickupDto> markets = apiResponse.data().servicePortfolio().pickupMarkets();
+        if (markets == null) {
+            log.info("api returned no markets");
             return List.of();
         }
 
@@ -90,47 +84,6 @@ public class MarketService {
         return marketRepository.saveAll(marketsToSave);
     }
 
-    @Transactional
-    public List<Market> getMarketsPickUp(String plz) {
-
-        // DB CHECK (Warm Path)
-        List<Market> dbMarkets = marketRepository.getMarketsByAddress(plz).orElse(List.of());
-        // Check freshness (Only runs on Cache Miss)
-        if (!dbMarkets.isEmpty() && isMarketFresh(dbMarkets.get(0))) {
-            log.info("DB Hit (Fresh) for PLZ: {}", plz);
-            // We return here, and Spring automatically puts this result into Redis
-            return dbMarkets;
-        }
-
-        log.info(dbMarkets.isEmpty() ? "Repo is empty" : "Data is not fresh");
-
-        // API FETCH (Cold Path)
-        log.info("Fetching API...");
-        MarketPickupResponse apiResponse = apiClient.searchMarketsPickup(plz);
-
-        if (apiResponse == null){
-            log.info("api returned null");            
-            return List.of();
-        }
-        List<MarketPickupDto> markets = apiResponse.data().servicePortfolio().pickupMarkets();
-        if (markets== null){
-            log.info("api returned no markets");            
-            return List.of();
-        }
-
-        // MERGE LOGIC
-        // (Logic extracted to helper for readability)
-        List<Market> marketsToSave = mergeApiWithDbPickUp(markets);
-
-        if (marketsToSave.isEmpty()) {
-            log.info("MARKETS TO SAVE IS EMPTY");
-            return List.of();
-        }
-
-        return marketRepository.saveAll(marketsToSave);
-    }
-
-
     @Transactional(readOnly = true)
     public Market getMarket(Long id) {
         // This ensures 'products' are inside the object BEFORE it goes to Redis
@@ -138,34 +91,7 @@ public class MarketService {
                 .orElseThrow(() -> new RuntimeException("Market not found"));
     }
 
-    private List<Market> mergeApiWithDb(List<MarketDto> apiDtos) {
-        List<Long> apiIds = apiDtos.stream().map(MarketDto::wwIdent).toList();
-
-        // Fetch fresh entities directly from DB for the update.
-        // We ignore the cache here because we need the latest version
-        List<Market> dbEntities = marketRepository.findAllById(apiIds);
-
-        // Convert to Map for fast lookup
-        Map<Long, Market> marketMap = dbEntities.stream()
-                .collect(Collectors.toMap(Market::getId, Function.identity()));
-        List<Market> finalBatch = new ArrayList<>();
-
-        for (MarketDto dto : apiDtos) {
-            if(dto.serviceFlags().hasPickup() == true){
-                if (marketMap.containsKey(dto.wwIdent())) {
-                    Market existing = marketMap.get(dto.wwIdent());
-                    existing.updateFromDto(dto);
-                    finalBatch.add(existing);
-                } else {
-                    Market newMarket = Market.fromDto(dto);
-                    finalBatch.add(newMarket);
-                }
-            }
-        }
-        return finalBatch;
-    }
-
-    private List<Market> mergeApiWithDbPickUp(List<MarketPickupDto> apiDtos) {
+    private List<Market> mergeApiWithDb(List<MarketPickupDto> apiDtos) {
         List<Long> apiIds = apiDtos.stream().map(MarketPickupDto::wwIdent).toList();
 
         // Fetch fresh entities directly from DB for the update.
@@ -178,18 +104,17 @@ public class MarketService {
         List<Market> finalBatch = new ArrayList<>();
 
         for (MarketPickupDto dto : apiDtos) {
-            // if(dto.serviceFlags().hasPickup() == true){
-                if (marketMap.containsKey(dto.wwIdent())) {
-                    Market existing = marketMap.get(dto.wwIdent());
-                    existing.updateFromPickupDto(dto);
-                    finalBatch.add(existing);
-                } else {
-                    Market newMarket = Market.fromPickupDto(dto);
-                    finalBatch.add(newMarket);
-                }
-            // }
+
+            if (marketMap.containsKey(dto.wwIdent())) {
+                Market existing = marketMap.get(dto.wwIdent());
+                existing.updateFromPickupDto(dto);
+                finalBatch.add(existing);
+            } else {
+                Market newMarket = Market.fromPickupDto(dto);
+                finalBatch.add(newMarket);
+            }
         }
-        return marketRepository.saveAll(finalBatch);
+        return finalBatch;
     }
 
     /**
@@ -217,7 +142,6 @@ public class MarketService {
      * @brief Get all products from a given market. First try to fetch from DB only.
      *        If no products or data not fresh, call API.
      */
-
     public Market getAllProducts(Long id) {
         Market market = getMarket(id);
 
@@ -330,12 +254,11 @@ public class MarketService {
     @Transactional
     public void updateProductsForEveryMarket() {
         List<Market> markets = marketRepository.findAll();
-        if(markets.isEmpty()){
+        if (markets.isEmpty()) {
             log.info("No markets found in DB to update products for.");
             return;
         }
 
-        
         for (Market market : markets) {
             log.info("Updating products for Market ID: {}", market.getId());
 
@@ -350,104 +273,101 @@ public class MarketService {
                 log.error("Error updating Market with id {}: {}", market.getId(), e.getMessage());
             }
         }
-    } 
+    }
 
-    // ! Don't delete yet, multi-threading can be useful in the future, but causes
-    // issues now
+    // ! Don't delete yet, multi-threading can be useful in the future, but causes issues now
     // // NOTE: NO @Transactional here! We want to keep DB connections free while
-    // waiting for API.
+    // // waiting for API.
     // public Market getProductsAPI(Market market, String query, int maxPages) {
 
-    // Long marketId = market.getId();
+    //     Long marketId = market.getId();
 
-    // // --- STEP 1: Fetch First Page (Synchronous) ---
-    // log.info("Fetching API Page 1...");
+    //     // --- STEP 1: Fetch First Page (Synchronous) ---
+    //     log.info("Fetching API Page 1...");
 
-    // ProductSearchResponse firstPage = apiClient.searchProducts(query, 1,
-    // DEFAULT_OBJECTS_PER_PAGE, marketId);
-    // if (firstPage == null || firstPage.data() == null) return null;
+    //     ProductSearchResponse firstPage = apiClient.searchProducts(query, 1, DEFAULT_OBJECTS_PER_PAGE, marketId);
+    //     if (firstPage == null || firstPage.data() == null)
+    //         return null;
 
-    // // Collect all found products into a single list
-    // List<ProductDto> allFoundProducts = new
-    // ArrayList<>(firstPage.data().products().products());
+    //     // Collect all found products into a single list
+    //     List<ProductDto> allFoundProducts = new ArrayList<>(firstPage.data().products().products());
 
-    // // --- STEP 2: Calculate Pages ---
-    // int totalApiPages = firstPage.data().products().pagination().pageCount();
-    // int pagesToFetch = Math.min(maxPages, totalApiPages);
+    //     // --- STEP 2: Calculate Pages ---
+    //     int totalApiPages = firstPage.data().products().pagination().pageCount();
+    //     int pagesToFetch = Math.min(maxPages, totalApiPages);
 
-    // // --- STEP 3: Parallel Fetch (Scatter) ---
-    // if (pagesToFetch > 1) {
-    // log.info("Starting parallel fetch for {} more pages...", pagesToFetch - 1);
+    //     // --- STEP 3: Parallel Fetch (Scatter) ---
+    //     if (pagesToFetch > 1) {
+    //         log.info("Starting parallel fetch for {} more pages...", pagesToFetch - 1);
 
-    // List<CompletableFuture<List<ProductDto>>> futures = new ArrayList<>();
+    //         List<CompletableFuture<List<ProductDto>>> futures = new ArrayList<>();
 
-    // // Start loops from Page 2
-    // for (int i = 2; i <= pagesToFetch; i++) {
-    // final int pageNum = i; // Needed for lambda
+    //         // Start loops from Page 2
+    //         for (int i = 2; i <= pagesToFetch; i++) {
+    //             final int pageNum = i; // Needed for lambda
 
-    // // Create a task that runs in the background
-    // CompletableFuture<List<ProductDto>> future = CompletableFuture.supplyAsync(()
-    // -> {
-    // try {
-    // var response = apiClient.searchProducts(query, pageNum,
-    // DEFAULT_OBJECTS_PER_PAGE, marketId);
-    // if (response != null && response.data() != null) {
-    // return response.data().products().products();
-    // }
-    // } catch (Exception e) {
-    // log.error("Failed to fetch page " + pageNum, e);
-    // }
-    // return List.<ProductDto>of(); // Return empty list on failure
-    // });
+    //             // Create a task that runs in the background
+    //             CompletableFuture<List<ProductDto>> future = CompletableFuture.supplyAsync(() -> {
+    //                 try {
+    //                     var response = apiClient.searchProducts(query, pageNum,
+    //                             DEFAULT_OBJECTS_PER_PAGE, marketId);
+    //                     if (response != null && response.data() != null) {
+    //                         return response.data().products().products();
+    //                     }
+    //                 } catch (Exception e) {
+    //                     log.error("Failed to fetch page " + pageNum, e);
+    //                 }
+    //                 return List.<ProductDto>of(); // Return empty list on failure
+    //             });
 
-    // futures.add(future);
-    // }
+    //             futures.add(future);
+    //         }
 
-    // // --- STEP 4: Wait for All (Gather) ---
-    // // This blocks the main thread until ALL requests are done
-    // CompletableFuture.allOf(futures.toArray(new CompletableFuture[0])).join();
+    //         // --- STEP 4: Wait for All (Gather) ---
+    //         // This blocks the main thread until ALL requests are done
+    //         CompletableFuture.allOf(futures.toArray(new CompletableFuture[0])).join();
 
-    // // Extract data from futures
-    // for (var future : futures) {
-    // try {
-    // allFoundProducts.addAll(future.get());
-    // } catch (Exception e) {
-    // // Should not happen since we used join(), but good practice
-    // }
-    // }
-    // }
+    //         // Extract data from futures
+    //         for (var future : futures) {
+    //             try {
+    //                 allFoundProducts.addAll(future.get());
+    //             } catch (Exception e) {
+    //                 // Should not happen since we used join(), but good practice
+    //             }
+    //         }
+    //     }
 
-    // log.info("Finished fetching. Total items found: {}",
-    // allFoundProducts.size());
+    //     log.info("Finished fetching. Total items found: {}",
+    //             allFoundProducts.size());
 
-    // // --- STEP 5: Save to DB (Transactional) ---
-    // // Now we call a separate method that handles the DB Lock
-    // return updateMarketData(marketId, allFoundProducts);
+    //     // --- STEP 5: Save to DB (Transactional) ---
+    //     // Now we call a separate method that handles the DB Lock
+    //     return updateMarketData(marketId, allFoundProducts);
     // }
 
     // // Separate helper method just for the DB write
     // @Transactional
     // protected Market updateMarketData(Long marketId, List<ProductDto> dtos) {
-    // Market market = marketRepository.findById(marketId).orElseThrow();
+    //     Market market = marketRepository.findById(marketId).orElseThrow();
 
-    // // Create Lookup Map for O(1) access
-    // Map<Long, Product> existingMap = new HashMap<>();
-    // for (Product p : market.getProducts()) {
-    // existingMap.put(p.getId(), p);
-    // }
+    //     // Create Lookup Map for O(1) access
+    //     Map<Long, Product> existingMap = new HashMap<>();
+    //     for (Product p : market.getProducts()) {
+    //         existingMap.put(p.getId(), p);
+    //     }
 
-    // // Update or Insert
-    // for (ProductDto dto : dtos) {
-    // if (existingMap.containsKey(dto.productId())) {
-    // existingMap.get(dto.productId()).updateFromDto(dto);
-    // } else {
-    // Product newProduct = Product.fromDto(dto);
-    // market.addProduct(newProduct);
-    // // Update map to avoid duplicates if API returns same item twice
-    // existingMap.put(dto.productId(), newProduct);
-    // }
-    // }
+    //     // Update or Insert
+    //     for (ProductDto dto : dtos) {
+    //         if (existingMap.containsKey(dto.productId())) {
+    //             existingMap.get(dto.productId()).updateFromDto(dto);
+    //         } else {
+    //             Product newProduct = Product.fromDto(dto);
+    //             market.addProduct(newProduct);
+    //             // Update map to avoid duplicates if API returns same item twice
+    //             existingMap.put(dto.productId(), newProduct);
+    //         }
+    //     }
 
-    // return marketRepository.save(market);
+    //     return marketRepository.save(market);
     // }
 }

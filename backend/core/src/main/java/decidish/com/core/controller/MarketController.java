@@ -33,8 +33,7 @@ public class MarketController {
             return ResponseEntity.badRequest().build();
         }
         
-        // List<Market> markets = marketService.getMarkets(zipCode);
-        List<Market> markets = marketService.getMarketsPickUp(zipCode);
+        List<Market> markets = marketService.getMarkets(zipCode);
 
         // Convert Entity -> DTO
         List<MarketSummaryDto> dtos = markets.stream()
