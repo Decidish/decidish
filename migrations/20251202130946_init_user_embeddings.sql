@@ -3,9 +3,9 @@
 CREATE TABLE user_preferences (
     user_id INT PRIMARY KEY,
     postal_code VARCHAR(5),
-    cooking_time INT,
+    cooking_time VARCHAR(10),
     allergies TEXT,
-    budget FLOAT,
+    budget VARCHAR(10),
     skill_level VARCHAR(15),
     preferences_vec vector(35)
 );

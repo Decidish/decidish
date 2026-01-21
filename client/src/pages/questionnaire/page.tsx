@@ -168,9 +168,9 @@ export default function Questionnaire() {
     console.log('Skill Level:', skillLevel);
     
     const payload: UserPreferences = {
-      allergies,
+      allergies : allergies,
       cooking_time: cookingTime,
-      budget,
+      budget : budget,
       skill_level: skillLevel,
       preference_vector: preferenceVector
     };
