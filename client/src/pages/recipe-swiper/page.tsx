@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { recipesApi, RecipeRecommendation } from '../../api/recipe-swiper/recipesApi';
 import { productsApi, ShoppingListResponse, IngredientGroup, Product } from '../../api/recipe-swiper/productsApi';
+import { adminApi } from '@/api/admin/adminApi';
 
 // interface Product {
 //   id: string;
@@ -55,10 +56,11 @@ export default function RecipeSwiper() {
   const [loading, setLoading] = useState(true);
   const [loadingProducts, setLoadingProducts] = useState(false);
 
-  // 1. FETCH RECIPES FROM GO BACKEND
+  // FETCH RECIPES FROM BACKEND
   useEffect(() => {
     const fetchRecommendations = async () => {
       try {
+        await adminApi.addReweRecipes(); //? For testing purposes
         const data = await recipesApi.getRecommendations();
         console.log("data: ",data);
         const uiRecipes = data.map(r => ({ ...r, richIngredients: null }));

@@ -74,11 +74,11 @@ func (repo RecommenderRepository) GetRecommendedRecipesForUser(tx *sql.Tx, userI
 			re.title,
 			re.description,
 			re.instructions,
-			re.cook_time,
-			re.prep_time,
-			re.total_time,
+			COALESCE(re.cook_time, 0),   -- Fix: If NULL, return 0
+			COALESCE(re.prep_time, 0),   -- Fix: If NULL, return 0
+			COALESCE(re.total_time, 0),  -- Fix: If NULL, return 0
 			re.image,
-			re.rating,
+			COALESCE(re.rating, 0),      -- Fix: If NULL, return 0
 			re.serving_size,
 			re.calories,
 			re.yields,
