@@ -11,6 +11,7 @@ type Nutrients struct {
 }
 
 type Recipe struct {
+	ID          int    `json:"id"`
 	Category    string `json:"category"`
 	CookTime    int    `json:"cook_time"`
 	Description string `json:"description"`
@@ -69,6 +70,7 @@ func (repo RecommenderRepository) GetRecommendedRecipesForUser(tx *sql.Tx, userI
 		)
 		
 		SELECT
+			re.id,
 			re.title,
 			re.description,
 			re.instructions,
@@ -96,7 +98,8 @@ func (repo RecommenderRepository) GetRecommendedRecipesForUser(tx *sql.Tx, userI
 	
 	defer query.Close()
 
-	var recipes []Recipe
+	// var recipes []Recipe
+	recipes := []Recipe{}
 
 	for query.Next() {
 		var recipe Recipe
@@ -106,6 +109,7 @@ func (repo RecommenderRepository) GetRecommendedRecipesForUser(tx *sql.Tx, userI
 		var categoriesStr sql.NullString
 
 		if err := query.Scan(
+			&recipe.ID,
 			&recipe.Title,
 			&recipe.Description,
 			&recipe.Instructions,
