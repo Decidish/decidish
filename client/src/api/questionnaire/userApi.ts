@@ -2,8 +2,9 @@ import apiClient from "../client";
 
 export interface UserPreferences {
   allergies: string[];
-  cooking_time: string;
-  budget: string;
+  min_cooking_time: number; 
+  max_cooking_time: number; 
+  budget: number;
   skill_level: string;
   preference_vector: number[]; 
 }
