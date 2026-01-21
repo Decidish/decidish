@@ -1,6 +1,5 @@
 package decidish.com.core.model.rewe;
 
-import java.io.Serializable;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
@@ -15,16 +14,19 @@ import com.fasterxml.jackson.annotation.JsonManagedReference;
 
 @Entity
 @Table(name = "markets")
-@Data
-@EqualsAndHashCode 
-@Getter @Setter
+// @Data
+// @EqualsAndHashCode
+@EqualsAndHashCode(onlyExplicitlyIncluded = true)
+@Getter
+@Setter
 // Serializable: helps convert object to bytes, useful for redis cache
-public class Market implements Serializable, Persistable<Long>{
+public class Market implements Persistable<Long> {
 
     // EXTERNAL REWE ID
     @Id
     // @Column(name = "rewe_id", unique = true, nullable = false)
-    private Long reweId;
+    @EqualsAndHashCode.Include
+    private Long id;
 
     private String name;
 
@@ -32,22 +34,24 @@ public class Market implements Serializable, Persistable<Long>{
     @JoinColumn(name = "address_id")
     private Address address;
     
+    @Column(name = "has_pickup")
+    private boolean hasPickup = true;
+
     // TimeStamp
     @Column(name = "last_updated")
     private LocalDateTime lastUpdated;
 
     // boolean isOpen;
-
     @OneToMany(mappedBy = "market", cascade = CascadeType.ALL, fetch = FetchType.LAZY, orphanRemoval = true)
     @JsonManagedReference
     @ToString.Exclude
     private List<Product> products = new ArrayList<>();
 
-    public void addProduct(Product product){
+    public void addProduct(Product product) {
         products.add(product);
         product.setMarket(this);
     }
-    
+
     @Transient
     @JsonIgnore
     private boolean isNew = true;
@@ -59,7 +63,7 @@ public class Market implements Serializable, Persistable<Long>{
 
     @Override
     public Long getId() {
-        return reweId;
+        return id;
     }
 
     @PostLoad
@@ -69,14 +73,14 @@ public class Market implements Serializable, Persistable<Long>{
     }
 
     // Empty Constructor
-    public Market() {}
-    
+    public Market() {
+    }
+
     // Standard Constructor
-    public Market(Long reweId, String name
-        , Address address
-        // , boolean isOpen
-    ){
-        this.reweId = reweId;
+    public Market(Long reweId, String name, Address address
+    // , boolean isOpen
+    ) {
+        this.id = reweId;
         this.name = name;
         this.address = address;
         this.lastUpdated = LocalDateTime.now();
@@ -86,31 +90,29 @@ public class Market implements Serializable, Persistable<Long>{
     public void updateFromDto(MarketDto dto) {
         this.name = dto.name();
         this.lastUpdated = LocalDateTime.now();
-        
-        if(this.address == null){
+
+        if (this.address == null) {
             this.address = new Address();
         }
 
-        if(this.address == null){
-            this.address = new Address();
-        }
-
-        this.address.setStreet(dto.addressLine1());
-        this.address.setZipCode(dto.rawValues().postalCode());
-        this.address.setCity(dto.rawValues().city());
+        this.address.setStreet(dto.street());
+        this.address.setZipCode(dto.zipcode());
+        this.address.setCity(dto.city());
+        this.hasPickup = dto.serviceFlags().hasPickup();
     }
-    
+
     // Convert DTO to Entity
-    public static Market fromDto(MarketDto dto){
-        Long marketId = dto.id();
+    public static Market fromDto(MarketDto dto) {
+        Long marketId = dto.wwIdent();
         String name = dto.name();
         Address address = new Address();
-        address.setStreet(dto.addressLine1());
-        address.setZipCode(dto.rawValues().postalCode());
-        address.setCity(dto.rawValues().city());
+        address.setLatitude(dto.location().latitude());
+        address.setLongitude(dto.location().longitude());
+        address.setStreet(dto.street());
+        address.setZipCode(dto.zipcode());
+        address.setCity(dto.city());
 
-        return new Market(marketId, name
-            , address
+        return new Market(marketId, name, address
         // ,dto.isOpen()
         );
     }

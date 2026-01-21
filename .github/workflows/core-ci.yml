@@ -1,0 +1,90 @@
+name: Core Service CI (Java/Gradle)
+
+on:
+  workflow_call:
+    inputs:
+      environment:
+        required: false
+        type: string
+        default: 'latest'
+
+env:
+  SERVICE_DIR: backend/core
+  IMAGE_NAME: decidish/core-service
+  JAVA_VERSION: '21'
+
+jobs:
+  test_and_build:
+    runs-on: ubuntu-latest
+    # This spins up Postgres before the tests run, mimicking local Docker.
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: user
+          POSTGRES_PASSWORD: 1234
+          POSTGRES_DB: decidish
+        # Map port 5433 on the VM to 5432 in the container
+        # This matches application-e2e.yml url: jdbc:postgresql://localhost:5433/decidish
+        ports:
+          - 5433:5432
+        # Health check to ensure DB is ready before Gradle starts
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up JDK ${{ env.JAVA_VERSION }}
+        uses: actions/setup-java@v4
+        with:
+          java-version: ${{ env.JAVA_VERSION }}
+          distribution: 'temurin'
+          cache: 'gradle'
+
+      - name: Grant execute permission for gradlew
+        working-directory: ${{ env.SERVICE_DIR }}
+        run: chmod +x gradlew
+
+      # Run All Testing Levels 
+      # Runs 'test' (Unit), 'integration' (H2), and 'e2e' (Docker Service)
+      # The 'e2e' task will hit localhost:5433, connecting to the 'services.postgres' above.
+      - name: Run Tests (Unit, Integration, E2E)
+        working-directory: ${{ env.SERVICE_DIR }}
+        run: ./gradlew test integration e2e --no-daemon
+
+      - name: Upload Test Report
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: core-test-results
+          path: ${{ env.SERVICE_DIR }}/build/reports/tests/
+          retention-days: 5
+
+      # Build the application JAR
+      - name: Build JAR
+        working-directory: ${{ env.SERVICE_DIR }}
+        run: ./gradlew bootJar --no-daemon -x test
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Login to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Build and push
+        uses: docker/build-push-action@v5
+        if: github.ref == 'refs/heads/main'
+        with:
+          context: ${{ env.SERVICE_DIR }}
+          file: ${{ env.SERVICE_DIR }}/Dockerfile 
+          push: true
+          tags: |
+            ${{ env.IMAGE_NAME }}:${{ inputs.environment }}
+            ${{ env.IMAGE_NAME }}:latest

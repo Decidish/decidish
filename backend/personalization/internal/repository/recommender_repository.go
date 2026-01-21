@@ -5,6 +5,30 @@ import (
 	"strings"
 )
 
+type Nutrients struct {
+	ServingSize string `json:"servingSize"`
+	Calories    string `json:"calories"`
+}
+
+type Recipe struct {
+	Category    string `json:"category"`
+	CookTime    int    `json:"cook_time"`
+	Description string `json:"description"`
+	Image       string `json:"image"`
+
+	Ingredients  []string  `json:"ingredients"`
+	Instructions string    `json:"instructions"`
+	KeyWords     []string  `json:"keywords"`
+	Nutrients    Nutrients `json:"nutrients"`
+
+	PrepTime  int     `json:"prep_time"`
+	Ratings   float64 `json:"ratings"`
+	TotalTime int     `json:"total_time"`
+
+	Title  string `json:"title"`
+	Yields string `json:"yields"`
+}
+
 type RecommenderRepository struct{}
 
 func NewRecommenderRepository() RecommenderRepository {
@@ -31,9 +55,8 @@ func (repo RecommenderRepository) GetRecommendedRecipesForUser(tx *sql.Tx, userI
 		RecipeIngredients AS (
 			SELECT
 				ri.recipe_id,
-				STRING_AGG(i.name, ', ') AS all_ingredients
+				STRING_AGG(ri.original, ', ') AS all_ingredients
 			FROM recipe_ingredients ri
-			JOIN ingredients i ON ri.ingredient_id = i.id
 			GROUP BY ri.recipe_id
 		),
 		RecipeCategories AS (
@@ -67,11 +90,11 @@ func (repo RecommenderRepository) GetRecommendedRecipesForUser(tx *sql.Tx, userI
 		LEFT JOIN RecipeIngredients rid ON re.id = rid.recipe_id
 		LEFT JOIN RecipeCategories rcd ON re.id = rcd.recipe_id`, userId)
 
-	defer query.Close()
-
 	if err != nil {
 		return nil, err
 	}
+	
+	defer query.Close()
 
 	var recipes []Recipe
 

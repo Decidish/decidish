@@ -15,6 +15,6 @@ func NewRecipeController(service service.RecipeService) *RecipeController {
 }
 
 func (controller RecipeController) AddMappings(r *gin.Engine) {
-	r.POST("/recipes/add/")
-	r.POST("/recipes/rewe/", controller.RecipeService.SeedRecipeTableWithREWERecipes)
+	r.POST("/recipes/add/", controller.AddRecipe)
+	r.POST("/recipes/add/rewe/", controller.AddReweRecipes)
 }

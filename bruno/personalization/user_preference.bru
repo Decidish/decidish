@@ -5,7 +5,7 @@ meta {
 }
 
 post {
-  url: http://localhost:8082/api/v1/onboarding
+  url: http://localhost:8082/api/v1/user/preferences
   body: json
   auth: inherit
 }
@@ -16,19 +16,22 @@ headers {
 
 body:json {
   {
-      "postal_code": "80331",
-      "weekly_budget": 75.50,
-      "cook_frequency": 4,
-      "diet_preferences": [
-          "vegan",
-          "low-sugar"
-      ],
-      "allergies": [
-          "shellfish",
-          "kiwi"
-      ],
-      "serving_per_meal": 2,
-      "cooking_skill": "advanced"
+    "allergies": [
+      "peanuts",
+      "shellfish"
+    ],
+    "cooking_time": "30",
+    "budget": "120",
+    "skill_level": "intermediate",
+    "preference_vector": [
+      1, 0, 1, 0, 0,
+      1, 1, 0, 1, 0,
+      0, 0, 1, 1, 1,
+      0, 1, 0, 0, 1,
+      1, 0, 1, 0, 0,
+      0, 1, 1, 0, 1,
+      0, 0, 1, 1, 0
+    ]
   }
 }
 

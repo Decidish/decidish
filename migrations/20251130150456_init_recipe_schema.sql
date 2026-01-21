@@ -10,7 +10,7 @@ CREATE TABLE keywords (
     name VARCHAR(50) UNIQUE NOT NULL
 );
 
-CREATE TABLE ingredients (
+CREATE TABLE IF NOT EXISTS ingredients (
     id SERIAL PRIMARY KEY,
     name VARCHAR(255) UNIQUE NOT NULL
 );
@@ -49,6 +49,8 @@ CREATE TABLE recipe_ingredients (
     ingredient_id INT references ingredients(id),
     quantity DECIMAL(8, 2),
     unit VARCHAR(50),
+    original TEXT,
+    info TEXT,
 
     PRIMARY KEY (recipe_id, ingredient_id)
 );

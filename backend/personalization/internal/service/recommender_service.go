@@ -1,6 +1,7 @@
 package service
 
 import (
+	"context"
 	"database/sql"
 	"log"
 	"net/http"
@@ -22,7 +23,7 @@ func NewRecommenderService(recommenderRepository repository.RecommenderRepositor
 }
 
 func (service RecommenderService) RecommendRecipeForUser(ctx *gin.Context) {
-	tx, err := service.DB.Begin()
+	tx, err := service.DB.BeginTx(context.Background(), &sql.TxOptions{ReadOnly: true})
 
 	if err != nil {
 		log.Panicln("could not start a transaction", err.Error())
@@ -41,9 +42,7 @@ func (service RecommenderService) RecommendRecipeForUser(ctx *gin.Context) {
 		ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 	}
 
-	err = tx.Commit()
-
-	if err != nil {
+	if err = tx.Commit(); err != nil {
 		log.Panicln("could not commit", err.Error())
 	}
 

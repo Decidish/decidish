@@ -1,0 +1,22 @@
+meta {
+  name: Import Rewe Recipes
+  type: http
+  seq: 3
+}
+
+post {
+  url: http://localhost:8000/recipes/add/rewe
+  body: json
+  auth: inherit
+}
+
+body:json {
+  {
+    "job_id": 2
+  }
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}

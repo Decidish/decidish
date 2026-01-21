@@ -1,0 +1,26 @@
+meta {
+  name: AddRecipe
+  type: http
+  seq: 5
+}
+
+post {
+  url: http://localhost:8082/recipes/add
+  body: json
+  auth: none
+}
+
+headers {
+  ~Cookie: auth_token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjoiMSIsImV4cCI6MTc2ODkyMjE1MSwiaWF0IjoxNzY4ODM1NzUxfQ.gN5pDRPXIIO5-qhD1_F7hrudG00DippYliLTM16AgGo
+}
+
+body:json {
+  {
+    "recipe_url": "https://www.allrecipes.com/million-dollar-soup-recipe-11823470" 
+  }
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}

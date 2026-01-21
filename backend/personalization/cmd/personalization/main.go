@@ -42,9 +42,8 @@ func main() {
 
 	protected.Use(middleware.AuthMiddleware(appConfig))
 	{
-		createUserActionMappings(protected)
 		createRecommendRecipesMappings(protected, db)
-		createOnboardingMappings(appConfig, protected, db)
+		createUserMappings(appConfig, protected, db)
 	}
 
 	if err := r.Run(":8082"); err != nil {

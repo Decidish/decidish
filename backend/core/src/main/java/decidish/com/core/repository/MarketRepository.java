@@ -21,11 +21,14 @@ public interface MarketRepository extends JpaRepository<Market, Long> {
     Optional<List<Market>> getMarketsByAddress(@Param("plz") String plz);
 
     
-    // Find by rewe id
+    // Find by id
     // @Cacheable(value = "markets_id", unless = "#a0==2L") // For testing
-    @Cacheable(value = "markets_id")
-    Optional<Market> findByReweId(Long reweId);
+    // @Cacheable(value = "markets_id")
+    Optional<Market> findById(Long id);
 
     @Query("SELECT m FROM Market m LEFT JOIN FETCH m.products WHERE m.id = :id")
     Optional<Market> findByIdWithProducts(@Param("id")Long id);
+
+    @Query(value = "SELECT DISTINCT name FROM products WHERE rewe_id = :reweId LIMIT 1", nativeQuery = true)
+    String findProductNameByReweId(@Param("reweId") Long reweId);
 }

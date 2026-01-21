@@ -13,7 +13,7 @@ from typing import Dict, Optional, Tuple, Iterable
 @dataclass
 class BCEConfig:
     dim: int = 384
-    hidden: int = 768,
+    hidden: int = 768
     temperature: float = 0.07
     dropout: float = 0.0
     keep_recipe_embedding: bool = True
