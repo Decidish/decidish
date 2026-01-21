@@ -109,6 +109,8 @@ public class Market implements Persistable<Long> {
     }
 
     private static void setAddressFields(Address address, MarketPickupDto dto) {
+        address.setLatitude(dto.latitude());
+        address.setLongitude(dto.longitude());
         address.setStreet(dto.streetWithHouseNumber());
         address.setZipCode(dto.zipCode());
         address.setCity(dto.city());
