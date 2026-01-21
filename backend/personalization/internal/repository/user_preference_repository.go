@@ -8,8 +8,9 @@ import (
 
 type AdditionalInfo struct {
 	Allergies        []string  `json:"allergies"`
-	CookingTime      string    `json:"cooking_time"`
-	Budget           string    `json:"budget"`
+	MinCookingTime   int       `json:"min_cooking_time"`
+    MaxCookingTime   int       `json:"max_cooking_time"`
+	Budget           int    	`json:"budget"`
 	SkillLevel       string    `json:"skill_level"`
 	PreferenceVector []float64 `json:"preference_vector"`
 }
@@ -39,17 +40,21 @@ func AddUserPreference(tx *sql.Tx, userId string, userInfo AdditionalInfo) error
 
 	_, err := tx.Exec(`
 	INSERT INTO user_preferences (
-		user_id, cooking_time, allergies,
+		user_id, 
+		min_cooking_time, 
+        max_cooking_time,
+		allergies,
 	    budget, skill_level, preferences_vec)
-	VALUES ($1, $2, $3, $4, $5, $6)
+	VALUES ($1, $2, $3, $4, $5, $6, $7)
 	ON CONFLICT (user_id) DO UPDATE
-	SET cooking_time = EXCLUDED.cooking_time,
+	SET min_cooking_time = EXCLUDED.min_cooking_time,
+        max_cooking_time = EXCLUDED.max_cooking_time,
 	    allergies = EXCLUDED.allergies,
 	    budget = EXCLUDED.budget,
 	    skill_level = EXCLUDED.skill_level,
 	    preferences_vec = EXCLUDED.preferences_vec
 	`,
-		userId, userInfo.CookingTime,
+		userId, userInfo.MinCookingTime, userInfo.MaxCookingTime,
 		strings.Join(userInfo.Allergies, ","),
 		userInfo.Budget,
 		userInfo.SkillLevel,

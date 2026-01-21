@@ -84,7 +84,7 @@ export default function Questionnaire() {
 
   const [allergies, setAllergies] = useState<string[]>([]);
   const [cookingTime, setCookingTime] = useState('');
-  const [budget, setBudget] = useState('');
+  const [budget, setBudget] = useState<number | ''>('');
   const [skillLevel, setSkillLevel] = useState('');
 
   const togglePreference = (key: keyof Preferences) => {
@@ -156,6 +156,14 @@ export default function Questionnaire() {
       setCurrentStep(currentStep - 1);
     }
   };
+  
+  // Helper function to parse "30-45" into [30, 45]
+  const parseCookingTime = (timeStr: string) => {
+    if (timeStr === '60+') return { min: 60, max: 999 }; // Handle "60+" case
+
+    const [min, max] = timeStr.split('-').map(Number);
+    return { min, max };
+  };
 
   const handleSubmit = async () => {
     setIsLoading(true);
@@ -167,10 +175,14 @@ export default function Questionnaire() {
     console.log('Budget:', budget);
     console.log('Skill Level:', skillLevel);
     
+    // Convert "30-45" into min=30, max=45
+    const { min, max } = parseCookingTime(cookingTime);
+    
     const payload: UserPreferences = {
       allergies : allergies,
-      cooking_time: cookingTime,
-      budget : budget,
+      min_cooking_time: min,
+      max_cooking_time: max, 
+      budget : Number(budget),
       skill_level: skillLevel,
       preference_vector: preferenceVector
     };
@@ -400,6 +412,27 @@ export default function Questionnaire() {
               <div>
                 <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
                   <i className="ri-money-dollar-circle-line text-[#2F855A]"></i>
+                  Maximum Budget Per Meal ($)
+                </h3>
+                <div className="relative">
+                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                    <span className="text-gray-500 sm:text-sm">$</span>
+                  </div>
+                  <input
+                    type="number"
+                    name="budget"
+                    id="budget"
+                    min="0"
+                    className="block w-full pl-7 pr-12 py-3 sm:text-sm border-2 border-gray-200 rounded-lg focus:ring-[#2F855A] focus:border-[#2F855A]"
+                    placeholder="e.g., 20"
+                    value={budget}
+                    onChange={(e) => setBudget(Number(e.target.value))}
+                  />
+                </div>
+              </div>
+              {/* <div>
+                <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
+                  <i className="ri-money-dollar-circle-line text-[#2F855A]"></i>
                   Budget Per Meal
                 </h3>
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
@@ -427,7 +460,7 @@ export default function Questionnaire() {
                     </button>
                   ))}
                 </div>
-              </div>
+              </div> */}
 
               {/* Skill Level */}
               <div>
