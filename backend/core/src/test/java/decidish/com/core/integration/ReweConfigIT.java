@@ -62,7 +62,7 @@ class ReweConfigIT {
         System.out.println("Street: " + markets.get(0).street());
         System.out.println("Latitude: " + markets.get(0).location().latitude());
         System.out.println("Longitude: " + markets.get(0).location().longitude());
-        System.out.println("Postal Code: " + markets.get(0).zipcode());
+        System.out.println("Postal Code: " + markets.get(0).zipCode());
         System.out.println("City: " + markets.get(0).city());
 
         // String response = client.searchMarkets(zipCode);

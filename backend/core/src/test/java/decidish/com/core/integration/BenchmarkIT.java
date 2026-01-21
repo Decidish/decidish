@@ -58,7 +58,7 @@ class BenchmarkIT {
     private Statistics hibernateStats;
 
     // Test Data Constants
-    private final String PLZ = "80331";
+    private final String PLZ = "80995"; // A PLZ with at least one market with pickup flag true
     private final Long MARKET_ID = 431022L;
     private final String PRODUCT_QUERY = "milch";
 

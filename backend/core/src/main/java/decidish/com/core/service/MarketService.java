@@ -258,6 +258,31 @@ public class MarketService {
         return results;
     }
 
+    @Transactional
+    public void updateProductsForEveryMarket() {
+        List<Market> markets = marketRepository.findAll();
+        if(markets.isEmpty()){
+            log.info("No markets found in DB to update products for.");
+            return;
+        }
+
+        
+        for (Market market : markets) {
+            log.info("Updating products for Market ID: {}", market.getId());
+
+            try {
+                // Time this operation in seconds
+                long startTime = System.currentTimeMillis();
+                getAllProductsAPI(market);
+                long endTime = System.currentTimeMillis();
+                long duration = (endTime - startTime) / 1000;
+                log.info("Successfully updated Market ID: {} in {} seconds", market.getId(), duration);
+            } catch (Exception e) {
+                log.error("Error updating Market with id {}: {}", market.getId(), e.getMessage());
+            }
+        }
+    } 
+
     // ! Don't delete yet, multi-threading can be useful in the future, but causes
     // issues now
     // // NOTE: NO @Transactional here! We want to keep DB connections free while

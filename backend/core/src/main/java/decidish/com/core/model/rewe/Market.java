@@ -96,7 +96,7 @@ public class Market implements Persistable<Long> {
         }
 
         this.address.setStreet(dto.street());
-        this.address.setZipCode(dto.zipcode());
+        this.address.setZipCode(dto.zipCode());
         this.address.setCity(dto.city());
         this.hasPickup = dto.serviceFlags().hasPickup();
     }
@@ -109,7 +109,7 @@ public class Market implements Persistable<Long> {
         address.setLatitude(dto.location().latitude());
         address.setLongitude(dto.location().longitude());
         address.setStreet(dto.street());
-        address.setZipCode(dto.zipcode());
+        address.setZipCode(dto.zipCode());
         address.setCity(dto.city());
 
         return new Market(marketId, name, address
