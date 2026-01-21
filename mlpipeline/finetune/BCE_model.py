@@ -123,7 +123,6 @@ def load_or_init(
 ) -> Tuple[EmbeddingAdapterModel, torch.optim.Optimizer, Dict[str, object]]:
     model = EmbeddingAdapterModel(cfg).to(cfg.device)
 
-    # optimizer param groups：始终训 user_adapter；recipe 只有在 keep_recipe_embedding=False 时训
     param_groups = [{"params": model.user_adapter.parameters(), "lr": cfg.lr_user}]
     if (not cfg.keep_recipe_embedding) and (model.recipe_adapter is not None):
         param_groups.append({"params": model.recipe_adapter.parameters(), "lr": cfg.lr_recipe})

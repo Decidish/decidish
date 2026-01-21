@@ -35,7 +35,7 @@ class EncodeBatchResponse(BaseModel):
 
 # === Finetuing Phase ===
 
-app = FastAPI(title="User Encoder Service")
+app = FastAPI(title="User Encoder + Embedding Tuning API")
 
 _MODEL: Optional[UserEncoder] = None
 _INPUT_DIM: Optional[int] = None
@@ -49,9 +49,7 @@ def _load_model(ckpt_path: str, input_dim: int, device: torch.device) -> UserEnc
 
     ckpt = torch.load(ckpt_path, map_location="cpu")
     state_dict = ckpt["state_dict"] if isinstance(ckpt, dict) and "state_dict" in ckpt else ckpt
-    missing, unexpected = model.load_state_dict(state_dict, strict=True)
-    if missing or unexpected:
-        raise RuntimeError(f"state_dict mismatch, missing = {missing}, unexpected = {unexpected}")
+    model.load_state_dict(state_dict, strict=True)
 
     model.eval().to(device)
 
@@ -133,15 +131,13 @@ class TuneResponse(BaseModel):
     model_info: Dict[str, Any]
 
 
-app = FastAPI(title="Embedding Tuning API")
-
 core_cfg = CoreCfg(
     dim=DIM,
     hidden=int(os.getenv("ADAPTER_HIDDEN", str(DIM))),
     dropout=float(os.getenv("ADAPTER_DROPOUT", "0.0")),
     adapter_temperature=float(os.getenv("ADAPTER_TEMPERATURE", "0.07")),
     ckpt_dir=os.getenv("ADAPTER_CKPT_DIR", "./ckpts_weekly_user_adapter"),
-    device="cuda" if os.getenv("FORCE_CPU", "0") != "1" else "cpu",
+    device="cuda" if (os.getenv("FORCE_CPU","0") != "1" and torch.cuda.is_available()) else "cpu",
 )
 
 model_cache = ModelCache(core_cfg)
