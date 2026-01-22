@@ -46,8 +46,46 @@ func NewUserService(applicationConfig config.ApplicationConfig, db *sql.DB, mlCl
 	}
 }
 
-func (service UserService) AddProductToCart(ctx *gin.Context) {
+type CartItem struct {
+	ProductId int `json:"product_id"`
+	Quantity  int `json:"quantity"`
+	RecipeId  int `json:"recipe_id"`
+}
 
+func (service UserService) AddRecipeProductsToCart(ctx *gin.Context) {
+	userId := ctx.GetString("user_id")
+
+	var cartItems []CartItem
+	err := ctx.ShouldBindJSON(&cartItems)
+
+	if err != nil {
+		ctx.JSON(http.StatusBadRequest, err)
+		return
+	}
+
+	tx, err := service.DB.Begin()
+
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, "could not start a transaction")
+		log.Panicln("could not start a transaction", err.Error())
+	}
+
+	defer tx.Rollback()
+
+	for _, item := range cartItems {
+		err := repository.AddProductToUserCart(tx, userId, item.ProductId, item.Quantity, item.RecipeId)
+		if err != nil {
+			ctx.JSON(http.StatusInternalServerError, err)
+			return
+		}
+	}
+
+	if err = tx.Commit(); err != nil {
+		ctx.JSON(http.StatusInternalServerError, "could not commit transaction")
+		log.Panicln("could not commit transaction", err.Error())
+	}
+
+	ctx.JSON(http.StatusOK, fmt.Sprintf("Added %d items to cart for user: %s", len(cartItems), userId))
 }
 
 func (service UserService) IsUserEmbeddingReady(ctx *gin.Context) {
@@ -197,4 +235,16 @@ func (service UserService) CreateUserPreferences(ctx *gin.Context) {
 		log.Panicln("could not commit transaction", err.Error())
 	}
 	ctx.JSON(http.StatusCreated, userPreferences)
+}
+
+func (service UserService) GetUserCartItems(context *gin.Context) {
+	userId := context.GetString("user_id")
+
+	cartItems, err := repository.GetUserCartItems(service.DB, userId)
+	if err != nil {
+		context.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	context.JSON(http.StatusOK, cartItems)
 }

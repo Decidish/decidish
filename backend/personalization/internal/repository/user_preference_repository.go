@@ -27,6 +27,21 @@ func GetUserMarketId(db *sql.DB, userId string) (int64, error) {
 	return marketId, nil
 }
 
+func AddProductToUserCart(tx *sql.Tx, userId string, productId int, quantity int, recipeId int) error {
+	_, err := tx.Exec(`
+	INSERT INTO user_cart (user_id, product_id, quantity, recipe_id)
+	VALUES ($1, $2, $3, $4)
+	ON CONFLICT (user_id, recipe_id, product_id) 
+	DO UPDATE SET quantity = EXCLUDED.quantity
+	`, userId, productId, quantity, recipeId)
+
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
 func UpdateMarketId(tx *sql.Tx, userId string, marketId string) error {
 	_, err := tx.Exec(`
 	UPDATE user_preferences
@@ -93,29 +108,36 @@ func AddUserPreference(tx *sql.Tx, userId string, userInfo AdditionalInfo) error
 	return nil
 }
 
-// func (repository *UserPreferenceRepository) Save(tx *sql.Tx, userId string, preferences UserPreferences) error {
-// 	_, err := tx.Exec(`
-// 	INSERT INTO user_preferences (
-// 	                              user_id, postal_code, weekly_budget,
-// 	                              cook_frequency, dietary_preferences, allergies,
-// 	                              servings_per_meal, cooking_skill)
-// 	VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
-// 	ON CONFLICT (user_id) DO UPDATE
-// 	SET postal_code = EXCLUDED.postal_code,
-// 	    weekly_budget = EXCLUDED.weekly_budget,
-// 	    cook_frequency = EXCLUDED.cook_frequency,
-// 	    dietary_preferences = EXCLUDED.dietary_preferences,
-// 	    allergies = EXCLUDED.allergies,
-// 	    servings_per_meal = EXCLUDED.servings_per_meal,
-// 	    cooking_skill = EXCLUDED.cooking_skill
-// 	`,
-// 		userId, preferences.PostalCode, preferences.WeeklyBudget,
-// 		preferences.CookFrequency, strings.Join(preferences.DietaryPreferences, ","),
-// 		strings.Join(preferences.Allergies, ","), preferences.ServingPerMeal,
-// 		preferences.CookingSkill)
-// 	if err != nil {
-// 		return err
-// 	}
+type ShoppingItem struct {
+	Id             int     `json:"id"`
+	Name           string  `json:"name"`
+	Image          string  `json:"image"`
+	Price          float64 `json:"price"`
+	Category       string  `json:"category"`
+	Checked        bool    `json:"checked"`
+	IngredientName string  `json:"ingredient_name,omitempty"`
+}
 
-// 	return nil
-// }
+type Product struct {
+	Id     int     `json:"id"`
+	Name   string  `json:"name"`
+	Brand  string  `json:"brand"`
+	Image  string  `json:"image"`
+	Price  float64 `json:"price"`
+	Weight string  `json:"weight"`
+	Unit   string  `json:"unit"`
+}
+
+type ShoppingList struct {
+	Id         int            `json:"id"`
+	Date       string         `json:"date"`
+	TotalItems int            `json:"total_items"`
+	TotalPrice float64        `json:"total_price"`
+	Recipes    []string       `json:"recipes"`
+	Items      []ShoppingItem `json:"items"`
+	Completed  bool           `json:"completed"`
+}
+
+func GetUserCartItems(db *sql.DB, id string) (interface{}, interface{}) {
+	db.Query
+}

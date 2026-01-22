@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { recipesApi, RecipeRecommendation } from '@/api/recipe-swiper/recipesApi';
 import { productsApi, ShoppingListResponse, IngredientGroup, Product } from '@/api/recipe-swiper/productsApi';
+import {CartItem, shoppingCartApi} from "@/api/recipe-swiper/shoppingCartApi.ts";
 
 
 // We extend the API response to include UI-specific fields if needed
@@ -18,7 +19,6 @@ export default function RecipeSwiper() {
   const [currentIngredientIndex, setCurrentIngredientIndex] = useState(0);
   const [selectedProducts, setSelectedProducts] = useState<Record<number, Product | 'already-have'>>({});
   const [likedRecipes, setLikedRecipes] = useState<UIRecipe[]>([]);
-  const [servingsNeeded, setServingsNeeded] = useState(12);
   const [servingsCollected, setServingsCollected] = useState(0);
   const [showAllProducts, setShowAllProducts] = useState(false);
   const [showSuccessToast, setShowSuccessToast] = useState(false);
@@ -30,7 +30,6 @@ export default function RecipeSwiper() {
   const [showRecipeDetailModal, setShowRecipeDetailModal] = useState(false);
   // New states for quantity selection and shopping cart
   const [productQuantities, setProductQuantities] = useState<Record<number, number>>({});
-  // const [shoppingCart, setShoppingCart] = useState<CartItem[]>([]);
 
   // FETCH RECIPES FROM BACKEND
   useEffect(() => {
@@ -78,7 +77,7 @@ export default function RecipeSwiper() {
       setLoadingProducts(true);
       try {
         // Fetch products for just this one recipe
-        const listResponse: ShoppingListResponse = await productsApi.generateShoppingList(441070, [recipe.id]); // Market ID hardcoded for now
+        const listResponse: ShoppingListResponse = await productsApi.generateShoppingList(440752, [recipe.id]); // Market ID hardcoded for now
         
         // Update the specific recipe in our state with the new data
         setRecipes(prevRecipes => prevRecipes.map(r => {
@@ -139,7 +138,7 @@ export default function RecipeSwiper() {
     }
   };
 
-  const handleConfirmRecipe = () => {
+  const handleConfirmRecipe = async () => {
     if (currentRecipe) {
       setLikedRecipes([...likedRecipes, currentRecipe]);
       // PARSING NOTE: personalization sends 'yields' ("4 servings"), usually a string. 
@@ -147,6 +146,19 @@ export default function RecipeSwiper() {
       const recipeServings = parseInt(currentRecipe.yields) || 4;
       const newServingsCollected = servingsCollected + recipeServings;
       setServingsCollected(newServingsCollected);
+
+      const shoppingListElems = Object.entries(selectedProducts)
+          .filter(selectedProduct => selectedProduct[1] !== 'already-have')
+          .map((selectedProduct) => {
+          const cartItems: CartItem = {
+            product_id: (selectedProduct[1] as Product).id,
+            quantity: productQuantities[(selectedProduct[1] as Product).id] || 1,
+            recipe_id: currentRecipe.id,
+        }
+        return cartItems
+      })
+
+      await shoppingCartApi.addItemsToShoppingCart(shoppingListElems);
 
       // Show success notification
       showSuccessNotification(currentRecipe.title);
@@ -180,7 +192,7 @@ export default function RecipeSwiper() {
       const selected = selectedProducts[ingredient.ingredientId];
       
       if (selected && selected !== 'already-have') {
-        return total + selected.price; // Adds cents (e.g., 299)
+        return total + selected.price * productQuantities[selected.id]; // Adds cents (e.g., 299)
       }
       return total;
     }, 0);
@@ -314,7 +326,7 @@ export default function RecipeSwiper() {
                 <p className="text-sm text-gray-600">Swipe to discover meals you'll love</p>
               </div>
               <div className="text-right">
-                <div className="text-2xl font-bold text-[#2F855A]">{servingsCollected}/{servingsNeeded}</div>
+                <div className="text-2xl font-bold text-[#2F855A]">{servingsCollected}</div>
                 <p className="text-xs text-gray-600">Servings</p>
               </div>
             </div>
@@ -437,6 +449,17 @@ export default function RecipeSwiper() {
                     <span className="text-sm text-gray-600">
                   {currentIngredientIndex + 1} of {currentRecipe.richIngredients.length}
                 </span>
+                    <button
+                        onClick={() => {
+                          setShowIngredientModal(false);
+                          setCurrentRecipe(null);
+                          setSelectedProducts({});
+                          setProductQuantities({});
+                        }}
+                        className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-gray-100 transition-colors cursor-pointer"
+                    >
+                      <i className="ri-close-line text-xl text-gray-600"></i>
+                    </button>
                   </div>
                   <div className="w-full bg-gray-200 rounded-full h-2 mb-3">
                     <div
@@ -619,7 +642,7 @@ export default function RecipeSwiper() {
                             <div className="flex items-start justify-between mb-3">
                               <div className="flex-1">
                                 <h5 className="font-semibold text-gray-900 mb-1">{ingredient.ingredientName}</h5>
-                                <p className="text-sm text-gray-600">Amount needed: {ingredient.totalAmountNeeded}</p>
+                                {!isAlreadyHave && <p className="text-sm text-gray-600">Amount added: {productQuantities[product.id]}</p>}
                               </div>
                               <button
                                   onClick={() => handleEditProduct(ingredient.ingredientId)}
@@ -650,9 +673,9 @@ export default function RecipeSwiper() {
                                     <div className="text-xs text-gray-600 mb-1">REWE</div>
                                     <div className="flex items-center gap-2">
                                     {/* <span className="text-sm font-medium text-gray-700">{product.weight}{product.unit}</span> */}
-                                    <span className="text-sm font-medium text-gray-700">{product.grammage}</span>
+                                    {/*<span className="text-sm font-medium text-gray-700">{product.grammage}</span>*/}
                                     {/* <span className="text-lg font-bold text-[#2F855A]">${product.price.toFixed(2)}</span> */}
-                                    <span className="text-lg font-bold text-[#2F855A]">{(product.price / 100).toFixed(2)}€</span>
+                                    <span className="text-lg font-bold text-[#2F855A]">{((product.price * productQuantities[product.id]) / 100).toFixed(2)}€</span>
                                     </div>
                                   </div>
                                 </div>
