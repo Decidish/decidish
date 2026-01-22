@@ -34,6 +34,56 @@ export default function AdminPage() {
   
   const activeReweJobs = reweJobs.filter(job => job.status === 'running' || job.status === 'queued');
   const historyReweJobs = reweJobs.filter(job => job.status === 'completed' || job.status === 'failed');
+  
+  const fetchHistory = async () => {
+    try {
+      // Fetch URL History
+      const urlData = await adminApi.getImportHistory();
+      console.log("Raw URL History from Backend:", urlData);
+      const mappedUrlHistory = urlData.map((item: any) => ({
+        id: item.id.toString(),
+        name: item.identifier,     // Map 'identifier' from DB to 'name'
+        source: (item.type || 'url') as 'url' | 'file', // FALLBACK
+        status: item.status === 'failed' ? 'error' : item.status, // normalize status
+        timestamp: item.created_at
+      }));
+      setImportHistory(mappedUrlHistory);
+
+      // Fetch Rewe Job History
+      const reweData = await adminApi.getReweJobHistory();
+      const mappedReweHistory = reweData.map((job: any) => {
+        // Calculate progress logic if needed, or default to 100/0 based on status
+        let uiStatus: ReweJob['status'] = 'queued';
+        if(job.status === 'running' || job.status === 'processing') uiStatus = 'running';
+        if(job.status === 'completed' || job.status === 'success') uiStatus = 'completed';
+        if(job.status === 'failed' || job.status === 'error') uiStatus = 'failed';
+
+        return {
+          id: job.id.toString(),
+          status: uiStatus,
+          startTime: job.created_at,
+          // If DB doesn't track end time explicitly, we might leave undefined or use updated_at
+          endTime: uiStatus === 'completed' ? job.updated_at : undefined, 
+          recipesImported: job.processed_items || 0,
+          totalRecipes: job.total_items || 0,
+          progress: job.total_items > 0 ? Math.floor((job.processed_items / job.total_items) * 100) : 0
+        };
+      });
+      setReweJobs(mappedReweHistory);
+
+    } catch (error) {
+      console.error("Failed to load history:", error);
+    }
+  };
+  
+  useEffect(() => {
+    fetchHistory();
+    
+    // Set up a global poller to refresh history every 10 seconds 
+    // to catch updates from other admins or background jobs
+    const interval = setInterval(fetchHistory, 10000);
+    return () => clearInterval(interval);
+  }, []);
 
   const handleUrlImport = async () => {
     if (!recipeUrl.trim()) {
@@ -46,21 +96,21 @@ export default function AdminPage() {
     try {
       await adminApi.addRecipe(recipeUrl);
 
-      const newImport: RecipeImport = {
-        id: Date.now().toString(),
-        name: recipeUrl, 
-        source: 'url',
-        status: 'success',
-        timestamp: new Date().toISOString()
-      };
+      // const newImport: RecipeImport = {
+      //   id: Date.now().toString(),
+      //   name: recipeUrl, 
+      //   source: 'url',
+      //   status: 'success',
+      //   timestamp: new Date().toISOString()
+      // };
 
-      setImportHistory([newImport, ...importHistory]);
+      // setImportHistory([newImport, ...importHistory]);
       setRecipeUrl('');
-      
       setSuccessMessage('Recipe imported successfully!');
       setShowSuccessToast(true);
       setTimeout(() => setShowSuccessToast(false), 3000);
 
+      await fetchHistory();
     } catch (error) {
       console.error("URL Import Failed", error);
       alert("Failed to import recipe. Check console for details.");
@@ -71,12 +121,11 @@ export default function AdminPage() {
 
   const handleReweImport = async () => {
     try {
-      // 1. Trigger the Background Job
-      // The backend now returns immediately with a real DB ID
+      // Trigger the Background Job
       const response = await adminApi.addReweRecipes();
       const realJobId = response.job_id.toString();
 
-      // 2. Add 'Queued' Job to UI List
+      // Add 'Queued' Job to UI List
       const newJob: ReweJob = {
         id: realJobId,
         status: 'queued',
@@ -102,7 +151,8 @@ export default function AdminPage() {
             : 0;
 
           // Map Backend Status ('success'/'error') to Frontend UI Status ('completed'/'failed')
-          let uiStatus: 'queued' | 'running' | 'completed' | 'failed' = 'running';
+          // let uiStatus: 'queued' | 'running' | 'completed' | 'failed' = 'running';
+          let uiStatus: ReweJob['status'] = 'running';
           
           if (statusData.status === 'success') uiStatus = 'completed';
           else if (statusData.status === 'error') uiStatus = 'failed';
@@ -129,6 +179,8 @@ export default function AdminPage() {
           // Stop Polling if Finished
           if (uiStatus === 'completed' || uiStatus === 'failed') {
             clearInterval(pollInterval);
+            
+            await fetchHistory();
             
             if (uiStatus === 'completed') {
               setSuccessMessage('Rewe import completed successfully! 🎉');

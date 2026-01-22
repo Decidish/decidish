@@ -45,8 +45,8 @@ func GetJobByID(db *sql.DB, id int) (*Job, error) {
 	return job, nil
 }
 
-func (r *JobRepository) GetReweJobs() ([]model.Job, error) {
-	rows, err := r.DB.Query(`
+func GetReweJobs(db *sql.DB) ([]Job, error) {
+	rows, err := db.Query(`
 		SELECT id, name, status, processed_items, total_items, error_message, created_at, updated_at 
 		FROM jobs 
 		WHERE name = 'add_rewe_recipes' 
@@ -57,9 +57,9 @@ func (r *JobRepository) GetReweJobs() ([]model.Job, error) {
 	}
 	defer rows.Close()
 
-	var jobs []model.Job
+	var jobs []Job
 	for rows.Next() {
-		var j model.Job
+		var j Job
 		// Handle NULL error_message 
 		var errMsg sql.NullString 
 		
@@ -67,9 +67,40 @@ func (r *JobRepository) GetReweJobs() ([]model.Job, error) {
 			return nil, err
 		}
 		if errMsg.Valid {
-			j.ErrorMessage = &errMsg.String
-		}
+            j.ErrorMessage = errMsg.String
+        }
 		jobs = append(jobs, j)
 	}
 	return jobs, nil
+}
+
+func CreateLog(db *sql.DB, logType, identifier, status string, jobId int) error {
+    _, err := db.Exec(`
+        INSERT INTO import_logs (type, identifier, status, job_id, created_at)
+        VALUES ($1, $2, $3, $4, NOW())`,
+        logType, identifier, status, jobId,
+    )
+    return err
+}
+
+func GetUrlImportHistory(db *sql.DB) ([]ImportLog, error) {
+    rows, err := db.Query(`
+        SELECT id, type, identifier, status, created_at 
+        FROM import_logs 
+        WHERE type = 'url'
+        ORDER BY created_at DESC LIMIT 50`)
+    if err != nil {
+        return nil, err
+    }
+    defer rows.Close()
+
+    var logs []ImportLog
+    for rows.Next() {
+        var l ImportLog
+        if err := rows.Scan(&l.ID, &l.Type, &l.Identifier, &l.Status, &l.CreatedAt); err != nil {
+            return nil, err
+        }
+        logs = append(logs, l)
+    }
+    return logs, nil
 }

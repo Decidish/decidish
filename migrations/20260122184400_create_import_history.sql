@@ -1,3 +1,5 @@
+-- +goose Up
+-- +goose StatementBegin
 CREATE TABLE import_logs (
     id SERIAL PRIMARY KEY,
     -- user_id UUID,                -- who inserted it 
@@ -9,3 +11,9 @@ CREATE TABLE import_logs (
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
     error_message TEXT
 );
+-- +goose StatementEnd
+
+-- +goose Down
+-- +goose StatementBegin
+DROP TABLE IF EXISTS import_logs;
+-- +goose StatementEnd
