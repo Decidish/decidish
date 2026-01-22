@@ -238,13 +238,13 @@ func (service UserService) CreateUserPreferences(ctx *gin.Context) {
 }
 
 func (service UserService) GetUserCartItems(context *gin.Context) {
-	userId := context.GetString("user_id")
-
-	cartItems, err := repository.GetUserCartItems(service.DB, userId)
-	if err != nil {
-		context.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-		return
-	}
-
-	context.JSON(http.StatusOK, cartItems)
+	//userId := context.GetString("user_id")
+	//
+	//cartItems, err := repository.GetUserCartItems(service.DB, userId)
+	//if err != nil {
+	//	context.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+	//	return
+	//}
+	//
+	//context.JSON(http.StatusOK, cartItems)
 }
