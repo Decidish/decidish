@@ -34,6 +34,7 @@ type EncodeBatchResponse struct {
 type IUserService interface {
 	CreateUserPreferences(ctx *gin.Context)
 	SetSelectedUserMarketId(ctx *gin.Context)
+	IsUserEmbeddingReady(ctx *gin.Context)
 }
 
 type UserService struct {
@@ -48,6 +49,29 @@ func NewUserService(applicationConfig config.ApplicationConfig, db *sql.DB, mlCl
 		DB:                db,
 		MLClient:          mlClient,
 	}
+}
+
+func (service UserService) IsUserEmbeddingReady(ctx *gin.Context) {
+	userId := ctx.GetString("user_id")
+
+	var exists bool
+	err := service.DB.QueryRow(`
+	SELECT true
+	FROM user_embeddings
+	WHERE user_id = $1
+	LIMIT 1
+	`, userId).Scan(&exists)
+
+	if err == sql.ErrNoRows {
+		ctx.JSON(http.StatusOK, gin.H{"ready": false})
+		return
+	}
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	ctx.JSON(http.StatusOK, gin.H{"ready": true})
 }
 
 type SetMarketRequest struct {
