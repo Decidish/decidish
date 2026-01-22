@@ -1,0 +1,20 @@
+meta {
+  name: get_user_history
+  type: http
+  seq: 7
+}
+
+get {
+  url: http://localhost:8082/api/v1/user/history
+  body: none
+  auth: inherit
+}
+
+headers {
+  Cookie: auth_token=[auth_token]
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}

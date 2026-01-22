@@ -9,6 +9,7 @@ import (
 	"personalization/internal/client"
 	"personalization/internal/config"
 	"personalization/internal/repository"
+	"strconv"
 
 	"github.com/gin-gonic/gin"
 )
@@ -195,14 +196,57 @@ func (service UserService) CreateUserPreferences(ctx *gin.Context) {
 	ctx.JSON(http.StatusCreated, userPreferences)
 }
 
-func (service UserService) GetUserCartItems(context *gin.Context) {
-	//userId := context.GetString("user_id")
-	//
-	//cartItems, err := repository.GetUserCartItems(service.DB, userId)
-	//if err != nil {
-	//	context.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-	//	return
-	//}
-	//
-	//context.JSON(http.StatusOK, cartItems)
+func (service UserService) RecordUserAction(ctx *gin.Context) {
+	userId := ctx.GetString("user_id")
+	actionStr := ctx.Param("action")
+	recipeIDStr := ctx.Param("recipeID")
+
+	var action bool
+	switch actionStr {
+	case "like", "liked", "1", "true":
+		action = true
+	case "dislike", "disliked", "0", "false":
+		action = false
+	default:
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": "invalid action. must be 'like', 'dislike', '1', '0', 'true', or 'false'"})
+		return
+	}
+
+	recipeID, err := strconv.Atoi(recipeIDStr)
+	if err != nil {
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": "invalid recipe ID"})
+		return
+	}
+
+	tx, err := service.DB.Begin()
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, "could not start a transaction")
+		log.Panicln("could not start a transaction", err.Error())
+	}
+	defer tx.Rollback()
+
+	err = repository.AddUserHistory(tx, userId, recipeID, action)
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, err)
+		return
+	}
+
+	if err = tx.Commit(); err != nil {
+		ctx.JSON(http.StatusInternalServerError, "could not commit transaction")
+		log.Panicln("could not commit transaction", err.Error())
+	}
+
+	ctx.JSON(http.StatusOK, fmt.Sprintf("Recorded action for user: %s on recipe: %d", userId, recipeID))
+}
+
+func (service UserService) GetUserHistory(ctx *gin.Context) {
+	userId := ctx.GetString("user_id")
+
+	histories, err := repository.GetUserHistory(service.DB, userId)
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, err)
+		return
+	}
+
+	ctx.JSON(http.StatusOK, histories)
 }

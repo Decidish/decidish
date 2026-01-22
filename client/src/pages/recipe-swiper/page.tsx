@@ -3,6 +3,7 @@ import { recipesApi, RecipeRecommendation } from '@/api/recipe-swiper/recipesApi
 import { productsApi, ShoppingListResponse, IngredientGroup, Product } from '@/api/recipe-swiper/productsApi';
 import {CartItem, shoppingListApi} from "@/api/shopping-list/shoppingCartApi";
 import { userApi } from '@/api/search-product/userApi';
+import { userHistoryApi } from '@/api/user-history/userHistoryApi';
 
 
 // We extend the API response to include UI-specific fields if needed
@@ -84,6 +85,14 @@ export default function RecipeSwiper() {
   
   const handleLike = async() => {
     const recipe = recipes[currentIndex];
+    
+    // Record the like action
+    try {
+      await userHistoryApi.recordAction('like', recipe.id);
+    } catch (err) {
+      console.error("Failed to record like action", err);
+    }
+    
     setCurrentRecipe(recipe);
     setShowIngredientModal(true);
     setCurrentIngredientIndex(0);
@@ -113,7 +122,16 @@ export default function RecipeSwiper() {
     }
   };
 
-  const handleDislike = () => {
+  const handleDislike = async () => {
+    const recipe = recipes[currentIndex];
+    
+    // Record the dislike action
+    try {
+      await userHistoryApi.recordAction('dislike', recipe.id);
+    } catch (err) {
+      console.error("Failed to record dislike action", err);
+    }
+    
     const nextIndex = (currentIndex + 1) % recipes.length;
     setCurrentIndex(nextIndex);
     setCurrentRecipe(recipes[nextIndex]);
