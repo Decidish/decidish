@@ -1,3 +1,4 @@
+
 import { useState } from 'react';
 
 interface Recipe {
@@ -136,33 +137,8 @@ export default function Profile() {
     window.REACT_APP_NAVIGATE('/market-selection');
   };
 
-  const handleBack = () => {
-    window.REACT_APP_NAVIGATE('/');
-  };
-
   return (
     <div className="min-h-screen bg-gradient-to-br from-emerald-50 via-green-50 to-teal-50">
-      {/* Header */}
-      <div className="bg-white border-b border-gray-200">
-        <div className="max-w-7xl mx-auto px-6 py-4">
-          <div className="flex items-center justify-between">
-            <button
-              onClick={handleBack}
-              className="flex items-center gap-2 text-gray-600 hover:text-gray-900 transition-colors cursor-pointer"
-            >
-              <i className="ri-arrow-left-line text-xl"></i>
-              <span className="font-medium">Back</span>
-            </button>
-            <img 
-              src="https://public.readdy.ai/ai/img_res/b0724f47-0896-45dd-92da-e15712b65265.png" 
-              alt="Recipe Recommender Logo" 
-              className="h-10 w-auto"
-            />
-            <div className="w-20"></div>
-          </div>
-        </div>
-      </div>
-
       <div className="max-w-7xl mx-auto px-6 py-8">
         {/* Profile Header */}
         <div className="bg-white rounded-2xl shadow-lg p-8 mb-6">

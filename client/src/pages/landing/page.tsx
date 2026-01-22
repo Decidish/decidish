@@ -1,3 +1,4 @@
+
 import { useEffect, useState } from 'react';
 
 interface FoodItem {
@@ -40,10 +41,6 @@ export default function Landing() {
     window.REACT_APP_NAVIGATE('/auth');
   };
 
-  const handleViewProfile = () => {
-    window.REACT_APP_NAVIGATE('/profile');
-  };
-
   return (
     <div className="relative min-h-screen overflow-hidden bg-gradient-to-br from-emerald-50 via-green-50 to-teal-50">
       {/* Animated Food Background */}
@@ -66,35 +63,6 @@ export default function Landing() {
 
       {/* Content */}
       <div className="relative z-10 min-h-screen flex flex-col">
-        {/* Header */}
-        <header className="bg-white shadow-sm sticky top-0 z-50">
-          <div className="max-w-7xl mx-auto px-4 py-4">
-            <div className="flex items-center justify-between">
-              <img 
-                src="https://public.readdy.ai/ai/img_res/b0724f47-0896-45dd-92da-e15712b65265.png" 
-                alt="Recipe Recommender Logo" 
-                className="h-12 w-auto"
-              />
-              <div className="flex items-center gap-3">
-                <button
-                  onClick={() => window.REACT_APP_NAVIGATE('/admin')}
-                  className="w-10 h-10 flex items-center justify-center rounded-full bg-gray-100 hover:bg-gray-200 transition-colors cursor-pointer"
-                  title="Admin Panel"
-                >
-                  <i className="ri-admin-line text-xl text-gray-700"></i>
-                </button>
-                <button
-                  title='Profile Page'
-                  onClick={() => window.REACT_APP_NAVIGATE('/profile')}
-                  className="w-10 h-10 flex items-center justify-center rounded-full bg-[#2F855A] hover:bg-[#276749] transition-colors cursor-pointer"
-                >
-                  <i className="ri-user-line text-xl text-white"></i>
-                </button>
-              </div>
-            </div>
-          </div>
-        </header>
-
         {/* Hero Section */}
         <div className="flex-1 flex items-center justify-center px-6 py-20">
           <div className="max-w-4xl mx-auto text-center">
