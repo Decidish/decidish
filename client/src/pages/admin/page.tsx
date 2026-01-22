@@ -42,10 +42,10 @@ export default function AdminPage() {
       console.log("Raw URL History from Backend:", urlData);
       const mappedUrlHistory = urlData.map((item: any) => ({
         id: item.id.toString(),
-        name: item.identifier,     // Map 'identifier' from DB to 'name'
-        source: (item.type || 'url') as 'url' | 'file', // FALLBACK
+        name: item.name || 'Untitle Recipe',     // Map 'identifier' from DB to 'name'
+        source: (item.source || 'url') as 'url' | 'file', // FALLBACK
         status: item.status === 'failed' ? 'error' : item.status, // normalize status
-        timestamp: item.created_at
+        timestamp: item.timestamp
       }));
       setImportHistory(mappedUrlHistory);
 

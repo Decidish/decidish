@@ -16,6 +16,16 @@ type Job struct {
 	UpdatedAt      time.Time `json:"updated_at"`
 }
 
+type ImportLog struct {
+	ID           int       `json:"id"`
+	Type         string    `json:"source"` // 'url' or 'file'
+	Identifier   string    `json:"name"`   // The URL or Filename
+	Status       string    `json:"status"`
+	RecipeName   string    `json:"recipe_name"`
+	CreatedAt    time.Time `json:"timestamp"`
+	ErrorMessage string    `json:"error,omitempty"`
+}
+
 func CreateJob(tx *sql.Tx, name string, status string) (int, error) {
 	var id int
 	err := tx.QueryRow(`

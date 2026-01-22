@@ -17,7 +17,7 @@ export const adminApi = {
   addRecipe: async (recipeUrl: string): Promise<void> => {
     try {
       await apiClient.post('/personalization/recipes/add/', {
-        recipeUrl: recipeUrl
+        recipe_url: recipeUrl
       });
     } catch (error) {
       console.error("Error adding recipe:", error);
