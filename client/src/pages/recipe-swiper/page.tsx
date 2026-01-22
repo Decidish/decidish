@@ -63,7 +63,7 @@ export default function RecipeSwiper() {
       
 
       try {
-        await new Promise(resolve => setTimeout(resolve, 15000))
+        // await new Promise(resolve => setTimeout(resolve, 15000))
         // await adminApi.addReweRecipes(); //? For testing purposes
         const data = await recipesApi.getRecommendations();
         console.log("data: ",data);

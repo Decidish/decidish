@@ -1,6 +1,7 @@
 package service
 
 import (
+	"context"
 	"database/sql"
 	"fmt"
 	"log"
@@ -107,6 +108,7 @@ func (service RecipeService) AddReweRecipes(ctx *gin.Context) {
 
 	jobId, err := repository.CreateJob(tx, "add_rewe_recipes", "pending")
 	if err != nil {
+		tx.Rollback()
 		ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
@@ -116,28 +118,34 @@ func (service RecipeService) AddReweRecipes(ctx *gin.Context) {
 		return
 	}
 
-	// Prepare request for embedder
-	req := AddReweRecipeRequest{
-		JobId: jobId,
-	}
-	var mlResp AddRecipeResponse
+	// Trigger ML Service in Background (Async)
+	// We pass the config and client into the closure
+	go func(jid int) {
+		bgCtx := context.Background()
+		// Prepare request for embedder
+		req := AddReweRecipeRequest{
+			JobId: jobId,
+		}
+		var mlResp AddRecipeResponse
 
-	// Call ML service and decode into mlResp
-	status, err := service.MLClient.PostJSON(ctx.Request.Context(), fmt.Sprintf("%s/recipes/add/rewe", service.config.EmbedderServerUrl), req, &mlResp, nil)
-	if err != nil {
-		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "failed calling embedder", "details": err.Error()})
-		return
-	}
-	if status < 200 || status >= 300 {
-		ctx.JSON(status, gin.H{"error": "embedder returned non-2xx", "status_code": status})
-		return
-	}
+		// Call ML service and decode into mlResp
+		status, err := service.MLClient.PostJSON(bgCtx, fmt.Sprintf("%s/recipes/add/rewe", service.config.EmbedderServerUrl), req, &mlResp, nil)
+		if err != nil {
+			ctx.JSON(http.StatusInternalServerError, gin.H{"error": "failed calling embedder", "details": err.Error()})
+			return
+		}
+		if status < 200 || status >= 300 {
+			ctx.JSON(status, gin.H{"error": "embedder returned non-2xx", "status_code": status})
+			return
+		}
+	}(jobId)
 
 	// Return job id and basic info about the embedding response
 	ctx.JSON(http.StatusOK, gin.H{
 		"job_id":   jobId,
 		"status":   "pending",
-		"response": mlResp.JobStatus,
+		"response": "Job started in background",
+		// "response": mlResp.JobStatus,
 		"name":     "add_rewe_recipes",
 	})
 }
