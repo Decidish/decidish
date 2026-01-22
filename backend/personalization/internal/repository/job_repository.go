@@ -44,3 +44,32 @@ func GetJobByID(db *sql.DB, id int) (*Job, error) {
 	job.ErrorMessage = errMsg.String
 	return job, nil
 }
+
+func (r *JobRepository) GetReweJobs() ([]model.Job, error) {
+	rows, err := r.DB.Query(`
+		SELECT id, name, status, processed_items, total_items, error_message, created_at, updated_at 
+		FROM jobs 
+		WHERE name = 'add_rewe_recipes' 
+		ORDER BY created_at DESC
+	`)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var jobs []model.Job
+	for rows.Next() {
+		var j model.Job
+		// Handle NULL error_message 
+		var errMsg sql.NullString 
+		
+		if err := rows.Scan(&j.ID, &j.Name, &j.Status, &j.ProcessedItems, &j.TotalItems, &errMsg, &j.CreatedAt, &j.UpdatedAt); err != nil {
+			return nil, err
+		}
+		if errMsg.Valid {
+			j.ErrorMessage = &errMsg.String
+		}
+		jobs = append(jobs, j)
+	}
+	return jobs, nil
+}

@@ -89,6 +89,12 @@ func (service RecipeService) AddRecipe(ctx *gin.Context) {
 		ctx.JSON(status, gin.H{"error": "embedder returned non-2xx", "status_code": status})
 		return
 	}
+	
+	err = repository.CreateLog(service.DB, "url", body.RecipeUrl, "success", jobId)
+    if err != nil {
+        log.Println("Failed to write import log:", err)
+        // Don't fail the request just because logging failed
+    }
 
 	// Return job id and basic info about the embedding response
 	ctx.JSON(http.StatusOK, gin.H{
@@ -131,11 +137,13 @@ func (service RecipeService) AddReweRecipes(ctx *gin.Context) {
 		// Call ML service and decode into mlResp
 		status, err := service.MLClient.PostJSON(bgCtx, fmt.Sprintf("%s/recipes/add/rewe", service.config.EmbedderServerUrl), req, &mlResp, nil)
 		if err != nil {
-			ctx.JSON(http.StatusInternalServerError, gin.H{"error": "failed calling embedder", "details": err.Error()})
+			log.Printf("Background job %d failed calling embedder: %v", jid, err)
+			// ctx.JSON(http.StatusInternalServerError, gin.H{"error": "failed calling embedder", "details": err.Error()})
 			return
 		}
 		if status < 200 || status >= 300 {
-			ctx.JSON(status, gin.H{"error": "embedder returned non-2xx", "status_code": status})
+			log.Printf("Background job %d. Embedder returned non-2xx: %v", jid, err)
+			// ctx.JSON(status, gin.H{"error": "embedder returned non-2xx", "status_code": status})
 			return
 		}
 	}(jobId)

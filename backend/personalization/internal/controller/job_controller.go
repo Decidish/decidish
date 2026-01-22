@@ -37,6 +37,36 @@ func (c *JobController) GetJobStatus(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, job)
 }
 
+func (c *JobController) GetReweHistory(ctx *gin.Context) {
+    jobs, err := repository.GetReweJobs(c.DB)
+    if err != nil {
+        ctx.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch rewe history"})
+        return
+    }
+    // Return empty array instead of null if no jobs found
+    if jobs == nil {
+        ctx.JSON(http.StatusOK, []string{})
+        return
+    }
+    ctx.JSON(http.StatusOK, jobs)
+}
+
+func (c *JobController) GetUrlHistory(ctx *gin.Context) {
+    logs, err := repository.GetUrlImportHistory(c.DB)
+    if err != nil {
+        ctx.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch url history"})
+        return
+    }
+    if logs == nil {
+        ctx.JSON(http.StatusOK, []string{})
+        return
+    }
+    ctx.JSON(http.StatusOK, logs)
+}
+
+
 func (controller JobController) AddMappings(r *gin.Engine) {
 	r.GET("/jobs/:id", controller.GetJobStatus)
+    r.GET("/recipes/history/rewe", controller.GetReweHistory)
+    r.GET("/recipes/history/url", controller.GetUrlHistory)
 }
