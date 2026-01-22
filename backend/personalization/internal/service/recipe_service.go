@@ -59,6 +59,8 @@ func (service RecipeService) AddRecipe(ctx *gin.Context) {
 		ctx.JSON(500, gin.H{"error": "db error"})
 		return
 	}
+	
+	// fmt.Println("Received URL:", body.RecipeUrl)
 
 	jobId, err := repository.CreateJob(tx, "add_recipe", "pending")
 	if err != nil {
