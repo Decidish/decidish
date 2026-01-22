@@ -1,5 +1,14 @@
 import apiClient from '../client';
 
+export interface JobStatusResponse {
+  id: number;
+  status: 'pending' | 'processing' | 'success' | 'error'; // Matches Python values
+  processed_items: number;
+  total_items: number;
+  error_message?: string;
+  created_at: string;
+}
+
 export const adminApi = {
   /**
    * Adds a recipe by its URL.
@@ -20,12 +29,22 @@ export const adminApi = {
    * Adds recipes from Rewe market.
    * 
    */
-  addReweRecipes: async (): Promise<void> => {
-    try {
-      await apiClient.post('/personalization/recipes/add/rewe/');
-    } catch (error) {
-      console.error("Error adding Rewe recipes:", error);
-      throw error;
-    }
+  // addReweRecipes: async (): Promise<void> => {
+  //   try {
+  //     await apiClient.post('/personalization/recipes/add/rewe/');
+  //   } catch (error) {
+  //     console.error("Error adding Rewe recipes:", error);
+  //     throw error;
+  //   }
+  // }
+  // Start the Job (Returns { job_id: 123, status: "pending" })
+  addReweRecipes: async () => {
+    const response = await apiClient.post('/personalization/recipes/add/rewe/');
+    return response.data; 
+  },
+  // Poll the Job (Returns current progress)
+  getJobStatus: async (jobId: string): Promise<JobStatusResponse> => {
+    const response = await apiClient.get(`/personalization/jobs/${jobId}`);
+    return response.data;
   }
 };
