@@ -3,6 +3,7 @@ package decidish.com.core.unit;
 import decidish.com.core.api.rewe.client.ReweApiClient;
 import decidish.com.core.model.rewe.*;
 import decidish.com.core.repository.MarketRepository;
+import decidish.com.core.repository.SearchTermMarketRepository;
 import decidish.com.core.service.MarketService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -34,6 +35,9 @@ class MarketServiceUT {
 
         @Mock
         private MarketRepository marketRepository;
+
+        @Mock
+        private SearchTermMarketRepository searchTermMarketRepository;
 
         @Mock
         private ReweApiClient apiClient;
@@ -81,7 +85,7 @@ class MarketServiceUT {
                 freshMarket.setLastUpdated(LocalDateTime.now().minusDays(1));
 
                 // Mock repository to return the fresh market list
-                when(marketRepository.getMarketsByAddress(PLZ))
+                when(marketRepository.getMarketsBySearchTerm(PLZ))
                                 .thenReturn(Optional.of(List.of(freshMarket)));
 
                 // Act
@@ -110,7 +114,7 @@ class MarketServiceUT {
                 // --- ARRANGE ---
 
                 // 1. DB returns Stale List (triggering API call)
-                when(marketRepository.getMarketsByAddress(PLZ))
+                when(marketRepository.getMarketsBySearchTerm(PLZ))
                                 .thenReturn(Optional.of(List.of(staleMarket)));
 
                 // 2. API returns fresh data
@@ -155,7 +159,7 @@ class MarketServiceUT {
         void testApiReturnsEmpty() {
                 // Arrange
                 // 1. DB Empty/Stale
-                when(marketRepository.getMarketsByAddress(PLZ))
+                when(marketRepository.getMarketsBySearchTerm(PLZ))
                                 .thenReturn(Optional.of(Collections.emptyList()));
 
                 // 2. API returns Empty Response

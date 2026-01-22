@@ -5,6 +5,7 @@ import decidish.com.core.model.rewe.Market;
 import decidish.com.core.model.rewe.Product;
 import decidish.com.core.model.rewe.ProductAttributesDto;
 import decidish.com.core.repository.MarketRepository;
+import decidish.com.core.repository.SearchTermMarketRepository;
 import jakarta.persistence.EntityManagerFactory;
 
 import org.hibernate.SessionFactory;
@@ -55,6 +56,9 @@ class BenchmarkIT {
     @Autowired
     private MarketRepository marketRepository;
 
+    @Autowired
+    private SearchTermMarketRepository searchTermMarketRepository;
+
     private Statistics hibernateStats;
 
     // Test Data Constants
@@ -81,7 +85,10 @@ class BenchmarkIT {
         // 1. Delete Children (Products)
         jdbcTemplate.execute("DELETE FROM products");
 
-        // 2. Delete Parents (Markets)
+        // 2. Delete SearchTermMarket associations
+        jdbcTemplate.execute("DELETE FROM search_term_market");
+
+        // 3. Delete Parents (Markets)
         jdbcTemplate.execute("DELETE FROM markets");
         // User jdbc for benchmarking (faster)
         // marketRepository.deleteAll();

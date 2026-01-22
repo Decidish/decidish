@@ -17,9 +17,13 @@ import decidish.com.core.model.rewe.Market;
 import decidish.com.core.model.rewe.Product;
 import decidish.com.core.model.rewe.ProductDto;
 import decidish.com.core.model.rewe.ProductSearchResponse;
+import decidish.com.core.model.rewe.SearchTermMarket;
+import decidish.com.core.model.rewe.SearchTermMarketId;
 import decidish.com.core.model.rewe.MarketPickupDto;
 import decidish.com.core.model.rewe.MarketPickupResponse;
 import decidish.com.core.repository.MarketRepository;
+import decidish.com.core.repository.SearchTermMarketRepository;
+
 import org.springframework.transaction.annotation.Transactional;
 
 import org.slf4j.Logger;
@@ -34,6 +38,9 @@ public class MarketService {
     private final int DEFAULT_OBJECTS_PER_PAGE = 250; // Default number of objects per page from REWE API
 
     @Autowired
+    private SearchTermMarketRepository searchTermMarketRepository;
+
+    @Autowired
     private MarketRepository marketRepository;
 
     @Autowired
@@ -45,43 +52,72 @@ public class MarketService {
      * 2. If Miss: Runs the method body (DB Check -> API Fetch -> Save).
      */
     @Transactional
-    public List<Market> getMarkets(String plz) {
+    public List<Market> getMarkets(String zipCode) {
 
         // DB CHECK (Warm Path)
-        List<Market> dbMarkets = marketRepository.getMarketsByAddress(plz).orElse(List.of());
-        // Check freshness (Only runs on Cache Miss)
+        // Query based on the association table, not the physical address of the market
+        List<Market> dbMarkets = marketRepository.getMarketsBySearchTerm(zipCode).orElse(List.of());
+        // Check freshness
+
+        // Assuming if one is fresh, the search result is valid.
         if (!dbMarkets.isEmpty() && isMarketFresh(dbMarkets.get(0))) {
-            log.info("DB Hit (Fresh) for PLZ: {}", plz);
-            // We return here, and Spring automatically puts this result into Redis
+            log.info("DB Hit (Fresh) for PLZ: {}", zipCode);
             return dbMarkets;
         }
 
-        log.info(dbMarkets.isEmpty() ? "Repo is empty" : "Data is not fresh");
+        log.info(dbMarkets.isEmpty() ? "No association found in DB" : "Data is not fresh");
 
         // API FETCH (Cold Path)
         log.info("Fetching API...");
-        MarketPickupResponse apiResponse = apiClient.searchMarkets(plz);
+        MarketPickupResponse apiResponse = apiClient.searchMarkets(zipCode);
 
-        if (apiResponse == null) {
+        if (apiResponse == null || apiResponse.data() == null) {
             log.info("api returned null");
             return List.of();
         }
-        List<MarketPickupDto> markets = apiResponse.data().servicePortfolio().pickupMarkets();
-        if (markets == null) {
+        
+        // Null check for deeper structure
+        var servicePortfolio = apiResponse.data().servicePortfolio();
+        if (servicePortfolio == null) return List.of();
+
+        List<MarketPickupDto> apiMarkets = servicePortfolio.pickupMarkets();
+        if (apiMarkets == null || apiMarkets.isEmpty()) {
             log.info("api returned no markets");
             return List.of();
         }
 
-        // MERGE LOGIC
-        // (Logic extracted to helper for readability)
-        List<Market> marketsToSave = mergeApiWithDb(markets);
+        // MERGE LOGIC (Save/Update Markets)
+        List<Market> savedMarkets = mergeApiWithDb(apiMarkets); // This saves the markets themselves
 
-        if (marketsToSave.isEmpty()) {
+        if (savedMarkets.isEmpty()) {
             log.info("MARKETS TO SAVE IS EMPTY");
             return List.of();
         }
 
-        return marketRepository.saveAll(marketsToSave);
+        // UPDATE ASSOCIATIONS
+        // Link the zipCode (e.g., 80995) to every market returned (e.g. 80993, 80995, 80996, etc.)
+        saveSearchTermAssociations(zipCode, savedMarkets);
+        return savedMarkets;
+    }
+
+    /**
+     * Creates or updates the link between the search term and the markets.
+     */
+    private void saveSearchTermAssociations(String searchTerm, List<Market> markets) {
+
+        // Delete all existing pairs for this search term (e.g. remove old links for "80000")
+        searchTermMarketRepository.deleteAllBySearchTerm(searchTerm);
+
+        List<SearchTermMarket> associations = markets.stream()
+            .map(market -> {
+                SearchTermMarketId id = new SearchTermMarketId(searchTerm, market.getId());
+                // Updates timestamp if it already exists, inserts if new
+                return new SearchTermMarket(id, market, LocalDateTime.now());
+            })
+            .toList();
+
+        searchTermMarketRepository.saveAll(associations);
+        log.info("Updated associations for term '{}' -> {} markets", searchTerm, associations.size());
     }
 
     @Transactional(readOnly = true)
@@ -114,7 +150,8 @@ public class MarketService {
                 finalBatch.add(newMarket);
             }
         }
-        return finalBatch;
+
+        return marketRepository.saveAll(finalBatch);
     }
 
     /**

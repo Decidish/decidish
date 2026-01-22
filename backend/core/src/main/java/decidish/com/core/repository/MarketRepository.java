@@ -22,8 +22,6 @@ public interface MarketRepository extends JpaRepository<Market, Long> {
 
     
     // Find by id
-    // @Cacheable(value = "markets_id", unless = "#a0==2L") // For testing
-    // @Cacheable(value = "markets_id")
     Optional<Market> findById(Long id);
 
     @Query("SELECT m FROM Market m LEFT JOIN FETCH m.products WHERE m.id = :id")
@@ -31,4 +29,11 @@ public interface MarketRepository extends JpaRepository<Market, Long> {
 
     @Query(value = "SELECT DISTINCT name FROM products WHERE rewe_id = :reweId LIMIT 1", nativeQuery = true)
     String findProductNameByReweId(@Param("reweId") Long reweId);
+
+    /**
+     * Get markets associated with a specific search term.
+     * This joins the Market entity with the SearchTermMarket association table.
+     */
+    @Query("SELECT m FROM Market m JOIN SearchTermMarket stm ON m.id = stm.market.id WHERE stm.id.searchTerm = :term")
+    Optional<List<Market>> getMarketsBySearchTerm(@Param("term") String term);
 }
