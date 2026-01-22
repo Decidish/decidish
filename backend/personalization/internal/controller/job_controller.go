@@ -36,3 +36,7 @@ func (c *JobController) GetJobStatus(ctx *gin.Context) {
 
 	ctx.JSON(http.StatusOK, job)
 }
+
+func (controller JobController) AddMappings(r *gin.Engine) {
+	r.GET("/jobs/:id", controller.GetJobStatus)
+}
