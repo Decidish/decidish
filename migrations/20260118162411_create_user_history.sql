@@ -3,7 +3,8 @@
 CREATE TABLE IF NOT EXISTS user_history (
     id SERIAL PRIMARY KEY,
     user_id INT NOT NULL REFERENCES user_preferences(user_id),
-    action VARCHAR(10) NOT NULL,
+    recipe_id INT NOT NULL REFERENCES recipes(id),
+    action BOOLEAN NOT NULL, -- true for like, false for dislike
     action_timestamp TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
 -- +goose StatementEnd
