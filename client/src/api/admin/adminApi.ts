@@ -29,14 +29,6 @@ export const adminApi = {
    * Adds recipes from Rewe market.
    * 
    */
-  // addReweRecipes: async (): Promise<void> => {
-  //   try {
-  //     await apiClient.post('/personalization/recipes/add/rewe/');
-  //   } catch (error) {
-  //     console.error("Error adding Rewe recipes:", error);
-  //     throw error;
-  //   }
-  // }
   // Start the Job (Returns { job_id: 123, status: "pending" })
   addReweRecipes: async () => {
     const response = await apiClient.post('/personalization/recipes/add/rewe/');
@@ -46,5 +38,15 @@ export const adminApi = {
   getJobStatus: async (jobId: string): Promise<JobStatusResponse> => {
     const response = await apiClient.get(`/personalization/jobs/${jobId}`);
     return response.data;
+  },
+  getReweJobHistory: async () => {
+    const res = await fetch('/personalization/recipes/history/rewe');
+    const data = await res.json();
+    return data;
+  },
+  getImportHistory: async () => {
+    const res = await fetch('/personalization/recipes/history/url');
+    const data = await res.json();
+    return data;
   }
 };
