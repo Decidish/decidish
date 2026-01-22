@@ -75,7 +75,7 @@ func (service UserService) IsUserEmbeddingReady(ctx *gin.Context) {
 }
 
 type SetMarketRequest struct {
-	MarketId int `json:"market_id"`
+	MarketId string `json:"market_id"`
 }
 
 func (service UserService) SetSelectedUserMarketId(ctx *gin.Context) {

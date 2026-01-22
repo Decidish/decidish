@@ -15,7 +15,7 @@ type AdditionalInfo struct {
 	PreferenceVector []float64 `json:"preference_vector"`
 }
 
-func UpdateMarketId(tx *sql.Tx, userId string, marketId int) error {
+func UpdateMarketId(tx *sql.Tx, userId string, marketId string) error {
 	_, err := tx.Exec(`
 	UPDATE user_preferences
 	SET market_id = $1
