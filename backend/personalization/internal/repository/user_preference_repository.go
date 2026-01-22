@@ -127,6 +127,6 @@ type ShoppingList struct {
 	Completed  bool           `json:"completed"`
 }
 
-func GetUserCartItems(db *sql.DB, id string) (interface{}, interface{}) {
-	db.Query
-}
+//func GetUserCartItems(db *sql.DB, id string) (interface{}, interface{}) {
+//	return nil, nil
+//}
