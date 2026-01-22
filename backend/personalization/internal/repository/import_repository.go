@@ -24,7 +24,7 @@ func NewImportRepository(db *sql.DB) *ImportRepository {
 }
 
 // CreateLog records a URL or File import attempt
-func (r *ImportRepository) CreateLog(log model.ImportLog) error {
+func (r *ImportRepository) CreateLog(log ImportLog) error {
 	_, err := r.DB.Exec(`
 		INSERT INTO import_logs (type, identifier, status, recipe_name, error_message, created_at)
 		VALUES ($1, $2, $3, $4, $5, NOW())`,
@@ -34,16 +34,16 @@ func (r *ImportRepository) CreateLog(log model.ImportLog) error {
 }
 
 // GetHistory fetches the last 50 imports
-func (r *ImportRepository) GetHistory() ([]model.ImportLog, error) {
+func (r *ImportRepository) GetHistory() ([]ImportLog, error) {
 	rows, err := r.DB.Query(`SELECT id, type, identifier, status, recipe_name, created_at, error_message FROM import_logs ORDER BY created_at DESC LIMIT 50`)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
 
-	var logs []model.ImportLog
+	var logs []ImportLog
 	for rows.Next() {
-		var l model.ImportLog
+		var l ImportLog
 		if err := rows.Scan(&l.ID, &l.Type, &l.Identifier, &l.Status, &l.RecipeName, &l.CreatedAt, &l.ErrorMessage); err != nil {
 			continue
 		}

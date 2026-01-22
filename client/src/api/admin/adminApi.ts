@@ -40,13 +40,11 @@ export const adminApi = {
     return response.data;
   },
   getReweJobHistory: async () => {
-    const res = await fetch('/personalization/recipes/history/rewe');
-    const data = await res.json();
-    return data;
+    const response = await apiClient.get('/personalization/recipes/history/rewe');
+    return response.data;
   },
   getImportHistory: async () => {
-    const res = await fetch('/personalization/recipes/history/url');
-    const data = await res.json();
-    return data;
+    const response = await apiClient.get('/personalization/recipes/history/url');
+    return response.data;
   }
 };
