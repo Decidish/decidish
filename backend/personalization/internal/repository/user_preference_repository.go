@@ -15,6 +15,20 @@ type AdditionalInfo struct {
 	PreferenceVector []float64 `json:"preference_vector"`
 }
 
+func UpdateMarketId(tx *sql.Tx, userId string, marketId int) error {
+	_, err := tx.Exec(`
+	UPDATE user_preferences
+	SET market_id = $1
+	WHERE user_id = $2
+	`, marketId, userId)
+
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
 func AddOrUpdateEmbeddings(tx *sql.Tx, userId string, embedding []float64) error {
 	embeddingBytes, _ := json.Marshal(embedding)
 	embeddingString := string(embeddingBytes)
