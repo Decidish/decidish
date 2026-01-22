@@ -2,6 +2,7 @@ package service
 
 import (
 	"database/sql"
+	"errors"
 	"fmt"
 	"log"
 	"net/http"
@@ -31,13 +32,6 @@ type EncodeBatchResponse struct {
 	EmbeddingDim int                 `json:"embedding_dim"`
 }
 
-type IUserService interface {
-	CreateUserPreferences(ctx *gin.Context)
-	SetSelectedUserMarketId(ctx *gin.Context)
-	IsUserEmbeddingReady(ctx *gin.Context)
-	GetUserSelectedMarket(ctx *gin.Context)
-}
-
 type UserService struct {
 	config.ApplicationConfig
 	*sql.DB
@@ -52,6 +46,10 @@ func NewUserService(applicationConfig config.ApplicationConfig, db *sql.DB, mlCl
 	}
 }
 
+func (service UserService) AddProductToCart(ctx *gin.Context) {
+
+}
+
 func (service UserService) IsUserEmbeddingReady(ctx *gin.Context) {
 	userId := ctx.GetString("user_id")
 
@@ -63,7 +61,7 @@ func (service UserService) IsUserEmbeddingReady(ctx *gin.Context) {
 	LIMIT 1
 	`, userId).Scan(&exists)
 
-	if err == sql.ErrNoRows {
+	if errors.Is(err, sql.ErrNoRows) {
 		ctx.JSON(http.StatusOK, gin.H{"ready": false})
 		return
 	}
