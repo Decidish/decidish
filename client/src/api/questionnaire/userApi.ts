@@ -9,6 +9,10 @@ export interface UserPreferences {
   preference_vector: number[]; 
 }
 
+export interface EmbeddingReady {
+  ready: boolean
+}
+
 export const userApi = {
   // Calls POST /user/preferences
   savePreferences: async (data: UserPreferences): Promise<void> => {
@@ -19,4 +23,7 @@ export const userApi = {
       throw error;
     }
   }
+
+  // TODO: Check if user embedding is present otherwise redirect to questionarre
+  // embeddingExists: async (): Promise<
 };

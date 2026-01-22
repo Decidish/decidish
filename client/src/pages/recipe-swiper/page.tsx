@@ -60,8 +60,11 @@ export default function RecipeSwiper() {
   // FETCH RECIPES FROM BACKEND
   useEffect(() => {
     const fetchRecommendations = async () => {
+      
+
       try {
-        await adminApi.addReweRecipes(); //? For testing purposes
+        await new Promise(resolve => setTimeout(resolve, 15000))
+        // await adminApi.addReweRecipes(); //? For testing purposes
         const data = await recipesApi.getRecommendations();
         console.log("data: ",data);
         const uiRecipes = data.map(r => ({ ...r, richIngredients: null }));
@@ -208,8 +211,101 @@ export default function RecipeSwiper() {
   // We default to an empty list if data is loading or missing
   const currentProducts = currentIngredientGroup?.options.map(opt => opt.product) || [];
 
-  if (loading) return <div>Loading tasty recipes...</div>;
-  if (!currentRecipe) return <div>No recipes found!</div>;
+  // Loading State
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-emerald-50 via-green-50 to-teal-50 flex items-center justify-center px-4">
+        <div className="text-center">
+          <div className="relative w-48 h-48 mx-auto mb-8">
+            {/* Rotating Food Icons */}
+            <div className="absolute inset-0 animate-spin" style={{ animationDuration: '3s' }}>
+              <div className="absolute top-0 left-1/2 -translate-x-1/2 w-12 h-12 flex items-center justify-center bg-white rounded-full shadow-lg">
+                <i className="ri-restaurant-line text-2xl text-[#2F855A]"></i>
+              </div>
+            </div>
+            <div className="absolute inset-0 animate-spin" style={{ animationDuration: '3.5s', animationDirection: 'reverse' }}>
+              <div className="absolute top-1/2 right-0 translate-y-[-50%] w-12 h-12 flex items-center justify-center bg-white rounded-full shadow-lg">
+                <i className="ri-cake-3-line text-2xl text-amber-600"></i>
+              </div>
+            </div>
+            <div className="absolute inset-0 animate-spin" style={{ animationDuration: '4s' }}>
+              <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-12 h-12 flex items-center justify-center bg-white rounded-full shadow-lg">
+                <i className="ri-goblet-line text-2xl text-teal-600"></i>
+              </div>
+            </div>
+            <div className="absolute inset-0 animate-spin" style={{ animationDuration: '3.5s', animationDirection: 'reverse' }}>
+              <div className="absolute top-1/2 left-0 translate-y-[-50%] w-12 h-12 flex items-center justify-center bg-white rounded-full shadow-lg">
+                <i className="ri-cup-line text-2xl text-orange-600"></i>
+              </div>
+            </div>
+            
+            {/* Center Logo */}
+            <div className="absolute inset-0 flex items-center justify-center">
+              <div className="w-20 h-20 flex items-center justify-center bg-gradient-to-br from-[#2F855A] to-emerald-600 rounded-full shadow-xl">
+                <i className="ri-restaurant-2-line text-3xl text-white"></i>
+              </div>
+            </div>
+          </div>
+          
+          <h2 className="text-2xl font-bold text-gray-900 mb-3">Loading Tasty Recipes...</h2>
+          <p className="text-sm text-gray-600 mb-6">Preparing delicious meals just for you</p>
+          
+          {/* Progress Bar */}
+          <div className="max-w-xs mx-auto">
+            <div className="w-full bg-gray-200 rounded-full h-2 overflow-hidden">
+              <div className="h-full bg-gradient-to-r from-[#2F855A] to-emerald-600 rounded-full animate-pulse"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // No Recipes State
+  if (!currentRecipeData) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-emerald-50 via-green-50 to-teal-50 flex items-center justify-center px-4">
+        <div className="text-center max-w-md">
+          <div className="w-32 h-32 flex items-center justify-center mx-auto mb-6 bg-white rounded-full shadow-xl">
+            <i className="ri-emotion-sad-line text-6xl text-gray-400"></i>
+          </div>
+          
+          <h2 className="text-3xl font-bold text-gray-900 mb-3">No Recipes Found!</h2>
+          <p className="text-sm text-gray-600 mb-8">We couldn't find any recipes at the moment. This might be a temporary issue.</p>
+          
+          <div className="space-y-3">
+            <button
+              onClick={() => window.location.reload()}
+              className="w-full py-4 bg-gradient-to-r from-[#2F855A] to-emerald-600 text-white rounded-xl font-semibold hover:from-[#276749] hover:to-emerald-700 transition-all shadow-lg cursor-pointer whitespace-nowrap flex items-center justify-center gap-2"
+            >
+              <i className="ri-refresh-line text-xl"></i>
+              <span>Try Again</span>
+            </button>
+            
+            <button
+              onClick={() => window.REACT_APP_NAVIGATE('/home')}
+              className="w-full py-4 bg-white text-[#2F855A] rounded-xl font-semibold hover:bg-gray-50 transition-all shadow-md cursor-pointer whitespace-nowrap flex items-center justify-center gap-2 border-2 border-[#2F855A]"
+            >
+              <i className="ri-home-line text-xl"></i>
+              <span>Back to Home</span>
+            </button>
+          </div>
+          
+          <div className="mt-8 p-4 bg-white rounded-xl shadow-sm border border-gray-200">
+            <div className="flex items-start gap-3">
+              <div className="w-10 h-10 flex items-center justify-center bg-amber-100 rounded-full flex-shrink-0">
+                <i className="ri-lightbulb-line text-xl text-amber-600"></i>
+              </div>
+              <div className="text-left flex-1">
+                <h4 className="font-semibold text-gray-900 mb-1 text-sm">Need Help?</h4>
+                <p className="text-xs text-gray-600">Contact support if this problem persists or check your internet connection.</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
       <div className="min-h-screen bg-gradient-to-br from-emerald-50 via-green-50 to-teal-50 px-4 py-8">

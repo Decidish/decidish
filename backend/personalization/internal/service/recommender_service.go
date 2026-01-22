@@ -48,7 +48,6 @@ func (service RecommenderService) RecommendRecipeForUser(ctx *gin.Context) {
 	if err = tx.Commit(); err != nil {
 		log.Panicln("could not commit", err.Error())
 	}
-
-	ctx.Header("Access-Control-Allow-Origin", "http://localhost:8081")
+	
 	ctx.JSON(http.StatusOK, recipes)
 }
