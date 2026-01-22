@@ -50,7 +50,42 @@ func NewUserService(applicationConfig config.ApplicationConfig, db *sql.DB, mlCl
 	}
 }
 
+type SetMarketRequest struct {
+	MarketId int `json:"market_id"`
+}
+
 func (service UserService) SetSelectedUserMarketId(ctx *gin.Context) {
+	userId := ctx.GetString("user_id")
+
+	var request SetMarketRequest
+	err := ctx.ShouldBindJSON(&request)
+
+	if err != nil {
+		ctx.JSON(http.StatusBadRequest, err)
+		return
+	}
+
+	tx, err := service.DB.Begin()
+
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, "could not start a transaction")
+		log.Panicln("could not start a transaction", err.Error())
+	}
+
+	defer tx.Rollback()
+
+	err = repository.UpdateMarketId(tx, userId, request.MarketId)
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, err)
+		return
+	}
+
+	if err = tx.Commit(); err != nil {
+		ctx.JSON(http.StatusInternalServerError, "could not commit transaction")
+		log.Panicln("could not commit transaction", err.Error())
+	}
+
+	ctx.JSON(http.StatusOK, fmt.Sprintf("Updated market id for user: %s", userId))
 }
 
 func (service UserService) CreateUserPreferences(ctx *gin.Context) {
