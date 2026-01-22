@@ -72,7 +72,7 @@ export default function MarketSelection() {
       setIsSaving(true);
       try {
         console.log("Saving selected market");
-        await userApi.saveMarket(selectedMarket.id);
+        await userApi.saveMarket(selectedMarket.id.toString());
         console.log("Selected market saved");
       } catch (error) {
         alert("Failed to save selected market. Please try again.");
