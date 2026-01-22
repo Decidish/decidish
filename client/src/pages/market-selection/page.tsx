@@ -179,10 +179,10 @@ export default function MarketSelection() {
                                   <div className="p-2">
                                     <h3 className="font-semibold text-gray-900 mb-1">{market.name}</h3>
                                     <p className="text-xs text-gray-600 mb-1">{`${market.address.street}, ${market.address.zipCode}  ${market.address.city}`}</p>
-                                    <div className="flex items-center gap-1 mb-1">
+                                    {/* <div className="flex items-center gap-1 mb-1">
                                       <i className="ri-star-fill text-yellow-500 text-xs"></i>
                                       <span className="text-xs font-medium text-gray-700">{market.rating}</span>
-                                    </div>
+                                    </div> */}
                                     {/*<p className="text-xs text-gray-500">{market.hours}</p>*/}
                                   </div>
                                 </Popup>
@@ -207,13 +207,13 @@ export default function MarketSelection() {
                             >
                               <div className="flex items-start justify-between mb-1">
                                 <h3 className="text-base font-semibold text-gray-900">{market.name}</h3>
-                                <div className="flex items-center gap-1 ml-2">
+                                {/* <div className="flex items-center gap-1 ml-2">
                                   <i className="ri-star-fill text-yellow-500 text-sm"></i>
                                   <span className="text-sm font-medium text-gray-700">{market.rating}</span>
-                                </div>
+                                </div> */}
                               </div>
                               <p className="text-sm text-gray-600 mb-2">{`${market.address.street}, ${market.address.zipCode}  ${market.address.city}`}</p>
-                              <div className="flex items-center gap-4 text-xs text-gray-500">
+                              {/* <div className="flex items-center gap-4 text-xs text-gray-500">
                                 <div className="flex items-center gap-1">
                                   <i className="ri-map-pin-line"></i>
                                   <span>{market.distance}</span>
@@ -222,7 +222,7 @@ export default function MarketSelection() {
                                   <i className="ri-time-line"></i>
                                   <span>{market.hours}</span>
                                 </div>
-                              </div>
+                              </div> */}
                               {selectedMarket?.id === market.id && (
                                   <div className="mt-3 pt-3 border-t border-indigo-200 flex items-center gap-2 text-indigo-600">
                                     <i className="ri-check-line text-lg"></i>
