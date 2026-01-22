@@ -51,7 +51,7 @@ export default function AdminPage() {
   ]);
   const [reweJobs, setReweJobs] = useState<ReweJob[]>([
     {
-      id: '1',
+      id: 'history-1',
       status: 'completed',
       startTime: '2024-01-20 10:00:00',
       endTime: '2024-01-20 10:02:15',
@@ -60,7 +60,7 @@ export default function AdminPage() {
       progress: 100
     },
     {
-      id: '2',
+      id: 'history-2',
       status: 'completed',
       startTime: '2024-01-19 15:30:00',
       endTime: '2024-01-19 15:32:30',
@@ -72,6 +72,9 @@ export default function AdminPage() {
   const [showSuccessToast, setShowSuccessToast] = useState(false);
   const [successMessage, setSuccessMessage] = useState('');
   const [errorMessage, setErrorMessage] = useState('');
+  
+  const activeReweJobs = reweJobs.filter(job => job.status === 'running' || job.status === 'queued');
+  const historyReweJobs = reweJobs.filter(job => job.status === 'completed' || job.status === 'failed');
 
   const handleUrlImport = async () => {
     if (!recipeUrl.trim()) {
@@ -128,60 +131,141 @@ export default function AdminPage() {
   // };
 
   const handleReweImport = async () => {
-    const jobId = Date.now().toString();
-    const newJob: ReweJob = {
-      id: jobId,
-      status: 'queued',
-      startTime: new Date().toISOString(),
-      recipesImported: 0,
-      totalRecipes: 50,
-      progress: 0
-    };
-
-    setReweJobs([newJob, ...reweJobs]);
-    
-    setSuccessMessage('Rewe import job started! This will take about 2 minutes. ⏳');
-    setShowSuccessToast(true);
-    setTimeout(() => setShowSuccessToast(false), 3000);
-    
     try {
-      // This awaits until the backend finishes (or timeouts)
-      await adminApi.addReweRecipes();
+      // 1. Trigger the Background Job
+      // The backend now returns immediately with a real DB ID
+      const response = await adminApi.addReweRecipes();
+      const realJobId = response.job_id.toString();
 
-      // Update Job on Success
-      setReweJobs(prev => prev.map(job => 
-        job.id === jobId 
-          ? { 
-              ...job, 
-              status: 'completed', 
-              progress: 100, 
-              recipesImported: 50, // Hardcoded or needs API return value
-              endTime: new Date().toISOString() 
-            }
-          : job
-      ));
+      // 2. Add 'Queued' Job to UI List
+      const newJob: ReweJob = {
+        id: realJobId,
+        status: 'queued',
+        startTime: new Date().toISOString(),
+        recipesImported: 0,
+        totalRecipes: 0, // We don't know this yet, next poll will update it
+        progress: 0
+      };
 
-      setSuccessMessage('Rewe import completed successfully! 🎉');
+      setReweJobs(prev => [newJob, ...prev]);
+      setSuccessMessage('Rewe import job started! ⏳');
       setShowSuccessToast(true);
       setTimeout(() => setShowSuccessToast(false), 3000);
 
-    } catch (error) {
-      console.error("Rewe Import Failed", error);
+      // 3. Start Polling Every 2 Seconds
+      const pollInterval = setInterval(async () => {
+        try {
+          const statusData = await adminApi.getJobStatus(realJobId);
 
-      // Update Job on Failure
-      setReweJobs(prev => prev.map(job => 
-        job.id === jobId 
-          ? { 
-              ...job, 
-              status: 'failed', 
-              progress: 0, 
-              error: 'Connection to ML Service timed out or failed.',
-              endTime: new Date().toISOString() 
+          // Calculate Percentage
+          const percent = statusData.total_items > 0 
+            ? Math.floor((statusData.processed_items / statusData.total_items) * 100) 
+            : 0;
+
+          // Map Backend Status ('success'/'error') to Frontend UI Status ('completed'/'failed')
+          let uiStatus: 'queued' | 'running' | 'completed' | 'failed' = 'running';
+          
+          if (statusData.status === 'success') uiStatus = 'completed';
+          else if (statusData.status === 'error') uiStatus = 'failed';
+          else if (statusData.status === 'pending') uiStatus = 'queued';
+
+          // Update the specific job in state
+          setReweJobs(prev => prev.map(job => 
+            job.id === realJobId 
+              ? { 
+                  ...job, 
+                  status: uiStatus,
+                  progress: percent,
+                  recipesImported: statusData.processed_items,
+                  totalRecipes: statusData.total_items,
+                  error: statusData.error_message,
+                  // Only set endTime if finished
+                  endTime: (uiStatus === 'completed' || uiStatus === 'failed') 
+                    ? new Date().toISOString() 
+                    : undefined 
+                }
+              : job
+          ));
+
+          // Stop Polling if Finished
+          if (uiStatus === 'completed' || uiStatus === 'failed') {
+            clearInterval(pollInterval);
+            
+            if (uiStatus === 'completed') {
+              setSuccessMessage('Rewe import completed successfully! 🎉');
+              setShowSuccessToast(true);
+              setTimeout(() => setShowSuccessToast(false), 3000);
             }
-          : job
-      ));
+          }
+
+        } catch (pollError) {
+          console.error("Error polling job:", pollError);
+          //? maybe clear interval on 404 or critical errors to prevent infinite loops
+        }
+      }, 2000);
+
+    } catch (error) {
+      console.error("Failed to start job", error);
+      setSuccessMessage('Failed to trigger import service.');
+      setShowSuccessToast(true);
     }
   };
+
+  // const handleReweImport = async () => {
+  //   const jobId = Date.now().toString();
+  //   const newJob: ReweJob = {
+  //     id: jobId,
+  //     status: 'queued',
+  //     startTime: new Date().toISOString(),
+  //     recipesImported: 0,
+  //     totalRecipes: 50,
+  //     progress: 0
+  //   };
+
+  //   setReweJobs([newJob, ...reweJobs]);
+    
+  //   setSuccessMessage('Rewe import job started! This will take about 2 minutes. ⏳');
+  //   setShowSuccessToast(true);
+  //   setTimeout(() => setShowSuccessToast(false), 3000);
+    
+  //   try {
+  //     // This awaits until the backend finishes (or timeouts)
+  //     await adminApi.addReweRecipes();
+
+  //     // Update Job on Success
+  //     setReweJobs(prev => prev.map(job => 
+  //       job.id === jobId 
+  //         ? { 
+  //             ...job, 
+  //             status: 'completed', 
+  //             progress: 100, 
+  //             recipesImported: 50, // Hardcoded or needs API return value
+  //             endTime: new Date().toISOString() 
+  //           }
+  //         : job
+  //     ));
+
+  //     setSuccessMessage('Rewe import completed successfully! 🎉');
+  //     setShowSuccessToast(true);
+  //     setTimeout(() => setShowSuccessToast(false), 3000);
+
+  //   } catch (error) {
+  //     console.error("Rewe Import Failed", error);
+
+  //     // Update Job on Failure
+  //     setReweJobs(prev => prev.map(job => 
+  //       job.id === jobId 
+  //         ? { 
+  //             ...job, 
+  //             status: 'failed', 
+  //             progress: 0, 
+  //             error: 'Connection to ML Service timed out or failed.',
+  //             endTime: new Date().toISOString() 
+  //           }
+  //         : job
+  //     ));
+  //   }
+  // };
 
   //   // Simulate async job progress
   //   setTimeout(() => {
@@ -491,7 +575,8 @@ export default function AdminPage() {
                   </button>
 
                   {/* Active Jobs */}
-                  {reweJobs.some(job => job.status === 'running' || job.status === 'queued') && (
+                  {/* {reweJobs.some(job => job.status === 'running' || job.status === 'queued') && ( */}
+                  {activeReweJobs.length > 0 && (
                     <div className="mt-6 space-y-3">
                       <h4 className="text-sm font-semibold text-gray-900">Active Jobs</h4>
                       {reweJobs
@@ -594,7 +679,7 @@ export default function AdminPage() {
             </div>
 
             <div className="divide-y divide-gray-200">
-              {reweJobs.map((job) => (
+              {historyReweJobs.map((job) => (
                 <div key={job.id} className="p-6 hover:bg-gray-50 transition-colors">
                   <div className="flex items-center justify-between mb-4">
                     <div className="flex items-center gap-4 flex-1">

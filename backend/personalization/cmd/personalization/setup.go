@@ -60,6 +60,8 @@ func createUserMappings(config config.ApplicationConfig, r *gin.RouterGroup, db 
 func createRecipeMappings(config config.ApplicationConfig, r *gin.Engine, db *sql.DB) {
 	recipeService := service.NewRecipeService(config, db, client.NewClient())
 	recipeController := controller.NewRecipeController(recipeService)
+	jobController := controller.NewJobController(db)
 
 	recipeController.AddMappings(r)
+	jobController.AddMappings(r);
 }
