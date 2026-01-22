@@ -220,20 +220,46 @@ class Pipeline:
     ############################################################################
     # ETL Pipeline for REWE Recipes done only once
     ############################################################################
+    # ... existing imports ...
+
+    # Helper method to update progress
+    def update_job_progress(self, job_id: int, processed: int, total: int):
+        try:
+            with self.conn.cursor() as cursor:
+                cursor.execute("""
+                    UPDATE jobs 
+                    SET processed_items = %s, total_items = %s, updated_at = NOW() 
+                    WHERE id = %s;
+                """, (processed, total, job_id))
+                self.conn.commit()
+        except Exception as e:
+            logging.error(f"Failed to update progress for job {job_id}: {e}")
+
     async def run_etl(self, job_id: int):
         try:
-            processed = 0
-            logging.log(logging.INFO, f"Starting ETL Job {job_id}...")
+            logging.info(f"Starting ETL Job {job_id}...")
             self.set_running_job_status(job_id)
 
+            # 1. Estimate total (e.g., counting lines in file)
+            # For efficiency, you can hardcode this or run a quick line count
+            total_recipes = 0
+            with open("data/recipes_enriched.jsonl", 'rb') as f:
+                total_recipes = sum(1 for _ in f)
+            
+            processed_count = 0
+            self.update_job_progress(job_id, 0, total_recipes)
+
+            # 2. Process Batch
             for batch in self.get_rewe_recipes_batch("data/recipes_enriched.jsonl"):
                 processed_recipes = await self.process_recipe_batch(batch)
                 self.create_recipe_embeddings_batch(processed_recipes)
-                processed += len(batch)
-                self.conn.commit()
+                
+                # 3. Update Progress
+                processed_count += len(batch)
+                self.update_job_progress(job_id, processed_count, total_recipes)
 
             self.set_done_job_status(job_id)
-            logging.log(logging.INFO, f"Finished ETL Job {job_id}...")
+            logging.info(f"Finished ETL Job {job_id}...")
         except Exception as e:
             logging.error(f"ETL Job {job_id} failed: {e}")
             self.set_error_job_status(job_id)

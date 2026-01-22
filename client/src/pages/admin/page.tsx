@@ -1,5 +1,5 @@
-
 import { useState } from 'react';
+import { adminApi } from '@/api/admin/adminApi';
 
 interface RecipeImport {
   id: string;
@@ -71,6 +71,7 @@ export default function AdminPage() {
   ]);
   const [showSuccessToast, setShowSuccessToast] = useState(false);
   const [successMessage, setSuccessMessage] = useState('');
+  const [errorMessage, setErrorMessage] = useState('');
 
   const handleUrlImport = async () => {
     if (!recipeUrl.trim()) {
@@ -79,12 +80,13 @@ export default function AdminPage() {
     }
 
     setIsImporting(true);
+    
+    try {
+      await adminApi.addRecipe(recipeUrl);
 
-    // Simulate API call to your backend
-    setTimeout(() => {
       const newImport: RecipeImport = {
         id: Date.now().toString(),
-        name: 'Imported Recipe from URL',
+        name: recipeUrl, 
         source: 'url',
         status: 'success',
         timestamp: new Date().toISOString()
@@ -92,17 +94,43 @@ export default function AdminPage() {
 
       setImportHistory([newImport, ...importHistory]);
       setRecipeUrl('');
-      setIsImporting(false);
       
-      setSuccessMessage('Recipe imported successfully from URL! 🎉');
+      setSuccessMessage('Recipe imported successfully!');
       setShowSuccessToast(true);
       setTimeout(() => setShowSuccessToast(false), 3000);
-    }, 2000);
+
+    } catch (error) {
+      console.error("URL Import Failed", error);
+      alert("Failed to import recipe. Check console for details.");
+    } finally {
+      setIsImporting(false);
+    }
   };
 
+  //   // Simulate API call to your backend
+  //   setTimeout(() => {
+  //     const newImport: RecipeImport = {
+  //       id: Date.now().toString(),
+  //       name: 'Imported Recipe from URL',
+  //       source: 'url',
+  //       status: 'success',
+  //       timestamp: new Date().toISOString()
+  //     };
+
+  //     setImportHistory([newImport, ...importHistory]);
+  //     setRecipeUrl('');
+  //     setIsImporting(false);
+      
+  //     setSuccessMessage('Recipe imported successfully from URL! 🎉');
+  //     setShowSuccessToast(true);
+  //     setTimeout(() => setShowSuccessToast(false), 3000);
+  //   }, 2000);
+  // };
+
   const handleReweImport = async () => {
+    const jobId = Date.now().toString();
     const newJob: ReweJob = {
-      id: Date.now().toString(),
+      id: jobId,
       status: 'queued',
       startTime: new Date().toISOString(),
       recipesImported: 0,
@@ -115,50 +143,89 @@ export default function AdminPage() {
     setSuccessMessage('Rewe import job started! This will take about 2 minutes. ⏳');
     setShowSuccessToast(true);
     setTimeout(() => setShowSuccessToast(false), 3000);
+    
+    try {
+      // This awaits until the backend finishes (or timeouts)
+      await adminApi.addReweRecipes();
 
-    // Simulate async job progress
-    setTimeout(() => {
+      // Update Job on Success
       setReweJobs(prev => prev.map(job => 
-        job.id === newJob.id 
-          ? { ...job, status: 'running', progress: 10 }
-          : job
-      ));
-    }, 1000);
-
-    setTimeout(() => {
-      setReweJobs(prev => prev.map(job => 
-        job.id === newJob.id 
-          ? { ...job, progress: 35, recipesImported: 15 }
-          : job
-      ));
-    }, 30000);
-
-    setTimeout(() => {
-      setReweJobs(prev => prev.map(job => 
-        job.id === newJob.id 
-          ? { ...job, progress: 65, recipesImported: 30 }
-          : job
-      ));
-    }, 60000);
-
-    setTimeout(() => {
-      setReweJobs(prev => prev.map(job => 
-        job.id === newJob.id 
+        job.id === jobId 
           ? { 
               ...job, 
               status: 'completed', 
               progress: 100, 
-              recipesImported: 50,
-              endTime: new Date().toISOString()
+              recipesImported: 50, // Hardcoded or needs API return value
+              endTime: new Date().toISOString() 
             }
           : job
       ));
-      
-      setSuccessMessage('Rewe import completed! 50 recipes imported successfully! 🎉');
+
+      setSuccessMessage('Rewe import completed successfully! 🎉');
       setShowSuccessToast(true);
       setTimeout(() => setShowSuccessToast(false), 3000);
-    }, 120000);
+
+    } catch (error) {
+      console.error("Rewe Import Failed", error);
+
+      // Update Job on Failure
+      setReweJobs(prev => prev.map(job => 
+        job.id === jobId 
+          ? { 
+              ...job, 
+              status: 'failed', 
+              progress: 0, 
+              error: 'Connection to ML Service timed out or failed.',
+              endTime: new Date().toISOString() 
+            }
+          : job
+      ));
+    }
   };
+
+  //   // Simulate async job progress
+  //   setTimeout(() => {
+  //     setReweJobs(prev => prev.map(job => 
+  //       job.id === newJob.id 
+  //         ? { ...job, status: 'running', progress: 10 }
+  //         : job
+  //     ));
+  //   }, 1000);
+
+  //   setTimeout(() => {
+  //     setReweJobs(prev => prev.map(job => 
+  //       job.id === newJob.id 
+  //         ? { ...job, progress: 35, recipesImported: 15 }
+  //         : job
+  //     ));
+  //   }, 30000);
+
+  //   setTimeout(() => {
+  //     setReweJobs(prev => prev.map(job => 
+  //       job.id === newJob.id 
+  //         ? { ...job, progress: 65, recipesImported: 30 }
+  //         : job
+  //     ));
+  //   }, 60000);
+
+  //   setTimeout(() => {
+  //     setReweJobs(prev => prev.map(job => 
+  //       job.id === newJob.id 
+  //         ? { 
+  //             ...job, 
+  //             status: 'completed', 
+  //             progress: 100, 
+  //             recipesImported: 50,
+  //             endTime: new Date().toISOString()
+  //           }
+  //         : job
+  //     ));
+      
+  //     setSuccessMessage('Rewe import completed! 50 recipes imported successfully! 🎉');
+  //     setShowSuccessToast(true);
+  //     setTimeout(() => setShowSuccessToast(false), 3000);
+  //   }, 120000);
+  // };
 
   const getStatusColor = (status: RecipeImport['status']) => {
     switch (status) {

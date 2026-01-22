@@ -2,7 +2,7 @@
 -- +goose StatementBegin
 CREATE TABLE user_preferences (
     user_id INT PRIMARY KEY,
-    market_id VARCHAR(5),
+    market_id VARCHAR(6),
     min_cooking_time INT, -- e.g., 30
     max_cooking_time INT, -- e.g., 45
     allergies TEXT,

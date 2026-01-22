@@ -412,11 +412,11 @@ export default function Questionnaire() {
               <div>
                 <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
                   <i className="ri-money-dollar-circle-line text-[#2F855A]"></i>
-                  Maximum Budget Per Meal ($)
+                  Maximum Budget Per Meal (€)
                 </h3>
                 <div className="relative">
                   <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                    <span className="text-gray-500 sm:text-sm">$</span>
+                    <span className="text-gray-500 sm:text-sm">€</span>
                   </div>
                   <input
                     type="number"
