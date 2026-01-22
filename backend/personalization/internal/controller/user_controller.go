@@ -20,5 +20,6 @@ func (controller UserController) AddMappings(r *gin.RouterGroup) {
 	r.POST("/user/preferences", controller.UserService.CreateUserPreferences)
 	r.POST("/user/market", controller.UserService.SetSelectedUserMarketId)
 	r.GET("/user/isembedded", controller.UserService.IsUserEmbeddingReady)
-	r.POST("/user/cart/add", controller.UserService.AddProductToCart)
+	r.POST("/user/cart", controller.UserService.AddRecipeProductsToCart)
+	r.GET("/user/cart/items", controller.UserService.GetUserCartItems)
 }
