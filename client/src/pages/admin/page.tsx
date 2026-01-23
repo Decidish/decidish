@@ -1,5 +1,6 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { adminApi } from '@/api/admin/adminApi';
+import apiClient from '@/api/client';
 
 interface RecipeImport {
   id: string;
@@ -26,56 +27,84 @@ export default function AdminPage() {
   const [activeTab, setActiveTab] = useState<'url' | 'rewe'>('url');
   const [recipeUrl, setRecipeUrl] = useState('');
   const [isImporting, setIsImporting] = useState(false);
-  const [importHistory, setImportHistory] = useState<RecipeImport[]>([
-    {
-      id: '1',
-      name: 'Mediterranean Grilled Chicken',
-      source: 'url',
-      status: 'success',
-      timestamp: '2024-01-20 14:30:00'
-    },
-    {
-      id: '2',
-      name: 'Creamy Mushroom Pasta',
-      source: 'file',
-      status: 'success',
-      timestamp: '2024-01-20 13:15:00'
-    },
-    {
-      id: '3',
-      name: 'Asian Salmon Bowl',
-      source: 'url',
-      status: 'success',
-      timestamp: '2024-01-19 16:45:00'
-    }
-  ]);
-  const [reweJobs, setReweJobs] = useState<ReweJob[]>([
-    {
-      id: 'history-1',
-      status: 'completed',
-      startTime: '2024-01-20 10:00:00',
-      endTime: '2024-01-20 10:02:15',
-      recipesImported: 45,
-      totalRecipes: 45,
-      progress: 100
-    },
-    {
-      id: 'history-2',
-      status: 'completed',
-      startTime: '2024-01-19 15:30:00',
-      endTime: '2024-01-19 15:32:30',
-      recipesImported: 38,
-      totalRecipes: 38,
-      progress: 100
-    }
-  ]);
+  const [importHistory, setImportHistory] = useState<RecipeImport[]>([]);
+  const [reweJobs, setReweJobs] = useState<ReweJob[]>([]);
   const [showSuccessToast, setShowSuccessToast] = useState(false);
   const [successMessage, setSuccessMessage] = useState('');
   const [errorMessage, setErrorMessage] = useState('');
+  const [stats, setStats] = useState({ total: 0, today: 0, users: 0 });
   
   const activeReweJobs = reweJobs.filter(job => job.status === 'running' || job.status === 'queued');
   const historyReweJobs = reweJobs.filter(job => job.status === 'completed' || job.status === 'failed');
+  
+  const fetchHistory = async () => {
+    try {
+      // Fetch URL History
+      const urlData = await adminApi.getImportHistory();
+      console.log("Raw URL History from Backend:", urlData);
+      const mappedUrlHistory = urlData.map((item: any) => ({
+        id: item.id.toString(),
+        name: item.name || 'Untitle Recipe',     // Map 'identifier' from DB to 'name'
+        source: (item.source || 'url') as 'url' | 'file', // FALLBACK
+        status: item.status === 'failed' ? 'error' : item.status, // normalize status
+        timestamp: item.timestamp
+      }));
+      setImportHistory(mappedUrlHistory);
 
+      // Fetch Rewe Job History
+      const reweData = await adminApi.getReweJobHistory();
+      const mappedReweHistory = reweData.map((job: any) => {
+        // Calculate progress logic if needed, or default to 100/0 based on status
+        let uiStatus: ReweJob['status'] = 'queued';
+        if(job.status === 'running' || job.status === 'processing') uiStatus = 'running';
+        if(job.status === 'completed' || job.status === 'success') uiStatus = 'completed';
+        if(job.status === 'failed' || job.status === 'error') uiStatus = 'failed';
+
+        return {
+          id: job.id.toString(),
+          status: uiStatus,
+          startTime: job.created_at,
+          // If DB doesn't track end time explicitly, we might leave undefined or use updated_at
+          endTime: uiStatus === 'completed' ? job.updated_at : undefined, 
+          recipesImported: job.processed_items || 0,
+          totalRecipes: job.total_items || 0,
+          progress: job.total_items > 0 ? Math.floor((job.processed_items / job.total_items) * 100) : 0
+        };
+      });
+      setReweJobs(mappedReweHistory);
+
+    } catch (error) {
+      console.error("Failed to load history:", error);
+    }
+  };
+  
+  const loadStats = async () => {
+    try {
+      const data = await adminApi.getStats();
+      setStats({
+        total: data.total_recipes,
+        today: data.imported_today,
+        users: data.active_users
+      });
+    } catch (err) {
+      console.error("Failed to load stats:", err);
+    }
+  };
+  
+  useEffect(() => {
+  const refreshAll = () => {
+    loadStats();     
+    fetchHistory();  
+  };
+
+  refreshAll();
+
+  const interval = setInterval(refreshAll, 5000);
+
+  return () => clearInterval(interval);
+}, []);
+  
+  
   const handleUrlImport = async () => {
     if (!recipeUrl.trim()) {
       alert('Please enter a recipe URL');
@@ -87,21 +116,13 @@ export default function AdminPage() {
     try {
       await adminApi.addRecipe(recipeUrl);
 
-      const newImport: RecipeImport = {
-        id: Date.now().toString(),
-        name: recipeUrl, 
-        source: 'url',
-        status: 'success',
-        timestamp: new Date().toISOString()
-      };
-
-      setImportHistory([newImport, ...importHistory]);
       setRecipeUrl('');
-      
       setSuccessMessage('Recipe imported successfully!');
       setShowSuccessToast(true);
       setTimeout(() => setShowSuccessToast(false), 3000);
 
+      await loadStats();
+      await fetchHistory();
     } catch (error) {
       console.error("URL Import Failed", error);
       alert("Failed to import recipe. Check console for details.");
@@ -110,34 +131,13 @@ export default function AdminPage() {
     }
   };
 
-  //   // Simulate API call to your backend
-  //   setTimeout(() => {
-  //     const newImport: RecipeImport = {
-  //       id: Date.now().toString(),
-  //       name: 'Imported Recipe from URL',
-  //       source: 'url',
-  //       status: 'success',
-  //       timestamp: new Date().toISOString()
-  //     };
-
-  //     setImportHistory([newImport, ...importHistory]);
-  //     setRecipeUrl('');
-  //     setIsImporting(false);
-      
-  //     setSuccessMessage('Recipe imported successfully from URL! 🎉');
-  //     setShowSuccessToast(true);
-  //     setTimeout(() => setShowSuccessToast(false), 3000);
-  //   }, 2000);
-  // };
-
   const handleReweImport = async () => {
     try {
-      // 1. Trigger the Background Job
-      // The backend now returns immediately with a real DB ID
+      // Trigger the Background Job
       const response = await adminApi.addReweRecipes();
       const realJobId = response.job_id.toString();
 
-      // 2. Add 'Queued' Job to UI List
+      // Add 'Queued' Job to UI List
       const newJob: ReweJob = {
         id: realJobId,
         status: 'queued',
@@ -152,7 +152,7 @@ export default function AdminPage() {
       setShowSuccessToast(true);
       setTimeout(() => setShowSuccessToast(false), 3000);
 
-      // 3. Start Polling Every 2 Seconds
+      // Start Polling Every 2 Seconds
       const pollInterval = setInterval(async () => {
         try {
           const statusData = await adminApi.getJobStatus(realJobId);
@@ -163,7 +163,8 @@ export default function AdminPage() {
             : 0;
 
           // Map Backend Status ('success'/'error') to Frontend UI Status ('completed'/'failed')
-          let uiStatus: 'queued' | 'running' | 'completed' | 'failed' = 'running';
+          // let uiStatus: 'queued' | 'running' | 'completed' | 'failed' = 'running';
+          let uiStatus: ReweJob['status'] = 'running';
           
           if (statusData.status === 'success') uiStatus = 'completed';
           else if (statusData.status === 'error') uiStatus = 'failed';
@@ -191,6 +192,9 @@ export default function AdminPage() {
           if (uiStatus === 'completed' || uiStatus === 'failed') {
             clearInterval(pollInterval);
             
+            await loadStats();
+            await fetchHistory();
+            
             if (uiStatus === 'completed') {
               setSuccessMessage('Rewe import completed successfully! 🎉');
               setShowSuccessToast(true);
@@ -211,105 +215,6 @@ export default function AdminPage() {
     }
   };
 
-  // const handleReweImport = async () => {
-  //   const jobId = Date.now().toString();
-  //   const newJob: ReweJob = {
-  //     id: jobId,
-  //     status: 'queued',
-  //     startTime: new Date().toISOString(),
-  //     recipesImported: 0,
-  //     totalRecipes: 50,
-  //     progress: 0
-  //   };
-
-  //   setReweJobs([newJob, ...reweJobs]);
-    
-  //   setSuccessMessage('Rewe import job started! This will take about 2 minutes. ⏳');
-  //   setShowSuccessToast(true);
-  //   setTimeout(() => setShowSuccessToast(false), 3000);
-    
-  //   try {
-  //     // This awaits until the backend finishes (or timeouts)
-  //     await adminApi.addReweRecipes();
-
-  //     // Update Job on Success
-  //     setReweJobs(prev => prev.map(job => 
-  //       job.id === jobId 
-  //         ? { 
-  //             ...job, 
-  //             status: 'completed', 
-  //             progress: 100, 
-  //             recipesImported: 50, // Hardcoded or needs API return value
-  //             endTime: new Date().toISOString() 
-  //           }
-  //         : job
-  //     ));
-
-  //     setSuccessMessage('Rewe import completed successfully! 🎉');
-  //     setShowSuccessToast(true);
-  //     setTimeout(() => setShowSuccessToast(false), 3000);
-
-  //   } catch (error) {
-  //     console.error("Rewe Import Failed", error);
-
-  //     // Update Job on Failure
-  //     setReweJobs(prev => prev.map(job => 
-  //       job.id === jobId 
-  //         ? { 
-  //             ...job, 
-  //             status: 'failed', 
-  //             progress: 0, 
-  //             error: 'Connection to ML Service timed out or failed.',
-  //             endTime: new Date().toISOString() 
-  //           }
-  //         : job
-  //     ));
-  //   }
-  // };
-
-  //   // Simulate async job progress
-  //   setTimeout(() => {
-  //     setReweJobs(prev => prev.map(job => 
-  //       job.id === newJob.id 
-  //         ? { ...job, status: 'running', progress: 10 }
-  //         : job
-  //     ));
-  //   }, 1000);
-
-  //   setTimeout(() => {
-  //     setReweJobs(prev => prev.map(job => 
-  //       job.id === newJob.id 
-  //         ? { ...job, progress: 35, recipesImported: 15 }
-  //         : job
-  //     ));
-  //   }, 30000);
-
-  //   setTimeout(() => {
-  //     setReweJobs(prev => prev.map(job => 
-  //       job.id === newJob.id 
-  //         ? { ...job, progress: 65, recipesImported: 30 }
-  //         : job
-  //     ));
-  //   }, 60000);
-
-  //   setTimeout(() => {
-  //     setReweJobs(prev => prev.map(job => 
-  //       job.id === newJob.id 
-  //         ? { 
-  //             ...job, 
-  //             status: 'completed', 
-  //             progress: 100, 
-  //             recipesImported: 50,
-  //             endTime: new Date().toISOString()
-  //           }
-  //         : job
-  //     ));
-      
-  //     setSuccessMessage('Rewe import completed! 50 recipes imported successfully! 🎉');
-  //     setShowSuccessToast(true);
-  //     setTimeout(() => setShowSuccessToast(false), 3000);
-  //   }, 120000);
-  // };
 
   const getStatusColor = (status: RecipeImport['status']) => {
     switch (status) {
@@ -407,7 +312,7 @@ export default function AdminPage() {
                 <i className="ri-restaurant-2-line text-2xl text-[#2F855A]"></i>
               </div>
               <div>
-                <div className="text-3xl font-bold text-gray-900">247</div>
+                <div className="text-3xl font-bold text-gray-900">{stats.total}</div>
                 <p className="text-sm text-gray-600">Total Recipes</p>
               </div>
             </div>
@@ -419,7 +324,7 @@ export default function AdminPage() {
                 <i className="ri-upload-cloud-line text-2xl text-teal-600"></i>
               </div>
               <div>
-                <div className="text-3xl font-bold text-gray-900">12</div>
+                <div className="text-3xl font-bold text-gray-900">{stats.today}</div>
                 <p className="text-sm text-gray-600">Imported Today</p>
               </div>
             </div>
@@ -431,7 +336,7 @@ export default function AdminPage() {
                 <i className="ri-user-heart-line text-2xl text-amber-600"></i>
               </div>
               <div>
-                <div className="text-3xl font-bold text-gray-900">1,543</div>
+                <div className="text-3xl font-bold text-gray-900">{stats.users}</div>
                 <p className="text-sm text-gray-600">Active Users</p>
               </div>
             </div>

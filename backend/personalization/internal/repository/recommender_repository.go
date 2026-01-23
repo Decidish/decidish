@@ -36,6 +36,35 @@ func NewRecommenderRepository() RecommenderRepository {
 	return RecommenderRepository{}
 }
 
+// Returns (total_count, today_count, error)
+func GetAdminStats(db *sql.DB) (int, int, int, error) {
+	var total int // total of recipes in DB
+	var today int // number of recipes imported today
+	var users int // active users
+
+	// Postgres syntax: CURRENT_DATE gets the start of today (00:00:00)
+	// TODO: change query for users so we get the "active ones"
+	//? do this only when you have the data for this
+	query := `
+        SELECT 
+            (SELECT COUNT(*) FROM recipes) as total,
+			(
+				(SELECT COALESCE(SUM(processed_items), 0) FROM jobs WHERE created_at >= CURRENT_DATE) 
+				+ 
+				(SELECT COUNT(*) FROM import_logs WHERE created_at >= CURRENT_DATE) 
+			)
+			as today,
+			-- (SELECT COUNT(*) FROM users) as users
+			0 as users
+    `
+
+	err := db.QueryRow(query).Scan(&total, &today, &users)
+	if err != nil {
+		return 0, 0, 0, err
+	}
+	return total, today, users, nil
+}
+
 func (repo RecommenderRepository) GetRecommendedRecipesForUser(tx *sql.Tx, userId string) ([]Recipe, error) {
 	query, err := tx.Query(`
 		WITH recommender AS ( 
@@ -95,7 +124,7 @@ func (repo RecommenderRepository) GetRecommendedRecipesForUser(tx *sql.Tx, userI
 	if err != nil {
 		return nil, err
 	}
-	
+
 	defer query.Close()
 
 	// var recipes []Recipe
