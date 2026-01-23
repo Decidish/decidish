@@ -23,8 +23,8 @@ type AddRecipeRequestBody struct {
 }
 
 type AddRecipeRequest struct {
-	JobId int `json:"job_id"`
-	RecipeUrl  string `json:"recipe_url"`
+	JobId     int    `json:"job_id"`
+	RecipeUrl string `json:"recipe_url"`
 }
 
 type AddRecipeResponse struct {
@@ -45,6 +45,20 @@ func NewRecipeService(config config.ApplicationConfig, db *sql.DB, mlClient *cli
 	}
 }
 
+func (service RecipeService) GetAdminStats(ctx *gin.Context) {
+	total, today, users, err := repository.GetAdminStats(service.DB)
+	if err != nil {
+		ctx.JSON(500, gin.H{"error": "Failed to fetch stats"})
+		return
+	}
+
+	ctx.JSON(200, gin.H{
+		"total_recipes":  total,
+		"imported_today": today,
+		"active_users":   users,
+	})
+}
+
 func (service RecipeService) AddRecipe(ctx *gin.Context) {
 	var body AddRecipeRequestBody
 
@@ -59,7 +73,7 @@ func (service RecipeService) AddRecipe(ctx *gin.Context) {
 		ctx.JSON(500, gin.H{"error": "db error"})
 		return
 	}
-	
+
 	// fmt.Println("Received URL:", body.RecipeUrl)
 
 	jobId, err := repository.CreateJob(tx, "add_recipe", "pending")
@@ -75,7 +89,7 @@ func (service RecipeService) AddRecipe(ctx *gin.Context) {
 
 	// Prepare request for embedder
 	req := AddRecipeRequest{
-		JobId: jobId,
+		JobId:     jobId,
 		RecipeUrl: body.RecipeUrl,
 	}
 
@@ -91,12 +105,12 @@ func (service RecipeService) AddRecipe(ctx *gin.Context) {
 		ctx.JSON(status, gin.H{"error": "embedder returned non-2xx", "status_code": status})
 		return
 	}
-	
+
 	err = repository.CreateLog(service.DB, "url", body.RecipeUrl, "success", jobId)
-    if err != nil {
-        log.Println("Failed to write import log:", err)
-        // Don't fail the request just because logging failed
-    }
+	if err != nil {
+		log.Println("Failed to write import log:", err)
+		// Don't fail the request just because logging failed
+	}
 
 	// Return job id and basic info about the embedding response
 	ctx.JSON(http.StatusOK, gin.H{
@@ -156,7 +170,7 @@ func (service RecipeService) AddReweRecipes(ctx *gin.Context) {
 		"status":   "pending",
 		"response": "Job started in background",
 		// "response": mlResp.JobStatus,
-		"name":     "add_rewe_recipes",
+		"name": "add_rewe_recipes",
 	})
 }
 

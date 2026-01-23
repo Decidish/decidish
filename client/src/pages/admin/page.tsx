@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { adminApi } from '@/api/admin/adminApi';
+import apiClient from '@/api/client';
 
 interface RecipeImport {
   id: string;
@@ -31,6 +32,7 @@ export default function AdminPage() {
   const [showSuccessToast, setShowSuccessToast] = useState(false);
   const [successMessage, setSuccessMessage] = useState('');
   const [errorMessage, setErrorMessage] = useState('');
+  const [stats, setStats] = useState({ total: 0, today: 0, users: 0 });
   
   const activeReweJobs = reweJobs.filter(job => job.status === 'running' || job.status === 'queued');
   const historyReweJobs = reweJobs.filter(job => job.status === 'completed' || job.status === 'failed');
@@ -76,15 +78,33 @@ export default function AdminPage() {
     }
   };
   
+  const loadStats = async () => {
+    try {
+      const data = await adminApi.getStats();
+      setStats({
+        total: data.total_recipes,
+        today: data.imported_today,
+        users: data.active_users
+      });
+    } catch (err) {
+      console.error("Failed to load stats:", err);
+    }
+  };
+  
   useEffect(() => {
-    fetchHistory();
-    
-    // Set up a global poller to refresh history every 10 seconds 
-    // to catch updates from other admins or background jobs
-    const interval = setInterval(fetchHistory, 10000);
-    return () => clearInterval(interval);
-  }, []);
+  const refreshAll = () => {
+    loadStats();     
+    fetchHistory();  
+  };
 
+  refreshAll();
+
+  const interval = setInterval(refreshAll, 5000);
+
+  return () => clearInterval(interval);
+}, []);
+  
+  
   const handleUrlImport = async () => {
     if (!recipeUrl.trim()) {
       alert('Please enter a recipe URL');
@@ -96,20 +116,12 @@ export default function AdminPage() {
     try {
       await adminApi.addRecipe(recipeUrl);
 
-      // const newImport: RecipeImport = {
-      //   id: Date.now().toString(),
-      //   name: recipeUrl, 
-      //   source: 'url',
-      //   status: 'success',
-      //   timestamp: new Date().toISOString()
-      // };
-
-      // setImportHistory([newImport, ...importHistory]);
       setRecipeUrl('');
       setSuccessMessage('Recipe imported successfully!');
       setShowSuccessToast(true);
       setTimeout(() => setShowSuccessToast(false), 3000);
 
+      await loadStats();
       await fetchHistory();
     } catch (error) {
       console.error("URL Import Failed", error);
@@ -180,6 +192,7 @@ export default function AdminPage() {
           if (uiStatus === 'completed' || uiStatus === 'failed') {
             clearInterval(pollInterval);
             
+            await loadStats();
             await fetchHistory();
             
             if (uiStatus === 'completed') {
@@ -299,7 +312,7 @@ export default function AdminPage() {
                 <i className="ri-restaurant-2-line text-2xl text-[#2F855A]"></i>
               </div>
               <div>
-                <div className="text-3xl font-bold text-gray-900">247</div>
+                <div className="text-3xl font-bold text-gray-900">{stats.total}</div>
                 <p className="text-sm text-gray-600">Total Recipes</p>
               </div>
             </div>
@@ -311,7 +324,7 @@ export default function AdminPage() {
                 <i className="ri-upload-cloud-line text-2xl text-teal-600"></i>
               </div>
               <div>
-                <div className="text-3xl font-bold text-gray-900">12</div>
+                <div className="text-3xl font-bold text-gray-900">{stats.today}</div>
                 <p className="text-sm text-gray-600">Imported Today</p>
               </div>
             </div>
@@ -323,7 +336,7 @@ export default function AdminPage() {
                 <i className="ri-user-heart-line text-2xl text-amber-600"></i>
               </div>
               <div>
-                <div className="text-3xl font-bold text-gray-900">1,543</div>
+                <div className="text-3xl font-bold text-gray-900">{stats.users}</div>
                 <p className="text-sm text-gray-600">Active Users</p>
               </div>
             </div>

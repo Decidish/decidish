@@ -46,5 +46,9 @@ export const adminApi = {
   getImportHistory: async () => {
     const response = await apiClient.get('/personalization/recipes/history/url');
     return response.data;
+  },
+  getStats: async () => {
+    const response = await apiClient.get('/personalization/admin/stats');
+    return response.data;
   }
 };
