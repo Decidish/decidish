@@ -32,7 +32,7 @@ class Tasks:
             port=self.app_config.db_port,
         )
 
-    async def run_add_recipe_background_task(self, recipe_url: str, job_id: int):
+    def run_add_recipe_background_task(self, recipe_url: str, job_id: int):
         """Background task: scrape a recipe URL and process it into the DB."""
         if self.ingredient_parser is None or self.embedder is None:
             raise RuntimeError("Tasks dependencies not provided")
@@ -41,7 +41,7 @@ class Tasks:
         try:
             conn = self._get_db_connection()
             pipeline: Pipeline = Pipeline(conn, self.ingredient_parser, self.embedder, self.app_config)
-            pipeline.scrape_process_recipe(recipe_url, job_id)
+            asyncio.run(pipeline.scrape_process_recipe(recipe_url, job_id))
         except Exception as e:
             print(f"Add Recipe Failed: {e}", flush=True)
         finally:
