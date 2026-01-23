@@ -1,21 +1,18 @@
 
-import { useState } from 'react';
-
-interface Recipe {
-  id: number;
-  name: string;
-  image: string;
-  cuisine: string;
-  cookTime: string;
-  calories: number;
-  liked: boolean;
-}
+import { useEffect, useMemo, useState } from 'react';
+import { userHistoryApi, UserHistoryRecord } from '@/api/user-history/userHistoryApi';
+import { recipesApi, RecipeRecommendation } from '@/api/recipe-swiper/recipesApi';
+import { authApi, AuthProfile } from '@/api/auth/authApi';
 
 export default function Profile() {
   const [activeTab, setActiveTab] = useState<'liked' | 'disliked' | 'stats'>('liked');
+  const [history, setHistory] = useState<UserHistoryRecord[]>([]);
+  const [recipes, setRecipes] = useState<RecipeRecommendation[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [profile, setProfile] = useState<AuthProfile | null>(null);
 
-  // Mock user data
-  const userData = {
+  const [userData, setUserData] = useState({
     name: 'Sarah Johnson',
     email: 'sarah.johnson@email.com',
     avatar: 'https://readdy.ai/api/search-image?query=professional%20portrait%20photo%20of%20a%20smiling%20woman%20with%20brown%20hair%20in%20casual%20attire%20against%20a%20soft%20neutral%20background%20warm%20natural%20lighting%20friendly%20approachable%20expression%20high%20quality%20headshot%20photography&width=200&height=200&seq=user-avatar-001&orientation=squarish',
@@ -28,105 +25,104 @@ export default function Profile() {
       skillLevel: 'Intermediate'
     },
     selectedMarket: 'Whole Foods Market'
+  });
+
+  // Pull history + recipe metadata so we can display real data instead of mocks
+  useEffect(() => {
+    const load = async () => {
+      setLoading(true);
+      setError(null);
+      try {
+        const [historyResponse, recommendationResponse, profileResponse] = await Promise.all([
+          userHistoryApi.getUserHistory(),
+          recipesApi.getRecommendations().catch(() => []),
+          authApi.getProfile().catch(() => null),
+        ]);
+        setHistory(historyResponse);
+        setRecipes(recommendationResponse);
+        if (profileResponse) {
+          setProfile(profileResponse);
+          setUserData((prev) => ({
+            ...prev,
+            name: profileResponse.name || profileResponse.username,
+            email: profileResponse.email || profileResponse.username,
+          }));
+        }
+      } catch (err: any) {
+        console.error('Failed to load user history', err);
+        const message = err?.response?.data?.error || err?.message || 'Unable to load history right now.';
+        setError(message);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    load();
+  }, []);
+
+  const recipeMap = useMemo(() => {
+    const map: Record<number, RecipeRecommendation> = {};
+    recipes.forEach((r) => {
+      map[r.id] = r;
+    });
+    return map;
+  }, [recipes]);
+
+  const enrich = (records: UserHistoryRecord[]) =>
+    records.map((record) => ({
+      ...record,
+      recipe: recipeMap[record.recipe_id],
+    }));
+
+  const likedHistory = enrich(history.filter((h) => h.action));
+  const dislikedHistory = enrich(history.filter((h) => !h.action));
+
+  const parseCalories = (calories: string | undefined) => {
+    if (!calories) return null;
+    const match = calories.match(/[\d.]+/);
+    return match ? Number(match[0]) : null;
   };
 
-  // Mock recipe data
-  const likedRecipes: Recipe[] = [
-    {
-      id: 1,
-      name: 'Mediterranean Quinoa Bowl',
-      image: 'https://readdy.ai/api/search-image?query=colorful%20mediterranean%20quinoa%20bowl%20with%20fresh%20vegetables%20chickpeas%20feta%20cheese%20and%20herbs%20on%20a%20white%20ceramic%20bowl%20clean%20simple%20background%20top%20view%20food%20photography%20vibrant%20healthy%20meal&width=400&height=300&seq=recipe-liked-001&orientation=landscape',
-      cuisine: 'Mediterranean',
-      cookTime: '25 min',
-      calories: 420,
-      liked: true
-    },
-    {
-      id: 2,
-      name: 'Thai Green Curry',
-      image: 'https://readdy.ai/api/search-image?query=aromatic%20thai%20green%20curry%20with%20vegetables%20and%20tofu%20in%20a%20white%20bowl%20garnished%20with%20fresh%20basil%20leaves%20simple%20clean%20background%20top%20view%20authentic%20asian%20cuisine%20food%20photography&width=400&height=300&seq=recipe-liked-002&orientation=landscape',
-      cuisine: 'Thai',
-      cookTime: '35 min',
-      calories: 380,
-      liked: true
-    },
-    {
-      id: 3,
-      name: 'Caprese Pasta Salad',
-      image: 'https://readdy.ai/api/search-image?query=fresh%20caprese%20pasta%20salad%20with%20cherry%20tomatoes%20mozzarella%20and%20basil%20in%20a%20white%20bowl%20drizzled%20with%20balsamic%20glaze%20clean%20simple%20background%20top%20view%20italian%20food%20photography&width=400&height=300&seq=recipe-liked-003&orientation=landscape',
-      cuisine: 'Italian',
-      cookTime: '20 min',
-      calories: 450,
-      liked: true
-    },
-    {
-      id: 4,
-      name: 'Vegetable Stir Fry',
-      image: 'https://readdy.ai/api/search-image?query=colorful%20vegetable%20stir%20fry%20with%20broccoli%20bell%20peppers%20and%20snap%20peas%20in%20a%20white%20bowl%20with%20sesame%20seeds%20clean%20simple%20background%20top%20view%20asian%20cuisine%20food%20photography&width=400&height=300&seq=recipe-liked-004&orientation=landscape',
-      cuisine: 'Asian',
-      cookTime: '18 min',
-      calories: 320,
-      liked: true
-    },
-    {
-      id: 5,
-      name: 'Mushroom Risotto',
-      image: 'https://readdy.ai/api/search-image?query=creamy%20mushroom%20risotto%20in%20a%20white%20bowl%20garnished%20with%20fresh%20parsley%20and%20parmesan%20shavings%20clean%20simple%20background%20top%20view%20italian%20comfort%20food%20photography&width=400&height=300&seq=recipe-liked-005&orientation=landscape',
-      cuisine: 'Italian',
-      cookTime: '40 min',
-      calories: 480,
-      liked: true
-    },
-    {
-      id: 6,
-      name: 'Greek Salad Bowl',
-      image: 'https://readdy.ai/api/search-image?query=fresh%20greek%20salad%20bowl%20with%20cucumbers%20tomatoes%20olives%20and%20feta%20cheese%20in%20a%20white%20bowl%20clean%20simple%20background%20top%20view%20mediterranean%20healthy%20food%20photography&width=400&height=300&seq=recipe-liked-006&orientation=landscape',
-      cuisine: 'Greek',
-      cookTime: '15 min',
-      calories: 280,
-      liked: true
-    }
-  ];
+  const avg = (nums: number[]) => {
+    if (!nums.length) return null;
+    return nums.reduce((a, b) => a + b, 0) / nums.length;
+  };
 
-  const dislikedRecipes: Recipe[] = [
-    {
-      id: 7,
-      name: 'Spicy Tofu Scramble',
-      image: 'https://readdy.ai/api/search-image?query=spicy%20tofu%20scramble%20with%20vegetables%20in%20a%20white%20bowl%20garnished%20with%20herbs%20clean%20simple%20background%20top%20view%20vegan%20breakfast%20food%20photography&width=400&height=300&seq=recipe-disliked-001&orientation=landscape',
-      cuisine: 'American',
-      cookTime: '15 min',
-      calories: 250,
-      liked: false
-    },
-    {
-      id: 8,
-      name: 'Lentil Soup',
-      image: 'https://readdy.ai/api/search-image?query=hearty%20lentil%20soup%20in%20a%20white%20bowl%20with%20vegetables%20and%20herbs%20clean%20simple%20background%20top%20view%20comfort%20food%20photography&width=400&height=300&seq=recipe-disliked-002&orientation=landscape',
-      cuisine: 'Middle Eastern',
-      cookTime: '45 min',
-      calories: 320,
-      liked: false
-    },
-    {
-      id: 9,
-      name: 'Cauliflower Rice Bowl',
-      image: 'https://readdy.ai/api/search-image?query=cauliflower%20rice%20bowl%20with%20roasted%20vegetables%20in%20a%20white%20bowl%20clean%20simple%20background%20top%20view%20healthy%20low%20carb%20food%20photography&width=400&height=300&seq=recipe-disliked-003&orientation=landscape',
-      cuisine: 'Asian Fusion',
-      cookTime: '25 min',
-      calories: 220,
-      liked: false
-    }
-  ];
+  const avgCookTimeMinutes = useMemo(() => {
+    const values = history
+      .map((h) => recipeMap[h.recipe_id]?.total_time)
+      .filter((v): v is number => typeof v === 'number' && v > 0);
+    const value = avg(values);
+    return value ? `${Math.round(value)} min` : '—';
+  }, [history, recipeMap]);
+
+  const avgCalories = useMemo(() => {
+    const values = history
+      .map((h) => parseCalories(recipeMap[h.recipe_id]?.nutrients.calories))
+      .filter((v): v is number => typeof v === 'number' && !Number.isNaN(v));
+    const value = avg(values);
+    return value ? Math.round(value) : '—';
+  }, [history, recipeMap]);
 
   const stats = {
-    totalRecipes: likedRecipes.length + dislikedRecipes.length,
-    likedCount: likedRecipes.length,
-    dislikedCount: dislikedRecipes.length,
-    avgCookTime: '28 min',
-    avgCalories: 372,
-    favoriteCuisine: 'Italian',
-    totalCookingTime: '4.2 hours',
-    recipesThisMonth: 9
+    totalRecipes: history.length,
+    likedCount: likedHistory.length,
+    dislikedCount: dislikedHistory.length,
+    avgCookTime: avgCookTimeMinutes,
+    avgCalories,
+    favoriteCuisine: recipeMap[likedHistory[0]?.recipe_id]?.category || '—',
+    totalCookingTime: history
+      .map((h) => recipeMap[h.recipe_id]?.total_time)
+      .filter((v): v is number => typeof v === 'number' && v > 0)
+      .reduce((sum, curr) => sum + curr, 0)
+      ? `${Math.round(
+          history
+            .map((h) => recipeMap[h.recipe_id]?.total_time)
+            .filter((v): v is number => typeof v === 'number' && v > 0)
+            .reduce((sum, curr) => sum + curr, 0) / 60
+        )} hours`
+      : '—',
+    recipesThisMonth: history.length,
   };
 
   const handleEditPreferences = () => {
@@ -227,7 +223,7 @@ export default function Profile() {
                 }`}
               >
                 <i className="ri-heart-fill mr-2"></i>
-                Liked ({likedRecipes.length})
+                Liked ({likedHistory.length})
               </button>
               <button
                 onClick={() => setActiveTab('disliked')}
@@ -238,7 +234,7 @@ export default function Profile() {
                 }`}
               >
                 <i className="ri-close-circle-fill mr-2"></i>
-                Disliked ({dislikedRecipes.length})
+                Disliked ({dislikedHistory.length})
               </button>
               <button
                 onClick={() => setActiveTab('stats')}
@@ -255,75 +251,103 @@ export default function Profile() {
           </div>
 
           <div className="p-6">
+            {error && (
+              <div className="mb-4 p-4 bg-red-50 border border-red-200 text-red-700 rounded-lg text-sm">
+                {error}
+              </div>
+            )}
+
+            {loading && (
+              <div className="text-center text-gray-600">Loading your history...</div>
+            )}
+
             {/* Liked Recipes */}
-            {activeTab === 'liked' && (
+            {activeTab === 'liked' && !loading && (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {likedRecipes.map((recipe) => (
-                  <div key={recipe.id} className="bg-white rounded-xl border border-gray-200 overflow-hidden hover:shadow-lg transition-all group">
+                {likedHistory.map((entry) => {
+                  const recipe = entry.recipe;
+                  return (
+                  <div key={entry.id} className="bg-white rounded-xl border border-gray-200 overflow-hidden hover:shadow-lg transition-all group">
                     <div className="relative h-48 overflow-hidden">
-                      <img 
-                        src={recipe.image} 
-                        alt={recipe.name}
-                        className="w-full h-full object-cover object-top group-hover:scale-105 transition-transform duration-300"
-                      />
+                      {recipe?.image ? (
+                        <img
+                          src={recipe.image}
+                          alt={recipe.title}
+                          className="w-full h-full object-cover object-top group-hover:scale-105 transition-transform duration-300"
+                        />
+                      ) : (
+                        <div className="w-full h-full flex items-center justify-center bg-gray-100 text-gray-500 text-sm">
+                          No image
+                        </div>
+                      )}
                       <div className="absolute top-3 right-3 w-10 h-10 bg-white rounded-full flex items-center justify-center shadow-md">
                         <i className="ri-heart-fill text-xl text-red-500"></i>
                       </div>
                     </div>
                     <div className="p-4">
-                      <h3 className="font-semibold text-gray-900 mb-2">{recipe.name}</h3>
+                      <h3 className="font-semibold text-gray-900 mb-2">{recipe?.title || `Recipe #${entry.recipe_id}`}</h3>
                       <div className="flex items-center gap-4 text-sm text-gray-600">
                         <span className="flex items-center gap-1">
                           <i className="ri-time-line"></i>
-                          {recipe.cookTime}
+                          {recipe?.total_time ? `${recipe.total_time} min` : '—'}
                         </span>
                         <span className="flex items-center gap-1">
                           <i className="ri-fire-line"></i>
-                          {recipe.calories} cal
+                          {recipe?.nutrients?.calories || '—'}
                         </span>
                       </div>
                       <div className="mt-3 pt-3 border-t border-gray-100">
-                        <span className="text-sm text-gray-600">{recipe.cuisine}</span>
+                        <span className="text-sm text-gray-600">{recipe?.category || '—'}</span>
                       </div>
                     </div>
                   </div>
-                ))}
+                  );
+                })}
               </div>
             )}
 
             {/* Disliked Recipes */}
-            {activeTab === 'disliked' && (
+            {activeTab === 'disliked' && !loading && (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {dislikedRecipes.map((recipe) => (
-                  <div key={recipe.id} className="bg-white rounded-xl border border-gray-200 overflow-hidden hover:shadow-lg transition-all group">
+                {dislikedHistory.map((entry) => {
+                  const recipe = entry.recipe;
+                  return (
+                  <div key={entry.id} className="bg-white rounded-xl border border-gray-200 overflow-hidden hover:shadow-lg transition-all group">
                     <div className="relative h-48 overflow-hidden">
-                      <img 
-                        src={recipe.image} 
-                        alt={recipe.name}
-                        className="w-full h-full object-cover object-top group-hover:scale-105 transition-transform duration-300"
-                      />
+                      {recipe?.image ? (
+                        <img
+                          src={recipe.image}
+                          alt={recipe.title}
+                          className="w-full h-full object-cover object-top group-hover:scale-105 transition-transform duration-300"
+                        />
+                      ) : (
+                        <div className="w-full h-full flex items-center justify-center bg-gray-100 text-gray-500 text-sm">
+                          No image
+                        </div>
+                      )}
                       <div className="absolute top-3 right-3 w-10 h-10 bg-white rounded-full flex items-center justify-center shadow-md">
                         <i className="ri-close-circle-fill text-xl text-gray-500"></i>
                       </div>
                     </div>
                     <div className="p-4">
-                      <h3 className="font-semibold text-gray-900 mb-2">{recipe.name}</h3>
+                      <h3 className="font-semibold text-gray-900 mb-2">{recipe?.title || `Recipe #${entry.recipe_id}`}</h3>
                       <div className="flex items-center gap-4 text-sm text-gray-600">
                         <span className="flex items-center gap-1">
                           <i className="ri-time-line"></i>
-                          {recipe.cookTime}
+                          {recipe?.total_time ? `${recipe.total_time} min` : '—'}
                         </span>
                         <span className="flex items-center gap-1">
                           <i className="ri-fire-line"></i>
-                          {recipe.calories} cal
+                          {recipe?.nutrients?.calories || '—'}
                         </span>
                       </div>
                       <div className="mt-3 pt-3 border-t border-gray-100">
-                        <span className="text-sm text-gray-600">{recipe.cuisine}</span>
+                        <span className="text-sm text-gray-600">{recipe?.category || '—'}</span>
                       </div>
                     </div>
                   </div>
-                ))}
+                  );
+                })}
               </div>
             )}
 
