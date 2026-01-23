@@ -35,7 +35,7 @@ export default function Auth() {
         }
       } else {
         // Register first
-        await authApi.register(formData.email, formData.password);
+        await authApi.register(formData.email, formData.password, formData.name);
         // Then Login automatically to get the cookie
         await authApi.login(formData.email, formData.password);
         // Navigate on success
