@@ -107,6 +107,30 @@ func (service UserService) SetSelectedUserMarketId(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, fmt.Sprintf("Updated market id for user: %s", userId))
 }
 
+func (service UserService) GetUserSelectedMarket(ctx *gin.Context) {
+	userId := ctx.GetString("user_id")
+
+	// Note: We pass service.DB directly as we don't need a transaction for a single read
+	marketId, err := repository.GetUserMarketId(service.DB, userId)
+
+	if err != nil {
+		if err == sql.ErrNoRows {
+			// User exists but hasn't selected a market yet
+			ctx.JSON(http.StatusNotFound, gin.H{"error": "No market selected for this user"})
+			return
+		}
+		// Database error
+		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "Could not fetch user market"})
+		log.Println("Database error in GetUserSelectedMarket:", err.Error())
+		return
+	}
+
+	ctx.JSON(http.StatusOK, gin.H{
+		// "userId":   userId,
+		"marketId": marketId,
+	})
+}
+
 func (service UserService) CreateUserPreferences(ctx *gin.Context) {
 	userId := ctx.GetString("user_id")
 

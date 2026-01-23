@@ -6,8 +6,12 @@ import { marketApi } from '@/api/market-selection/marketApi';
 import { Market } from '@/types/market';
 import * as React from "react";
 import { userApi } from '@/api/market-selection/saveMarketApi';
+// import { useNavigate } from 'react-router-dom';
 
-// Fix for default marker icons in React-Leaflet
+interface MarketSelectionProps {
+  onComplete?: (newMarketId: number) => void;
+}
+
 delete (L.Icon.Default.prototype as any)._getIconUrl;
 L.Icon.Default.mergeOptions({
   iconRetinaUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-icon-2x.png',
@@ -22,7 +26,9 @@ function MapViewController({ center }: { center: [number, number] }) {
   return null;
 }
 
-export default function MarketSelection() {
+export default function MarketSelection({ onComplete }: MarketSelectionProps) {
+  // const navigate = useNavigate();
+
   const [postalCode, setPostalCode] = useState('');
   const [showMarkets, setShowMarkets] = useState(false);
   const [selectedMarket, setSelectedMarket] = useState<Market | null>(null);
@@ -73,15 +79,22 @@ export default function MarketSelection() {
       try {
         console.log("Saving selected market");
         await userApi.saveMarket(selectedMarket.id.toString());
+        localStorage.setItem('selectedMarketId', selectedMarket.id.toString());
         console.log("Selected market saved");
+        if (onComplete) {
+        // If inside a popup, just run the callback (close modal)
+        onComplete(selectedMarket.id);
+      } else {
+        // If running as a standalone page, navigate away
+        // navigate('/recipe-swiper');
+        window.REACT_APP_NAVIGATE('/recipe-swiper');
+      }
       } catch (error) {
         alert("Failed to save selected market. Please try again.");
       } finally {
         setIsSaving(false);
       } 
       // Save the REWE ID for the next step (Recipe Generation)
-      localStorage.setItem('selectedMarketId', selectedMarket.id.toString());
-      window.REACT_APP_NAVIGATE('/recipe-swiper');
     }
   };
 
@@ -244,7 +257,7 @@ export default function MarketSelection() {
                     onClick={handleContinue}
                     className="px-8 py-3 rounded-lg bg-gradient-to-r from-indigo-600 to-purple-600 text-white font-medium hover:from-indigo-700 hover:to-purple-700 transition-colors shadow-md hover:shadow-lg cursor-pointer whitespace-nowrap"
                 >
-                  Continue to Recipes
+                  Continue
                 </button>
               </div>
           )}

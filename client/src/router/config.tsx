@@ -13,6 +13,7 @@ const ShoppingList = lazy(() => import("@/pages/shopping-list/page"));
 const MarketSelection = lazy(() => import("@/pages/market-selection/page"));
 const Admin = lazy(() => import("@/pages/admin/page"));
 const Search = lazy(() => import("@/pages/search/page"));
+const SearchProducts = lazy(() => import("@/pages/search-products/page"));
 
 const routes: RouteObject[] = [
   {
@@ -52,6 +53,9 @@ const routes: RouteObject[] = [
     element: <MainLayout><Search /></MainLayout>,
   },
   {
+    path: "/search-products",
+    element: <MainLayout><SearchProducts /></MainLayout>,
+  },
     path: "*",
     element: <NotFound></NotFound>
   }

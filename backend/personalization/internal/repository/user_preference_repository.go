@@ -16,6 +16,16 @@ type AdditionalInfo struct {
 	PreferenceVector []float64 `json:"preference_vector"`
 }
 
+func GetUserMarketId(db *sql.DB, userId string) (int64, error) {
+	var marketId int64
+	// Adjust table name 'user_preferences' and column 'user_id' if different
+	query := `SELECT market_id FROM user_preferences WHERE user_id = $1`
+
+	err := db.QueryRow(query, userId).Scan(&marketId)
+	if err != nil {
+		return 0, err
+	}
+	return marketId, nil
 func AddItemToShoppingList(tx *sql.Tx, userId string, productId int, quantity int, recipeId int) error {
 	var listId int
 
