@@ -4,78 +4,25 @@ import { useState, useEffect } from 'react';
 export default function ShoppingListPage() {
   const [activeTab, setActiveTab] = useState<'current' | 'history'>('current');
   const [activeList, setActiveList] = useState<ShoppingList | null>(null);
+  const [shoppingHistory, setShoppingHistory] = useState<ShoppingList[]>([]);
 
-  useEffect(() => {
-    const fetchList = async () => {
+  const fetchList = async () => {
       try {
         const listData = await shoppingListApi.getActiveShoppingList();
-        setActiveList(listData);
+        if (listData) setActiveList(listData);
+        const historyData = await shoppingListApi.getShoppingHistory();
+        if (historyData.length > 0) setShoppingHistory(historyData);
       } catch (error) {
         console.error("Failed to load shopping list", error);
       }
     };
-    
+
+  useEffect(() => {
     fetchList();
   }, []);
 
-  // Mock shopping history
-  // TODO: Retrieve from backend instead
-  const shoppingHistory: ShoppingList[] = [
-    {
-      id: 'list-1',
-      date: '2024-01-15',
-      totalItems: 15,
-      totalPrice: 87.45,
-      completed: true,
-      groups: [
-        { recipeName: 'Mediterranean Grilled Chicken', isExpanded: false, items: [] },
-        { recipeName: 'Creamy Mushroom Pasta', isExpanded: false, items: [] },
-        { recipeName: 'Asian Salmon Bowl', isExpanded: false, items: [] }
-      ]
-    },
-    {
-      id: 'list-2',
-      date: '2024-01-08',
-      totalItems: 12,
-      totalPrice: 65.30,
-      completed: true,
-      groups: [
-         { recipeName: 'Vegetarian Buddha Bowl', isExpanded: false, items: [] },
-         { recipeName: 'Thai Green Curry', isExpanded: false, items: [] },
-         { recipeName: 'Caprese Salad', isExpanded: false, items: [] }
-      ]
-    },
-    {
-      id: 'list-3',
-      date: '2024-01-01',
-      totalItems: 18,
-      totalPrice: 102.15,
-      completed: true,
-      groups: [
-          { recipeName: 'Beef Tacos', isExpanded: false, items: [] },
-          { recipeName: 'Caesar Salad', isExpanded: false, items: [] },
-          { recipeName: 'Chocolate Brownies', isExpanded: false, items: [] },
-          { recipeName: 'Tomato Soup', isExpanded: false, items: [] }
-      ]
-    },
-    {
-      id: 'list-4',
-      date: '2023-12-25',
-      totalItems: 22,
-      totalPrice: 145.80,
-      completed: true,
-      groups: [
-          { recipeName: 'Roast Turkey', isExpanded: false, items: [] },
-          { recipeName: 'Mashed Potatoes', isExpanded: false, items: [] },
-          { recipeName: 'Green Bean Casserole', isExpanded: false, items: [] },
-          { recipeName: 'Pumpkin Pie', isExpanded: false, items: [] }
-      ]
-    }
-  ];
-
   const toggleRecipeExpansion = (recipeName: string) => {
     if (!activeList) return;
-    
     setActiveList(prev => {
       if (!prev) return null;
       return {
@@ -89,15 +36,18 @@ export default function ShoppingListPage() {
     });
   };
 
-  const handleToggleCheck = async (recipeIndex: number, itemId: string) => {
+
+  const handleToggleCheck = async (recipeName: string, itemId: string) => {
     if (!activeList) return;
 
+    // Optimistic Update
     setActiveList(prev => {
         if (!prev) return null;
         return {
             ...prev,
-            groups: prev.groups.map((group, idx) =>
-                idx === recipeIndex
+            groups: prev.groups.map((group) =>
+                // Match by NAME, not Index
+                group.recipeName === recipeName
                   ? {
                       ...group,
                       items: group.items.map(item =>
@@ -109,43 +59,39 @@ export default function ShoppingListPage() {
         }
     });
 
-    const group = activeList.groups[recipeIndex];
+    const group = activeList.groups.find(g => g.recipeName === recipeName);
+    if (!group) return;
+
     const item = group.items.find(i => i.id === itemId);
     if (item) {
+        // Note: item.checked is the OLD value here, so we send !item.checked
         await shoppingListApi.updateItemStatus(itemId, !item.checked).catch(err => {
             console.error("Failed to update item status", err);
         });
-        console.log("Item status updated");
     }
   };
 
-  const handleRemoveItem = async (recipeIndex: number, itemId: string) => {
+  const handleRemoveItem = async (recipeName: string, itemId: string) => {
     if (!activeList) return;
 
-    // 1. Optimistic Update
     setActiveList(prev => {
       if (!prev) return null;
-      const updatedGroups = prev.groups.map((group, idx) =>
-        idx === recipeIndex
+      const updatedGroups = prev.groups.map((group) =>
+        group.recipeName === recipeName
           ? {
               ...group,
               items: group.items.filter(item => item.id !== itemId)
             }
           : group
       );
-      
-      // Remove empty recipe groups
+
       const filteredGroups = updatedGroups.filter(group => group.items.length > 0);
 
-      return {
-          ...prev,
-          groups: filteredGroups
-      };
+      return { ...prev, groups: filteredGroups };
     });
 
     await shoppingListApi.deleteItem(itemId).catch(err => {
         console.error("Failed to delete item", err);
-        // Optionally revert state here on error
     });
   };
 
@@ -162,26 +108,23 @@ export default function ShoppingListPage() {
 
     try {
         await shoppingListApi.completeShoppingList(activeList.id);
-        alert('Shopping completed! 🎉');
-        
-        // Update local state to show completed
-        setActiveList(prev => prev ? { ...prev, completed: true } : null);
+        alert('Shopping completed!');
+
+        fetchList();
     } catch (error) {
         console.error("Failed to complete shopping list", error);
         alert("Failed to complete shopping list. Please try again.");
     }
   };
 
-  // Helper to get recipe groups for rendering
   const recipeGroups = activeList ? activeList.groups : [];
 
   const getAllItems = () => {
-    return recipeGroups.flatMap(group => group.items);
+    if (!activeList || !activeList.groups) return [];
+    return activeList.groups.flatMap(group => group.items);
   };
-
-  const totalPrice = getAllItems()
-    .reduce((sum, item) => sum + (item.price * (item.quantity || 1)), 0);
-
+  
+  const totalPrice = getAllItems().reduce((sum, item) => sum + (item.price * (item.quantity || 1)), 0);
   const checkedCount = getAllItems().filter(item => item.checked).length;
   const totalCount = getAllItems().length;
   const progress = totalCount > 0 ? (checkedCount / totalCount) * 100 : 0;
@@ -263,7 +206,7 @@ export default function ShoppingListPage() {
           </div>
 
           {/* Recipe Groups */}
-          {recipeGroups.length === 0 ? (
+          {activeList && activeList.groups && activeList.groups.length === 0 ? (
             <div className="bg-white rounded-2xl shadow-sm p-12 text-center">
               <div className="w-24 h-24 flex items-center justify-center mx-auto mb-4 bg-gray-100 rounded-full">
                 <i className="ri-shopping-cart-line text-5xl text-gray-400"></i>
@@ -281,7 +224,7 @@ export default function ShoppingListPage() {
             </div>
           ) : (
             <div className="space-y-4">
-              {recipeGroups.map((group, groupIndex) => {
+              {activeList && activeList.groups && activeList.groups.map((group, groupIndex) => {
                 const groupCheckedCount = group.items.filter(item => item.checked).length;
                 const groupTotalCount = group.items.length;
                 const groupProgress = groupTotalCount > 0 ? (groupCheckedCount / groupTotalCount) * 100 : 0;
@@ -361,7 +304,7 @@ export default function ShoppingListPage() {
                             <div className="flex items-center gap-4">
                               {/* Checkbox */}
                               <button
-                                onClick={() => handleToggleCheck(groupIndex, item.id)}
+                                onClick={() => handleToggleCheck(group.recipeName, item.id)}
                                 className={`w-8 h-8 flex items-center justify-center rounded-lg border-2 transition-all cursor-pointer flex-shrink-0 ${
                                   item.checked
                                     ? 'bg-[#2F855A] border-[#2F855A]'
@@ -402,7 +345,7 @@ export default function ShoppingListPage() {
                               {/* Action Buttons */}
                               <div className="flex flex-col gap-2 flex-shrink-0">
                                 <button
-                                  onClick={() => handleRemoveItem(groupIndex, item.id)}
+                                  onClick={() => handleRemoveItem(group.recipeName, item.id)}
                                   className="w-10 h-10 flex items-center justify-center rounded-lg hover:bg-red-50 transition-colors cursor-pointer"
                                   title="Remove item"
                                 >
@@ -421,7 +364,7 @@ export default function ShoppingListPage() {
           )}
 
           {/* Complete Shopping Button */}
-          {recipeGroups.length > 0 && (
+          {activeList && activeList.groups && activeList.groups.length > 0 && (
             <div className="sticky bottom-0 bg-gradient-to-t from-emerald-50 via-emerald-50 to-transparent pt-6 pb-6 mt-6">
               <button
                 onClick={handleCompleteShopping}

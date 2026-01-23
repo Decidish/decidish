@@ -55,6 +55,18 @@ export const shoppingListApi = {
     }
   },
 
+  getShoppingHistory: async (): Promise<ShoppingList[]> => {
+    try {
+      const response = await apiClient.get<ShoppingList[]>(
+        "/personalization/api/v1/user/shopping/history",
+      );
+      return response.data;
+    } catch (error) {
+      console.error("Failed to fetch shopping history:", error);
+      throw error;
+    }
+  },
+
   updateItemStatus: async (itemId: string, isChecked: boolean) => {
     try {
       await apiClient.put<void>(
