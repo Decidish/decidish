@@ -34,7 +34,7 @@ func AddItemToShoppingList(tx *sql.Tx, userId string, productId int, quantity in
 	err := tx.QueryRow(`
         SELECT id 
         FROM shopping_lists 
-        WHERE user_id = $1 AND status = 'active' 
+        WHERE user_id = $1 AND completed = FALSE
         LIMIT 1
         FOR UPDATE
     `, userId).Scan(&listId)
@@ -42,8 +42,8 @@ func AddItemToShoppingList(tx *sql.Tx, userId string, productId int, quantity in
 	if err != nil {
 		if err == sql.ErrNoRows {
 			err = tx.QueryRow(`
-                INSERT INTO shopping_lists (user_id, name, status)
-                VALUES ($1, 'My Shopping List', 'active')
+                INSERT INTO shopping_lists (user_id, completed)
+                VALUES ($1, FALSE)
                 RETURNING id
             `, userId).Scan(&listId)
 
@@ -69,7 +69,6 @@ func AddItemToShoppingList(tx *sql.Tx, userId string, productId int, quantity in
 	}
 
 	return nil
-
 }
 
 func UpdateMarketId(tx *sql.Tx, userId string, marketId string) error {
@@ -137,37 +136,3 @@ func AddUserPreference(tx *sql.Tx, userId string, userInfo AdditionalInfo) error
 
 	return nil
 }
-
-type ShoppingItem struct {
-	Id             int     `json:"id"`
-	Name           string  `json:"name"`
-	Image          string  `json:"image"`
-	Price          float64 `json:"price"`
-	Category       string  `json:"category"`
-	Checked        bool    `json:"checked"`
-	IngredientName string  `json:"ingredient_name,omitempty"`
-}
-
-type Product struct {
-	Id     int     `json:"id"`
-	Name   string  `json:"name"`
-	Brand  string  `json:"brand"`
-	Image  string  `json:"image"`
-	Price  float64 `json:"price"`
-	Weight string  `json:"weight"`
-	Unit   string  `json:"unit"`
-}
-
-type ShoppingList struct {
-	Id         int            `json:"id"`
-	Date       string         `json:"date"`
-	TotalItems int            `json:"total_items"`
-	TotalPrice float64        `json:"total_price"`
-	Recipes    []string       `json:"recipes"`
-	Items      []ShoppingItem `json:"items"`
-	Completed  bool           `json:"completed"`
-}
-
-//func GetUserCartItems(db *sql.DB, id string) (interface{}, interface{}) {
-//	return nil, nil
-//}

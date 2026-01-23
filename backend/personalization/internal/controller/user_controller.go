@@ -25,4 +25,7 @@ func (controller UserController) AddMappings(r *gin.RouterGroup) {
 	r.GET("/user/isembedded", controller.UserService.IsUserEmbeddingReady)
 	r.POST("/user/add-to-list", controller.ShoppingListService.AddProductsToShoppingList)
 	r.GET("/user/active/list", controller.ShoppingListService.GetActiveShoppingList)
+	r.PUT("/user/update/item", controller.ShoppingListService.UpdateShoppingListItem)
+	r.DELETE("/user/delete/item/:item_id", controller.ShoppingListService.DeleteShoppingListItem)
+	r.PUT("/user/complete/list/:list_id", controller.ShoppingListService.MarkShoppingListCompleted)
 }

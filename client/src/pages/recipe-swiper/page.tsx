@@ -19,7 +19,6 @@ export default function RecipeSwiper() {
   const [currentIngredientIndex, setCurrentIngredientIndex] = useState(0);
   const [selectedProducts, setSelectedProducts] = useState<Record<number, Product | 'already-have'>>({});
   const [likedRecipes, setLikedRecipes] = useState<UIRecipe[]>([]);
-  const [servingsCollected, setServingsCollected] = useState(0);
   const [showAllProducts, setShowAllProducts] = useState(false);
   const [showSuccessToast, setShowSuccessToast] = useState(false);
   const [successMessage, setSuccessMessage] = useState('');
@@ -137,11 +136,6 @@ export default function RecipeSwiper() {
   const handleConfirmRecipe = async () => {
     if (currentRecipe) {
       setLikedRecipes([...likedRecipes, currentRecipe]);
-      // PARSING NOTE: personalization sends 'yields' ("4 servings"), usually a string. 
-      // default to 4 if missing.
-      const recipeServings = parseInt(currentRecipe.yields) || 4;
-      const newServingsCollected = servingsCollected + recipeServings;
-      setServingsCollected(newServingsCollected);
 
       const shoppingListElems = Object.entries(selectedProducts)
           .filter(selectedProduct => selectedProduct[1] !== 'already-have')
@@ -320,10 +314,6 @@ export default function RecipeSwiper() {
               <div>
                 <h2 className="text-lg font-semibold text-gray-900">Find Your Recipes</h2>
                 <p className="text-sm text-gray-600">Swipe to discover meals you'll love</p>
-              </div>
-              <div className="text-right">
-                <div className="text-2xl font-bold text-[#2F855A]">{servingsCollected}</div>
-                <p className="text-xs text-gray-600">Servings</p>
               </div>
             </div>
           </div>
