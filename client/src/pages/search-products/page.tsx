@@ -1,3 +1,4 @@
+import MarketSelection from '@/pages/market-selection/page';
 import { marketApi, Market } from '@/api/search-product/marketApi'; // The file we just created
 import { useState,useEffect } from 'react';
 import { productApi, Product } from '@/api/search-product/productApi';
@@ -6,6 +7,7 @@ import { useNavigate } from 'react-router-dom';
 
 export default function SearchProducts() {
   const navigate = useNavigate();
+  const [showMarketModal, setShowMarketModal] = useState(false);
   
   const [searchQuery, setSearchQuery] = useState('');
   const [filterType, setFilterType] = useState('all'); 
@@ -87,6 +89,13 @@ export default function SearchProducts() {
     setCurrentPage(1);
     handleSearch(1);
   }, [marketId]);
+  
+  const handleMarketUpdate = (newMarketId: number) => {
+    setShowMarketModal(false);
+    setMarketId(newMarketId);
+    setSearchResults([]); 
+    setIsMarketLoading(true);
+  };
 
   const handleSearch = async (page: number = 1) => {
     if (!marketId) {
@@ -201,7 +210,8 @@ export default function SearchProducts() {
       {/* Positioned top-right of the content area */}
         <div className="flex justify-begin mb-4 md:absolute md:top-8 md:left-4">
           <button
-            onClick={() => navigate('/market-selection')}
+            // onClick={() => navigate('/market-selection')}
+            onClick={() => setShowMarketModal(true)}
             className="group flex items-center gap-3 bg-white/80 backdrop-blur-md border border-emerald-100 rounded-full pl-3 pr-4 py-2 shadow-sm hover:shadow-md hover:border-[#2F855A] transition-all cursor-pointer"
           >
             {/* Icon Box */}
@@ -479,7 +489,29 @@ export default function SearchProducts() {
            </div>
         </div>
       )}
+      {/*Market Modal */}
+      {showMarketModal && (
+        <div className="fixed inset-0 z-[60] bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 animate-fade-in">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-4xl max-h-[90vh] overflow-hidden flex flex-col relative">
 
+            {/* Close Button */}
+            <button
+              onClick={() => setShowMarketModal(false)}
+              className="absolute top-4 right-4 z-10 w-8 h-8 bg-white/80 rounded-full flex items-center justify-center hover:bg-red-50 hover:text-red-500 transition-colors"
+            >
+              <i className="ri-close-line text-xl"></i>
+            </button>
+
+            {/* Render the Page Component here! 
+          Note: You might need to pass a prop like 'onSelect' to close the modal
+          when they finish, depending on how MarketSelection is built. 
+      */}
+            <div className="flex-1 overflow-y-auto">
+              <MarketSelection onComplete={handleMarketUpdate} />
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
