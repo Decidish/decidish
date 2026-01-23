@@ -17,7 +17,7 @@ export const adminApi = {
   addRecipe: async (recipeUrl: string): Promise<void> => {
     try {
       await apiClient.post('/personalization/recipes/add/', {
-        recipeUrl: recipeUrl
+        recipe_url: recipeUrl
       });
     } catch (error) {
       console.error("Error adding recipe:", error);
@@ -29,14 +29,6 @@ export const adminApi = {
    * Adds recipes from Rewe market.
    * 
    */
-  // addReweRecipes: async (): Promise<void> => {
-  //   try {
-  //     await apiClient.post('/personalization/recipes/add/rewe/');
-  //   } catch (error) {
-  //     console.error("Error adding Rewe recipes:", error);
-  //     throw error;
-  //   }
-  // }
   // Start the Job (Returns { job_id: 123, status: "pending" })
   addReweRecipes: async () => {
     const response = await apiClient.post('/personalization/recipes/add/rewe/');
@@ -45,6 +37,18 @@ export const adminApi = {
   // Poll the Job (Returns current progress)
   getJobStatus: async (jobId: string): Promise<JobStatusResponse> => {
     const response = await apiClient.get(`/personalization/jobs/${jobId}`);
+    return response.data;
+  },
+  getReweJobHistory: async () => {
+    const response = await apiClient.get('/personalization/recipes/history/rewe');
+    return response.data;
+  },
+  getImportHistory: async () => {
+    const response = await apiClient.get('/personalization/recipes/history/url');
+    return response.data;
+  },
+  getStats: async () => {
+    const response = await apiClient.get('/personalization/admin/stats');
     return response.data;
   }
 };
