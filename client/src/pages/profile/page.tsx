@@ -7,24 +7,22 @@ import { authApi, AuthProfile } from '@/api/auth/authApi';
 export default function Profile() {
   const [activeTab, setActiveTab] = useState<'liked' | 'disliked' | 'stats'>('liked');
   const [history, setHistory] = useState<UserHistoryRecord[]>([]);
-  const [recipes, setRecipes] = useState<RecipeRecommendation[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [profile, setProfile] = useState<AuthProfile | null>(null);
 
   const [userData, setUserData] = useState({
-    name: 'Sarah Johnson',
-    email: 'sarah.johnson@email.com',
-    avatar: 'https://readdy.ai/api/search-image?query=professional%20portrait%20photo%20of%20a%20smiling%20woman%20with%20brown%20hair%20in%20casual%20attire%20against%20a%20soft%20neutral%20background%20warm%20natural%20lighting%20friendly%20approachable%20expression%20high%20quality%20headshot%20photography&width=200&height=200&seq=user-avatar-001&orientation=squarish',
+    name: '',
+    email: '',
     preferences: {
-      diet: 'Vegetarian',
-      servings: 2,
+      diet: 'Not specified',
+      servings: 1,
       budget: 'medium',
-      allergies: ['Nuts', 'Shellfish'],
-      cookingTime: '30-45 min',
-      skillLevel: 'Intermediate'
+      allergies: [],
+      cookingTime: 'Any',
+      skillLevel: 'Beginner'
     },
-    selectedMarket: 'Whole Foods Market'
+    selectedMarket: 'Select a market'
   });
 
   // Pull history + recipe metadata so we can display real data instead of mocks
@@ -33,19 +31,48 @@ export default function Profile() {
       setLoading(true);
       setError(null);
       try {
-        const [historyResponse, recommendationResponse, profileResponse] = await Promise.all([
+        const [historyResponse, profileResponse] = await Promise.all([
           userHistoryApi.getUserHistory(),
-          recipesApi.getRecommendations().catch(() => []),
           authApi.getProfile().catch(() => null),
         ]);
         setHistory(historyResponse);
-        setRecipes(recommendationResponse);
+
+        // Infer preferences from liked recipes (now embedded in history)
+        const likedRecords = historyResponse.filter((h) => h.action);
+        const likedServings = likedRecords
+          .map((h) => parseInt(h.recipe?.yields) || 2)
+          .filter((v): v is number => v > 0);
+        const avgServings = likedServings.length > 0 
+          ? Math.round(likedServings.reduce((a, b) => a + b, 0) / likedServings.length) 
+          : 2;
+
+        const categories: Record<string, number> = {};
+        likedRecords.forEach((h) => {
+          const cat = h.recipe?.category || 'Not specified';
+          categories[cat] = (categories[cat] || 0) + 1;
+        });
+        const diet = Object.entries(categories).sort((a, b) => b[1] - a[1])[0]?.[0] || 'Not specified';
+
+        const cookTimes = likedRecords
+          .map((h) => h.recipe?.total_time)
+          .filter((v): v is number => v > 0);
+        const avgTime = cookTimes.length > 0 ? cookTimes.reduce((a, b) => a + b, 0) / cookTimes.length : 30;
+        const skillLevel = avgTime > 60 ? 'Advanced' : avgTime > 30 ? 'Intermediate' : 'Beginner';
+
         if (profileResponse) {
           setProfile(profileResponse);
           setUserData((prev) => ({
             ...prev,
             name: profileResponse.name || profileResponse.username,
             email: profileResponse.email || profileResponse.username,
+            preferences: {
+              diet: diet && diet !== '—' ? diet : 'Not specified',
+              servings: avgServings,
+              budget: 'medium',
+              allergies: [],
+              cookingTime: `${Math.round(avgTime)} min`,
+              skillLevel
+            }
           }));
         }
       } catch (err: any) {
@@ -60,22 +87,9 @@ export default function Profile() {
     load();
   }, []);
 
-  const recipeMap = useMemo(() => {
-    const map: Record<number, RecipeRecommendation> = {};
-    recipes.forEach((r) => {
-      map[r.id] = r;
-    });
-    return map;
-  }, [recipes]);
-
-  const enrich = (records: UserHistoryRecord[]) =>
-    records.map((record) => ({
-      ...record,
-      recipe: recipeMap[record.recipe_id],
-    }));
-
-  const likedHistory = enrich(history.filter((h) => h.action));
-  const dislikedHistory = enrich(history.filter((h) => !h.action));
+  // No need to enrich; recipes are already embedded in history
+  const likedHistory = history.filter((h) => h.action);
+  const dislikedHistory = history.filter((h) => !h.action);
 
   const parseCalories = (calories: string | undefined) => {
     if (!calories) return null;
@@ -90,19 +104,19 @@ export default function Profile() {
 
   const avgCookTimeMinutes = useMemo(() => {
     const values = history
-      .map((h) => recipeMap[h.recipe_id]?.total_time)
+      .map((h) => h.recipe?.total_time)
       .filter((v): v is number => typeof v === 'number' && v > 0);
     const value = avg(values);
     return value ? `${Math.round(value)} min` : '—';
-  }, [history, recipeMap]);
+  }, [history]);
 
   const avgCalories = useMemo(() => {
     const values = history
-      .map((h) => parseCalories(recipeMap[h.recipe_id]?.nutrients.calories))
+      .map((h) => parseCalories(h.recipe?.nutrients.calories))
       .filter((v): v is number => typeof v === 'number' && !Number.isNaN(v));
     const value = avg(values);
     return value ? Math.round(value) : '—';
-  }, [history, recipeMap]);
+  }, [history]);
 
   const stats = {
     totalRecipes: history.length,
@@ -110,14 +124,14 @@ export default function Profile() {
     dislikedCount: dislikedHistory.length,
     avgCookTime: avgCookTimeMinutes,
     avgCalories,
-    favoriteCuisine: recipeMap[likedHistory[0]?.recipe_id]?.category || '—',
+    favoriteCuisine: likedHistory[0]?.recipe?.category || '—',
     totalCookingTime: history
-      .map((h) => recipeMap[h.recipe_id]?.total_time)
+      .map((h) => h.recipe?.total_time)
       .filter((v): v is number => typeof v === 'number' && v > 0)
       .reduce((sum, curr) => sum + curr, 0)
       ? `${Math.round(
           history
-            .map((h) => recipeMap[h.recipe_id]?.total_time)
+            .map((h) => h.recipe?.total_time)
             .filter((v): v is number => typeof v === 'number' && v > 0)
             .reduce((sum, curr) => sum + curr, 0) / 60
         )} hours`
@@ -139,19 +153,6 @@ export default function Profile() {
         {/* Profile Header */}
         <div className="bg-white rounded-2xl shadow-lg p-8 mb-6">
           <div className="flex flex-col md:flex-row items-center gap-6">
-            <div className="relative">
-              <div className="w-24 h-24 rounded-full overflow-hidden border-4 border-[#2F855A]/20">
-                <img 
-                  src={userData.avatar} 
-                  alt={userData.name}
-                  className="w-full h-full object-cover object-top"
-                />
-              </div>
-              <button className="absolute bottom-0 right-0 w-8 h-8 bg-[#2F855A] rounded-full flex items-center justify-center text-white hover:bg-[#276749] transition-colors cursor-pointer">
-                <i className="ri-pencil-line text-sm"></i>
-              </button>
-            </div>
-            
             <div className="flex-1 text-center md:text-left">
               <h1 className="text-3xl font-bold text-gray-900 mb-1">{userData.name}</h1>
               <p className="text-sm text-gray-600 mb-4">{userData.email}</p>
