@@ -1,10 +1,12 @@
 import apiClient from "../client";
+import { RecipeRecommendation } from "../recipe-swiper/recipesApi";
 
 export interface UserHistoryRecord {
   id: number;
   user_id: string;
   action: boolean; // true for like, false for dislike
-  recipe_id: number;
+  recipe_id: number; // kept for convenience
+  recipe: RecipeRecommendation;
   action_timestamp: string;
 }
 
