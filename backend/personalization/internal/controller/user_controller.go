@@ -19,5 +19,6 @@ func NewUserController(service service.IUserService) *UserController {
 func (controller UserController) AddMappings(r *gin.RouterGroup) {
 	r.POST("/user/preferences", controller.UserService.CreateUserPreferences)
 	r.POST("/user/market", controller.UserService.SetSelectedUserMarketId)
+	r.GET("/user/market", controller.UserService.GetUserSelectedMarket)
 	r.GET("/user/isembedded", controller.UserService.IsUserEmbeddingReady)
 }

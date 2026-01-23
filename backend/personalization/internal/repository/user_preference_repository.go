@@ -9,10 +9,22 @@ import (
 type AdditionalInfo struct {
 	Allergies        []string  `json:"allergies"`
 	MinCookingTime   int       `json:"min_cooking_time"`
-    MaxCookingTime   int       `json:"max_cooking_time"`
-	Budget           int    	`json:"budget"`
+	MaxCookingTime   int       `json:"max_cooking_time"`
+	Budget           int       `json:"budget"`
 	SkillLevel       string    `json:"skill_level"`
 	PreferenceVector []float64 `json:"preference_vector"`
+}
+
+func GetUserMarketId(db *sql.DB, userId string) (int64, error) {
+	var marketId int64
+	// Adjust table name 'user_preferences' and column 'user_id' if different
+	query := `SELECT market_id FROM user_preferences WHERE user_id = $1`
+
+	err := db.QueryRow(query, userId).Scan(&marketId)
+	if err != nil {
+		return 0, err
+	}
+	return marketId, nil
 }
 
 func UpdateMarketId(tx *sql.Tx, userId string, marketId string) error {

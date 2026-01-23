@@ -1,5 +1,6 @@
-import { useState } from 'react';
+import { useState,useEffect } from 'react';
 import { productApi, Product } from '@/api/search-product/productApi';
+import { userApi } from '@/api/search-product/userApi';
 
 // --- Mock Data ---
 
@@ -26,8 +27,10 @@ export default function SearchProducts() {
   const [successMessage, setSuccessMessage] = useState('');
   const [cart, setCart] = useState<{product: Product, quantity: number}[]>([]);
   const [showCart, setShowCart] = useState(false);
+  
+  const [marketId, setMarketId] = useState<number | null>(null);
+  const [isMarketLoading, setIsMarketLoading] = useState(true);
 
-  // --- Logic ---
   const filterOptions = [
     { value: 'all', label: 'All Products' },
     { value: 'is_organic', label: 'Organic (Bio)' },
@@ -40,9 +43,48 @@ export default function SearchProducts() {
 
   const formatPrice = (cents: number) => (cents / 100).toFixed(2);
   
-  const selectedMarketId = 441070;
+  // useEffect(() => {
+  //   const fetchMarket = async () => {
+  //     const fetchedId = await userApi.getUserMarketId();
+      
+  //     if (fetchedId) {
+  //       setMarketId(fetchedId);
+  //     } else {
+  //       setError("Please select a market in your profile settings.");
+  //       setLoading(false);
+  //     }
+  //   };
+
+  //   fetchMarket();
+  // }, []); // Empty dependency array = runs once on page load
+
+  useEffect(() => {
+  const fetchMarket = async () => {
+    try {
+      const id = await userApi.getUserMarketId();
+      if (id) setMarketId(id);
+      
+      // if (id) handleSearch(1); 
+    } catch (err) {
+      console.error("Failed to fetch market preference");
+    } finally {
+      setIsMarketLoading(false);
+    }
+  };
+  fetchMarket();
+}, []);
+
+  useEffect(() => {
+    if (!marketId) return; // Wait until we have the ID
+    setCurrentPage(1);
+    handleSearch(1);
+  }, [marketId]);
 
   const handleSearch = async (page: number = 1) => {
+    if (!marketId) {
+      console.warn("Cannot search: No market selected.");
+      return;
+    }
     setIsSearching(true);
     setHasSearched(true);
     setCurrentPage(page);
@@ -55,7 +97,7 @@ export default function SearchProducts() {
         filter: filterType,
         sort: priceSort,
         page: page,
-        marketId: selectedMarketId
+        marketId: marketId
       });
 
       // Update Data States
@@ -107,7 +149,6 @@ export default function SearchProducts() {
     setShowProductModal(true);
   };
 
-  // --- Render Helpers ---
   const renderPaginationButtons = () => {
     const buttons = [];
     for (let i = 1; i <= totalPages; i++) {
@@ -127,6 +168,7 @@ export default function SearchProducts() {
     }
     return buttons;
   };
+  
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-emerald-50 via-green-50 to-teal-50">
@@ -147,7 +189,7 @@ export default function SearchProducts() {
       </button>
 
       {/* Main Content */}
-      <div className="max-w-7xl mx-auto px-4 py-8">
+      <div className="max-w-7xl mx-auto px-4 py-8 relative">
         {/* Search Header */}
         <div className="text-center mb-8">
           <h1 className="text-4xl font-bold text-gray-900 mb-3">
@@ -165,7 +207,8 @@ export default function SearchProducts() {
               <i className="ri-search-line absolute left-4 top-1/2 -translate-y-1/2 text-xl text-gray-400"></i>
               <input
                 type="text"
-                placeholder="Search by recipe name, ingredient, or cuisine..."
+                disabled={isMarketLoading}
+                placeholder={isMarketLoading ? "Loading market..." : "Search by recipe name, ingredient, or cuisine..."}
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 onKeyPress={handleKeyPress}
