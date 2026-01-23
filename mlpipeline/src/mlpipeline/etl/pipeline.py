@@ -296,7 +296,7 @@ class Pipeline:
             except Exception as e:
                 logging.error(f"Error processing recipe: {e}")
                 continue
-            recipe_id, err = self.process_recipe(recipe_data)
+            recipe_id, err = await self.process_recipe(recipe_data)
             if err is not None:
                 raise err
             if recipe_id == -1:
