@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { recipesApi, RecipeRecommendation } from '@/api/recipe-swiper/recipesApi';
 import { productsApi, ShoppingListResponse, IngredientGroup, Product } from '@/api/recipe-swiper/productsApi';
-import {CartItem, shoppingCartApi} from "@/api/recipe-swiper/shoppingCartApi.ts";
+import {CartItem, shoppingListApi} from "@/api/shopping-list/shoppingCartApi";
 
 
 // We extend the API response to include UI-specific fields if needed
@@ -34,11 +34,7 @@ export default function RecipeSwiper() {
   // FETCH RECIPES FROM BACKEND
   useEffect(() => {
     const fetchRecommendations = async () => {
-      
-
       try {
-        // await new Promise(resolve => setTimeout(resolve, 15000))
-        // await adminApi.addReweRecipes(); //? For testing purposes
         const data = await recipesApi.getRecommendations();
         console.log("data: ",data);
         const uiRecipes = data.map(r => ({ ...r, richIngredients: null }));
@@ -158,7 +154,7 @@ export default function RecipeSwiper() {
         return cartItems
       })
 
-      await shoppingCartApi.addItemsToShoppingCart(shoppingListElems);
+      await shoppingListApi.addItemsToShoppingList(shoppingListElems);
 
       // Show success notification
       showSuccessNotification(currentRecipe.title);

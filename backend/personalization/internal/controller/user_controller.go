@@ -7,12 +7,14 @@ import (
 )
 
 type UserController struct {
-	UserService service.UserService
+	service.UserService
+	service.ShoppingListService
 }
 
-func NewUserController(service service.UserService) *UserController {
+func NewUserController(service service.UserService, shoppingService service.ShoppingListService) *UserController {
 	return &UserController{
 		UserService: service,
+		ShoppingListService: shoppingService,
 	}
 }
 
@@ -21,6 +23,6 @@ func (controller UserController) AddMappings(r *gin.RouterGroup) {
 	r.POST("/user/market", controller.UserService.SetSelectedUserMarketId)
 	r.GET("/user/market", controller.UserService.GetUserSelectedMarket)
 	r.GET("/user/isembedded", controller.UserService.IsUserEmbeddingReady)
-	r.POST("/user/cart", controller.UserService.AddRecipeProductsToCart)
-	//r.GET("/user/cart/items", controller.UserService.GetUserCartItems)
+	r.POST("/user/add-to-list", controller.ShoppingListService.AddProductsToShoppingList)
+	r.GET("/user/active/list", controller.ShoppingListService.GetActiveShoppingList)
 }

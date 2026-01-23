@@ -6,12 +6,11 @@ export interface CartItem {
     recipe_id: number;
 }
 
-export const shoppingCartApi = {
-    // Calls POST /user/preferences
-    addItemsToShoppingCart: async (cartItems: CartItem[]): Promise<void[]> => {
+export const shoppingListApi = {
+    addItemsToShoppingList: async (cartItems: CartItem[]): Promise<void[]> => {
         try {
             const response =
-                await apiClient.post<void[]>('/personalization/api/v1/user/cart', cartItems);
+                await apiClient.post<void[]>('/personalization/api/v1/user/add-to-list', cartItems);
             return response.data;
         } catch (error) {
             console.error("Failed to fetch recipe recommendations:", error);

@@ -52,7 +52,8 @@ func createRecommendRecipesMappings(r *gin.RouterGroup, db *sql.DB) {
 
 func createUserMappings(config config.ApplicationConfig, r *gin.RouterGroup, db *sql.DB) {
 	userService := service.NewUserService(config, db, client.NewClient())
-	userController := controller.NewUserController(*userService)
+	shoppingService := service.NewShoppingListService(config, db)
+	userController := controller.NewUserController(*userService, *shoppingService)
 
 	userController.AddMappings(r)
 }

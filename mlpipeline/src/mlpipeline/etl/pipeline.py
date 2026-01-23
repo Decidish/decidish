@@ -1,3 +1,4 @@
+import asyncio
 import logging
 from typing import Generator, Optional
 
@@ -20,14 +21,15 @@ class Pipeline:
         # Register pgvector support with psycopg2
         register_vector(conn)
 
-    async def scrape_process_recipe(self, recipe_url: str, job_id: int):
+    def scrape_process_recipe(self, recipe_url: str, job_id: int):
         try:
             self.set_running_job_status(job_id)
 
             recipe_json = scrape_recipe(recipe_url)
 
+            logging.info(recipe_json)
             recipe_data = RawRecipe.model_validate_json(recipe_json)
-            recipe_id, err = await self.process_recipe(recipe_data)
+            recipe_id, err = self.process_recipe(recipe_data)
 
             if recipe_id == -1:
                 raise Exception("Recipe already exists in the database. Or could not be inserted.")
@@ -45,7 +47,7 @@ class Pipeline:
             self.set_error_job_status(job_id)
             raise e
 
-    async def process_recipe(self, recipe_data: BaseRecipe) -> tuple[int, Optional[Exception]]:
+    def process_recipe(self, recipe_data: BaseRecipe) -> tuple[int, Optional[Exception]]:
         try:
             with self.conn.cursor() as cursor:
                 insert_query = """
@@ -88,7 +90,7 @@ class Pipeline:
                     for ingredient in recipe_data.ingredients:
                         self.import_processed_ingredient(recipe_id, ingredient, cursor)
                 else:
-                    await self.process_ingredients(recipe_id, recipe_data.ingredients, cursor)
+                    self.process_ingredients(recipe_id, recipe_data.ingredients, cursor)
 
                 return recipe_id, None
         except Exception as e:
@@ -153,7 +155,7 @@ class Pipeline:
             print(f"Error processing categories: {err}")
             raise err
     
-    async def process_ingredients(self, recipe_id: int, ingredients: list[str], cursor):
+    def process_ingredients(self, recipe_id: int, ingredients: list[str], cursor):
         """
         Processes raw ingredient strings and imports them into the database.
         Batches in groups of 10 to optimize API calls.
@@ -161,7 +163,7 @@ class Pipeline:
         batch_size = 10
         for i in range(0, len(ingredients), batch_size):
             batch = ingredients[i:i + batch_size]
-            parsed = await self.parser.parse_ingredients(batch)
+            parsed = asyncio.run(self.parser.parse_ingredients(batch))
             for ingredient in parsed:
                 self.import_processed_ingredient(recipe_id, ingredient, cursor)
 
@@ -294,7 +296,7 @@ class Pipeline:
             except Exception as e:
                 logging.error(f"Error processing recipe: {e}")
                 continue
-            recipe_id, err = await self.process_recipe(recipe_data)
+            recipe_id, err = self.process_recipe(recipe_data)
             if err is not None:
                 raise err
             if recipe_id == -1:

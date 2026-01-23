@@ -3,6 +3,7 @@ package repository
 import (
 	"database/sql"
 	"encoding/json"
+	"fmt"
 	"strings"
 )
 
@@ -27,19 +28,48 @@ func GetUserMarketId(db *sql.DB, userId string) (int64, error) {
 	return marketId, nil
 }
 
-func AddProductToUserCart(tx *sql.Tx, userId string, productId int, quantity int, recipeId int) error {
-	_, err := tx.Exec(`
-	INSERT INTO user_cart (user_id, product_id, quantity, recipe_id)
-	VALUES ($1, $2, $3, $4)
-	ON CONFLICT (user_id, recipe_id, product_id) 
-	DO UPDATE SET quantity = EXCLUDED.quantity
-	`, userId, productId, quantity, recipeId)
+func AddItemToShoppingList(tx *sql.Tx, userId string, productId int, quantity int, recipeId int) error {
+	var listId int
+
+	err := tx.QueryRow(`
+        SELECT id 
+        FROM shopping_lists 
+        WHERE user_id = $1 AND status = 'active' 
+        LIMIT 1
+        FOR UPDATE
+    `, userId).Scan(&listId)
 
 	if err != nil {
-		return err
+		if err == sql.ErrNoRows {
+			err = tx.QueryRow(`
+                INSERT INTO shopping_lists (user_id, name, status)
+                VALUES ($1, 'My Shopping List', 'active')
+                RETURNING id
+            `, userId).Scan(&listId)
+
+			if err != nil {
+				return fmt.Errorf("failed to create new shopping list: %w", err)
+			}
+		} else {
+			return fmt.Errorf("failed to query active shopping list: %w", err)
+		}
+	}
+
+	_, err = tx.Exec(`
+        INSERT INTO shopping_list_items (shopping_list_id, product_id, quantity, recipe_id)
+        VALUES ($1, $2, $3, $4)
+        ON CONFLICT (shopping_list_id, product_id, recipe_id) 
+        DO UPDATE SET 
+            quantity = shopping_list_items.quantity + EXCLUDED.quantity, 
+            checked = FALSE
+    `, listId, productId, quantity, recipeId)
+
+	if err != nil {
+		return fmt.Errorf("failed to add item to list: %w", err)
 	}
 
 	return nil
+
 }
 
 func UpdateMarketId(tx *sql.Tx, userId string, marketId string) error {
