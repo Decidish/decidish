@@ -1,11 +1,12 @@
+import { marketApi, Market } from '@/api/search-product/marketApi'; // The file we just created
 import { useState,useEffect } from 'react';
 import { productApi, Product } from '@/api/search-product/productApi';
 import { userApi } from '@/api/search-product/userApi';
-
-// --- Mock Data ---
+import { useNavigate } from 'react-router-dom';
 
 export default function SearchProducts() {
-  // --- State ---
+  const navigate = useNavigate();
+  
   const [searchQuery, setSearchQuery] = useState('');
   const [filterType, setFilterType] = useState('all'); 
   const [priceSort, setPriceSort] = useState('none');
@@ -28,7 +29,9 @@ export default function SearchProducts() {
   const [cart, setCart] = useState<{product: Product, quantity: number}[]>([]);
   const [showCart, setShowCart] = useState(false);
   
+  // Market State
   const [marketId, setMarketId] = useState<number | null>(null);
+  const [currentMarket, setCurrentMarket] = useState<Market | null>(null);
   const [isMarketLoading, setIsMarketLoading] = useState(true);
 
   const filterOptions = [
@@ -63,8 +66,6 @@ export default function SearchProducts() {
     try {
       const id = await userApi.getUserMarketId();
       if (id) setMarketId(id);
-      
-      // if (id) handleSearch(1); 
     } catch (err) {
       console.error("Failed to fetch market preference");
     } finally {
@@ -76,6 +77,13 @@ export default function SearchProducts() {
 
   useEffect(() => {
     if (!marketId) return; // Wait until we have the ID
+    const fetchDetails = async () => {
+        try {
+            const data = await marketApi.getMarketById(marketId);
+            setCurrentMarket(data);
+        } catch(e) { console.error(e); }
+    };
+    fetchDetails();
     setCurrentPage(1);
     handleSearch(1);
   }, [marketId]);
@@ -190,6 +198,35 @@ export default function SearchProducts() {
 
       {/* Main Content */}
       <div className="max-w-7xl mx-auto px-4 py-8 relative">
+      {/* Positioned top-right of the content area */}
+        <div className="flex justify-begin mb-4 md:absolute md:top-8 md:left-4">
+          <button
+            onClick={() => navigate('/market-selection')}
+            className="group flex items-center gap-3 bg-white/80 backdrop-blur-md border border-emerald-100 rounded-full pl-3 pr-4 py-2 shadow-sm hover:shadow-md hover:border-[#2F855A] transition-all cursor-pointer"
+          >
+            {/* Icon Box */}
+            <div className="w-8 h-8 rounded-full bg-emerald-100 text-[#2F855A] flex items-center justify-center group-hover:bg-[#2F855A] group-hover:text-white transition-colors">
+              <i className="ri-store-2-line"></i>
+            </div>
+            
+            {/* Text Info */}
+            <div className="text-left flex flex-col">
+              <span className="text-[10px] uppercase font-bold text-gray-400 tracking-wider">Shopping at</span>
+              <span className="text-sm font-bold text-gray-800 leading-none group-hover:text-[#2F855A] transition-colors">
+                {currentMarket ? currentMarket.name : 'Loading Store...'}
+              </span>
+
+              {currentMarket?.address && (
+                <span className="text-[10px] text-gray-500 font-medium truncate max-w-[140px] leading-tight mt-0.5">
+                  {currentMarket.address.street}, {currentMarket.address.city}
+                </span>
+              )}
+            </div>
+
+            {/* Change Arrow */}
+            <i className="ri-arrow-right-s-line text-gray-400 group-hover:translate-x-1 transition-transform"></i>
+          </button>
+        </div>
         {/* Search Header */}
         <div className="text-center mb-8">
           <h1 className="text-4xl font-bold text-gray-900 mb-3">
