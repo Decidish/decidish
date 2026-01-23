@@ -1,3 +1,4 @@
+import asyncio
 import logging
 from typing import Generator, Optional
 
@@ -25,7 +26,8 @@ class Pipeline:
             self.set_running_job_status(job_id)
 
             recipe_json = scrape_recipe(recipe_url)
-
+            
+            print(recipe_json, flush=True)
             recipe_data = RawRecipe.model_validate_json(recipe_json)
             recipe_id, err = await self.process_recipe(recipe_data)
 
@@ -294,7 +296,7 @@ class Pipeline:
             except Exception as e:
                 logging.error(f"Error processing recipe: {e}")
                 continue
-            recipe_id, err = await self.process_recipe(recipe_data)
+            recipe_id, err = self.process_recipe(recipe_data)
             if err is not None:
                 raise err
             if recipe_id == -1:

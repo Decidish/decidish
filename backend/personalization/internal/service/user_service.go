@@ -2,6 +2,7 @@ package service
 
 import (
 	"database/sql"
+	"errors"
 	"fmt"
 	"log"
 	"net/http"
@@ -31,13 +32,6 @@ type EncodeBatchResponse struct {
 	EmbeddingDim int                 `json:"embedding_dim"`
 }
 
-type IUserService interface {
-	CreateUserPreferences(ctx *gin.Context)
-	SetSelectedUserMarketId(ctx *gin.Context)
-	IsUserEmbeddingReady(ctx *gin.Context)
-	GetUserSelectedMarket(ctx *gin.Context)
-}
-
 type UserService struct {
 	config.ApplicationConfig
 	*sql.DB
@@ -63,7 +57,7 @@ func (service UserService) IsUserEmbeddingReady(ctx *gin.Context) {
 	LIMIT 1
 	`, userId).Scan(&exists)
 
-	if err == sql.ErrNoRows {
+	if errors.Is(err, sql.ErrNoRows) {
 		ctx.JSON(http.StatusOK, gin.H{"ready": false})
 		return
 	}
@@ -199,4 +193,16 @@ func (service UserService) CreateUserPreferences(ctx *gin.Context) {
 		log.Panicln("could not commit transaction", err.Error())
 	}
 	ctx.JSON(http.StatusCreated, userPreferences)
+}
+
+func (service UserService) GetUserCartItems(context *gin.Context) {
+	//userId := context.GetString("user_id")
+	//
+	//cartItems, err := repository.GetUserCartItems(service.DB, userId)
+	//if err != nil {
+	//	context.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+	//	return
+	//}
+	//
+	//context.JSON(http.StatusOK, cartItems)
 }
