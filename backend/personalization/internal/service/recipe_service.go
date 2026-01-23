@@ -37,15 +37,6 @@ type RecipeService struct {
 	MLClient *client.Client
 }
 
-// type SearchParams struct {
-// 	Query      string `form:"query"`
-// 	Cuisine    string `form:"cuisine"`
-// 	Difficulty string `form:"difficulty"`
-// 	MaxTime    int    `form:"maxTime"`
-// 	Page       int    `form:"page,default=1"`
-// 	Limit      int    `form:"limit,default=12"`
-// }
-
 func NewRecipeService(config config.ApplicationConfig, db *sql.DB, mlClient *client.Client) RecipeService {
 	return RecipeService{
 		config:   config,
@@ -53,43 +44,6 @@ func NewRecipeService(config config.ApplicationConfig, db *sql.DB, mlClient *cli
 		MLClient: mlClient,
 	}
 }
-
-// func (service RecipeService) SearchRecipes(ctx *gin.Context) {
-// 	var params SearchParams
-
-// 	// Bind query params (e.g. ?query=pasta&cuisine=Italian&page=1)
-// 	if err := ctx.ShouldBindQuery(&params); err != nil {
-// 		ctx.JSON(400, gin.H{"error": "Invalid parameters"})
-// 		return
-// 	}
-
-// 	// Set defaults
-// 	if params.Limit == 0 {
-// 		params.Limit = 12
-// 	}
-// 	if params.Page == 0 {
-// 		params.Page = 1
-// 	}
-
-// 	recipes, total, err := repository.SearchRecipes(service.DB, params)
-// 	if err != nil {
-// 		fmt.Println("Search Error:", err)
-// 		ctx.JSON(500, gin.H{"error": "Search failed"})
-// 		return
-// 	}
-
-// 	// Calculate total pages
-// 	totalPages := int(math.Ceil(float64(total) / float64(params.Limit)))
-
-// 	ctx.JSON(200, gin.H{
-// 		"data": recipes,
-// 		"meta": gin.H{
-// 			"total_results": total,
-// 			"total_pages":   totalPages,
-// 			"current_page":  params.Page,
-// 		},
-// 	})
-// }
 
 func (service RecipeService) GetAdminStats(ctx *gin.Context) {
 	total, today, users, err := repository.GetAdminStats(service.DB)
