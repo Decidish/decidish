@@ -66,102 +66,132 @@ func GetAdminStats(db *sql.DB) (int, int, int, error) {
 }
 
 func (repo RecommenderRepository) GetRecommendedRecipesForUser(tx *sql.Tx, userId string) ([]Recipe, error) {
-	query, err := tx.Query(`
-		WITH recommender AS ( 
-		    SELECT re.recipe_id, r.embedding <=> re.embedding as dist 
-			FROM recipe_embeddings re, (SELECT embedding
-		    FROM user_embeddings
-		    WHERE user_id = $1) r
-			ORDER BY dist
-			LIMIT 20
-		 ), RecipeKeywords AS (
-			SELECT
-				rk.recipe_id,
-				STRING_AGG(k.name, ', ') AS all_keywords
-			FROM recipe_keywords rk
-			JOIN keywords k ON rk.keyword_id = k.id
-			GROUP BY rk.recipe_id
-		),
-		RecipeIngredients AS (
-			SELECT
-				ri.recipe_id,
-				STRING_AGG(ri.original, ', ') AS all_ingredients
-			FROM recipe_ingredients ri
-			GROUP BY ri.recipe_id
-		),
-		RecipeCategories AS (
-			SELECT
-				rca.recipe_id,
-				STRING_AGG(c.name, ', ') AS all_categories
-			FROM recipe_categories rca
-			JOIN categories c ON rca.category_id = c.id
-			GROUP BY rca.recipe_id
-		)
-		
-		SELECT
-			re.id,
-			re.title,
-			re.description,
-			re.instructions,
-			COALESCE(re.cook_time, 0),   -- Fix: If NULL, return 0
-			COALESCE(re.prep_time, 0),   -- Fix: If NULL, return 0
-			COALESCE(re.total_time, 0),  -- Fix: If NULL, return 0
-			re.image,
-			COALESCE(re.rating, 0),      -- Fix: If NULL, return 0
-			re.serving_size,
-			re.calories,
-			re.yields,
-			rkd.all_keywords AS keywords_condensed,
-			rid.all_ingredients AS ingredients_condensed,
-			rcd.all_categories AS categories_condensed
-		
-		FROM recipes re
-		JOIN recommender r ON r.recipe_id = re.id
-		LEFT JOIN RecipeKeywords rkd ON re.id = rkd.recipe_id
-		LEFT JOIN RecipeIngredients rid ON re.id = rid.recipe_id
-		LEFT JOIN RecipeCategories rcd ON re.id = rcd.recipe_id`, userId)
 
-	if err != nil {
-		return nil, err
-	}
+	// TODO: Optimize candidates apply hard filters and don't show recently seen recipes
+	// WHERE re.recipe_id NOT IN (
+    //             SELECT recipe_id 
+    //             FROM user_interactions 
+    //             WHERE user_id = $1
+    //         )
 
-	defer query.Close()
+    querySQL := `
+        WITH user_vec AS (
+            SELECT embedding 
+            FROM user_embeddings 
+            WHERE user_id = $1
+        ),
+        candidates AS (
+            SELECT 
+                re.recipe_id, 
+                (uv.embedding <=> re.embedding) as dist
+            FROM recipe_embeddings re
+            JOIN user_vec uv ON true
+            ORDER BY dist ASC
+            LIMIT 1000
+        ),
+        recommender AS (
+            SELECT recipe_id 
+            FROM candidates
+            ORDER BY (dist + (RANDOM() * 0.1)) ASC
+            LIMIT 20
+        ),
+        RecipeKeywords AS (
+            SELECT
+                rk.recipe_id,
+                STRING_AGG(k.name, ', ') AS all_keywords
+            FROM recipe_keywords rk
+            JOIN keywords k ON rk.keyword_id = k.id
+            GROUP BY rk.recipe_id
+        ),
+        RecipeIngredients AS (
+            SELECT
+                ri.recipe_id,
+                STRING_AGG(ri.original, ', ') AS all_ingredients
+            FROM recipe_ingredients ri
+            GROUP BY ri.recipe_id
+        ),
+        RecipeCategories AS (
+            SELECT
+                rca.recipe_id,
+                STRING_AGG(c.name, ', ') AS all_categories
+            FROM recipe_categories rca
+            JOIN categories c ON rca.category_id = c.id
+            GROUP BY rca.recipe_id
+        )
+        
+        SELECT
+            re.id,
+            re.title,
+            re.description,
+            re.instructions,
+            COALESCE(re.cook_time, 0),
+            COALESCE(re.prep_time, 0),
+            COALESCE(re.total_time, 0),
+            re.image,
+            COALESCE(re.rating, 0),
+            re.serving_size,
+            re.calories,
+            re.yields,
+            COALESCE(rkd.all_keywords, ''),
+            COALESCE(rid.all_ingredients, ''),
+            COALESCE(rcd.all_categories, '')
+        
+        FROM recommender r
+        JOIN recipes re ON r.recipe_id = re.id
+        LEFT JOIN RecipeKeywords rkd ON re.id = rkd.recipe_id
+        LEFT JOIN RecipeIngredients rid ON re.id = rid.recipe_id
+        LEFT JOIN RecipeCategories rcd ON re.id = rcd.recipe_id`
 
-	// var recipes []Recipe
-	recipes := []Recipe{}
+    rows, err := tx.Query(querySQL, userId)
+    if err != nil {
+        return nil, err
+    }
+    defer rows.Close()
 
-	for query.Next() {
-		var recipe Recipe
+    var recipes []Recipe
 
-		var keywordsStr sql.NullString
-		var ingredientsStr sql.NullString
-		var categoriesStr sql.NullString
+    for rows.Next() {
+        var recipe Recipe
+        var keywordsStr, ingredientsStr, categoriesStr string
 
-		if err := query.Scan(
-			&recipe.ID,
-			&recipe.Title,
-			&recipe.Description,
-			&recipe.Instructions,
-			&recipe.CookTime,
-			&recipe.PrepTime,
-			&recipe.TotalTime,
-			&recipe.Image,
-			&recipe.Ratings,
-			&recipe.Nutrients.ServingSize,
-			&recipe.Nutrients.Calories,
-			&recipe.Yields,
-			&keywordsStr,
-			&ingredientsStr,
-			&categoriesStr); err != nil {
-			return nil, err
-		}
+        // Using standard scan. 
+        // Note: I switched sql.NullString to string with COALESCE in SQL 
+        // to simplify the Go code, but you can revert if you prefer NullString.
+        if err := rows.Scan(
+            &recipe.ID,
+            &recipe.Title,
+            &recipe.Description,
+            &recipe.Instructions,
+            &recipe.CookTime,
+            &recipe.PrepTime,
+            &recipe.TotalTime,
+            &recipe.Image,
+            &recipe.Ratings,
+            &recipe.Nutrients.ServingSize,
+            &recipe.Nutrients.Calories,
+            &recipe.Yields,
+            &keywordsStr,
+            &ingredientsStr,
+            &categoriesStr,
+        ); err != nil {
+            return nil, err
+        }
 
-		recipe.KeyWords = strings.Split(keywordsStr.String, ", ")
-		recipe.Ingredients = strings.Split(ingredientsStr.String, ", ")
-		recipe.Category = categoriesStr.String
+        if keywordsStr != "" {
+            recipe.KeyWords = strings.Split(keywordsStr, ", ")
+        } else {
+            recipe.KeyWords = []string{}
+        }
 
-		recipes = append(recipes, recipe)
-	}
+        if ingredientsStr != "" {
+            recipe.Ingredients = strings.Split(ingredientsStr, ", ")
+        } else {
+            recipe.Ingredients = []string{}
+        }
 
-	return recipes, nil
+        recipe.Category = categoriesStr
+        recipes = append(recipes, recipe)
+    }
+
+    return recipes, nil
 }

@@ -2,6 +2,7 @@
 import { lazy } from "react";
 import { RouteObject } from "react-router-dom";
 import MainLayout from "@/components/layout/MainLayout";
+import NotFound from "@/pages/NotFound";
 
 const Landing = lazy(() => import("@/pages/landing/page"));
 const Auth = lazy(() => import("@/pages/auth/page"));
@@ -50,6 +51,10 @@ const routes: RouteObject[] = [
     path: "/search",
     element: <MainLayout><Search /></MainLayout>,
   },
+  {
+    path: "*",
+    element: <NotFound></NotFound>
+  }
 ];
 
 export default routes;

@@ -192,13 +192,12 @@ export default function Questionnaire() {
       console.log("Saving preferences");
       await userApi.savePreferences(payload);
       console.log("Preferences saved");
+      window.REACT_APP_NAVIGATE('/market-selection');
     } catch (error) {
       alert("Failed to save preferences. Please try again.");
     } finally {
       setIsLoading(false);
-    } 
-    
-    window.REACT_APP_NAVIGATE('/market-selection');
+    }
   };
 
   const PreferenceCard = ({ 

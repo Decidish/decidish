@@ -92,8 +92,11 @@ export default function Landing() {
               </button>
               <button
                 className="px-8 py-4 bg-white text-[#2F855A] rounded-xl font-semibold hover:bg-gray-50 transition-all border-2 border-[#2F855A]/20 cursor-pointer whitespace-nowrap text-lg"
+                onClick={() => {
+                  window.REACT_APP_NAVIGATE('/recipe-swiper');
+                }}
               >
-                Watch Demo
+                Swipe Recipes
               </button>
             </div>
 
