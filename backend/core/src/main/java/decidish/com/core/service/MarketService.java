@@ -22,12 +22,14 @@ import org.springframework.stereotype.Service;
 import decidish.com.core.api.rewe.client.ReweApiClient;
 import decidish.com.core.model.rewe.Market;
 import decidish.com.core.model.rewe.MarketSearchResponse;
+import decidish.com.core.model.rewe.MarketSummaryDto;
 import decidish.com.core.model.rewe.Product;
 import decidish.com.core.model.rewe.ProductDto;
 import decidish.com.core.model.rewe.ProductSearchResponse;
 import decidish.com.core.model.rewe.MarketDto;
 import decidish.com.core.repository.MarketRepository;
 import decidish.com.core.repository.ProductRepository;
+import jakarta.persistence.EntityNotFoundException;
 
 import org.springframework.transaction.annotation.Transactional;
 
@@ -51,6 +53,13 @@ public class MarketService {
     
     @Autowired
     private ProductRepository productRepository;
+    
+    public MarketSummaryDto getMarketById(Long id) {
+        Market market = marketRepository.findById(id)
+                .orElseThrow(() -> new EntityNotFoundException("Market not found with id: " + id));
+        
+        return MarketSummaryDto.fromEntity(market);
+    }
 
     /**
      * READ PATH (Hot)

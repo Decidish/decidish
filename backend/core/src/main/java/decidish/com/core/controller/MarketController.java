@@ -31,10 +31,12 @@ import java.util.stream.Collectors;
 public class MarketController {
 
     private final MarketService marketService;
-
-    @Autowired
-    private ProductRepository productRepository;
     
+    @GetMapping("/{id}")
+    public ResponseEntity<MarketSummaryDto> getMarketById(@PathVariable Long id) {
+        return ResponseEntity.ok(marketService.getMarketById(id));
+    }
+
     /**
      * Endpoint to search markets by Postal Code.
      * Usage: GET /markets?plz=80331
