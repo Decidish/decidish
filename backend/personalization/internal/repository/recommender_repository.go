@@ -65,6 +65,107 @@ func GetAdminStats(db *sql.DB) (int, int, int, error) {
 	return total, today, users, nil
 }
 
+// func SearchRecipes(db *sql.DB, params SearchParams) ([]Recipe, int, error) {
+// 	baseQuery := `
+//         SELECT
+//             r.id, r.title, r.description, r.image, r.cook_time, r.total_time,
+//             -- Get the first category as "Cuisine"
+//             COALESCE((
+//                 SELECT c.name FROM recipe_categories rc
+//                 JOIN categories c ON rc.category_id = c.id
+//                 WHERE rc.recipe_id = r.id LIMIT 1
+//             ), 'General') as cuisine,
+//             -- Get ingredients as a JSON list (Required for your frontend modal)
+//             COALESCE((
+//                 SELECT json_agg(json_build_object(
+//                     'id', i.id,
+//                     'name', i.name,
+//                     'quantity', ri.quantity,
+//                     'unit', ri.unit
+//                 ))
+//                 FROM recipe_ingredients ri
+//                 JOIN ingredients i ON ri.ingredient_id = i.id
+//                 WHERE ri.recipe_id = r.id
+//             ), '[]') as ingredients
+//         FROM recipes r
+//     `
+
+// 	// Build WHERE clauses dynamically
+// 	var wheres []string
+// 	var args []interface{}
+// 	argId := 1
+
+// 	// Filter: Search Text (Title)
+// 	if params.Query != "" {
+// 		wheres = append(wheres, fmt.Sprintf("r.title ILIKE $%d", argId))
+// 		args = append(args, "%"+params.Query+"%")
+// 		argId++
+// 	}
+
+// 	// Filter: Max Time
+// 	if params.MaxTime > 0 {
+// 		wheres = append(wheres, fmt.Sprintf("r.cook_time <= $%d", argId))
+// 		args = append(args, params.MaxTime)
+// 		argId++
+// 	}
+
+// 	// Filter: Cuisine (Category)
+// 	if params.Cuisine != "" && params.Cuisine != "all" {
+// 		wheres = append(wheres, fmt.Sprintf("EXISTS (SELECT 1 FROM recipe_categories rc JOIN categories c ON rc.category_id = c.id WHERE rc.recipe_id = r.id AND c.name = $%d)", argId))
+// 		args = append(args, params.Cuisine)
+// 		argId++
+// 	}
+
+// 	// Filter: Difficulty (Keyword)
+// 	if params.Difficulty != "" && params.Difficulty != "all" {
+// 		wheres = append(wheres, fmt.Sprintf("EXISTS (SELECT 1 FROM recipe_keywords rk JOIN keywords k ON rk.keyword_id = k.id WHERE rk.recipe_id = r.id AND k.name = $%d)", argId))
+// 		args = append(args, params.Difficulty)
+// 		argId++
+// 	}
+
+// 	// Assemble Query
+// 	queryStr := baseQuery
+// 	if len(wheres) > 0 {
+// 		queryStr += " WHERE " + strings.Join(wheres, " AND ")
+// 	}
+
+// 	// Add Pagination
+// 	// First, get total count for pagination UI
+// 	countQuery := "SELECT COUNT(*) FROM (" + queryStr + ") as search_results"
+// 	var total int
+// 	err := db.QueryRow(countQuery, args...).Scan(&total)
+// 	if err != nil {
+// 		return nil, 0, err
+// 	}
+
+// 	// Add Limit/Offset
+// 	offset := (params.Page - 1) * params.Limit
+// 	queryStr += fmt.Sprintf(" ORDER BY r.id LIMIT $%d OFFSET $%d", argId, argId+1)
+// 	args = append(args, params.Limit, offset)
+
+// 	// Execute Main Query
+// 	rows, err := db.Query(queryStr, args...)
+// 	if err != nil {
+// 		return nil, 0, err
+// 	}
+// 	defer rows.Close()
+
+// 	var results []Recipe
+// 	for rows.Next() {
+// 		var r Recipe
+// 		// Note: We need a dummy var for the scan if description/image can be null
+// 		// but for simplicity
+// 		if err := rows.Scan(&r.ID, &r.Title, &r.Description, &r.Image, &r.CookTime, &r.TotalTime, &r.Ingredients); err != nil {
+// 			return nil, 0, err
+// 		}
+// 		// Fallback for difficulty (hardcoded for now as it wasn't in the main select)
+// 		r.KeyWords = "Medium"
+// 		results = append(results, r)
+// 	}
+
+// 	return results, total, nil
+// }
+
 func (repo RecommenderRepository) GetRecommendedRecipesForUser(tx *sql.Tx, userId string) ([]Recipe, error) {
 	query, err := tx.Query(`
 		WITH recommender AS ( 
