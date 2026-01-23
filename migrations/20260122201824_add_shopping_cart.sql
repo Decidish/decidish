@@ -3,8 +3,8 @@
 CREATE TABLE IF NOT EXISTS shopping_lists (
     id SERIAL PRIMARY KEY,
     user_id INT REFERENCES user_preferences(user_id) ON DELETE CASCADE,
-    status VARCHAR(50) DEFAULT 'active',
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    completed BOOLEAN DEFAULT FALSE,
     completed_at TIMESTAMP
 );
 
@@ -23,5 +23,6 @@ CREATE TABLE IF NOT EXISTS shopping_list_items (
 
 -- +goose Down
 -- +goose StatementBegin
-SELECT 'down SQL query';
+DROP TABLE IF EXISTS shopping_list_items;
+DROP TABLE IF EXISTS shopping_lists;
 -- +goose StatementEnd

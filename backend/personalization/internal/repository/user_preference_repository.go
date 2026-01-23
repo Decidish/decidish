@@ -17,33 +17,33 @@ type AdditionalInfo struct {
 }
 
 func AddItemToShoppingList(tx *sql.Tx, userId string, productId int, quantity int, recipeId int) error {
-    var listId int
+	var listId int
 
-    err := tx.QueryRow(`
+	err := tx.QueryRow(`
         SELECT id 
         FROM shopping_lists 
-        WHERE user_id = $1 AND status = 'active' 
+        WHERE user_id = $1 AND completed = FALSE
         LIMIT 1
         FOR UPDATE
     `, userId).Scan(&listId)
 
-    if err != nil {
-        if err == sql.ErrNoRows {
-            err = tx.QueryRow(`
-                INSERT INTO shopping_lists (user_id, name, status)
-                VALUES ($1, 'My Shopping List', 'active')
+	if err != nil {
+		if err == sql.ErrNoRows {
+			err = tx.QueryRow(`
+                INSERT INTO shopping_lists (user_id, completed)
+                VALUES ($1, FALSE)
                 RETURNING id
             `, userId).Scan(&listId)
-            
-            if err != nil {
-                return fmt.Errorf("failed to create new shopping list: %w", err)
-            }
-        } else {
-            return fmt.Errorf("failed to query active shopping list: %w", err)
-        }
-    }
 
-    _, err = tx.Exec(`
+			if err != nil {
+				return fmt.Errorf("failed to create new shopping list: %w", err)
+			}
+		} else {
+			return fmt.Errorf("failed to query active shopping list: %w", err)
+		}
+	}
+
+	_, err = tx.Exec(`
         INSERT INTO shopping_list_items (shopping_list_id, product_id, quantity, recipe_id)
         VALUES ($1, $2, $3, $4)
         ON CONFLICT (shopping_list_id, product_id, recipe_id) 
@@ -52,11 +52,11 @@ func AddItemToShoppingList(tx *sql.Tx, userId string, productId int, quantity in
             checked = FALSE
     `, listId, productId, quantity, recipeId)
 
-    if err != nil {
-        return fmt.Errorf("failed to add item to list: %w", err)
-    }
+	if err != nil {
+		return fmt.Errorf("failed to add item to list: %w", err)
+	}
 
-    return nil
+	return nil
 }
 
 func UpdateMarketId(tx *sql.Tx, userId string, marketId string) error {
@@ -124,37 +124,3 @@ func AddUserPreference(tx *sql.Tx, userId string, userInfo AdditionalInfo) error
 
 	return nil
 }
-
-type ShoppingItem struct {
-	Id             int     `json:"id"`
-	Name           string  `json:"name"`
-	Image          string  `json:"image"`
-	Price          float64 `json:"price"`
-	Category       string  `json:"category"`
-	Checked        bool    `json:"checked"`
-	IngredientName string  `json:"ingredient_name,omitempty"`
-}
-
-type Product struct {
-	Id     int     `json:"id"`
-	Name   string  `json:"name"`
-	Brand  string  `json:"brand"`
-	Image  string  `json:"image"`
-	Price  float64 `json:"price"`
-	Weight string  `json:"weight"`
-	Unit   string  `json:"unit"`
-}
-
-type ShoppingList struct {
-	Id         int            `json:"id"`
-	Date       string         `json:"date"`
-	TotalItems int            `json:"total_items"`
-	TotalPrice float64        `json:"total_price"`
-	Recipes    []string       `json:"recipes"`
-	Items      []ShoppingItem `json:"items"`
-	Completed  bool           `json:"completed"`
-}
-
-//func GetUserCartItems(db *sql.DB, id string) (interface{}, interface{}) {
-//	return nil, nil
-//}

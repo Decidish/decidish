@@ -1,115 +1,131 @@
+import { ShoppingList, shoppingListApi } from '@/api/shopping-list/shoppingCartApi';
 import { useState, useEffect } from 'react';
-
-export interface ShoppingItem {
-  id: string;
-  name: string;
-  image: string;
-  price: number;
-  checked: boolean;
-  quantity: number;
-}
-
-export interface RecipeGroup {
-  recipeName: string; // "Carbonara", "Misc Items", etc.
-  isExpanded: boolean;
-  items: ShoppingItem[];
-}
-
-export interface ShoppingList {
-  id: string;
-  date: string;
-  totalItems: number;
-  totalPrice: number;
-  completed: boolean;
-  // REMOVED: items: ShoppingItem[]
-  // REMOVED: recipes: string[]
-  // NEW: The core data is now organized by groups
-  groups: RecipeGroup[]; 
-}
 
 export default function ShoppingListPage() {
   const [activeTab, setActiveTab] = useState<'current' | 'history'>('current');
-  const [recipeGroups, setRecipeGroups] = useState<RecipeGroup[]>([]);
+  const [activeList, setActiveList] = useState<ShoppingList | null>(null);
 
-  // Load shopping cart from localStorage
   useEffect(() => {
-    // TODO: Actually call the backend to get the items
-    const groups: RecipeGroup[] = []
-
-    setRecipeGroups(groups)
+    const fetchList = async () => {
+      try {
+        const listData = await shoppingListApi.getActiveShoppingList();
+        setActiveList(listData);
+      } catch (error) {
+        console.error("Failed to load shopping list", error);
+      }
+    };
+    
+    fetchList();
   }, []);
 
   // Mock shopping history
+  // TODO: Retrieve from backend instead
   const shoppingHistory: ShoppingList[] = [
     {
       id: 'list-1',
       date: '2024-01-15',
       totalItems: 15,
       totalPrice: 87.45,
-      recipes: ['Mediterranean Grilled Chicken', 'Creamy Mushroom Pasta', 'Asian Salmon Bowl'],
-      items: [],
-      completed: true
+      completed: true,
+      groups: [
+        { recipeName: 'Mediterranean Grilled Chicken', isExpanded: false, items: [] },
+        { recipeName: 'Creamy Mushroom Pasta', isExpanded: false, items: [] },
+        { recipeName: 'Asian Salmon Bowl', isExpanded: false, items: [] }
+      ]
     },
     {
       id: 'list-2',
       date: '2024-01-08',
       totalItems: 12,
       totalPrice: 65.30,
-      recipes: ['Vegetarian Buddha Bowl', 'Thai Green Curry', 'Caprese Salad'],
-      items: [],
-      completed: true
+      completed: true,
+      groups: [
+         { recipeName: 'Vegetarian Buddha Bowl', isExpanded: false, items: [] },
+         { recipeName: 'Thai Green Curry', isExpanded: false, items: [] },
+         { recipeName: 'Caprese Salad', isExpanded: false, items: [] }
+      ]
     },
     {
       id: 'list-3',
       date: '2024-01-01',
       totalItems: 18,
       totalPrice: 102.15,
-      recipes: ['Beef Tacos', 'Caesar Salad', 'Chocolate Brownies', 'Tomato Soup'],
-      items: [],
-      completed: true
+      completed: true,
+      groups: [
+          { recipeName: 'Beef Tacos', isExpanded: false, items: [] },
+          { recipeName: 'Caesar Salad', isExpanded: false, items: [] },
+          { recipeName: 'Chocolate Brownies', isExpanded: false, items: [] },
+          { recipeName: 'Tomato Soup', isExpanded: false, items: [] }
+      ]
     },
     {
       id: 'list-4',
       date: '2023-12-25',
       totalItems: 22,
       totalPrice: 145.80,
-      recipes: ['Roast Turkey', 'Mashed Potatoes', 'Green Bean Casserole', 'Pumpkin Pie'],
-      items: [],
-      completed: true
+      completed: true,
+      groups: [
+          { recipeName: 'Roast Turkey', isExpanded: false, items: [] },
+          { recipeName: 'Mashed Potatoes', isExpanded: false, items: [] },
+          { recipeName: 'Green Bean Casserole', isExpanded: false, items: [] },
+          { recipeName: 'Pumpkin Pie', isExpanded: false, items: [] }
+      ]
     }
   ];
 
-
   const toggleRecipeExpansion = (recipeName: string) => {
-    setRecipeGroups(prev =>
-      prev.map(group =>
-        group.recipeName === recipeName
-          ? { ...group, isExpanded: !group.isExpanded }
-          : group
-      )
-    );
+    if (!activeList) return;
+    
+    setActiveList(prev => {
+      if (!prev) return null;
+      return {
+        ...prev,
+        groups: prev.groups.map(group =>
+          group.recipeName === recipeName
+            ? { ...group, isExpanded: !group.isExpanded }
+            : group
+        )
+      };
+    });
   };
 
-  const handleToggleCheck = (recipeIndex: number, itemId: string) => {
-    // TODO: Send a backend request first
-    setRecipeGroups(prev =>
-      prev.map((group, idx) =>
-        idx === recipeIndex
-          ? {
-              ...group,
-              items: group.items.map(item =>
-                item.id === itemId ? { ...item, checked: !item.checked } : item
+  const handleToggleCheck = async (recipeIndex: number, itemId: string) => {
+    if (!activeList) return;
+
+    setActiveList(prev => {
+        if (!prev) return null;
+        return {
+            ...prev,
+            groups: prev.groups.map((group, idx) =>
+                idx === recipeIndex
+                  ? {
+                      ...group,
+                      items: group.items.map(item =>
+                        item.id === itemId ? { ...item, checked: !item.checked } : item
+                      )
+                    }
+                  : group
               )
-            }
-          : group
-      )
-    );
+        }
+    });
+
+    const group = activeList.groups[recipeIndex];
+    const item = group.items.find(i => i.id === itemId);
+    if (item) {
+        await shoppingListApi.updateItemStatus(itemId, !item.checked).catch(err => {
+            console.error("Failed to update item status", err);
+        });
+        console.log("Item status updated");
+    }
   };
 
-  const handleRemoveItem = (recipeIndex: number, itemId: string) => {
-    // TODO: Send a backend request first
-    setRecipeGroups(prev => {
-      const updated = prev.map((group, idx) =>
+  const handleRemoveItem = async (recipeIndex: number, itemId: string) => {
+    if (!activeList) return;
+
+    // 1. Optimistic Update
+    setActiveList(prev => {
+      if (!prev) return null;
+      const updatedGroups = prev.groups.map((group, idx) =>
         idx === recipeIndex
           ? {
               ...group,
@@ -119,11 +135,45 @@ export default function ShoppingListPage() {
       );
       
       // Remove empty recipe groups
-      const filtered = updated.filter(group => group.items.length > 0);
+      const filteredGroups = updatedGroups.filter(group => group.items.length > 0);
 
-      return filtered;
+      return {
+          ...prev,
+          groups: filteredGroups
+      };
+    });
+
+    await shoppingListApi.deleteItem(itemId).catch(err => {
+        console.error("Failed to delete item", err);
+        // Optionally revert state here on error
     });
   };
+
+  const handleCompleteShopping = async () => {
+    if (!activeList) return;
+
+    const checkedCount = getAllItems().filter(item => item.checked).length;
+    const totalCount = getAllItems().length;
+
+    if (checkedCount !== totalCount) {
+        alert(`You still have ${totalCount - checkedCount} items to collect.`);
+        return;
+    }
+
+    try {
+        await shoppingListApi.completeShoppingList(activeList.id);
+        alert('Shopping completed! 🎉');
+        
+        // Update local state to show completed
+        setActiveList(prev => prev ? { ...prev, completed: true } : null);
+    } catch (error) {
+        console.error("Failed to complete shopping list", error);
+        alert("Failed to complete shopping list. Please try again.");
+    }
+  };
+
+  // Helper to get recipe groups for rendering
+  const recipeGroups = activeList ? activeList.groups : [];
 
   const getAllItems = () => {
     return recipeGroups.flatMap(group => group.items);
@@ -143,7 +193,7 @@ export default function ShoppingListPage() {
         <div className="max-w-4xl mx-auto px-4 py-4">
           <div className="flex items-center justify-between mb-4">
             <button
-              onClick={() => window.REACT_APP_NAVIGATE('/recipe-swiper')}
+              onClick={() => (window as any).REACT_APP_NAVIGATE('/recipe-swiper')}
               className="w-10 h-10 flex items-center justify-center rounded-full hover:bg-gray-100 transition-colors cursor-pointer"
             >
               <i className="ri-arrow-left-line text-xl text-gray-700"></i>
@@ -154,7 +204,7 @@ export default function ShoppingListPage() {
               className="h-12 w-auto"
             />
             <button
-              onClick={() => window.REACT_APP_NAVIGATE('/profile')}
+              onClick={() => (window as any).REACT_APP_NAVIGATE('/profile')}
               className="w-10 h-10 flex items-center justify-center rounded-full hover:bg-gray-100 transition-colors cursor-pointer"
             >
               <i className="ri-user-line text-xl text-gray-700"></i>
@@ -200,7 +250,7 @@ export default function ShoppingListPage() {
                 </p>
               </div>
               <div className="text-right">
-                <div className="text-3xl font-bold text-[#2F855A]">${totalPrice.toFixed(2)}</div>
+                <div className="text-3xl font-bold text-[#2F855A]">{(totalPrice / 100).toFixed(2)}€</div>
                 <p className="text-xs text-gray-600">Total Cost</p>
               </div>
             </div>
@@ -223,7 +273,7 @@ export default function ShoppingListPage() {
                 Start swiping recipes to add ingredients to your shopping list!
               </p>
               <button
-                onClick={() => window.REACT_APP_NAVIGATE('/recipe-swiper')}
+                onClick={() => (window as any).REACT_APP_NAVIGATE('/recipe-swiper')}
                 className="px-6 py-3 bg-gradient-to-r from-[#2F855A] to-emerald-600 text-white rounded-xl font-semibold hover:from-[#276749] hover:to-emerald-700 transition-all shadow-lg cursor-pointer whitespace-nowrap"
               >
                 Browse Recipes
@@ -259,7 +309,7 @@ export default function ShoppingListPage() {
                               {groupCheckedCount}/{groupTotalCount} items
                             </span>
                             <span className="text-sm font-semibold text-[#2F855A]">
-                              ${groupTotal.toFixed(2)}
+                              {(groupTotal / 100).toFixed(2)}€
                             </span>
                           </div>
                         </div>
@@ -344,7 +394,7 @@ export default function ShoppingListPage() {
                                     </span>
                                   )}
                                   <span className="text-base font-bold text-[#2F855A]">
-                                    ${((item.price * (item.quantity || 1))).toFixed(2)}
+                                    {((item.price / 100) * (item.quantity || 1)).toFixed(2)}€
                                   </span>
                                 </div>
                               </div>
@@ -374,14 +424,7 @@ export default function ShoppingListPage() {
           {recipeGroups.length > 0 && (
             <div className="sticky bottom-0 bg-gradient-to-t from-emerald-50 via-emerald-50 to-transparent pt-6 pb-6 mt-6">
               <button
-                onClick={() => {
-                    // TODO: Mark the shopping carts as completed
-                  if (checkedCount === totalCount) {
-                    alert('Shopping completed! 🎉');
-                  } else {
-                    alert(`You still have ${totalCount - checkedCount} items to collect.`);
-                  }
-                }}
+                onClick={handleCompleteShopping}
                 className={`w-full py-4 rounded-xl font-bold text-lg shadow-lg transition-all cursor-pointer whitespace-nowrap ${
                   checkedCount === totalCount
                     ? 'bg-gradient-to-r from-[#2F855A] to-emerald-600 text-white hover:from-[#276749] hover:to-emerald-700'
@@ -427,7 +470,7 @@ export default function ShoppingListPage() {
                         {list.totalItems} items
                       </span>
                       <span className="text-lg font-bold text-[#2F855A]">
-                        ${list.totalPrice.toFixed(2)}
+                        {(list.totalPrice / 100).toFixed(2)}€
                       </span>
                     </div>
                   </div>
@@ -442,13 +485,22 @@ export default function ShoppingListPage() {
                     Recipes
                   </p>
                   <div className="flex flex-wrap gap-2">
-                    {list.recipes.map((recipe, index) => (
+                    {list.groups && list.groups.map((group, index) => (
                       <span
                         key={index}
                         className="bg-gray-50 text-gray-700 px-3 py-1 rounded-lg text-sm"
                       >
-                        {recipe}
+                        {group.recipeName}
                       </span>
+                    ))}
+                    {/* Fallback for old history data format if present */}
+                    {(list as any).recipes && (list as any).recipes.map((recipe: string, index: number) => (
+                       <span
+                       key={index}
+                       className="bg-gray-50 text-gray-700 px-3 py-1 rounded-lg text-sm"
+                     >
+                       {recipe}
+                     </span>
                     ))}
                   </div>
                 </div>
