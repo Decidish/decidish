@@ -15,7 +15,7 @@ export interface Recipe {
   prep_time: number;      // prep_time
   total_time: number;     // total_time
   image: string;          // image
-  rating: number;         // rating
+  ratings: number;         // rating
   calories: string;       // calories
   
   // These arrays are populated in the specific Search/Get logic

@@ -30,21 +30,41 @@ type SearchResult struct {
 }
 
 func (r *RecipeRepository) SearchRecipes(params SearchParams) (*SearchResult, error) {
-	// Base Query
+	// Base Query with CTEs for ingredients and keywords
 	baseQuery := `
+		WITH RecipeIngredients AS (
+			SELECT 
+				ri.recipe_id,
+				STRING_AGG(COALESCE(ri.original, i.name), ', ') AS all_ingredients
+			FROM recipe_ingredients ri
+			JOIN ingredients i ON ri.ingredient_id = i.id
+			GROUP BY ri.recipe_id
+		),
+		RecipeKeywords AS (
+			SELECT 
+				rk.recipe_id,
+				STRING_AGG(k.name, ', ') AS all_keywords
+			FROM recipe_keywords rk
+			JOIN keywords k ON rk.keyword_id = k.id
+			GROUP BY rk.recipe_id
+		)
 		SELECT DISTINCT 
             re.id, 
             re.title, 
+            COALESCE(re.description, '') as description,
 			COALESCE(re.instructions, '') as instructions,
-            COALESCE(re.description, '') as description, 
             COALESCE(re.image, '') as image, 
             COALESCE(re.cook_time, 0) as cook_time, 
             COALESCE(re.prep_time, 0) as prep_time, 
             COALESCE(re.total_time, 0) as total_time, 
             COALESCE(re.rating, 0) as rating, 
             COALESCE(re.calories, '') as calories, 
-            COALESCE(re.serving_size, '') as serving_size
+            COALESCE(re.serving_size, '') as serving_size,
+			COALESCE(ri.all_ingredients, '') as ingredients,
+			COALESCE(rk.all_keywords, '') as keywords
         FROM recipes re
+		LEFT JOIN RecipeIngredients ri ON re.id = ri.recipe_id
+		LEFT JOIN RecipeKeywords rk ON re.id = rk.recipe_id
     `
 	countQuery := `SELECT COUNT(DISTINCT re.id) FROM recipes re`
 
@@ -113,17 +133,31 @@ func (r *RecipeRepository) SearchRecipes(params SearchParams) (*SearchResult, er
 	var recipes []Recipe
 	for rows.Next() {
 		var rec Recipe
+		var ingredientsStr, keywordsStr string
 		err := rows.Scan(
 			&rec.ID, &rec.Title, &rec.Description, &rec.Instructions, &rec.Image,
 			&rec.CookTime, &rec.PrepTime, &rec.TotalTime, &rec.Ratings,
 			&rec.Nutrients.Calories, &rec.Nutrients.ServingSize,
+			&ingredientsStr, &keywordsStr,
 		)
 		if err != nil {
 			return nil, err
 		}
-		// Initialize slices to avoid null in JSON
-		rec.Ingredients = []string{}
-		rec.KeyWords = []string{}
+
+		// Parse ingredients string to slice
+		if ingredientsStr != "" {
+			rec.Ingredients = strings.Split(ingredientsStr, ", ")
+		} else {
+			rec.Ingredients = []string{}
+		}
+
+		// Parse keywords string to slice
+		if keywordsStr != "" {
+			rec.KeyWords = strings.Split(keywordsStr, ", ")
+		} else {
+			rec.KeyWords = []string{}
+		}
+
 		recipes = append(recipes, rec)
 	}
 
