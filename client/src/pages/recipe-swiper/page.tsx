@@ -3,7 +3,7 @@ import { recipesApi, RecipeRecommendation } from '@/api/recipe-swiper/recipesApi
 import { productsApi, ShoppingListResponse, IngredientGroup, Product } from '@/api/recipe-swiper/productsApi';
 import {CartItem, shoppingListApi} from "@/api/shopping-list/shoppingCartApi";
 import { userHistoryApi } from '@/api/user-history/userHistoryApi';
-import { userApi as searchProductUserApi } from '@/api/search-product/userApi';
+import { userApi } from '@/api/search-product/userApi';
 
 
 // We extend the API response to include UI-specific fields if needed
@@ -51,8 +51,8 @@ export default function RecipeSwiper() {
 
     const fetchUserMarket = async () => {
       try {
-        const marketId = await searchProductUserApi.getUserMarketId();
-        setUserMarketId(marketId);
+        const marketId = await userApi.getUserMarketId();
+        setMarketId(marketId);
       } catch (error) {
         console.error("Failed to fetch user market ID", error);
       }
@@ -100,13 +100,13 @@ export default function RecipeSwiper() {
       setLoadingProducts(true);
       try {
         // Fetch products for this recipe using the user's market ID
-        if (!userMarketId) {
+        if (!marketId) {
           console.warn("User market ID not available, skipping product fetch");
           setLoadingProducts(false);
           return;
         }
         
-        const listResponse: ShoppingListResponse = await productsApi.generateShoppingList(userMarketId, [recipe.id]);
+        const listResponse: ShoppingListResponse = await productsApi.generateShoppingList(marketId, [recipe.id]);
         
         // Update the specific recipe in our state with the new data
         setRecipes(prevRecipes => prevRecipes.map(r => {
