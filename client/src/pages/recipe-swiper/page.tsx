@@ -2,7 +2,8 @@ import { useState, useEffect } from 'react';
 import { recipesApi, RecipeRecommendation } from '@/api/recipe-swiper/recipesApi';
 import { productsApi, ShoppingListResponse, IngredientGroup, Product } from '@/api/recipe-swiper/productsApi';
 import {CartItem, shoppingListApi} from "@/api/shopping-list/shoppingCartApi";
-import { userApi } from '@/api/search-product/userApi';
+import { userHistoryApi } from '@/api/user-history/userHistoryApi';
+import { userApi as searchProductUserApi } from '@/api/search-product/userApi';
 
 
 // We extend the API response to include UI-specific fields if needed
@@ -49,7 +50,17 @@ export default function RecipeSwiper() {
       }
     };
 
+    const fetchUserMarket = async () => {
+      try {
+        const marketId = await searchProductUserApi.getUserMarketId();
+        setUserMarketId(marketId);
+      } catch (error) {
+        console.error("Failed to fetch user market ID", error);
+      }
+    };
+
     fetchRecommendations();
+    fetchUserMarket();
   }, []);
   
   useEffect(() => {
@@ -81,9 +92,24 @@ export default function RecipeSwiper() {
       };
     });
   };
+
+  const advanceToNextRecipe = () => {
+    if (!recipes.length) return;
+    const nextIndex = (currentIndex + 1) % recipes.length;
+    setCurrentIndex(nextIndex);
+    setCurrentRecipe(recipes[nextIndex]);
+  };
   
   const handleLike = async() => {
     const recipe = recipes[currentIndex];
+    
+    // Record like action in user history
+    try {
+      await userHistoryApi.recordAction('like', recipe.id);
+    } catch (err) {
+      console.error("Failed to record like action", err);
+    }
+
     setCurrentRecipe(recipe);
     setShowIngredientModal(true);
     setCurrentIngredientIndex(0);
@@ -93,8 +119,14 @@ export default function RecipeSwiper() {
     if (!recipe.richIngredients) {
       setLoadingProducts(true);
       try {
-        // Fetch products for just this one recipe
-        const listResponse: ShoppingListResponse = await productsApi.generateShoppingList(marketId, [recipe.id]); // Market ID hardcoded for now
+        // Fetch products for this recipe using the user's market ID
+        if (!userMarketId) {
+          console.warn("User market ID not available, skipping product fetch");
+          setLoadingProducts(false);
+          return;
+        }
+        
+        const listResponse: ShoppingListResponse = await productsApi.generateShoppingList(userMarketId, [recipe.id]);
         
         // Update the specific recipe in our state with the new data
         setRecipes(prevRecipes => prevRecipes.map(r => {
@@ -113,10 +145,30 @@ export default function RecipeSwiper() {
     }
   };
 
-  const handleDislike = () => {
-    const nextIndex = (currentIndex + 1) % recipes.length;
-    setCurrentIndex(nextIndex);
-    setCurrentRecipe(recipes[nextIndex]);
+  const handleLikeOnly = async () => {
+    const recipe = recipes[currentIndex];
+    if (!recipe) return;
+
+    try {
+      await userHistoryApi.recordAction('like', recipe.id);
+    } catch (err) {
+      console.error("Failed to record like action", err);
+    }
+
+    advanceToNextRecipe();
+  };
+
+  const handleDislike = async () => {
+    const recipe = recipes[currentIndex];
+    if (!recipe) return;
+    
+    try {
+      await userHistoryApi.recordAction('dislike', recipe.id);
+    } catch (err) {
+      console.error("Failed to record dislike action", err);
+    }
+    
+    advanceToNextRecipe();
   };
 
   const showSuccessNotification = (recipeName: string) => {
@@ -397,20 +449,27 @@ export default function RecipeSwiper() {
                     </div>
 
                     {/* Action Buttons */}
-                    <div className="flex gap-4">
+                    <div className="flex flex-col sm:flex-row gap-3">
                       <button
-                          onClick={handleDislike}
-                          className="flex-1 py-4 bg-gray-100 text-gray-700 rounded-xl font-semibold hover:bg-gray-200 transition-all flex items-center justify-center gap-2 cursor-pointer whitespace-nowrap"
+                        onClick={handleDislike}
+                        className="flex-1 py-4 bg-gray-100 text-gray-700 rounded-xl font-semibold hover:bg-gray-200 transition-all flex items-center justify-center gap-2 cursor-pointer whitespace-nowrap"
                       >
                         <i className="ri-close-line text-2xl"></i>
                         <span>Skip</span>
                       </button>
                       <button
-                          onClick={handleLike}
-                          className="flex-1 py-4 bg-gradient-to-r from-[#2F855A] to-emerald-600 text-white rounded-xl font-semibold hover:from-[#276749] hover:to-emerald-700 transition-all flex items-center justify-center gap-2 shadow-lg cursor-pointer whitespace-nowrap"
+                        onClick={handleLikeOnly}
+                        className="flex-1 py-4 bg-gradient-to-r from-[#2F855A] to-emerald-600 text-white rounded-xl font-semibold hover:from-[#276749] hover:to-emerald-700 transition-all flex items-center justify-center gap-2 shadow-lg cursor-pointer whitespace-nowrap"
                       >
                         <i className="ri-heart-line text-2xl"></i>
                         <span>Like</span>
+                      </button>
+                      <button
+                        onClick={handleLike}
+                        className="flex-1 py-4 bg-gradient-to-r from-amber-500 to-orange-500 text-white rounded-xl font-semibold hover:from-amber-600 hover:to-orange-600 transition-all flex items-center justify-center gap-2 shadow-lg cursor-pointer whitespace-nowrap"
+                      >
+                        <i className="ri-shopping-cart-2-line text-2xl"></i>
+                        <span>Add to Shopping List</span>
                       </button>
                     </div>
                   </div>
