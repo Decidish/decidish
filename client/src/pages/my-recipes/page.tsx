@@ -217,10 +217,14 @@ export default function MyRecipesPage() {
   const [itemsPerPage, setItemsPerPage] = useState(6);
 
   // Filter recipes based on search query
+  const normalizedQuery = searchQuery.trim().toLowerCase();
   const filteredRecipes = savedRecipesMock.filter(recipe =>
-    recipe.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    recipe.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    recipe.tags.some(tag => tag.toLowerCase().includes(searchQuery.toLowerCase()))
+    recipe.name.toLowerCase().includes(normalizedQuery) ||
+    recipe.description.toLowerCase().includes(normalizedQuery) ||
+    recipe.tags.some(tag => tag.toLowerCase().includes(normalizedQuery)) ||
+    recipe.ingredients.some(ingredient =>
+      ingredient.name.toLowerCase().includes(normalizedQuery)
+    )
   );
 
   const sortedRecipes = [...filteredRecipes].sort((a, b) => {
