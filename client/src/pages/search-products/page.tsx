@@ -3,10 +3,10 @@ import { marketApi, Market } from '@/api/search-product/marketApi'; // The file 
 import { useState,useEffect } from 'react';
 import { productApi, Product } from '@/api/search-product/productApi';
 import { userApi } from '@/api/search-product/userApi';
-import { useNavigate } from 'react-router-dom';
+// import { useNavigate } from 'react-router-dom';
 
 export default function SearchProducts() {
-  const navigate = useNavigate();
+  // const navigate = useNavigate();
   const [showMarketModal, setShowMarketModal] = useState(false);
   
   const [searchQuery, setSearchQuery] = useState('');

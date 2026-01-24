@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { recipesApi, RecipeRecommendation } from '@/api/recipe-swiper/recipesApi';
 import { productsApi, ShoppingListResponse, IngredientGroup, Product } from '@/api/recipe-swiper/productsApi';
 import {CartItem, shoppingListApi} from "@/api/shopping-list/shoppingCartApi";
+import { userApi } from '@/api/search-product/userApi';
 
 
 // We extend the API response to include UI-specific fields if needed
@@ -29,6 +30,8 @@ export default function RecipeSwiper() {
   const [showRecipeDetailModal, setShowRecipeDetailModal] = useState(false);
   // New states for quantity selection and shopping cart
   const [productQuantities, setProductQuantities] = useState<Record<number, number>>({});
+  const [marketId, setMarketId] = useState<number | null>(null);
+  const [isMarketLoading, setIsMarketLoading] = useState(true);
 
   // FETCH RECIPES FROM BACKEND
   useEffect(() => {
@@ -48,6 +51,25 @@ export default function RecipeSwiper() {
 
     fetchRecommendations();
   }, []);
+  
+  useEffect(() => {
+    const fetchMarket = async () => {
+      try {
+        const id = await userApi.getUserMarketId();
+        if (id) {
+          setMarketId(id);
+        } else {
+          alert("Please select a market in your profile settings.");
+        }
+      } catch (err) {
+        console.error("Failed to fetch market preference");
+      } finally {
+        setIsMarketLoading(false);
+      }
+    };
+    fetchMarket();
+  }, []);
+
 
   const handleQuantityChange = (productId: number, change: number) => {
     setProductQuantities(prev => {
@@ -72,7 +94,7 @@ export default function RecipeSwiper() {
       setLoadingProducts(true);
       try {
         // Fetch products for just this one recipe
-        const listResponse: ShoppingListResponse = await productsApi.generateShoppingList(440752, [recipe.id]); // Market ID hardcoded for now
+        const listResponse: ShoppingListResponse = await productsApi.generateShoppingList(marketId, [recipe.id]); // Market ID hardcoded for now
         
         // Update the specific recipe in our state with the new data
         setRecipes(prevRecipes => prevRecipes.map(r => {
