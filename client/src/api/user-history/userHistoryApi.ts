@@ -1,14 +1,19 @@
 import apiClient from "../client";
 import { RecipeRecommendation } from "../recipe-swiper/recipesApi";
+import { UIRecipe } from "@/types/recipe";
 
 export interface UserHistoryRecord {
   id: number;
   user_id: string;
   action: boolean; // true for like, false for dislike
   recipe_id: number; // kept for convenience
-  recipe: RecipeRecommendation;
+  recipe: UIRecipe;
   action_timestamp: string;
 }
+
+type UserHistoryRecordResponse = Omit<UserHistoryRecord, 'recipe'> & {
+  recipe: RecipeRecommendation;
+};
 
 export const userHistoryApi = {
   // Record a user action (like or dislike)
@@ -25,8 +30,11 @@ export const userHistoryApi = {
   // Get user's full history
   getUserHistory: async (): Promise<UserHistoryRecord[]> => {
     try {
-      const response = await apiClient.get<UserHistoryRecord[]>('/personalization/api/v1/user/history');
-      return response.data;
+      const response = await apiClient.get<UserHistoryRecordResponse[]>('/personalization/api/v1/user/history');
+      return response.data.map((record) => ({
+        ...record,
+        recipe: { ...record.recipe, richIngredients: null },
+      }));
     } catch (error) {
       console.error("Failed to fetch user history:", error);
       throw error;
