@@ -30,6 +30,17 @@ CREATE TABLE recipes (
     yields VARCHAR(20)
 );
 
+INSERT INTO recipes 
+VALUES (
+  0, 
+  'General Items', 
+  'A container for individual products added to the shopping list', 
+  '', 
+  0, 
+  0, 
+  1,'',0,0,0,0
+);
+
 CREATE TABLE recipe_keywords (
     recipe_id INT references recipes(id) ON DELETE CASCADE,
     keyword_id INT references keywords(id),
