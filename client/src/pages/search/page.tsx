@@ -1,4 +1,5 @@
-import { useState } from 'react';
+import { useState,useEffect } from 'react';
+import { recipeApi } from '../../api/search/recipeApi';
 
 interface Product {
   id: string;
@@ -63,545 +64,129 @@ export default function Search() {
   const cuisines = ['All', 'Italian', 'Mexican', 'Asian', 'American', 'Mediterranean', 'Indian', 'Thai', 'French', 'Japanese'];
   const difficulties = ['All', 'Beginner', 'Intermediate', 'Advanced'];
   const timeOptions = ['All', '15 min', '30 min', '45 min', '60 min', '60+ min'];
-
-  // Mock data for demonstration - expanded to show pagination
-  const mockRecipes: Recipe[] = [
-    {
-      id: 1,
-      name: 'Classic Margherita Pizza',
-      image: 'https://readdy.ai/api/search-image?query=delicious%20homemade%20margherita%20pizza%20with%20fresh%20mozzarella%20basil%20and%20tomato%20sauce%20on%20wooden%20board%20rustic%20kitchen%20background%20simple%20ingredients%20artisan%20style%20food%20photography&width=400&height=300&seq=pizza001&orientation=landscape',
-      cookTime: 25,
-      servings: 4,
-      difficulty: 'Intermediate',
-      cuisine: 'Italian',
-      tags: ['Vegetarian', 'Quick'],
-      rating: 4.8,
-      calories: 280,
-      description: 'Classic Italian pizza with fresh mozzarella, basil, and tomato sauce on a crispy crust.',
-      ingredients: [
-        { 
-          id: 1, 
-          name: 'Pizza Dough', 
-          amount: '500g', 
-          products: [
-            { id: 'p1', name: 'Fresh Pizza Dough', brand: 'Trader Joe\'s', image: 'https://readdy.ai/api/search-image?query=fresh%20pizza%20dough%20in%20plastic%20bag%20on%20white%20background%20product%20photography&width=300&height=300&seq=dough1&orientation=squarish', price: 3.99, weight: '500', unit: 'g' },
-            { id: 'p2', name: 'Organic Pizza Dough', brand: 'Whole Foods', image: 'https://readdy.ai/api/search-image?query=organic%20pizza%20dough%20package%20on%20white%20background%20product%20photography&width=300&height=300&seq=dough2&orientation=squarish', price: 4.99, weight: '500', unit: 'g' }
-          ]
-        },
-        { 
-          id: 2, 
-          name: 'Mozzarella Cheese', 
-          amount: '250g', 
-          products: [
-            { id: 'p3', name: 'Fresh Mozzarella', brand: 'BelGioioso', image: 'https://readdy.ai/api/search-image?query=fresh%20mozzarella%20cheese%20ball%20in%20water%20on%20white%20background%20product%20photography&width=300&height=300&seq=mozz1&orientation=squarish', price: 5.99, weight: '250', unit: 'g' },
-            { id: 'p4', name: 'Shredded Mozzarella', brand: 'Kraft', image: 'https://readdy.ai/api/search-image?query=shredded%20mozzarella%20cheese%20bag%20on%20white%20background%20product%20photography&width=300&height=300&seq=mozz2&orientation=squarish', price: 4.49, weight: '300', unit: 'g' }
-          ]
-        }
-      ]
-    },
-    {
-      id: 2,
-      name: 'Spicy Chicken Tacos',
-      image: 'https://readdy.ai/api/search-image?query=spicy%20grilled%20chicken%20tacos%20with%20fresh%20cilantro%20lime%20avocado%20and%20colorful%20vegetables%20on%20white%20plate%20vibrant%20mexican%20street%20food%20style%20clean%20background%20appetizing%20presentation&width=400&height=300&seq=tacos001&orientation=landscape',
-      cookTime: 20,
-      servings: 3,
-      difficulty: 'Beginner',
-      cuisine: 'Mexican',
-      tags: ['High Protein', 'Spicy'],
-      rating: 4.6,
-      calories: 350,
-      description: 'Flavorful chicken tacos with spicy seasoning, fresh toppings, and warm tortillas.',
-      ingredients: [
-        { 
-          id: 3, 
-          name: 'Chicken Breast', 
-          amount: '500g', 
-          products: [
-            { id: 'p5', name: 'Fresh Chicken Breast', brand: 'Perdue', image: 'https://readdy.ai/api/search-image?query=fresh%20chicken%20breast%20in%20package%20on%20white%20background%20product%20photography&width=300&height=300&seq=chick1&orientation=squarish', price: 8.99, weight: '500', unit: 'g' }
-          ]
-        }
-      ]
-    },
-    {
-      id: 3,
-      name: 'Creamy Mushroom Risotto',
-      image: 'https://readdy.ai/api/search-image?query=creamy%20mushroom%20risotto%20with%20parmesan%20cheese%20fresh%20herbs%20in%20white%20bowl%20elegant%20italian%20comfort%20food%20presentation%20minimalist%20background%20restaurant%20quality%20plating&width=400&height=300&seq=risotto001&orientation=landscape',
-      cookTime: 45,
-      servings: 4,
-      difficulty: 'Advanced',
-      cuisine: 'Italian',
-      tags: ['Vegetarian', 'Creamy'],
-      rating: 4.9,
-      calories: 420,
-      description: 'Rich and creamy Italian risotto with sautéed mushrooms and parmesan.',
-      ingredients: [
-        { 
-          id: 4, 
-          name: 'Arborio Rice', 
-          amount: '300g', 
-          products: [
-            { id: 'p6', name: 'Arborio Rice', brand: 'RiceSelect', image: 'https://readdy.ai/api/search-image?query=arborio%20rice%20package%20on%20white%20background%20product%20photography&width=300&height=300&seq=rice1&orientation=squarish', price: 6.99, weight: '500', unit: 'g' }
-          ]
-        }
-      ]
-    },
-    {
-      id: 4,
-      name: 'Teriyaki Salmon Bowl',
-      image: 'https://readdy.ai/api/search-image?query=grilled%20teriyaki%20salmon%20bowl%20with%20steamed%20rice%20edamame%20carrots%20and%20sesame%20seeds%20healthy%20japanese%20cuisine%20bright%20colors%20clean%20presentation%20nutritious%20meal%20prep%20style&width=400&height=300&seq=salmon001&orientation=landscape',
-      cookTime: 30,
-      servings: 2,
-      difficulty: 'Intermediate',
-      cuisine: 'Japanese',
-      tags: ['High Protein', 'Healthy', 'Gluten-Free'],
-      rating: 4.7,
-      calories: 520,
-      description: 'Healthy salmon bowl with teriyaki glaze, rice, and fresh vegetables.',
-      ingredients: [
-        { 
-          id: 5, 
-          name: 'Salmon Fillet', 
-          amount: '300g', 
-          products: [
-            { id: 'p7', name: 'Atlantic Salmon', brand: 'Sea Best', image: 'https://readdy.ai/api/search-image?query=salmon%20fillet%20in%20package%20on%20white%20background%20product%20photography&width=300&height=300&seq=salm1&orientation=squarish', price: 14.99, weight: '300', unit: 'g' }
-          ]
-        }
-      ]
-    },
-    {
-      id: 5,
-      name: 'Greek Salad with Feta',
-      image: 'https://readdy.ai/api/search-image?query=fresh%20greek%20salad%20with%20feta%20cheese%20olives%20tomatoes%20cucumbers%20red%20onion%20olive%20oil%20mediterranean%20diet%20healthy%20colorful%20ingredients%20white%20bowl%20sunlight%20natural%20styling&width=400&height=300&seq=salad001&orientation=landscape',
-      cookTime: 10,
-      servings: 2,
-      difficulty: 'Beginner',
-      cuisine: 'Mediterranean',
-      tags: ['Vegetarian', 'Low Carb', 'Quick'],
-      rating: 4.5,
-      calories: 220,
-      description: 'Fresh and healthy Greek salad with feta cheese and Mediterranean flavors.',
-      ingredients: [
-        { 
-          id: 6, 
-          name: 'Feta Cheese', 
-          amount: '150g', 
-          products: [
-            { id: 'p8', name: 'Greek Feta', brand: 'Dodoni', image: 'https://readdy.ai/api/search-image?query=feta%20cheese%20block%20on%20white%20background%20product%20photography&width=300&height=300&seq=feta1&orientation=squarish', price: 7.99, weight: '200', unit: 'g' }
-          ]
-        }
-      ]
-    },
-    {
-      id: 6,
-      name: 'Butter Chicken Curry',
-      image: 'https://readdy.ai/api/search-image?query=butter%20chicken%20curry%20in%20rich%20tomato%20cream%20sauce%20with%20fresh%20cilantro%20naan%20bread%20authentic%20indian%20cuisine%20aromatic%20spices%20warm%20colors%20traditional%20presentation%20clay%20bowl&width=400&height=300&seq=curry001&orientation=landscape',
-      cookTime: 50,
-      servings: 6,
-      difficulty: 'Advanced',
-      cuisine: 'Indian',
-      tags: ['High Protein', 'Spicy'],
-      rating: 4.9,
-      calories: 480,
-      description: 'Rich and creamy Indian butter chicken with aromatic spices.',
-      ingredients: [
-        { 
-          id: 7, 
-          name: 'Chicken Thighs', 
-          amount: '800g', 
-          products: [
-            { id: 'p9', name: 'Chicken Thighs', brand: 'Tyson', image: 'https://readdy.ai/api/search-image?query=chicken%20thighs%20in%20package%20on%20white%20background%20product%20photography&width=300&height=300&seq=thigh1&orientation=squarish', price: 9.99, weight: '900', unit: 'g' }
-          ]
-        }
-      ]
-    },
-    {
-      id: 7,
-      name: 'Pad Thai Noodles',
-      image: 'https://readdy.ai/api/search-image?query=pad%20thai%20noodles%20with%20shrimp%20peanuts%20lime%20bean%20sprouts%20colorful%20thai%20street%20food%20authentic%20presentation%20wok%20tossed%20asian%20cuisine%20vibrant%20ingredients%20wooden%20background&width=400&height=300&seq=padthai001&orientation=landscape',
-      cookTime: 25,
-      servings: 3,
-      difficulty: 'Intermediate',
-      cuisine: 'Thai',
-      tags: ['High Protein', 'Quick'],
-      rating: 4.6,
-      calories: 450,
-      description: 'Authentic Thai pad thai with shrimp, peanuts, and tangy sauce.',
-      ingredients: [
-        { 
-          id: 8, 
-          name: 'Rice Noodles', 
-          amount: '250g', 
-          products: [
-            { id: 'p10', name: 'Rice Noodles', brand: 'Thai Kitchen', image: 'https://readdy.ai/api/search-image?query=rice%20noodles%20package%20on%20white%20background%20product%20photography&width=300&height=300&seq=noodle1&orientation=squarish', price: 4.99, weight: '250', unit: 'g' }
-          ]
-        }
-      ]
-    },
-    {
-      id: 8,
-      name: 'French Onion Soup',
-      image: 'https://readdy.ai/api/search-image?query=french%20onion%20soup%20with%20melted%20gruyere%20cheese%20toasted%20bread%20crock%20traditional%20bistro%20style%20rich%20caramelized%20onions%20elegant%20presentation%20rustic%20french%20cuisine%20comfort%20food&width=400&height=300&seq=soup001&orientation=landscape',
-      cookTime: 60,
-      servings: 4,
-      difficulty: 'Intermediate',
-      cuisine: 'French',
-      tags: ['Comfort Food'],
-      rating: 4.7,
-      calories: 320,
-      description: 'Classic French onion soup with caramelized onions and melted cheese.',
-      ingredients: [
-        { 
-          id: 9, 
-          name: 'Yellow Onions', 
-          amount: '1kg', 
-          products: [
-            { id: 'p11', name: 'Yellow Onions', brand: 'Fresh', image: 'https://readdy.ai/api/search-image?query=yellow%20onions%20in%20mesh%20bag%20on%20white%20background%20product%20photography&width=300&height=300&seq=onion1&orientation=squarish', price: 3.99, weight: '1000', unit: 'g' }
-          ]
-        }
-      ]
-    },
-    // Additional recipes for pagination demo
-    {
-      id: 9,
-      name: 'Beef Stir Fry',
-      image: 'https://readdy.ai/api/search-image?query=beef%20stir%20fry%20with%20colorful%20vegetables%20soy%20sauce%20ginger%20garlic%20in%20wok%20asian%20cuisine%20vibrant%20colors%20steam%20rising%20professional%20food%20photography&width=400&height=300&seq=stirfry001&orientation=landscape',
-      cookTime: 20,
-      servings: 4,
-      difficulty: 'Beginner',
-      cuisine: 'Asian',
-      tags: ['High Protein', 'Quick'],
-      rating: 4.5,
-      calories: 380,
-      description: 'Quick and easy beef stir fry with fresh vegetables.',
-      ingredients: [
-        { 
-          id: 10, 
-          name: 'Beef Strips', 
-          amount: '500g', 
-          products: [
-            { id: 'p12', name: 'Beef Strips', brand: 'Angus', image: 'https://readdy.ai/api/search-image?query=beef%20strips%20in%20package%20on%20white%20background%20product%20photography&width=300&height=300&seq=beef1&orientation=squarish', price: 12.99, weight: '500', unit: 'g' }
-          ]
-        }
-      ]
-    },
-    {
-      id: 10,
-      name: 'Caprese Salad',
-      image: 'https://readdy.ai/api/search-image?query=caprese%20salad%20with%20fresh%20mozzarella%20tomatoes%20basil%20balsamic%20glaze%20olive%20oil%20italian%20appetizer%20simple%20elegant%20presentation%20white%20plate&width=400&height=300&seq=caprese001&orientation=landscape',
-      cookTime: 10,
-      servings: 2,
-      difficulty: 'Beginner',
-      cuisine: 'Italian',
-      tags: ['Vegetarian', 'Quick', 'Low Carb'],
-      rating: 4.6,
-      calories: 180,
-      description: 'Simple and elegant Italian salad with fresh ingredients.',
-      ingredients: [
-        { 
-          id: 11, 
-          name: 'Cherry Tomatoes', 
-          amount: '300g', 
-          products: [
-            { id: 'p13', name: 'Cherry Tomatoes', brand: 'Fresh', image: 'https://readdy.ai/api/search-image?query=cherry%20tomatoes%20in%20container%20on%20white%20background%20product%20photography&width=300&height=300&seq=tom1&orientation=squarish', price: 4.99, weight: '300', unit: 'g' }
-          ]
-        }
-      ]
-    },
-    {
-      id: 11,
-      name: 'Chicken Fajitas',
-      image: 'https://readdy.ai/api/search-image?query=sizzling%20chicken%20fajitas%20with%20bell%20peppers%20onions%20tortillas%20mexican%20cuisine%20colorful%20presentation%20cast%20iron%20skillet%20lime%20wedges%20cilantro&width=400&height=300&seq=fajitas001&orientation=landscape',
-      cookTime: 25,
-      servings: 4,
-      difficulty: 'Beginner',
-      cuisine: 'Mexican',
-      tags: ['High Protein', 'Quick'],
-      rating: 4.7,
-      calories: 420,
-      description: 'Sizzling chicken fajitas with peppers and onions.',
-      ingredients: [
-        { 
-          id: 12, 
-          name: 'Bell Peppers', 
-          amount: '3 pieces', 
-          products: [
-            { id: 'p14', name: 'Mixed Bell Peppers', brand: 'Fresh', image: 'https://readdy.ai/api/search-image?query=mixed%20bell%20peppers%20on%20white%20background%20product%20photography&width=300&height=300&seq=pepper1&orientation=squarish', price: 5.99, weight: '3 pack', unit: 'pcs' }
-          ]
-        }
-      ]
-    },
-    {
-      id: 12,
-      name: 'Vegetable Curry',
-      image: 'https://readdy.ai/api/search-image?query=vegetable%20curry%20with%20chickpeas%20potatoes%20cauliflower%20in%20rich%20coconut%20curry%20sauce%20indian%20spices%20colorful%20vegetables%20white%20bowl%20basmati%20rice&width=400&height=300&seq=vegcurry001&orientation=landscape',
-      cookTime: 35,
-      servings: 4,
-      difficulty: 'Intermediate',
-      cuisine: 'Indian',
-      tags: ['Vegetarian', 'Spicy', 'Healthy'],
-      rating: 4.8,
-      calories: 320,
-      description: 'Hearty vegetable curry with aromatic Indian spices.',
-      ingredients: [
-        { 
-          id: 13, 
-          name: 'Curry Paste', 
-          amount: '100g', 
-          products: [
-            { id: 'p15', name: 'Curry Paste', brand: 'Patak\'s', image: 'https://readdy.ai/api/search-image?query=curry%20paste%20jar%20on%20white%20background%20product%20photography&width=300&height=300&seq=curry1&orientation=squarish', price: 4.99, weight: '100', unit: 'g' }
-          ]
-        }
-      ]
-    },
-    {
-      id: 13,
-      name: 'Sushi Rolls',
-      image: 'https://readdy.ai/api/search-image?query=beautiful%20sushi%20rolls%20with%20fresh%20salmon%20avocado%20cucumber%20on%20black%20plate%20with%20soy%20sauce%20wasabi%20ginger%20japanese%20cuisine%20elegant%20presentation&width=400&height=300&seq=sushi001&orientation=landscape',
-      cookTime: 45,
-      servings: 2,
-      difficulty: 'Advanced',
-      cuisine: 'Japanese',
-      tags: ['Healthy', 'Low Carb'],
-      rating: 4.9,
-      calories: 280,
-      description: 'Fresh and beautiful sushi rolls with premium ingredients.',
-      ingredients: [
-        { 
-          id: 14, 
-          name: 'Nori Sheets', 
-          amount: '10 sheets', 
-          products: [
-            { id: 'p16', name: 'Nori Sheets', brand: 'Yamamotoyama', image: 'https://readdy.ai/api/search-image?query=nori%20seaweed%20sheets%20package%20on%20white%20background%20product%20photography&width=300&height=300&seq=nori1&orientation=squarish', price: 6.99, weight: '10 pack', unit: 'pcs' }
-          ]
-        }
-      ]
-    },
-    {
-      id: 14,
-      name: 'BBQ Ribs',
-      image: 'https://readdy.ai/api/search-image?query=smoky%20bbq%20ribs%20with%20caramelized%20sauce%20on%20wooden%20board%20american%20barbecue%20cuisine%20tender%20meat%20coleslaw%20side%20dish%20rustic%20presentation&width=400&height=300&seq=ribs001&orientation=landscape',
-      cookTime: 180,
-      servings: 6,
-      difficulty: 'Advanced',
-      cuisine: 'American',
-      tags: ['High Protein', 'Comfort Food'],
-      rating: 4.8,
-      calories: 650,
-      description: 'Tender BBQ ribs with smoky sauce and perfect char.',
-      ingredients: [
-        { 
-          id: 15, 
-          name: 'Pork Ribs', 
-          amount: '2kg', 
-          products: [
-            { id: 'p17', name: 'Baby Back Ribs', brand: 'Smithfield', image: 'https://readdy.ai/api/search-image?query=pork%20ribs%20in%20package%20on%20white%20background%20product%20photography&width=300&height=300&seq=ribs1&orientation=squarish', price: 19.99, weight: '2000', unit: 'g' }
-          ]
-        }
-      ]
-    },
-    {
-      id: 15,
-      name: 'Ramen Bowl',
-      image: 'https://readdy.ai/api/search-image?query=authentic%20ramen%20bowl%20with%20pork%20belly%20soft%20boiled%20egg%20noodles%20green%20onions%20in%20rich%20broth%20japanese%20cuisine%20steam%20rising%20beautiful%20presentation&width=400&height=300&seq=ramen001&orientation=landscape',
-      cookTime: 40,
-      servings: 2,
-      difficulty: 'Intermediate',
-      cuisine: 'Japanese',
-      tags: ['Comfort Food', 'High Protein'],
-      rating: 4.9,
-      calories: 520,
-      description: 'Authentic Japanese ramen with rich broth and toppings.',
-      ingredients: [
-        { 
-          id: 16, 
-          name: 'Ramen Noodles', 
-          amount: '200g', 
-          products: [
-            { id: 'p18', name: 'Fresh Ramen Noodles', brand: 'Sun Noodle', image: 'https://readdy.ai/api/search-image?query=fresh%20ramen%20noodles%20package%20on%20white%20background%20product%20photography&width=300&height=300&seq=ramen1&orientation=squarish', price: 5.99, weight: '200', unit: 'g' }
-          ]
-        }
-      ]
-    },
-    {
-      id: 16,
-      name: 'Caesar Salad',
-      image: 'https://readdy.ai/api/search-image?query=classic%20caesar%20salad%20with%20romaine%20lettuce%20parmesan%20cheese%20croutons%20creamy%20dressing%20white%20bowl%20elegant%20presentation%20fresh%20ingredients&width=400&height=300&seq=caesar001&orientation=landscape',
-      cookTime: 15,
-      servings: 2,
-      difficulty: 'Beginner',
-      cuisine: 'American',
-      tags: ['Quick', 'Vegetarian'],
-      rating: 4.4,
-      calories: 280,
-      description: 'Classic Caesar salad with homemade dressing.',
-      ingredients: [
-        { 
-          id: 17, 
-          name: 'Romaine Lettuce', 
-          amount: '2 heads', 
-          products: [
-            { id: 'p19', name: 'Romaine Hearts', brand: 'Fresh', image: 'https://readdy.ai/api/search-image?query=romaine%20lettuce%20hearts%20in%20package%20on%20white%20background%20product%20photography&width=300&height=300&seq=lettuce1&orientation=squarish', price: 3.99, weight: '2 pack', unit: 'pcs' }
-          ]
-        }
-      ]
-    },
-    {
-      id: 17,
-      name: 'Paella',
-      image: 'https://readdy.ai/api/search-image?query=spanish%20paella%20with%20seafood%20chicken%20saffron%20rice%20colorful%20vegetables%20in%20traditional%20pan%20mediterranean%20cuisine%20vibrant%20colors%20authentic%20presentation&width=400&height=300&seq=paella001&orientation=landscape',
-      cookTime: 60,
-      servings: 6,
-      difficulty: 'Advanced',
-      cuisine: 'Mediterranean',
-      tags: ['High Protein', 'Seafood'],
-      rating: 4.9,
-      calories: 480,
-      description: 'Traditional Spanish paella with seafood and saffron rice.',
-      ingredients: [
-        { 
-          id: 18, 
-          name: 'Paella Rice', 
-          amount: '400g', 
-          products: [
-            { id: 'p20', name: 'Bomba Rice', brand: 'La Fallera', image: 'https://readdy.ai/api/search-image?query=bomba%20rice%20package%20on%20white%20background%20product%20photography&width=300&height=300&seq=bomba1&orientation=squarish', price: 8.99, weight: '500', unit: 'g' }
-          ]
-        }
-      ]
-    },
-    {
-      id: 18,
-      name: 'Chicken Tikka Masala',
-      image: 'https://readdy.ai/api/search-image?query=chicken%20tikka%20masala%20in%20creamy%20tomato%20sauce%20with%20naan%20bread%20indian%20cuisine%20aromatic%20spices%20garnished%20with%20cilantro%20white%20bowl%20restaurant%20quality&width=400&height=300&seq=tikka001&orientation=landscape',
-      cookTime: 45,
-      servings: 4,
-      difficulty: 'Intermediate',
-      cuisine: 'Indian',
-      tags: ['High Protein', 'Spicy'],
-      rating: 4.8,
-      calories: 450,
-      description: 'Popular Indian curry with tender chicken in creamy tomato sauce.',
-      ingredients: [
-        { 
-          id: 19, 
-          name: 'Tikka Masala Paste', 
-          amount: '150g', 
-          products: [
-            { id: 'p21', name: 'Tikka Masala Paste', brand: 'Patak\'s', image: 'https://readdy.ai/api/search-image?query=tikka%20masala%20paste%20jar%20on%20white%20background%20product%20photography&width=300&height=300&seq=tikka1&orientation=squarish', price: 5.99, weight: '150', unit: 'g' }
-          ]
-        }
-      ]
-    },
-    {
-      id: 19,
-      name: 'Beef Tacos',
-      image: 'https://readdy.ai/api/search-image?query=beef%20tacos%20with%20seasoned%20ground%20beef%20lettuce%20tomatoes%20cheese%20sour%20cream%20mexican%20street%20food%20colorful%20presentation%20lime%20wedges&width=400&height=300&seq=beeftacos001&orientation=landscape',
-      cookTime: 20,
-      servings: 4,
-      difficulty: 'Beginner',
-      cuisine: 'Mexican',
-      tags: ['High Protein', 'Quick'],
-      rating: 4.6,
-      calories: 380,
-      description: 'Classic beef tacos with all the fixings.',
-      ingredients: [
-        { 
-          id: 20, 
-          name: 'Ground Beef', 
-          amount: '500g', 
-          products: [
-            { id: 'p22', name: 'Ground Beef', brand: 'Angus', image: 'https://readdy.ai/api/search-image?query=ground%20beef%20in%20package%20on%20white%20background%20product%20photography&width=300&height=300&seq=ground1&orientation=squarish', price: 9.99, weight: '500', unit: 'g' }
-          ]
-        }
-      ]
-    },
-    {
-      id: 20,
-      name: 'Tom Yum Soup',
-      image: 'https://readdy.ai/api/search-image?query=tom%20yum%20soup%20with%20shrimp%20mushrooms%20lemongrass%20chili%20thai%20cuisine%20spicy%20sour%20broth%20vibrant%20red%20color%20traditional%20bowl%20aromatic%20herbs&width=400&height=300&seq=tomyum001&orientation=landscape',
-      cookTime: 30,
-      servings: 4,
-      difficulty: 'Intermediate',
-      cuisine: 'Thai',
-      tags: ['Spicy', 'Healthy', 'Low Carb'],
-      rating: 4.7,
-      calories: 180,
-      description: 'Spicy and sour Thai soup with shrimp and aromatic herbs.',
-      ingredients: [
-        { 
-          id: 21, 
-          name: 'Tom Yum Paste', 
-          amount: '100g', 
-          products: [
-            { id: 'p23', name: 'Tom Yum Paste', brand: 'Thai Kitchen', image: 'https://readdy.ai/api/search-image?query=tom%20yum%20paste%20jar%20on%20white%20background%20product%20photography&width=300&height=300&seq=tomyum1&orientation=squarish', price: 4.99, weight: '100', unit: 'g' }
-          ]
-        }
-      ]
-    }
-  ];
-
-  const handleSearch = (page: number = 1) => {
+  
+  const handleSearch = async (page: number = 1) => {
     setIsSearching(true);
     setHasSearched(true);
     setCurrentPage(page);
 
-    // Calculate offset for backend
-    const offset = (page - 1) * ITEMS_PER_PAGE;
+    try {
+      const response = await recipeApi.searchRecipes({
+        query: searchQuery,
+        cuisine: selectedCuisine,
+        difficulty: selectedDifficulty,
+        maxTime: maxTime,
+        page: page
+      });
 
-    // Simulate API call with pagination parameters
-    console.log('Mock API Request:', {
-      query: searchQuery,
-      cuisine: selectedCuisine,
-      difficulty: selectedDifficulty,
-      maxTime: maxTime,
-      limit: ITEMS_PER_PAGE,
-      offset: offset,
-      page: page
-    });
+      // Map Backend Data (Snake_Case) to Frontend UI (CamelCase)
+      const mappedRecipes: Recipe[] = response.recipes.map((r: any) => ({
+        id: r.id,
+        name: r.title,
+        image: r.image || "https://placehold.co/600x400?text=No+Image", // Fallback image
+        cookTime: r.cook_time || r.total_time || 0,
+        servings: parseInt(r.yields)|| parseInt(r.nutrients?.servingSize) || 4, // Parse string yields
+        difficulty: r.difficulty || 'Medium',
+        cuisine: r.cuisine || 'International',
+        tags: r.keywords || [],
+        rating: r.ratings,
+        calories: r.nutrients?.calories ? parseInt(r.nutrients.calories) : 0,
+        description: r.description,
+        
+        // Handle Ingredients Mismatch
+        // The backend currently sends strings ["Tomato", "Cheese"], 
+        // but UI expects objects with product links.
+        // We create a temporary mapping so the UI doesn't crash.
+        ingredients: r.ingredients ? r.ingredients.map((ingName: string, idx: number) => ({
+          id: idx,
+          name: ingName,
+          amount: "1 serving", // Default value
+          products: []         // Empty products list for now
+        })) : []
+      }));
 
-    setTimeout(() => {
-      let filtered = mockRecipes;
-
-      // Filter by search query
-      if (searchQuery.trim()) {
-        filtered = filtered.filter(recipe =>
-          recipe.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-          recipe.tags.some(tag => tag.toLowerCase().includes(searchQuery.toLowerCase())) ||
-          recipe.cuisine.toLowerCase().includes(searchQuery.toLowerCase())
-        );
-      }
-
-      // Filter by cuisine
-      if (selectedCuisine !== 'all') {
-        filtered = filtered.filter(recipe => recipe.cuisine === selectedCuisine);
-      }
-
-      // Filter by difficulty
-      if (selectedDifficulty !== 'all') {
-        filtered = filtered.filter(recipe => recipe.difficulty === selectedDifficulty);
-      }
-
-      // Filter by time
-      if (maxTime !== 'all') {
-        const timeValue = parseInt(maxTime);
-        filtered = filtered.filter(recipe => recipe.cookTime <= timeValue);
-      }
-
-      // Calculate pagination
-      const total = filtered.length;
-      const pages = Math.ceil(total / ITEMS_PER_PAGE);
-      const startIndex = offset;
-      const endIndex = startIndex + ITEMS_PER_PAGE;
-      const paginatedResults = filtered.slice(startIndex, endIndex);
-
-      setTotalResults(total);
-      setTotalPages(pages);
-      setSearchResults(paginatedResults);
-      setIsSearching(false);
-
-      // Scroll to top of results
+      setTotalResults(response.total_count);
+      setTotalPages(response.total_pages);
+      setSearchResults(mappedRecipes);
+      
       window.scrollTo({ top: 0, behavior: 'smooth' });
-    }, 500);
+
+    } catch (error) {
+      console.error("Failed to search recipes:", error);
+      // TODO Add error toast here
+    } finally {
+      setIsSearching(false);
+    }
   };
+
+  // const handleSearch = (page: number = 1) => {
+  //   setIsSearching(true);
+  //   setHasSearched(true);
+  //   setCurrentPage(page);
+
+  //   // Calculate offset for backend
+  //   const offset = (page - 1) * ITEMS_PER_PAGE;
+
+  //   // Simulate API call with pagination parameters
+  //   console.log('Mock API Request:', {
+  //     query: searchQuery,
+  //     cuisine: selectedCuisine,
+  //     difficulty: selectedDifficulty,
+  //     maxTime: maxTime,
+  //     limit: ITEMS_PER_PAGE,
+  //     offset: offset,
+  //     page: page
+  //   });
+
+  //   setTimeout(() => {
+  //     let filtered = mockRecipes;
+
+  //     // Filter by search query
+  //     if (searchQuery.trim()) {
+  //       filtered = filtered.filter(recipe =>
+  //         recipe.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+  //         recipe.tags.some(tag => tag.toLowerCase().includes(searchQuery.toLowerCase())) ||
+  //         recipe.cuisine.toLowerCase().includes(searchQuery.toLowerCase())
+  //       );
+  //     }
+
+  //     // Filter by cuisine
+  //     if (selectedCuisine !== 'all') {
+  //       filtered = filtered.filter(recipe => recipe.cuisine === selectedCuisine);
+  //     }
+
+  //     // Filter by difficulty
+  //     if (selectedDifficulty !== 'all') {
+  //       filtered = filtered.filter(recipe => recipe.difficulty === selectedDifficulty);
+  //     }
+
+  //     // Filter by time
+  //     if (maxTime !== 'all') {
+  //       const timeValue = parseInt(maxTime);
+  //       filtered = filtered.filter(recipe => recipe.cookTime <= timeValue);
+  //     }
+
+  //     // Calculate pagination
+  //     const total = filtered.length;
+  //     const pages = Math.ceil(total / ITEMS_PER_PAGE);
+  //     const startIndex = offset;
+  //     const endIndex = startIndex + ITEMS_PER_PAGE;
+  //     const paginatedResults = filtered.slice(startIndex, endIndex);
+
+  //     setTotalResults(total);
+  //     setTotalPages(pages);
+  //     setSearchResults(paginatedResults);
+  //     setIsSearching(false);
+
+  //     // Scroll to top of results
+  //     window.scrollTo({ top: 0, behavior: 'smooth' });
+  //   }, 500);
+  // };
+  
+  useEffect(() => {
+    // Perform an initial search to populate the page
+    handleSearch(1);
+  }, []); // Empty dependency array = run once on mount
 
   const handleKeyPress = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter') {

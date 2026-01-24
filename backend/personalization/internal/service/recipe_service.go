@@ -9,6 +9,7 @@ import (
 	"personalization/internal/client"
 	"personalization/internal/config"
 	"personalization/internal/repository"
+	"strconv"
 
 	"github.com/gin-gonic/gin"
 	"github.com/gin-gonic/gin/binding"
@@ -35,6 +36,7 @@ type RecipeService struct {
 	config   config.ApplicationConfig
 	DB       *sql.DB
 	MLClient *client.Client
+	Repo     *repository.RecipeRepository
 }
 
 func NewRecipeService(config config.ApplicationConfig, db *sql.DB, mlClient *client.Client) RecipeService {
@@ -42,6 +44,7 @@ func NewRecipeService(config config.ApplicationConfig, db *sql.DB, mlClient *cli
 		config:   config,
 		DB:       db,
 		MLClient: mlClient,
+		Repo:     repository.NewRecipeRepository(db),
 	}
 }
 
@@ -57,6 +60,30 @@ func (service RecipeService) GetAdminStats(ctx *gin.Context) {
 		"imported_today": today,
 		"active_users":   users,
 	})
+}
+
+func (s *RecipeService) SearchRecipes(ctx *gin.Context) {
+	// Parse Pagination and Filters from the URL
+	page, _ := strconv.Atoi(ctx.DefaultQuery("page", "1"))
+	limit, _ := strconv.Atoi(ctx.DefaultQuery("limit", "12"))
+
+	params := repository.SearchParams{
+		Query:      ctx.Query("q"),          // matches ?q=
+		Cuisine:    ctx.Query("cuisine"),    // matches ?cuisine=
+		Difficulty: ctx.Query("difficulty"), // matches ?difficulty=
+		MaxTime:    ctx.Query("maxTime"),    // matches ?maxTime=
+		Page:       page,
+		Limit:      limit,
+	}
+
+	result, err := s.Repo.SearchRecipes(params)
+	if err != nil {
+		fmt.Println("Search Error:", err)
+		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch recipes"})
+		return
+	}
+
+	ctx.JSON(http.StatusOK, result)
 }
 
 func (service RecipeService) AddRecipe(ctx *gin.Context) {
