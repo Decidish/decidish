@@ -131,14 +131,23 @@ class ModelCache:
         self.cfg = cfg
         self._model: Optional[UserAdapterOnly] = None
         self._ckpt_path: Optional[str] = None
+        self._ckpt_mtime: Optional[float] = None
         self._loaded_at: float = 0.0
 
     def get(self, reload_if_changed: bool = True) -> Tuple[UserAdapterOnly, Dict[str, Any]]:
         latest = _latest_ckpt_path(self.cfg.ckpt_dir)
 
+        latest_mtime: Optional[float] = None
+        if latest is not None:
+            try:
+                latest_mtime = os.path.getmtime(latest)
+            except OSError:
+                latest_mtime = None
+
         need_load = (self._model is None)
-        if reload_if_changed and (latest != self._ckpt_path):
-            need_load = True
+        if reload_if_changed:
+            if (latest != self._ckpt_path) or (latest_mtime != self._ckpt_mtime):
+                need_load = True
 
         if need_load:
             m = UserAdapterOnly(
@@ -155,12 +164,14 @@ class ModelCache:
 
             self._model = m
             self._ckpt_path = latest
+            self._ckpt_mtime = latest_mtime
             self._loaded_at = time.time()
 
         info = {
             "device": self.cfg.device,
             "ckpt_dir": self.cfg.ckpt_dir,
             "ckpt_used": self._ckpt_path,  # None means random init
+            "ckpt_mtime": self._ckpt_mtime,
             "loaded_at": self._loaded_at,
         }
         return self._model, info
@@ -264,6 +275,7 @@ if __name__ == "__main__":
     import argparse
     import random
 
+
     def make_dummy_batch(B: int, D: int, like_prob: float = 0.5, seed: int = 0):
         torch.manual_seed(seed)
         random.seed(seed)
@@ -276,10 +288,12 @@ if __name__ == "__main__":
             "like": like.cpu().tolist(),
         }
 
+
     def check_norm(x_list, eps=1e-2):
         x = torch.tensor(x_list, dtype=torch.float32)
         norms = x.norm(dim=-1)
         return float(norms.mean()), float((norms - 1.0).abs().max())
+
 
     parser = argparse.ArgumentParser()
     parser.add_argument("--ckpt_dir", type=str, default="./ckpts_weekly_user_adapter")
@@ -334,7 +348,7 @@ if __name__ == "__main__":
     mean_norm, max_dev = check_norm(out2["updated_user_emb"])
     print("metrics:", out2["metrics"])
     print("mean_norm:", mean_norm, "max|norm-1|:", max_dev)
-     # online + offline
+    # online + offline
     print("\n=== Case 3: weekly adapter + online BCE ===")
     out3 = compute_updated_user_embeddings(
         batch=batch,
