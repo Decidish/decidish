@@ -1,18 +1,22 @@
 import { ShoppingList, shoppingListApi } from '@/api/shopping-list/shoppingCartApi';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 
 export default function ShoppingListPage() {
   const [activeTab, setActiveTab] = useState<'current' | 'history'>('current');
   const [activeList, setActiveList] = useState<ShoppingList | null>(null);
   const [shoppingHistory, setShoppingHistory] = useState<ShoppingList[]>([]);
-  const [productQuantities, setProductQuantities] = useState<Record<number, number>>({});
+  const [productQuantities, setProductQuantities] = useState<Record<string, number>>({});
+  const saveTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const hasChangesRef = useRef(false);
 
   const fetchList = async () => {
       try {
         const listData = await shoppingListApi.getActiveShoppingList();
         if (listData) setActiveList(listData);
         const historyData = await shoppingListApi.getShoppingHistory();
-        if (historyData.length > 0) setShoppingHistory(historyData);
+        if (historyData && Array.isArray(historyData) && historyData.length > 0) {
+          setShoppingHistory(historyData);
+        }
       } catch (error) {
         console.error("Failed to load shopping list", error);
       }
@@ -74,12 +78,11 @@ export default function ShoppingListPage() {
   
   const handleQuantityChange = (itemId: string, change: number) => {
     setProductQuantities(prev => {
-      const itemIdNum = parseInt(itemId);
-      const currentQty = prev[itemIdNum] || (activeList ? activeList.groups.flatMap(g => g.items).find(i => i.id === itemId)?.quantity || 1 : 1);
+      const currentQty = prev[itemId] || (activeList ? activeList.groups.flatMap(g => g.items).find(i => i.id === itemId)?.quantity || 1 : 1);
       const newQty = Math.max(1, currentQty + change);
       return {
         ...prev,
-        [itemIdNum]: newQty,
+        [itemId]: newQty,
       };
     });
   };
@@ -89,27 +92,49 @@ export default function ShoppingListPage() {
 
     try {
       const updates = Object.entries(productQuantities).map(([itemIdNum, quantity]) => {
-        const itemId = activeList.groups.flatMap(g => g.items).find(i => parseInt(i.id) === parseInt(itemIdNum))?.id;
-        return { item_id: itemId, quantity };
-      });
+        // itemIdNum is the numeric key, find the actual string ID from activeList
+        const allItems = activeList.groups.flatMap(g => g.items);
+        const item = allItems.find(i => i.id === itemIdNum || parseInt(i.id) === parseInt(itemIdNum));
+        return { item_id: item?.id, quantity };
+      }).filter(update => update.item_id !== undefined); // Only include valid updates
 
-      await Promise.all(updates.map(update => shoppingListApi.updateItemQuantity(update.item_id, update.quantity)));
+      if (updates.length === 0) return; // Nothing to save
+
+      await Promise.all(updates.map(update => shoppingListApi.updateItemQuantity(update.item_id!, update.quantity)));
+      hasChangesRef.current = false;
     } catch (error) {
       console.error("Failed to save quantity changes:", error);
     }
   };
 
+  // Debounced save on quantity changes
   useEffect(() => {
-    const handleBeforeUnload = () => {
-      saveQuantityChanges();
-    };
+    hasChangesRef.current = true;
+    
+    if (saveTimeoutRef.current) {
+      clearTimeout(saveTimeoutRef.current);
+    }
 
-    window.addEventListener('beforeunload', handleBeforeUnload);
-    return () => {
-      window.removeEventListener('beforeunload', handleBeforeUnload);
+    saveTimeoutRef.current = setTimeout(() => {
       saveQuantityChanges();
+    }, 1500); // Save after 1.5 seconds of inactivity
+
+    return () => {
+      if (saveTimeoutRef.current) {
+        clearTimeout(saveTimeoutRef.current);
+      }
     };
   }, [productQuantities, activeList]);
+
+  // Save on component unmount
+  useEffect(() => {
+    return () => {
+      if (hasChangesRef.current && saveTimeoutRef.current) {
+        clearTimeout(saveTimeoutRef.current);
+        saveQuantityChanges();
+      }
+    };
+  }, []);
 
 
   const handleRemoveItem = async (recipeName: string, itemId: string) => {
@@ -156,6 +181,56 @@ export default function ShoppingListPage() {
         console.error("Failed to complete shopping list", error);
         alert("Failed to complete shopping list. Please try again.");
     }
+  };
+
+  const handleShareList = async () => {
+    if (!activeList || !activeList.groups) return;
+
+    // Format shopping list as text
+    let shareText = `🛒 Shopping List\n`;
+    shareText += `📅 ${new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}\n\n`;
+
+    activeList.groups.forEach((group) => {
+      shareText += `📖 ${group.recipeName}\n`;
+      shareText += `${'─'.repeat(30)}\n`;
+      group.items.forEach((item) => {
+        const quantity = productQuantities[item.id] || item.quantity || 1;
+        const itemPrice = ((item.price / 100) * quantity).toFixed(2);
+        const checkMark = item.checked ? '✓' : '☐';
+        shareText += `${checkMark} ${item.name} (x${quantity}) - ${itemPrice}€\n`;
+      });
+      shareText += `\n`;
+    });
+
+    shareText += `${'═'.repeat(30)}\n`;
+    shareText += `💰 Total: ${(totalPrice / 100).toFixed(2)}€\n`;
+    shareText += `📊 Progress: ${checkedCount}/${totalCount} items\n`;
+
+    // Try to use Web Share API if available
+    if (navigator.share) {
+      try {
+        await navigator.share({
+          title: 'Shopping List',
+          text: shareText,
+        });
+      } catch (error) {
+        // User cancelled or share failed, fallback to clipboard
+        if ((error as Error).name !== 'AbortError') {
+          copyToClipboard(shareText);
+        }
+      }
+    } else {
+      // Fallback to clipboard
+      copyToClipboard(shareText);
+    }
+  };
+
+  const copyToClipboard = (text: string) => {
+    navigator.clipboard.writeText(text).then(() => {
+      alert('Shopping list copied to clipboard!');
+    }).catch(() => {
+      alert('Failed to copy to clipboard. Please try again.');
+    });
   };
 
   const recipeGroups = activeList ? activeList.groups : [];
@@ -350,7 +425,79 @@ export default function ShoppingListPage() {
                               item.checked ? 'opacity-60' : ''
                             }`}
                           >
-                            <div className="flex items-center gap-4">
+                            {/* Mobile Layout: Stack vertically */}
+                            <div className="flex md:hidden flex-col gap-3">
+                              {/* Top Row: Checkbox, Image, and Product Info */}
+                              <div className="flex items-center gap-3">
+                                {/* Checkbox - centered vertically */}
+                                <button
+                                  onClick={() => handleToggleCheck(group.recipeName, item.id)}
+                                  className={`w-8 h-8 flex items-center justify-center rounded-lg border-2 transition-all cursor-pointer flex-shrink-0 ${
+                                    item.checked
+                                      ? 'bg-[#2F855A] border-[#2F855A]'
+                                      : 'border-gray-300 hover:border-[#2F855A]'
+                                  }`}
+                                >
+                                  {item.checked && (
+                                    <i className="ri-check-line text-white text-xl"></i>
+                                  )}
+                                </button>
+
+                                {/* Product Image */}
+                                <div className="w-16 h-16 flex-shrink-0 bg-gray-100 rounded-lg overflow-hidden">
+                                  <img
+                                    src={item.image}
+                                    alt={item.name}
+                                    className="w-full h-full object-cover"
+                                  />
+                                </div>
+
+                                {/* Product Info */}
+                                <div className="flex-1 min-w-0">
+                                  <h3 className={`font-semibold text-gray-900 mb-1 text-sm ${item.checked ? 'line-through' : ''}`}>
+                                    {item.name}
+                                  </h3>
+                                  <div className="flex items-center gap-2">
+                                    <span className="text-base font-bold text-[#2F855A]">
+                                      {((item.price / 100) * (productQuantities[item.id] || item.quantity || 1)).toFixed(2)}€
+                                    </span>
+                                  </div>
+                                </div>
+
+                                {/* Delete Button - centered vertically */}
+                                <button
+                                  onClick={() => handleRemoveItem(group.recipeName, item.id)}
+                                  className="w-9 h-9 flex items-center justify-center rounded-lg hover:bg-red-50 transition-colors cursor-pointer flex-shrink-0"
+                                  title="Remove item"
+                                >
+                                  <i className="ri-delete-bin-line text-lg text-red-500"></i>
+                                </button>
+                              </div>
+
+                              {/* Bottom Row: Quantity Controls - left aligned with product info */}
+                              <div className="flex items-center gap-2 pl-[7.5rem]">
+                                {/* Quantity Buttons */}
+                                <button
+                                  onClick={() => handleQuantityChange(item.id, -1)}
+                                  disabled={(productQuantities[item.id] || item.quantity || 1) <= 1}
+                                  className="w-9 h-9 flex items-center justify-center bg-white border-2 border-gray-300 rounded-lg hover:border-[#2F855A] hover:bg-emerald-50 transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                                >
+                                  <i className="ri-subtract-line text-lg text-gray-700"></i>
+                                </button>
+                                <span className="text-base font-bold text-gray-900 min-w-[2rem] text-center">
+                                  {productQuantities[item.id] || item.quantity || 1}
+                                </span>
+                                <button
+                                  onClick={() => handleQuantityChange(item.id, 1)}
+                                  className="w-9 h-9 flex items-center justify-center bg-white border-2 border-gray-300 rounded-lg hover:border-[#2F855A] hover:bg-emerald-50 transition-all cursor-pointer"
+                                >
+                                  <i className="ri-add-line text-lg text-gray-700"></i>
+                                </button>
+                              </div>
+                            </div>
+
+                            {/* Desktop Layout: Horizontal */}
+                            <div className="hidden md:flex items-center gap-4">
                               {/* Checkbox */}
                               <button
                                 onClick={() => handleToggleCheck(group.recipeName, item.id)}
@@ -381,7 +528,7 @@ export default function ShoppingListPage() {
                                 </h3>
                                 <div className="flex items-center gap-3">
                                   <span className="text-base font-bold text-[#2F855A]">
-                                    {((item.price / 100) * (productQuantities[parseInt(item.id)] || item.quantity || 1)).toFixed(2)}€
+                                    {((item.price / 100) * (productQuantities[item.id] || item.quantity || 1)).toFixed(2)}€
                                   </span>
                                 </div>
                               </div>
@@ -392,13 +539,13 @@ export default function ShoppingListPage() {
                                 <div className="flex items-center gap-2">
                                   <button
                                     onClick={() => handleQuantityChange(item.id, -1)}
-                                    disabled={(productQuantities[parseInt(item.id)] || item.quantity || 1) <= 1}
+                                    disabled={(productQuantities[item.id] || item.quantity || 1) <= 1}
                                     className="w-10 h-10 flex items-center justify-center bg-white border-2 border-gray-300 rounded-lg hover:border-[#2F855A] hover:bg-emerald-50 transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
                                   >
                                     <i className="ri-subtract-line text-xl text-gray-700"></i>
                                   </button>
                                   <span className="text-lg font-bold text-gray-900 min-w-[2.5rem] text-center">
-                                    {productQuantities[parseInt(item.id)] || item.quantity || 1}
+                                    {productQuantities[item.id] || item.quantity || 1}
                                   </span>
                                   <button
                                     onClick={() => handleQuantityChange(item.id, 1)}
@@ -445,17 +592,27 @@ export default function ShoppingListPage() {
                 >
                   {checkedCount === totalCount ? 'Complete' : `${totalCount - checkedCount} Remaining`}
                 </button>
+
+                {/* Share Button */}
+                <button
+                  onClick={handleShareList}
+                  className="py-4 px-6 bg-white border-2 border-[#2F855A] text-[#2F855A] rounded-xl font-bold text-lg shadow-lg hover:bg-emerald-50 transition-all cursor-pointer flex items-center justify-center gap-2 whitespace-nowrap"
+                  title="Share shopping list"
+                >
+                  <i className="ri-share-line text-xl"></i>
+                  <span className="hidden md:inline">Share</span>
+                </button>
                 
                 {/* Add Products Button */}
                 <button
                   onClick={() => (window as any).REACT_APP_NAVIGATE('/search-products')}
                   // Change text-lg to -> text-xs md:text-lg
                   // Change gap-2 to -> gap-1 md:gap-2
-                  className="w-1/3 py-4 bg-gradient-to-r from-[#2F855A] to-emerald-600 text-white rounded-xl font-bold text-xs md:text-lg shadow-lg hover:from-[#276749] hover:to-emerald-700 hover:shadow-xl transition-all cursor-pointer flex items-center justify-center gap-1 md:gap-2 whitespace-nowrap"
+                  className="py-4 px-6 bg-gradient-to-r from-[#2F855A] to-emerald-600 text-white rounded-xl font-bold text-lg shadow-lg hover:from-[#276749] hover:to-emerald-700 hover:shadow-xl transition-all cursor-pointer flex items-center justify-center gap-2 whitespace-nowrap"
                 >
                   {/* Adjust icon size: text-base on mobile, text-xl on desktop */}
-                  <i className="ri-add-line text-base md:text-xl"></i>
-                  <span>Add Products</span>
+                  <i className="ri-add-line text-xl"></i>
+                  <span className="hidden md:inline">Add</span>
                 </button>
               </div>
             </div>
