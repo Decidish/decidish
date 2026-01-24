@@ -136,3 +136,100 @@ func AddUserPreference(tx *sql.Tx, userId string, userInfo AdditionalInfo) error
 
 	return nil
 }
+
+type UserPreferencesWithMarket struct {
+	MinCookingTime   int       `json:"min_cooking_time"`
+	MaxCookingTime   int       `json:"max_cooking_time"`
+	Allergies        string    `json:"allergies"`
+	Budget           int       `json:"budget"`
+	SkillLevel       string    `json:"skill_level"`
+	MarketId         *int64    `json:"market_id"`
+	PreferenceVector []float64 `json:"preference_vector"`
+	MarketName       *string   `json:"market_name"`
+	MarketStreet     *string   `json:"market_street"`
+	MarketCity       *string   `json:"market_city"`
+	MarketZipCode    *string   `json:"market_zip_code"`
+	MarketLatitude   *float64  `json:"market_latitude"`
+	MarketLongitude  *float64  `json:"market_longitude"`
+}
+
+func GetUserPreferences(db *sql.DB, userId string) (*UserPreferencesWithMarket, error) {
+	var prefs UserPreferencesWithMarket
+	var prefsVecBytes []byte
+
+	err := db.QueryRow(`
+		SELECT 
+			up.min_cooking_time,
+			up.max_cooking_time,
+			up.allergies,
+			up.budget,
+			up.skill_level,
+			up.market_id,
+			up.preferences_vec,
+			m.name,
+			a.street,
+			a.city,
+			a.zip_code,
+			a.latitude,
+			a.longitude
+		FROM user_preferences up
+		LEFT JOIN markets m ON up.market_id::BIGINT = m.id
+		LEFT JOIN addresses a ON m.address_id = a.id
+		WHERE up.user_id = $1
+	`, userId).Scan(
+		&prefs.MinCookingTime,
+		&prefs.MaxCookingTime,
+		&prefs.Allergies,
+		&prefs.Budget,
+		&prefs.SkillLevel,
+		&prefs.MarketId,
+		&prefsVecBytes,
+		&prefs.MarketName,
+		&prefs.MarketStreet,
+		&prefs.MarketCity,
+		&prefs.MarketZipCode,
+		&prefs.MarketLatitude,
+		&prefs.MarketLongitude,
+	)
+
+	if err != nil {
+		return nil, err
+	}
+
+	// Unmarshal the JSON bytes into the float64 slice
+	if len(prefsVecBytes) > 0 {
+		err = json.Unmarshal(prefsVecBytes, &prefs.PreferenceVector)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	return &prefs, nil
+}
+
+// func (repository *UserPreferenceRepository) Save(tx *sql.Tx, userId string, preferences UserPreferences) error {
+// 	_, err := tx.Exec(`
+// 	INSERT INTO user_preferences (
+// 	                              user_id, postal_code, weekly_budget,
+// 	                              cook_frequency, dietary_preferences, allergies,
+// 	                              servings_per_meal, cooking_skill)
+// 	VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+// 	ON CONFLICT (user_id) DO UPDATE
+// 	SET postal_code = EXCLUDED.postal_code,
+// 	    weekly_budget = EXCLUDED.weekly_budget,
+// 	    cook_frequency = EXCLUDED.cook_frequency,
+// 	    dietary_preferences = EXCLUDED.dietary_preferences,
+// 	    allergies = EXCLUDED.allergies,
+// 	    servings_per_meal = EXCLUDED.servings_per_meal,
+// 	    cooking_skill = EXCLUDED.cooking_skill
+// 	`,
+// 		userId, preferences.PostalCode, preferences.WeeklyBudget,
+// 		preferences.CookFrequency, strings.Join(preferences.DietaryPreferences, ","),
+// 		strings.Join(preferences.Allergies, ","), preferences.ServingPerMeal,
+// 		preferences.CookingSkill)
+// 	if err != nil {
+// 		return err
+// 	}
+
+// 	return nil
+// }
