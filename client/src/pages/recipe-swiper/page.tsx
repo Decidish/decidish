@@ -101,6 +101,15 @@ export default function RecipeSwiper() {
       try {
         // Fetch products for just this one recipe
         const listResponse = await productsApi.generateShoppingList(441070, [recipe.id]); // Market ID hardcoded for now
+
+        // Debug what we got back for this recipe, all matched ingredients and their products
+        console.log("[RecipeSwiper] shopping list response", {
+          recipeId: recipe.id,
+          itemsCount: listResponse?.items?.length,
+          firstItem: listResponse?.items?.[0],
+          ingredientNames: listResponse?.items?.map(i => i.ingredientName), 
+          allItems: listResponse?.items
+        });
         
         // Update the specific recipe in our state with the new data
         setRecipes(prevRecipes => prevRecipes.map(r => {
@@ -498,7 +507,7 @@ export default function RecipeSwiper() {
                   <div className="space-y-3">
                     {displayedProducts?.map((product) => (
                         <button
-                            key={product.id}
+                            key={`${currentIngredientGroup.ingredientId}-${product.reweId}`}
                             onClick={() => handleSelectProduct(currentIngredientGroup.ingredientId, product)}
                             className="w-full p-4 bg-white border-2 border-gray-200 rounded-xl hover:bg-emerald-50 hover:border-[#2F855A] transition-all text-left cursor-pointer group"
                         >
