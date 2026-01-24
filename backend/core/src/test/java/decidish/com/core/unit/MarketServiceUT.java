@@ -3,6 +3,7 @@ package decidish.com.core.unit;
 import decidish.com.core.api.rewe.client.ReweApiClient;
 import decidish.com.core.model.rewe.*;
 import decidish.com.core.repository.MarketRepository;
+import decidish.com.core.repository.SearchTermMarketRepository;
 import decidish.com.core.service.MarketService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -11,6 +12,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
+import org.mockito.InOrder;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.time.LocalDateTime;
@@ -25,7 +27,6 @@ import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.anyInt;
-import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
 
 // Pure Unit Test: No Spring, No Docker, No DB. Just Java logic.
@@ -33,223 +34,275 @@ import static org.mockito.Mockito.*;
 @ExtendWith(MockitoExtension.class)
 class MarketServiceUT {
 
-        @Mock
-        private MarketRepository marketRepository;
+	@Mock
+	private MarketRepository marketRepository;
 
-        @Mock
-        private ReweApiClient apiClient;
+	@Mock
+	private SearchTermMarketRepository searchTermMarketRepository;
 
-        @InjectMocks
-        private MarketService marketService;
+	@Mock
+	private ReweApiClient apiClient;
 
-        private final String PLZ = "80331";
-        private final Long NEW_ID = 540945L;
-        private final Long OLD_ID = 540946L;
+	@InjectMocks
+	private MarketService marketService;
 
-        private MarketSearchResponse apiResponse;
-        private Market staleMarket;
+	private final String PLZ = "80331";
+	private final Long NEW_ID = 540945L;
+	private final Long OLD_ID = 540946L;
 
-        @BeforeEach
-        void setup() {
-                // 1. Setup API Data
-                Location loc = new Location(10.0, 10.0);
-                MarketDto newDto = new MarketDto(NEW_ID, "New Market", "MARKET", "St", "1","Munchen", loc, new ServiceFlags(true));
-                MarketDto oldDto = new MarketDto(OLD_ID, "Updated Market", "MARKET", "St", "1","Munchen", loc, new ServiceFlags(true));
-                apiResponse = new MarketSearchResponse(new MarketSearchData(new MarketsSearched(List.of(newDto, oldDto))));
+	private MarketPickupResponse apiResponse;
+	private Market staleMarket;
 
-                // 2. Setup Stale DB Data
-                staleMarket = new Market();
-                staleMarket.setId(OLD_ID);
-                staleMarket.setName("Old Name");
-                staleMarket.setAddress(new Address());
-                staleMarket.setLastUpdated(LocalDateTime.now().minusWeeks(10));
+	@BeforeEach
+	void setup() {
+		// 1. Setup API Data
+		// Location loc = new Location(10.0, 10.0);
+		// MarketPickupDto newDto = new MarketPickupDto(NEW_ID, "New Market", "MARKET",
+		// "St", "1","Munchen", loc, new ServiceFlags(true));
+		// MarketPickupDto oldDto = new MarketPickupDto(OLD_ID, "Updated Market",
+		// "MARKET", "St", "1","Munchen", loc, new ServiceFlags(true));
+		MarketPickupDto newDto = new MarketPickupDto(NEW_ID, "New Market", "New Market GmbH", false, "/map", 10.0, 10.0,
+				"80331", "Street", "München", "PICKUP");
+		MarketPickupDto oldDto = new MarketPickupDto(OLD_ID, "Updated Market", "Updated Market GmbH", false, "/map",
+				10.0, 10.0, "80331", "Street", "München", "PICKUP");
+		// apiResponse = new MarketSearchResponse(new MarketSearchData(new
+		// MarketsSearched(List.of(newDto, oldDto))));
+		apiResponse = new MarketPickupResponse(
+				new MarketPickupData(new MarketPickupPortfolio(List.of(newDto, oldDto))));
 
-        }
+		// 2. Setup Stale DB Data
+		staleMarket = new Market();
+		staleMarket.setId(OLD_ID);
+		staleMarket.setName("Old Name");
+		staleMarket.setAddress(new Address());
+		staleMarket.setLastUpdated(LocalDateTime.now().minusWeeks(10));
 
-        /**
-         * Scenario 1: DB Hit (Data is fresh - Cache Hit)
-         * Service should return data from the DB and avoid the API call.
-         */
-        @Test
-        @DisplayName("DB HIT: Should return markets from DB if data is fresh")
-        void testDbHit_DataIsFresh() {
-                // Arrange
-                Market freshMarket = staleMarket;
-                // Override stale time to make the data fresh (1 day old)
-                freshMarket.setLastUpdated(LocalDateTime.now().minusDays(1));
+	}
 
-                // Mock repository to return the fresh market list
-                when(marketRepository.getMarketsByAddress(PLZ))
-                                .thenReturn(Optional.of(List.of(freshMarket)));
+	/**
+	 * Scenario 1: DB Hit (Data is fresh - Cache Hit)
+	 * Service should return data from the DB and avoid the API call.
+	 */
+	@Test
+	@DisplayName("DB HIT: Should return markets from DB if data is fresh")
+	void testDbHit_DataIsFresh() {
+		// Arrange
+		Market freshMarket = staleMarket;
+		// Override stale time to make the data fresh (1 day old)
+		freshMarket.setLastUpdated(LocalDateTime.now().minusDays(1));
 
-                // Act
-                List<Market> result = marketService.getMarkets(PLZ);
+		// Mock repository to return the fresh market list
+		when(marketRepository.getMarketsBySearchTerm(PLZ))
+				.thenReturn(Optional.of(List.of(freshMarket)));
 
-                // Assert
-                assertEquals(1, result.size());
+		// Act
+		List<Market> result = marketService.getMarkets(PLZ);
 
-                // Key Verifications:
-                verify(apiClient, never()).searchMarkets(any()); // API should NOT be called
+		// Assert
+		assertEquals(1, result.size());
 
-                // CRITICAL UPDATE: Verify saveAll was never called
-                verify(marketRepository, never()).saveAll(any());
-                // (Optional) Verify findByReweIdIn was also skipped
-                // verify(marketRepository, never()).findAllByIds(any());
-        }
+		// Key Verifications:
+		verify(apiClient, never()).searchMarkets(any()); // API should NOT be called
 
-        /**
-         * Scenario 2: DB Miss/Stale (API Fetch & Insert/Update)
-         * Service should call the API, find one existing market to update, and insert
-         * one new market.
-         */
-        @Test
-        @DisplayName("Logic Check: Batch Update and Insert")
-        void testGetMarkets_BatchLogic() {
-                // --- ARRANGE ---
+		// CRITICAL UPDATE: Verify saveAll was never called
+		verify(marketRepository, never()).saveAll(any());
+		// (Optional) Verify findByReweIdIn was also skipped
+		// verify(marketRepository, never()).findAllByIds(any());
+	}
 
-                // 1. DB returns Stale List (triggering API call)
-                when(marketRepository.getMarketsByAddress(PLZ))
-                                .thenReturn(Optional.of(List.of(staleMarket)));
+	/**
+	 * Scenario 2: DB Miss/Stale (API Fetch & Insert/Update)
+	 * Service should call the API, find one existing market to update, and insert
+	 * one new market.
+	 */
+	@Test
+	@DisplayName("Logic Check: Batch Update and Insert")
+	void testGetMarkets_BatchLogic() {
+		// --- ARRANGE ---
 
-                // 2. API returns fresh data
-                when(apiClient.searchMarkets(any())).thenReturn(apiResponse);
+		// 1. DB returns Stale List (triggering API call)
+		when(marketRepository.getMarketsBySearchTerm(PLZ))
+				.thenReturn(Optional.of(List.of(staleMarket)));
 
-                // 3. Batch Lookup Mock (Return the stale market so we test the UPDATE logic)
-                // This simulates finding ID 540946 in the DB
-                when(marketRepository.findAllById(anyList()))
-                                .thenReturn(List.of(staleMarket));
+		// 2. API returns fresh data
+		when(apiClient.searchMarkets(any())).thenReturn(apiResponse);
 
-                // 4. Batch Save Mock (Crucial Fix)
-                // We tell Mockito: "When saveAll is called, return the list that was passed
-                // in."
-                when(marketRepository.saveAll(anyList()))
-                                .thenAnswer(invocation -> invocation.getArgument(0));
+		// 3. Batch Lookup Mock (Return the stale market so we test the UPDATE logic)
+		// This simulates finding ID 540946 in the DB
+		when(marketRepository.findAllById(anyList()))
+				.thenReturn(List.of(staleMarket));
 
-                // --- ACT ---
-                System.out.println("Calling getMarkets...");
-                List<Market> results = marketService.getMarkets(PLZ);
+		// 4. Batch Save Mock (Crucial Fix)
+		// We tell Mockito: "When saveAll is called, return the list that was passed
+		// in."
+		when(marketRepository.saveAll(anyList()))
+				.thenAnswer(invocation -> invocation.getArgument(0));
 
-                // --- ASSERT ---
-                System.out.println("Results: " + results.size());
-                assertEquals(2, results.size()); // Should now pass!
+		// --- ACT ---
+		System.out.println("Calling getMarkets...");
+		List<Market> results = marketService.getMarkets(PLZ);
 
-                // Verify "Old Name" was updated in memory
-                assertEquals("Updated Market", staleMarket.getName());
+		// --- ASSERT ---
+		System.out.println("Results: " + results.size());
+		assertEquals(2, results.size()); // Should now pass!
 
-                // Verify New Market was created correctly
-                Market newResult = results.stream().filter(m -> m.getId().equals(NEW_ID)).findFirst().get();
-                assertEquals("New Market", newResult.getName());
+		// Verify "Old Name" was updated in memory
+		assertEquals("Updated Market GmbH", staleMarket.getName());
 
-                // Verify Interactions
-                verify(marketRepository).saveAll(anyList()); // Verify batch save was called
-                verify(apiClient, times(1)).searchMarkets(any());
-        }
+		// Verify New Market was created correctly
+		Market newResult = results.stream().filter(m -> m.getId().equals(NEW_ID)).findFirst().get();
+		assertEquals("New Market GmbH", newResult.getName());
 
-        /**
-         * Scenario 3: API returns empty list (Handle null/empty API response)
-         */
-        @Test
-        @DisplayName("Should handle null/empty API response gracefully")
-        void testApiReturnsEmpty() {
-                // Arrange
-                // 1. DB Empty/Stale
-                when(marketRepository.getMarketsByAddress(PLZ))
-                                .thenReturn(Optional.of(Collections.emptyList()));
+		// Verify Interactions
+		verify(marketRepository).saveAll(anyList()); // Verify batch save was called
+		verify(apiClient, times(1)).searchMarkets(any());
+	}
 
-                // 2. API returns Empty Response
-                when(apiClient.searchMarkets(any()))
-                                .thenReturn(new MarketSearchResponse(new MarketSearchData( new MarketsSearched(Collections.emptyList()))));
+	/**
+	 * Scenario 3: API returns empty list (Handle null/empty API response)
+	 */
+	@Test
+	@DisplayName("Should handle null/empty API response gracefully")
+	void testApiReturnsEmpty() {
+		// Arrange
+		// 1. DB Empty/Stale
+		when(marketRepository.getMarketsBySearchTerm(PLZ))
+				.thenReturn(Optional.of(Collections.emptyList()));
 
-                // Act
-                List<Market> result = marketService.getMarkets(PLZ);
+		// 2. API returns Empty Response
+		// when(apiClient.searchMarkets(any()))
+		// .thenReturn(new MarketSearchResponse(new MarketSearchData( new
+		// MarketsSearched(Collections.emptyList()))));
 
-                // Assert
-                assertEquals(0, result.size());
+		when(apiClient.searchMarkets(any()))
+				.thenReturn(new MarketPickupResponse(
+						new MarketPickupData(new MarketPickupPortfolio(Collections.emptyList()))));
 
-                // Verify Flow
-                verify(apiClient, times(1)).searchMarkets(any());
+		// Act
+		List<Market> result = marketService.getMarkets(PLZ);
 
-                // CRITICAL UPDATE: Verify saveAll was never called
-                verify(marketRepository, never()).saveAll(any());
-        }
+		// Assert
+		assertEquals(0, result.size());
 
-        @Test
-        @DisplayName("getMarket: Should return market if found")
-        void testGetMarket_Success() {
-                // Arrange
-                Market m = new Market();
-                m.setId(NEW_ID);
-                when(marketRepository.findByIdWithProducts(NEW_ID)).thenReturn(Optional.of(m));
+		// Verify Flow
+		verify(apiClient, times(1)).searchMarkets(any());
 
-                // Act
-                Market result = marketService.getMarket(NEW_ID);
+		// CRITICAL UPDATE: Verify saveAll was never called
+		verify(marketRepository, never()).saveAll(any());
+	}
 
-                // Assert
-                assertEquals(NEW_ID, result.getId());
-        }
+	@Test
+	@DisplayName("getMarket: Should return market if found")
+	void testGetMarket_Success() {
+		// Arrange
+		Market m = new Market();
+		m.setId(NEW_ID);
+		when(marketRepository.findByIdWithProducts(NEW_ID)).thenReturn(Optional.of(m));
 
-        @Test
-        @DisplayName("getMarket: Should throw RuntimeException if not found")
-        void testGetMarket_NotFound() {
-                // Arrange
-                when(marketRepository.findByIdWithProducts(anyLong())).thenReturn(Optional.empty());
+		// Act
+		Market result = marketService.getMarket(NEW_ID);
 
-                // Act & Assert
-                assertThrows(RuntimeException.class, () -> marketService.getMarket(999L));
-        }
+		// Assert
+		assertEquals(NEW_ID, result.getId());
+	}
 
-        @Test
-        @DisplayName("getAllProducts: Should return from DB if fresh")
-        void testGetAllProducts_Fresh() {
-                // Arrange
-                Market m = new Market();
-                m.setId(NEW_ID);
-                Product p = new Product();
-                p.setLastUpdated(LocalDateTime.now()); // Fresh
-                m.setProducts(List.of(p));
+	@Test
+	@DisplayName("getMarket: Should throw RuntimeException if not found")
+	void testGetMarket_NotFound() {
+		// Arrange
+		when(marketRepository.findByIdWithProducts(anyLong())).thenReturn(Optional.empty());
 
-                when(marketRepository.findByIdWithProducts(NEW_ID)).thenReturn(Optional.of(m));
+		// Act & Assert
+		assertThrows(RuntimeException.class, () -> marketService.getMarket(999L));
+	}
 
-                // Act
-                Market result = marketService.getAllProducts(NEW_ID);
+	@Test
+	@DisplayName("getAllProducts: Should return from DB if fresh")
+	void testGetAllProducts_Fresh() {
+		// Arrange
+		Market m = new Market();
+		m.setId(NEW_ID);
+		Product p = new Product();
+		p.setLastUpdated(LocalDateTime.now()); // Fresh
+		m.setProducts(List.of(p));
 
-                // Assert
-                assertEquals(1, result.getProducts().size());
-                verify(apiClient, never()).searchProducts(anyString(), anyInt(), anyInt(), anyLong());
-        }
+		when(marketRepository.findByIdWithProducts(NEW_ID)).thenReturn(Optional.of(m));
 
-        @Test
-        @DisplayName("getProductsQuerySave: Should call API and Save")
-        void testGetProductsQuerySave() {
-                // Arrange
-                Market m = new Market();
-                m.setId(NEW_ID);
-                m.setProducts(new java.util.ArrayList<>());
+		// Act
+		Market result = marketService.getAllProducts(NEW_ID);
 
-                when(marketRepository.findByIdWithProducts(NEW_ID)).thenReturn(Optional.of(m));
+		// Assert
+		assertEquals(1, result.getProducts().size());
+		verify(apiClient, never()).searchProducts(anyString(), anyInt(), anyInt(), anyLong());
+	}
 
-                // Mock API Response
-                ProductPrice price = new ProductPrice(199, 0, "500g", null, null);
-                ProductDto pDto = new ProductDto(100L, "Milk", "url", null, 1, null, "1", price);
+	@Test
+	@DisplayName("getProductsQuerySave: Should call API and Save")
+	void testGetProductsQuerySave() {
+		// Arrange
+		Market m = new Market();
+		m.setId(NEW_ID);
+		m.setProducts(new java.util.ArrayList<>());
 
-                Pagination pagination = new Pagination(20, 1, 1, 1);
-                ProductsSearchInfo info = new ProductsSearchInfo(pagination, List.of(pDto));
-                ProductsData data = new ProductsData(info);
-                ProductSearchResponse response = new ProductSearchResponse(data);
+		when(marketRepository.findByIdWithProducts(NEW_ID)).thenReturn(Optional.of(m));
 
-                when(apiClient.searchProducts(anyString(), anyInt(), anyInt(), anyLong()))
-                                .thenReturn(response);
+		// Mock API Response
+		ProductPrice price = new ProductPrice(199, 0, "500g", null, null);
+		ProductDto pDto = new ProductDto(100L, "Milk", "url", null, 1, null, "1", price);
 
-                // Mock Save
-                when(marketRepository.save(any(Market.class))).thenAnswer(i -> i.getArgument(0));
+		Pagination pagination = new Pagination(20, 1, 1, 1);
+		ProductsSearchInfo info = new ProductsSearchInfo(pagination, List.of(pDto));
+		ProductsData data = new ProductsData(info);
+		ProductSearchResponse response = new ProductSearchResponse(data);
 
-                // Act
-                Market result = marketService.getProductsQuerySave(NEW_ID, "Milk");
+		when(apiClient.searchProducts(anyString(), anyInt(), anyInt(), anyLong()))
+				.thenReturn(response);
 
-                // Assert
-                assertEquals(1, result.getProducts().size());
-                assertEquals("Milk", result.getProducts().get(0).getName());
-                verify(marketRepository).save(any(Market.class));
-        }
+		// Mock Save
+		when(marketRepository.save(any(Market.class))).thenAnswer(i -> i.getArgument(0));
+
+		// Act
+		Market result = marketService.getProductsQuerySave(NEW_ID, "Milk");
+
+		// Assert
+		assertEquals(1, result.getProducts().size());
+		assertEquals("Milk", result.getProducts().get(0).getName());
+		verify(marketRepository).save(any(Market.class));
+	}
+
+	/**
+	 * Scenario: Verify "Delete & Replace" Logic for Associations.
+	 * Ensure we clean up old search term links before adding new ones.
+	 */
+	@Test
+	@DisplayName("Associations: Should delete old pairs before saving new ones")
+	void testAssociations_DeleteAndReplace() {
+
+		// DB returns Empty (Cold Path)
+		when(marketRepository.getMarketsBySearchTerm(PLZ))
+				.thenReturn(Optional.empty());
+
+		// API returns 1 fresh market
+		when(apiClient.searchMarkets(any())).thenReturn(apiResponse);
+
+		// Mock the Market save (Pass-through)
+		when(marketRepository.saveAll(anyList()))
+				.thenAnswer(invocation -> invocation.getArgument(0));
+		
+		// Act
+		marketService.getMarkets(PLZ);
+
+
+		// Verify Delete was called for this specific PLZ
+		verify(searchTermMarketRepository, times(1)).deleteAllBySearchTerm(PLZ);
+
+		// Verify Save was called for the new associations
+		verify(searchTermMarketRepository, times(1)).saveAll(anyList());
+
+		// Verify Order : Delete MUST happen before Save
+		InOrder inOrder = inOrder(searchTermMarketRepository);
+		inOrder.verify(searchTermMarketRepository).deleteAllBySearchTerm(PLZ);
+		inOrder.verify(searchTermMarketRepository).saveAll(anyList());
+	}
 
 }
