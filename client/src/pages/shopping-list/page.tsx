@@ -6,6 +6,9 @@ export default function ShoppingListPage() {
   const [activeList, setActiveList] = useState<ShoppingList | null>(null);
   const [shoppingHistory, setShoppingHistory] = useState<ShoppingList[]>([]);
   const [productQuantities, setProductQuantities] = useState<Record<string, number>>({});
+  const [showToast, setShowToast] = useState(false);
+  const [toastMessage, setToastMessage] = useState('');
+  const [toastType, setToastType] = useState<'success' | 'error' | 'warning'>('success');
   const saveTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const hasChangesRef = useRef(false);
 
@@ -168,18 +171,27 @@ export default function ShoppingListPage() {
     const totalCount = getAllItems().length;
 
     if (checkedCount !== totalCount) {
-        alert(`You still have ${totalCount - checkedCount} items to collect.`);
+        setToastMessage(`You still have ${totalCount - checkedCount} items to collect.`);
+        setToastType('warning');
+        setShowToast(true);
+        setTimeout(() => setShowToast(false), 3000);
         return;
     }
 
     try {
         await shoppingListApi.completeShoppingList(activeList.id);
-        alert('Shopping completed!');
+        setToastMessage('Shopping completed!');
+        setToastType('success');
+        setShowToast(true);
+        setTimeout(() => setShowToast(false), 2500);
 
         fetchList();
     } catch (error) {
         console.error("Failed to complete shopping list", error);
-        alert("Failed to complete shopping list. Please try again.");
+        setToastMessage('Failed to complete shopping list. Please try again.');
+        setToastType('error');
+        setShowToast(true);
+        setTimeout(() => setShowToast(false), 3000);
     }
   };
 
@@ -227,9 +239,15 @@ export default function ShoppingListPage() {
 
   const copyToClipboard = (text: string) => {
     navigator.clipboard.writeText(text).then(() => {
-      alert('Shopping list copied to clipboard!');
+      setToastMessage('Shopping list copied to clipboard!');
+      setToastType('success');
+      setShowToast(true);
+      setTimeout(() => setShowToast(false), 2500);
     }).catch(() => {
-      alert('Failed to copy to clipboard. Please try again.');
+      setToastMessage('Failed to copy to clipboard. Please try again.');
+      setToastType('error');
+      setShowToast(true);
+      setTimeout(() => setShowToast(false), 3000);
     });
   };
 
@@ -688,6 +706,55 @@ export default function ShoppingListPage() {
                 </div>
               </div>
             ))}
+          </div>
+        </div>
+      )}
+
+      {/* Toast Notification */}
+      {showToast && (
+        <div className="fixed top-6 left-1/2 -translate-x-1/2 z-[60] animate-slide-down">
+          <div className={`rounded-2xl shadow-2xl p-4 flex items-center gap-3 border ${
+            toastType === 'success' 
+              ? 'bg-white border-emerald-100' 
+              : toastType === 'error'
+              ? 'bg-white border-red-100'
+              : 'bg-white border-amber-100'
+          }`}>
+            <div className={`w-10 h-10 rounded-full flex items-center justify-center text-white shadow-md ${
+              toastType === 'success'
+                ? 'bg-[#2F855A]'
+                : toastType === 'error'
+                ? 'bg-red-500'
+                : 'bg-amber-500'
+            }`}>
+              <i className={`text-xl ${
+                toastType === 'success'
+                  ? 'ri-check-line'
+                  : toastType === 'error'
+                  ? 'ri-close-line'
+                  : 'ri-alert-line'
+              }`}></i>
+            </div>
+            <div>
+              <p className={`font-bold text-sm ${
+                toastType === 'success'
+                  ? 'text-gray-900'
+                  : toastType === 'error'
+                  ? 'text-red-900'
+                  : 'text-amber-900'
+              }`}>
+                {toastType === 'success' ? 'Success!' : toastType === 'error' ? 'Error' : 'Warning'}
+              </p>
+              <p className={`text-xs ${
+                toastType === 'success'
+                  ? 'text-gray-500'
+                  : toastType === 'error'
+                  ? 'text-red-600'
+                  : 'text-amber-700'
+              }`}>
+                {toastMessage}
+              </p>
+            </div>
           </div>
         </div>
       )}
