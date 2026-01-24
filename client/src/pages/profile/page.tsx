@@ -7,6 +7,7 @@ import { MapContainer, TileLayer, Marker, Popup, useMap } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
 import L from 'leaflet';
 import ShoppingFlowModal from '@/components/recipe/ShoppingFlowModal';
+import RecipeDetailModal from '@/components/recipe/RecipeDetailModal';
 import { SelectedProducts, UIRecipe } from '@/types/recipe';
 import { CartItem, shoppingListApi } from '@/api/shopping-list/shoppingCartApi';
 import { Product } from '@/api/recipe-swiper/productsApi';
@@ -37,8 +38,9 @@ export default function Profile() {
   const [shoppingFlowOpen, setShoppingFlowOpen] = useState(false);
   const [recipeCache, setRecipeCache] = useState<Record<number, UIRecipe>>({});
   const [actionMessage, setActionMessage] = useState<string | null>(null);
-  const [detailRecipe, setDetailRecipe] = useState<UserHistoryRecord | null>(null);
+  const [detailRecipe, setDetailRecipe] = useState<UIRecipe | null>(null);
   const [showDetailModal, setShowDetailModal] = useState(false);
+  const [detailRecipeIsLiked, setDetailRecipeIsLiked] = useState(false);
 
   const [userData, setUserData] = useState({
     name: '',
@@ -264,7 +266,8 @@ export default function Profile() {
   };
 
   const handleOpenRecipeDetail = (entry: UserHistoryRecord) => {
-    setDetailRecipe(entry);
+    setDetailRecipe(entry.recipe);
+    setDetailRecipeIsLiked(entry.action);
     setShowDetailModal(true);
   };
 
@@ -645,169 +648,18 @@ export default function Profile() {
       onRecipeUpdate={handleHistoryRecipeUpdate}
     />
 
-    {/* Recipe Detail Modal */}
-    {showDetailModal && detailRecipe && (
-      <div 
-        className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 z-[9999]"
-        onClick={handleCloseRecipeDetail}
-      >
-        <div 
-          className="bg-white rounded-3xl shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-y-auto"
-          onClick={(e) => e.stopPropagation()}
-        >
-          {/* Header with close button */}
-          <div className="sticky top-0 bg-white border-b border-gray-200 rounded-t-3xl z-10">
-            <button
-              onClick={handleCloseRecipeDetail}
-              className="absolute top-4 right-4 w-10 h-10 flex items-center justify-center rounded-full hover:bg-gray-100 transition-colors cursor-pointer z-20"
-            >
-              <i className="ri-close-line text-2xl text-gray-600"></i>
-            </button>
-            
-            {/* Recipe Image */}
-            {detailRecipe.recipe?.image && (
-              <div className="relative w-full h-80 overflow-hidden rounded-t-3xl">
-                <img
-                  src={detailRecipe.recipe.image}
-                  alt={detailRecipe.recipe.title}
-                  className="w-full h-full object-cover"
-                />
-                <div className="absolute top-4 left-4">
-                  <div className="bg-white/90 backdrop-blur-sm px-3 py-1.5 rounded-full flex items-center gap-2">
-                    <i className={`text-xl ${detailRecipe.action ? 'ri-heart-fill text-red-500' : 'ri-close-circle-fill text-gray-500'}`}></i>
-                    <span className="text-sm font-medium text-gray-900">{detailRecipe.action ? 'Liked' : 'Disliked'}</span>
-                  </div>
-                </div>
-              </div>
-            )}
-          </div>
-
-          {/* Content */}
-          <div className="p-6 md:p-8">
-            {/* Title and Rating */}
-            <div className="mb-6">
-              <h2 className="text-3xl font-bold text-gray-900 mb-3">{detailRecipe.recipe?.title}</h2>
-              {detailRecipe.recipe?.ratings > 0 && (
-                <div className="flex items-center gap-2 mb-3">
-                  <div className="flex items-center gap-1">
-                    <i className="ri-star-fill text-xl text-amber-500"></i>
-                    <span className="text-lg font-semibold text-gray-900">{detailRecipe.recipe.ratings.toFixed(1)}</span>
-                  </div>
-                  <span className="text-sm text-gray-600">rating</span>
-                </div>
-              )}
-              {detailRecipe.recipe?.description && (
-                <p className="text-gray-600 leading-relaxed">{detailRecipe.recipe.description}</p>
-              )}
-            </div>
-
-            {/* Stats Grid */}
-            <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mb-6">
-              <div className="bg-emerald-50 rounded-xl p-4 text-center">
-                <i className="ri-time-line text-2xl text-[#2F855A] mb-2"></i>
-                <div className="text-xl font-bold text-gray-900">{detailRecipe.recipe?.total_time}m</div>
-                <div className="text-xs text-gray-600">Total Time</div>
-              </div>
-              <div className="bg-teal-50 rounded-xl p-4 text-center">
-                <i className="ri-restaurant-line text-2xl text-teal-600 mb-2"></i>
-                <div className="text-xl font-bold text-gray-900">{detailRecipe.recipe?.yields}</div>
-                <div className="text-xs text-gray-600">Servings</div>
-              </div>
-              <div className="bg-orange-50 rounded-xl p-4 text-center">
-                <i className="ri-fire-line text-2xl text-orange-600 mb-2"></i>
-                <div className="text-xl font-bold text-gray-900">{detailRecipe.recipe?.nutrients?.calories}</div>
-                <div className="text-xs text-gray-600">Calories</div>
-              </div>
-            </div>
-
-            {/* Ingredients */}
-            {detailRecipe.recipe?.ingredients && Array.isArray(detailRecipe.recipe.ingredients) && detailRecipe.recipe.ingredients.length > 0 && (
-              <div className="mb-6">
-                <h3 className="text-xl font-bold text-gray-900 mb-4 flex items-center gap-2">
-                  <i className="ri-shopping-basket-line text-2xl text-[#2F855A]"></i>
-                  Ingredients
-                </h3>
-                <div className="bg-gray-50 rounded-xl p-4">
-                  <ul className="grid grid-cols-1 md:grid-cols-2 gap-2">
-                    {detailRecipe.recipe.ingredients.map((ingredient: string, index: number) => (
-                      <li key={index} className="flex items-start gap-2 text-gray-700">
-                        <i className="ri-checkbox-circle-line text-[#2F855A] text-lg mt-0.5"></i>
-                        <span>{ingredient}</span>
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              </div>
-            )}
-
-            {/* Keywords/Tags */}
-            {detailRecipe.recipe?.keywords && Array.isArray(detailRecipe.recipe.keywords) && detailRecipe.recipe.keywords.length > 0 && (
-              <div className="mb-6">
-                <h3 className="text-lg font-semibold text-gray-900 mb-3">Tags</h3>
-                <div className="flex flex-wrap gap-2">
-                  {detailRecipe.recipe.keywords.map((keyword: string, index: number) => (
-                    <span key={index} className="px-3 py-1 bg-emerald-50 text-[#2F855A] rounded-full text-sm font-medium">
-                      {keyword}
-                    </span>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {/* Action Buttons */}
-            <div className="flex flex-col sm:flex-row gap-3 pt-4 border-t border-gray-200">
-              {detailRecipe.action ? (
-                <>
-                  <button
-                    onClick={() => {
-                      handleHistoryDislike(detailRecipe);
-                      handleCloseRecipeDetail();
-                    }}
-                    className="flex-1 px-4 py-3 bg-gray-100 text-gray-700 rounded-xl font-semibold hover:bg-gray-200 transition-all cursor-pointer flex items-center justify-center gap-2"
-                  >
-                    <i className="ri-close-line text-xl"></i>
-                    <span>Dislike</span>
-                  </button>
-                  <button
-                    onClick={() => {
-                      handleCloseRecipeDetail();
-                      handleOpenShoppingFlow(detailRecipe);
-                    }}
-                    className="flex-1 px-4 py-3 bg-gradient-to-r from-[#2F855A] to-emerald-600 text-white rounded-xl font-semibold hover:from-[#276749] hover:to-emerald-700 transition-all cursor-pointer flex items-center justify-center gap-2"
-                  >
-                    <i className="ri-shopping-cart-2-line text-xl"></i>
-                    <span>Add to Shopping List</span>
-                  </button>
-                </>
-              ) : (
-                <>
-                  <button
-                    onClick={() => {
-                      handleHistoryLike(detailRecipe);
-                      handleCloseRecipeDetail();
-                    }}
-                    className="flex-1 px-4 py-3 bg-gradient-to-r from-[#2F855A] to-emerald-600 text-white rounded-xl font-semibold hover:from-[#276749] hover:to-emerald-700 transition-all cursor-pointer flex items-center justify-center gap-2"
-                  >
-                    <i className="ri-heart-line text-xl"></i>
-                    <span>Like</span>
-                  </button>
-                  <button
-                    onClick={() => {
-                      handleCloseRecipeDetail();
-                      handleOpenShoppingFlow(detailRecipe);
-                    }}
-                    className="flex-1 px-4 py-3 bg-gradient-to-r from-amber-500 to-orange-500 text-white rounded-xl font-semibold hover:from-amber-600 hover:to-orange-600 transition-all cursor-pointer flex items-center justify-center gap-2"
-                  >
-                    <i className="ri-shopping-cart-2-line text-xl"></i>
-                    <span>Add to Shopping List</span>
-                  </button>
-                </>
-              )}
-            </div>
-          </div>
-        </div>
-      </div>
-    )}
+    <RecipeDetailModal
+      recipe={detailRecipe}
+      open={showDetailModal}
+      onClose={handleCloseRecipeDetail}
+      onAddToShoppingList={() => {
+        if (detailRecipe) {
+          handleCloseRecipeDetail();
+          const entry = history.find(h => h.recipe.id === detailRecipe.id);
+          if (entry) handleOpenShoppingFlow(entry);
+        }
+      }}
+    />
     </>
   );
 }

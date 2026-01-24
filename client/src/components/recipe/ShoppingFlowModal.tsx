@@ -89,10 +89,20 @@ export default function ShoppingFlowModal({
     return workingRecipe.richIngredients[currentIngredientIndex];
   }, [currentIngredientIndex, workingRecipe]);
 
-  // Reset showAllProducts when ingredient changes
+  // Reset showAllProducts and product quantities when ingredient changes
   useEffect(() => {
     setShowAllProducts(false);
-  }, [currentIngredientIndex]);
+    // Clear quantities for the current ingredient's products to prevent "sticky" quantities
+    if (currentIngredientGroup) {
+      setProductQuantities((prev) => {
+        const newQuantities = { ...prev };
+        currentIngredientGroup.options.forEach((opt) => {
+          delete newQuantities[opt.product.id];
+        });
+        return newQuantities;
+      });
+    }
+  }, [currentIngredientIndex, currentIngredientGroup]);
 
   const displayedOptions = currentIngredientGroup?.options || [];
   const displayedProducts = showAllProducts

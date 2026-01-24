@@ -5,6 +5,7 @@ import {CartItem, shoppingListApi} from "@/api/shopping-list/shoppingCartApi";
 import { userHistoryApi } from '@/api/user-history/userHistoryApi';
 import { userApi } from '@/api/search-product/userApi';
 import ShoppingFlowModal from '@/components/recipe/ShoppingFlowModal';
+import RecipeDetailModal from '@/components/recipe/RecipeDetailModal';
 import { UIRecipe, SelectedProducts } from '@/types/recipe';
 
 export default function RecipeSwiper() {
@@ -370,140 +371,15 @@ export default function RecipeSwiper() {
           onRecipeUpdate={handleRecipeUpdate}
         />
 
-        {/* -------- Recipe Detail Modal -------- */}
-        {showRecipeDetailModal && currentRecipeData && (
-            <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 z-50">
-              <div className="bg-white rounded-3xl shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-y-auto">
-                {/* Header with Image */}
-                <div className="relative w-full h-64">
-                  <img
-                      src={currentRecipeData.image}
-                      alt={currentRecipeData.title}
-                      className="w-full h-full object-cover object-top"
-                  />
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent"></div>
-                  <button
-                      onClick={() => setShowRecipeDetailModal(false)}
-                      className="absolute top-4 right-4 w-10 h-10 flex items-center justify-center rounded-full bg-white/90 backdrop-blur-sm hover:bg-white transition-colors cursor-pointer"
-                  >
-                    <i className="ri-close-line text-2xl text-gray-900"></i>
-                  </button>
-                  <div className="absolute bottom-4 left-6 right-6">
-                    <h2 className="text-3xl font-bold text-white mb-3">{currentRecipeData.title}</h2>
-                    <div className="flex flex-wrap gap-2">
-                      {currentRecipeData.keywords?.map((tag, index) => (
-                          <span
-                              key={index}
-                              className="px-3 py-1 bg-white/20 backdrop-blur-sm text-white text-sm rounded-full"
-                          >
-                      {tag}
-                    </span>
-                      ))}
-                    </div>
-                  </div>
-                </div>
-
-                <div className="p-6">
-                  {/* Quick Stats */}
-                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-                    <div className="bg-emerald-50 rounded-xl p-4 text-center">
-                      <i className="ri-time-line text-2xl text-[#2F855A] mb-2"></i>
-                      <div className="text-sm text-gray-600">Prep Time</div>
-                      <div className="text-lg font-bold text-gray-900">
-                        {currentRecipeData.prep_time || 10}m
-                      </div>
-                    </div>
-                    <div className="bg-teal-50 rounded-xl p-4 text-center">
-                      <i className="ri-fire-line text-2xl text-teal-600 mb-2"></i>
-                      <div className="text-sm text-gray-600">Cook Time</div>
-                      <div className="text-lg font-bold text-gray-900">
-                        {currentRecipeData.cook_time ||
-                            currentRecipeData.total_time - (currentRecipeData.prep_time || 10)}m
-                      </div>
-                    </div>
-                    <div className="bg-green-50 rounded-xl p-4 text-center">
-                      <i className="ri-restaurant-line text-2xl text-green-600 mb-2"></i>
-                      <div className="text-sm text-gray-600">Servings</div>
-                      <div className="text-lg font-bold text-gray-900">{currentRecipeData.nutrients.servingSize}</div>
-                    </div>
-                    <div className="bg-amber-50 rounded-xl p-4 text-center">
-                      <i className="ri-flashlight-line text-2xl text-amber-600 mb-2"></i>
-                      <div className="text-sm text-gray-600">Calories</div>
-                      <div className="text-lg font-bold text-gray-900">{currentRecipeData.nutrients.servingSize}</div>
-                    </div>
-                  </div>
-
-                  {/* Description */}
-                  <div className="mb-6">
-                    <h3 className="text-xl font-bold text-gray-900 mb-3">About This Recipe</h3>
-                    <p className="text-base text-gray-700 leading-relaxed">{currentRecipeData.description}</p>
-                  </div>
-
-                  {/* Ingredients */}
-                  <div className="mb-6">
-                    <h3 className="text-xl font-bold text-gray-900 mb-4 flex items-center gap-2">
-                      <i className="ri-shopping-basket-line text-[#2F855A]"></i>
-                      Ingredients
-                    </h3>
-                    <div className="bg-gray-50 rounded-xl p-4">
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                        {currentRecipeData.ingredients.map(ingredient => (
-                            <div
-                                key={ingredient}
-                                className="flex items-center gap-3 bg-white rounded-lg p-3 border border-gray-200"
-                            >
-                              <div className="w-2 h-2 bg-[#2F855A] rounded-full flex-shrink-0"></div>
-                              <div className="flex-1">
-                                <div className="font-semibold text-gray-900 text-sm">{ingredient}</div>
-                                <div className="text-xs text-gray-600">{ingredient}</div>
-                              </div>
-                            </div>
-                        ))}
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Instructions */}
-                  <div className="mb-6">
-                    <h3 className="text-xl font-bold text-gray-900 mb-4 flex items-center gap-2">
-                      <i className="ri-list-ordered text-[#2F855A]"></i>
-                      Instructions
-                    </h3>
-                    <div className="space-y-4">
-                      {currentRecipeData.instructions?.split("\n").map((instruction, index) => (
-                          <div key={index} className="flex gap-4">
-                            <div className="w-8 h-8 flex items-center justify-center bg-[#2F855A] text-white rounded-full font-bold text-sm flex-shrink-0">
-                              {index + 1}
-                            </div>
-                            <p className="flex-1 text-base text-gray-700 leading-relaxed pt-1">{instruction}</p>
-                          </div>
-                      ))}
-                    </div>
-                  </div>
-
-                  {/* Action Buttons */}
-                  <div className="flex gap-3 pt-4 border-t border-gray-200">
-                    <button
-                        onClick={() => setShowRecipeDetailModal(false)}
-                        className="flex-1 py-3 bg-gray-100 text-gray-700 rounded-xl font-semibold hover:bg-gray-200 transition-all cursor-pointer whitespace-nowrap"
-                    >
-                      Close
-                    </button>
-                    <button
-                        onClick={async () => {
-                          setShowRecipeDetailModal(false);
-                          await handleLike();
-                        }}
-                        className="flex-1 py-3 bg-gradient-to-r from-[#2F855A] to-emerald-600 text-white rounded-xl font-semibold hover:from-[#276749] hover:to-emerald-700 transition-all shadow-lg cursor-pointer whitespace-nowrap flex items-center justify-center gap-2"
-                    >
-                      <i className="ri-heart-line text-xl"></i>
-                      <span>Add to Shopping List</span>
-                    </button>
-                  </div>
-                </div>
-              </div>
-            </div>
-        )}
+        <RecipeDetailModal
+          recipe={currentRecipeData}
+          open={showRecipeDetailModal}
+          onClose={() => setShowRecipeDetailModal(false)}
+          onAddToShoppingList={async () => {
+            setShowRecipeDetailModal(false);
+            await handleLike();
+          }}
+        />
       </div>
   );
 }
