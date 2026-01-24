@@ -3,6 +3,7 @@ import { marketApi, Market } from '@/api/search-product/marketApi'; // The file 
 import { useState,useEffect } from 'react';
 import { productApi, Product } from '@/api/search-product/productApi';
 import { userApi } from '@/api/search-product/userApi';
+import {CartItem, shoppingListApi} from "@/api/shopping-list/shoppingCartApi";
 // import { useNavigate } from 'react-router-dom';
 
 export default function SearchProducts() {
@@ -135,8 +136,15 @@ export default function SearchProducts() {
     if (e.key === 'Enter') handleSearch(1);
   };
 
-  const addToCart = (product: Product, e?: React.MouseEvent) => {
+  const addToCart = async (product: Product, e?: React.MouseEvent) => {
     if (e) e.stopPropagation();
+    
+    const singleCartItem: CartItem = {
+      product_id: product.id,
+      quantity: 1,    
+      recipe_id: 0    
+    };
+    await shoppingListApi.addItemsToShoppingList([singleCartItem]);
     
     setCart(prev => {
       const existing = prev.find(item => item.product.id === product.id);

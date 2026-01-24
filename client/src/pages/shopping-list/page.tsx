@@ -131,50 +131,54 @@ export default function ShoppingListPage() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-emerald-50 via-green-50 to-teal-50">
-      {/* Header */}
+    {/* Header */}
       <div className="bg-white shadow-sm sticky top-0 z-40">
         <div className="max-w-4xl mx-auto px-4 py-4">
-          <div className="flex items-center justify-between mb-4">
+          {/* Tabs Container */}
+          <div className="flex items-center gap-2">
+            
+            {/* Back Button */}
             <button
               onClick={() => (window as any).REACT_APP_NAVIGATE('/recipe-swiper')}
               className="w-10 h-10 flex items-center justify-center rounded-full hover:bg-gray-100 transition-colors cursor-pointer"
+              title="Back to Recipes"
             >
               <i className="ri-arrow-left-line text-xl text-gray-700"></i>
             </button>
-            <img 
-              src="https://public.readdy.ai/ai/img_res/b0724f47-0896-45dd-92da-e15712b65265.png" 
-              alt="Recipe Recommender Logo" 
-              className="h-12 w-auto"
-            />
-            <button
-              onClick={() => (window as any).REACT_APP_NAVIGATE('/profile')}
-              className="w-10 h-10 flex items-center justify-center rounded-full hover:bg-gray-100 transition-colors cursor-pointer"
-            >
-              <i className="ri-user-line text-xl text-gray-700"></i>
-            </button>
-          </div>
 
-          {/* Tabs */}
-          <div className="flex gap-2 bg-gray-100 p-1 rounded-full">
+
+            {/* Gray Tab Group */}
+            <div className="flex flex-1 gap-2 bg-gray-100 p-1 rounded-full">
+              <button
+                onClick={() => setActiveTab('current')}
+                className={`flex-1 py-2.5 px-4 rounded-full font-semibold text-sm transition-all cursor-pointer whitespace-nowrap ${
+                  activeTab === 'current'
+                    ? 'bg-[#2F855A] text-white shadow-md'
+                    : 'text-gray-600 hover:text-gray-900'
+                }`}
+              >
+                Current List
+              </button>
+
+              <button
+                onClick={() => setActiveTab('history')}
+                className={`flex-1 py-2.5 px-4 rounded-full font-semibold text-sm transition-all cursor-pointer whitespace-nowrap ${
+                  activeTab === 'history'
+                    ? 'bg-[#2F855A] text-white shadow-md'
+                    : 'text-gray-600 hover:text-gray-900'
+                }`}
+              >
+                History
+              </button>
+            </div>
+
+            {/* Search Products Button */}
             <button
-              onClick={() => setActiveTab('current')}
-              className={`flex-1 py-2.5 px-4 rounded-full font-semibold text-sm transition-all cursor-pointer whitespace-nowrap ${
-                activeTab === 'current'
-                  ? 'bg-[#2F855A] text-white shadow-md'
-                  : 'text-gray-600 hover:text-gray-900'
-              }`}
+              onClick={() => (window as any).REACT_APP_NAVIGATE('/search-products')}
+              className="w-10 h-10 flex items-center justify-center rounded-full hover:bg-emerald-50 text-gray-700 hover:text-[#2F855A] transition-colors cursor-pointer mr-1"
+              title="Search for extra items"
             >
-              Current List
-            </button>
-            <button
-              onClick={() => setActiveTab('history')}
-              className={`flex-1 py-2.5 px-4 rounded-full font-semibold text-sm transition-all cursor-pointer whitespace-nowrap ${
-                activeTab === 'history'
-                  ? 'bg-[#2F855A] text-white shadow-md'
-                  : 'text-gray-600 hover:text-gray-900'
-              }`}
-            >
-              History
+              <i className="ri-search-line text-xl"></i>
             </button>
           </div>
         </div>
@@ -362,23 +366,38 @@ export default function ShoppingListPage() {
               })}
             </div>
           )}
-
-          {/* Complete Shopping Button */}
+          
+          {/* Bottom Action Bar */}
           {activeList && activeList.groups && activeList.groups.length > 0 && (
-            <div className="sticky bottom-0 bg-gradient-to-t from-emerald-50 via-emerald-50 to-transparent pt-6 pb-6 mt-6">
-              <button
-                onClick={handleCompleteShopping}
-                className={`w-full py-4 rounded-xl font-bold text-lg shadow-lg transition-all cursor-pointer whitespace-nowrap ${
-                  checkedCount === totalCount
-                    ? 'bg-gradient-to-r from-[#2F855A] to-emerald-600 text-white hover:from-[#276749] hover:to-emerald-700'
-                    : 'bg-gray-300 text-gray-600 cursor-not-allowed'
-                }`}
-                disabled={checkedCount !== totalCount}
-              >
-                {checkedCount === totalCount ? 'Complete Shopping' : `${totalCount - checkedCount} Items Remaining`}
-              </button>
+            <div className="sticky bottom-0 bg-gradient-to-t from-emerald-50 via-emerald-50 to-transparent pt-6 pb-6 mt-6 z-30">
+              <div className="flex gap-3">
+                
+              {/* Complete Shopping Button (Takes remaining space) */}
+                <button
+                  onClick={handleCompleteShopping}
+                  className={`flex-1 py-4 rounded-xl font-bold text-lg shadow-lg transition-all cursor-pointer whitespace-nowrap ${
+                    checkedCount === totalCount
+                      ? 'bg-gradient-to-r from-[#2F855A] to-emerald-600 text-white hover:from-[#276749] hover:to-emerald-700'
+                      : 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                  }`}
+                  disabled={checkedCount !== totalCount}
+                >
+                  {checkedCount === totalCount ? 'Complete' : `${totalCount - checkedCount} Remaining`}
+                </button>
+                
+                {/* Add Products Button (1/3 width) */}
+                <button
+                  onClick={() => (window as any).REACT_APP_NAVIGATE('/search-products')}
+                  className="w-1/3 py-4 bg-gradient-to-r from-[#2F855A] to-emerald-600 text-white rounded-xl font-bold text-lg shadow-lg hover:from-[#276749] hover:to-emerald-700 hover:shadow-xl transition-all cursor-pointer flex items-center justify-center gap-2 whitespace-nowrap"
+                >
+                  <i className="ri-add-line text-xl"></i>
+                  <span>Add Products</span>
+                </button>
+
+              </div>
             </div>
           )}
+
         </div>
       )}
 
