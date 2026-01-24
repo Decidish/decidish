@@ -31,7 +31,7 @@ export default function RecipeSwiper() {
   const [showRecipeDetailModal, setShowRecipeDetailModal] = useState(false);
   // New states for quantity selection and shopping cart
   const [productQuantities, setProductQuantities] = useState<Record<number, number>>({});
-  const [userMarketId, setUserMarketId] = useState<number | null>(null);
+  const [marketId, setMarketId] = useState<number | null>(null);
 
   // FETCH RECIPES FROM BACKEND
   useEffect(() => {
