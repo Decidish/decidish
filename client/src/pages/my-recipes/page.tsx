@@ -213,6 +213,8 @@ export default function MyRecipesPage() {
   const [selectedRecipe, setSelectedRecipe] = useState<Recipe | null>(null);
   const [sortBy, setSortBy] = useState<'newest' | 'oldest' | 'name'>('newest');
   const [searchQuery, setSearchQuery] = useState('');
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage, setItemsPerPage] = useState(6);
 
   // Filter recipes based on search query
   const filteredRecipes = savedRecipesMock.filter(recipe =>
@@ -234,12 +236,130 @@ export default function MyRecipesPage() {
     }
   });
 
+  // Pagination calculations
+  const totalRecipes = sortedRecipes.length;
+  const totalPages = Math.ceil(totalRecipes / itemsPerPage);
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const endIndex = startIndex + itemsPerPage;
+  const currentRecipes = sortedRecipes.slice(startIndex, endIndex);
+
+  const handlePageChange = (page: number) => {
+    if (page >= 1 && page <= totalPages) {
+      setCurrentPage(page);
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+  };
+
+  const handleItemsPerPageChange = (items: number) => {
+    setItemsPerPage(items);
+    setCurrentPage(1); // Reset to first page when changing items per page
+  };
+
+  const handleSearchChange = (query: string) => {
+    setSearchQuery(query);
+    setCurrentPage(1); // Reset to first page when searching
+  };
+
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString('en-US', {
       year: 'numeric',
       month: 'long',
       day: 'numeric'
     });
+  };
+
+  const renderPaginationButtons = () => {
+    const buttons = [];
+    const maxVisibleButtons = 5;
+    let startPage = Math.max(1, currentPage - Math.floor(maxVisibleButtons / 2));
+    let endPage = Math.min(totalPages, startPage + maxVisibleButtons - 1);
+
+    if (endPage - startPage < maxVisibleButtons - 1) {
+      startPage = Math.max(1, endPage - maxVisibleButtons + 1);
+    }
+
+    // Previous button
+    buttons.push(
+      <button
+        key="prev"
+        onClick={() => handlePageChange(currentPage - 1)}
+        disabled={currentPage === 1}
+        className="w-10 h-10 flex items-center justify-center rounded-lg border-2 border-gray-200 hover:border-emerald-500 hover:bg-emerald-50 transition-all disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:border-gray-200 disabled:hover:bg-transparent cursor-pointer"
+      >
+        <i className="ri-arrow-left-s-line text-xl text-gray-700"></i>
+      </button>
+    );
+
+    // First page
+    if (startPage > 1) {
+      buttons.push(
+        <button
+          key={1}
+          onClick={() => handlePageChange(1)}
+          className="w-10 h-10 flex items-center justify-center rounded-lg border-2 border-gray-200 hover:border-emerald-500 hover:bg-emerald-50 transition-all font-medium text-gray-700 cursor-pointer"
+        >
+          1
+        </button>
+      );
+      if (startPage > 2) {
+        buttons.push(
+          <span key="dots1" className="w-10 h-10 flex items-center justify-center text-gray-400">
+            ...
+          </span>
+        );
+      }
+    }
+
+    // Page numbers
+    for (let i = startPage; i <= endPage; i++) {
+      buttons.push(
+        <button
+          key={i}
+          onClick={() => handlePageChange(i)}
+          className={`w-10 h-10 flex items-center justify-center rounded-lg border-2 transition-all font-medium cursor-pointer ${
+            currentPage === i
+              ? 'bg-emerald-600 border-emerald-600 text-white'
+              : 'border-gray-200 text-gray-700 hover:border-emerald-500 hover:bg-emerald-50'
+          }`}
+        >
+          {i}
+        </button>
+      );
+    }
+
+    // Last page
+    if (endPage < totalPages) {
+      if (endPage < totalPages - 1) {
+        buttons.push(
+          <span key="dots2" className="w-10 h-10 flex items-center justify-center text-gray-400">
+            ...
+          </span>
+        );
+      }
+      buttons.push(
+        <button
+          key={totalPages}
+          onClick={() => handlePageChange(totalPages)}
+          className="w-10 h-10 flex items-center justify-center rounded-lg border-2 border-gray-200 hover:border-emerald-500 hover:bg-emerald-50 transition-all font-medium text-gray-700 cursor-pointer"
+        >
+          {totalPages}
+        </button>
+      );
+    }
+
+    // Next button
+    buttons.push(
+      <button
+        key="next"
+        onClick={() => handlePageChange(currentPage + 1)}
+        disabled={currentPage === totalPages}
+        className="w-10 h-10 flex items-center justify-center rounded-lg border-2 border-gray-200 hover:border-emerald-500 hover:bg-emerald-50 transition-all disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:border-gray-200 disabled:hover:bg-transparent cursor-pointer"
+      >
+        <i className="ri-arrow-right-s-line text-xl text-gray-700"></i>
+      </button>
+    );
+
+    return buttons;
   };
 
   if (selectedRecipe) {
@@ -435,7 +555,7 @@ export default function MyRecipesPage() {
             <div className="flex items-center gap-4">
               <div className="bg-emerald-50 px-4 py-2 rounded-lg">
                 <span className="text-emerald-700 font-medium">
-                  {filteredRecipes.length} Recipe{filteredRecipes.length !== 1 ? 's' : ''} Found
+                  {totalRecipes} Recipe{totalRecipes !== 1 ? 's' : ''} Total
                 </span>
               </div>
 
@@ -460,24 +580,54 @@ export default function MyRecipesPage() {
               type="text"
               placeholder="Search recipes, ingredients, or tags..."
               value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
+              onChange={(e) => handleSearchChange(e.target.value)}
               className="w-full pl-10 pr-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
             />
             {searchQuery && (
               <button
-                onClick={() => setSearchQuery('')}
+                onClick={() => handleSearchChange('')}
                 className="absolute inset-y-0 right-0 pr-3 flex items-center cursor-pointer"
               >
                 <i className="ri-close-line text-gray-400 hover:text-gray-600"></i>
               </button>
             )}
           </div>
+
+          {/* Pagination Controls */}
+          {totalRecipes > 0 && (
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center gap-4">
+                <span className="text-sm text-gray-600">
+                  Showing {Math.min(startIndex + 1, totalRecipes)}-{Math.min(endIndex, totalRecipes)} of {totalRecipes} recipes
+                </span>
+                <div className="flex items-center gap-2">
+                  <span className="text-sm text-gray-600">Items per page:</span>
+                  <select
+                    value={itemsPerPage}
+                    onChange={(e) => handleItemsPerPageChange(Number(e.target.value))}
+                    className="px-3 py-1 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 cursor-pointer text-sm"
+                  >
+                    <option value={6}>6</option>
+                    <option value={12}>12</option>
+                    <option value={24}>24</option>
+                    <option value={48}>48</option>
+                  </select>
+                </div>
+              </div>
+
+              {totalPages > 1 && (
+                <div className="flex items-center gap-1">
+                  {renderPaginationButtons()}
+                </div>
+              )}
+            </div>
+          )}
         </div>
       </div>
 
       {/* Recipes Grid */}
       <div className="max-w-6xl mx-auto px-4 py-8">
-        {sortedRecipes.length === 0 ? (
+        {currentRecipes.length === 0 ? (
           <div className="text-center py-16">
             <i className="ri-search-line text-6xl text-gray-300 mb-4 block"></i>
             <h3 className="text-xl font-medium text-gray-500 mb-2">
@@ -491,80 +641,89 @@ export default function MyRecipesPage() {
             </p>
           </div>
         ) : (
-          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {sortedRecipes.map((recipe) => (
-              <div
-                key={recipe.id}
-                className="bg-white rounded-lg shadow-sm overflow-hidden hover:shadow-md transition-shadow cursor-pointer"
-                onClick={() => setSelectedRecipe(recipe)}
-              >
-                <div className="relative">
-                  <img
-                    src={recipe.image}
-                    alt={recipe.name}
-                    className="w-full h-48 object-cover"
-                  />
-                  <div className="absolute top-3 right-3">
-                    <span className="bg-white/90 backdrop-blur-sm px-2 py-1 rounded-full text-xs font-medium text-gray-700">
-                      {recipe.calories} cal
-                    </span>
-                  </div>
-                </div>
-
-                <div className="p-4">
-                  <h3 className="font-semibold text-gray-900 mb-2 line-clamp-2">
-                    {recipe.name}
-                  </h3>
-                  
-                  <p className="text-sm text-gray-600 mb-3 line-clamp-2">
-                    {recipe.description}
-                  </p>
-
-                  <div className="flex items-center justify-between text-xs text-gray-500 mb-3">
-                    <div className="flex items-center gap-4">
-                      <span className="flex items-center gap-1">
-                        <i className="ri-time-line"></i>
-                        {recipe.totalTime}m
-                      </span>
-                      <span className="flex items-center gap-1">
-                        <i className="ri-group-line"></i>
-                        {recipe.servings}
-                      </span>
-                      <span className="flex items-center gap-1">
-                        <i className="ri-flashlight-line"></i>
-                        {recipe.difficulty}
+          <>
+            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
+              {currentRecipes.map((recipe) => (
+                <div
+                  key={recipe.id}
+                  className="bg-white rounded-lg shadow-sm overflow-hidden hover:shadow-md transition-shadow cursor-pointer"
+                  onClick={() => setSelectedRecipe(recipe)}
+                >
+                  <div className="relative">
+                    <img
+                      src={recipe.image}
+                      alt={recipe.name}
+                      className="w-full h-48 object-cover"
+                    />
+                    <div className="absolute top-3 right-3">
+                      <span className="bg-white/90 backdrop-blur-sm px-2 py-1 rounded-full text-xs font-medium text-gray-700">
+                        {recipe.calories} cal
                       </span>
                     </div>
                   </div>
 
-                  <div className="flex flex-wrap gap-1 mb-3">
-                    {recipe.tags.slice(0, 2).map((tag, index) => (
-                      <span
-                        key={index}
-                        className="px-2 py-1 bg-emerald-50 text-emerald-600 rounded text-xs"
-                      >
-                        {tag}
-                      </span>
-                    ))}
-                    {recipe.tags.length > 2 && (
-                      <span className="px-2 py-1 bg-gray-50 text-gray-500 rounded text-xs">
-                        +{recipe.tags.length - 2}
-                      </span>
-                    )}
-                  </div>
+                  <div className="p-4">
+                    <h3 className="font-semibold text-gray-900 mb-2 line-clamp-2">
+                      {recipe.name}
+                    </h3>
+                    
+                    <p className="text-sm text-gray-600 mb-3 line-clamp-2">
+                      {recipe.description}
+                    </p>
 
-                  <div className="flex items-center justify-between">
-                    <span className="text-xs text-gray-400">
-                      Saved {formatDate(recipe.dateAdded)}
-                    </span>
-                    <button className="text-emerald-600 hover:text-emerald-700 transition-colors">
-                      <i className="ri-arrow-right-line"></i>
-                    </button>
+                    <div className="flex items-center justify-between text-xs text-gray-500 mb-3">
+                      <div className="flex items-center gap-4">
+                        <span className="flex items-center gap-1">
+                          <i className="ri-time-line"></i>
+                          {recipe.totalTime}m
+                        </span>
+                        <span className="flex items-center gap-1">
+                          <i className="ri-group-line"></i>
+                          {recipe.servings}
+                        </span>
+                        <span className="flex items-center gap-1">
+                          <i className="ri-flashlight-line"></i>
+                          {recipe.difficulty}
+                        </span>
+                      </div>
+                    </div>
+
+                    <div className="flex flex-wrap gap-1 mb-3">
+                      {recipe.tags.slice(0, 2).map((tag, index) => (
+                        <span
+                          key={index}
+                          className="px-2 py-1 bg-emerald-50 text-emerald-600 rounded text-xs"
+                        >
+                          {tag}
+                        </span>
+                      ))}
+                      {recipe.tags.length > 2 && (
+                        <span className="px-2 py-1 bg-gray-50 text-gray-500 rounded text-xs">
+                          +{recipe.tags.length - 2}
+                        </span>
+                      )}
+                    </div>
+
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs text-gray-400">
+                        Saved {formatDate(recipe.dateAdded)}
+                      </span>
+                      <button className="text-emerald-600 hover:text-emerald-700 transition-colors">
+                        <i className="ri-arrow-right-line"></i>
+                      </button>
+                    </div>
                   </div>
                 </div>
+              ))}
+            </div>
+
+            {/* Bottom Pagination */}
+            {totalPages > 1 && (
+              <div className="flex items-center justify-center gap-1">
+                {renderPaginationButtons()}
               </div>
-            ))}
-          </div>
+            )}
+          </>
         )}
       </div>
     </div>
