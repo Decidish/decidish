@@ -235,11 +235,6 @@ export default function RecipeSwiper() {
         <div className="max-w-2xl mx-auto">
           {/* Header */}
           <div className="mb-6">
-            <img
-                src="https://public.readdy.ai/ai/img_res/b0724f47-0896-45dd-92da-e15712b65265.png"
-                alt="Recipe Recommender Logo"
-                className="h-14 w-auto mx-auto mb-4"
-            />
             <div className="bg-white rounded-xl shadow-sm p-4 flex items-center justify-between">
               <div>
                 <h2 className="text-lg font-semibold text-gray-900">Find Your Recipes</h2>
