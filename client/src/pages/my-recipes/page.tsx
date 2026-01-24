@@ -212,8 +212,16 @@ interface Recipe {
 export default function MyRecipesPage() {
   const [selectedRecipe, setSelectedRecipe] = useState<Recipe | null>(null);
   const [sortBy, setSortBy] = useState<'newest' | 'oldest' | 'name'>('newest');
+  const [searchQuery, setSearchQuery] = useState('');
 
-  const sortedRecipes = [...savedRecipesMock].sort((a, b) => {
+  // Filter recipes based on search query
+  const filteredRecipes = savedRecipesMock.filter(recipe =>
+    recipe.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    recipe.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    recipe.tags.some(tag => tag.toLowerCase().includes(searchQuery.toLowerCase()))
+  );
+
+  const sortedRecipes = [...filteredRecipes].sort((a, b) => {
     switch (sortBy) {
       case 'newest':
         return new Date(b.dateAdded).getTime() - new Date(a.dateAdded).getTime();
@@ -294,16 +302,6 @@ export default function MyRecipesPage() {
                     </div>
                     <span className="text-2xl font-bold text-gray-900">
                       {selectedRecipe.servings}
-                    </span>
-                  </div>
-
-                  <div className="bg-gray-50 rounded-lg p-4">
-                    <div className="flex items-center gap-2 mb-2">
-                      <i className="ri-flashlight-line text-emerald-600"></i>
-                      <span className="font-medium text-gray-700">Difficulty</span>
-                    </div>
-                    <span className="text-2xl font-bold text-gray-900">
-                      {selectedRecipe.difficulty}
                     </span>
                   </div>
 
@@ -424,7 +422,7 @@ export default function MyRecipesPage() {
       {/* Header */}
       <div className="bg-white shadow-sm">
         <div className="max-w-6xl mx-auto px-4 py-8">
-          <div className="flex items-center justify-between">
+          <div className="flex items-center justify-between mb-6">
             <div>
               <h1 className="text-3xl font-bold text-gray-900 mb-2">
                 My Recipes
@@ -437,7 +435,7 @@ export default function MyRecipesPage() {
             <div className="flex items-center gap-4">
               <div className="bg-emerald-50 px-4 py-2 rounded-lg">
                 <span className="text-emerald-700 font-medium">
-                  {savedRecipesMock.length} Recipes Saved
+                  {filteredRecipes.length} Recipe{filteredRecipes.length !== 1 ? 's' : ''} Found
                 </span>
               </div>
 
@@ -452,6 +450,28 @@ export default function MyRecipesPage() {
               </select>
             </div>
           </div>
+
+          {/* Search Bar */}
+          <div className="relative mb-6">
+            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+              <i className="ri-search-line text-gray-400"></i>
+            </div>
+            <input
+              type="text"
+              placeholder="Search recipes, ingredients, or tags..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="w-full pl-10 pr-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
+            />
+            {searchQuery && (
+              <button
+                onClick={() => setSearchQuery('')}
+                className="absolute inset-y-0 right-0 pr-3 flex items-center cursor-pointer"
+              >
+                <i className="ri-close-line text-gray-400 hover:text-gray-600"></i>
+              </button>
+            )}
+          </div>
         </div>
       </div>
 
@@ -459,12 +479,15 @@ export default function MyRecipesPage() {
       <div className="max-w-6xl mx-auto px-4 py-8">
         {sortedRecipes.length === 0 ? (
           <div className="text-center py-16">
-            <i className="ri-book-open-line text-6xl text-gray-300 mb-4 block"></i>
+            <i className="ri-search-line text-6xl text-gray-300 mb-4 block"></i>
             <h3 className="text-xl font-medium text-gray-500 mb-2">
-              No recipes saved yet
+              {searchQuery ? 'No recipes found' : 'No recipes saved yet'}
             </h3>
             <p className="text-gray-400">
-              Start liking recipes to build your collection
+              {searchQuery 
+                ? `Try searching for something else or clear your search` 
+                : 'Start liking recipes to build your collection'
+              }
             </p>
           </div>
         ) : (
