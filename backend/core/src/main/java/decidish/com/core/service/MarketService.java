@@ -30,6 +30,7 @@ import decidish.com.core.model.rewe.MarketPickupDto;
 import decidish.com.core.model.rewe.MarketPickupResponse;
 import decidish.com.core.repository.MarketRepository;
 import decidish.com.core.repository.ProductRepository;
+import decidish.com.core.repository.SearchTermMarketRepository;
 import jakarta.persistence.EntityNotFoundException;
 
 import org.springframework.transaction.annotation.Transactional;
