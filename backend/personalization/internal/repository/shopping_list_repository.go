@@ -7,18 +7,20 @@ import (
 	"time"
 )
 
-func UpdateShoppingListItem(tx *sql.Tx, userId string, itemId string, checked *bool) error {
+func UpdateShoppingListItem(tx *sql.Tx, userId string, itemId string, checked *bool, quantity *int) error {
 	_, err := tx.Exec(`
 	UPDATE shopping_list_items
-	SET checked = COALESCE($1, checked)
-	WHERE id = $2
+	SET 
+		checked = COALESCE($1, checked),
+		quantity = COALESCE($2, quantity)
+	WHERE id = $3
 	AND shopping_list_id = (
 		SELECT id FROM shopping_lists
-		WHERE user_id = $3
+		WHERE user_id = $4
 		AND completed = FALSE
 		LIMIT 1
 	)
-	`, checked, itemId, userId)
+	`, checked, quantity, itemId, userId)
 
 	if err != nil {
 		return fmt.Errorf("failed to update shopping list item: %w", err)

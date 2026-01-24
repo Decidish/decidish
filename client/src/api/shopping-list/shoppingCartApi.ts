@@ -82,6 +82,21 @@ export const shoppingListApi = {
     }
   },
 
+  updateItemQuantity: async (itemId: string, quantity: number) => {
+    try {
+      await apiClient.put<void>(
+        "/personalization/api/v1/user/update/item",
+        {
+          item_id: itemId,
+          quantity: quantity,
+        }
+      );
+    } catch (error) {
+      console.error("Failed to update item quantity:", error);
+      throw error;
+    }
+  },
+
   deleteItem: async (itemId: string) => {
     try {
       await apiClient.delete<void>(

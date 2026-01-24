@@ -5,6 +5,7 @@ export default function ShoppingListPage() {
   const [activeTab, setActiveTab] = useState<'current' | 'history'>('current');
   const [activeList, setActiveList] = useState<ShoppingList | null>(null);
   const [shoppingHistory, setShoppingHistory] = useState<ShoppingList[]>([]);
+  const [productQuantities, setProductQuantities] = useState<Record<number, number>>({});
 
   const fetchList = async () => {
       try {
@@ -70,6 +71,46 @@ export default function ShoppingListPage() {
         });
     }
   };
+  
+  const handleQuantityChange = (itemId: string, change: number) => {
+    setProductQuantities(prev => {
+      const itemIdNum = parseInt(itemId);
+      const currentQty = prev[itemIdNum] || (activeList ? activeList.groups.flatMap(g => g.items).find(i => i.id === itemId)?.quantity || 1 : 1);
+      const newQty = Math.max(1, currentQty + change);
+      return {
+        ...prev,
+        [itemIdNum]: newQty,
+      };
+    });
+  };
+
+  const saveQuantityChanges = async () => {
+    if (!activeList || Object.keys(productQuantities).length === 0) return;
+
+    try {
+      const updates = Object.entries(productQuantities).map(([itemIdNum, quantity]) => {
+        const itemId = activeList.groups.flatMap(g => g.items).find(i => parseInt(i.id) === parseInt(itemIdNum))?.id;
+        return { item_id: itemId, quantity };
+      });
+
+      await Promise.all(updates.map(update => shoppingListApi.updateItemQuantity(update.item_id, update.quantity)));
+    } catch (error) {
+      console.error("Failed to save quantity changes:", error);
+    }
+  };
+
+  useEffect(() => {
+    const handleBeforeUnload = () => {
+      saveQuantityChanges();
+    };
+
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    return () => {
+      window.removeEventListener('beforeunload', handleBeforeUnload);
+      saveQuantityChanges();
+    };
+  }, [productQuantities, activeList]);
+
 
   const handleRemoveItem = async (recipeName: string, itemId: string) => {
     if (!activeList) return;
@@ -124,7 +165,11 @@ export default function ShoppingListPage() {
     return activeList.groups.flatMap(group => group.items);
   };
   
-  const totalPrice = getAllItems().reduce((sum, item) => sum + (item.price * (item.quantity || 1)), 0);
+  const totalPrice = getAllItems().reduce((sum, item) => {
+    const itemIdNum = parseInt(item.id);
+    const quantity = productQuantities[itemIdNum] || item.quantity || 1;
+    return sum + (item.price * quantity);
+  }, 0);
   const checkedCount = getAllItems().filter(item => item.checked).length;
   const totalCount = getAllItems().length;
   const progress = totalCount > 0 ? (checkedCount / totalCount) * 100 : 0;
@@ -335,19 +380,35 @@ export default function ShoppingListPage() {
                                   {item.name}
                                 </h3>
                                 <div className="flex items-center gap-3">
-                                  {item.quantity && item.quantity > 1 && (
-                                    <span className="text-xs font-medium text-[#2F855A] bg-emerald-50 px-2 py-1 rounded">
-                                      Qty: {item.quantity}
-                                    </span>
-                                  )}
                                   <span className="text-base font-bold text-[#2F855A]">
-                                    {((item.price / 100) * (item.quantity || 1)).toFixed(2)}€
+                                    {((item.price / 100) * (productQuantities[parseInt(item.id)] || item.quantity || 1)).toFixed(2)}€
                                   </span>
                                 </div>
                               </div>
 
-                              {/* Action Buttons */}
-                              <div className="flex flex-col gap-2 flex-shrink-0">
+                              {/* Quantity Selector and Action Buttons */}
+                              <div className="flex items-center gap-3 flex-shrink-0">
+                                {/* Quantity Buttons */}
+                                <div className="flex items-center gap-2">
+                                  <button
+                                    onClick={() => handleQuantityChange(item.id, -1)}
+                                    disabled={(productQuantities[parseInt(item.id)] || item.quantity || 1) <= 1}
+                                    className="w-10 h-10 flex items-center justify-center bg-white border-2 border-gray-300 rounded-lg hover:border-[#2F855A] hover:bg-emerald-50 transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                                  >
+                                    <i className="ri-subtract-line text-xl text-gray-700"></i>
+                                  </button>
+                                  <span className="text-lg font-bold text-gray-900 min-w-[2.5rem] text-center">
+                                    {productQuantities[parseInt(item.id)] || item.quantity || 1}
+                                  </span>
+                                  <button
+                                    onClick={() => handleQuantityChange(item.id, 1)}
+                                    className="w-10 h-10 flex items-center justify-center bg-white border-2 border-gray-300 rounded-lg hover:border-[#2F855A] hover:bg-emerald-50 transition-all cursor-pointer"
+                                  >
+                                    <i className="ri-add-line text-xl text-gray-700"></i>
+                                  </button>
+                                </div>
+
+                                {/* Action Buttons */}
                                 <button
                                   onClick={() => handleRemoveItem(group.recipeName, item.id)}
                                   className="w-10 h-10 flex items-center justify-center rounded-lg hover:bg-red-50 transition-colors cursor-pointer"
@@ -385,15 +446,17 @@ export default function ShoppingListPage() {
                   {checkedCount === totalCount ? 'Complete' : `${totalCount - checkedCount} Remaining`}
                 </button>
                 
-                {/* Add Products Button (1/3 width) */}
+                {/* Add Products Button */}
                 <button
                   onClick={() => (window as any).REACT_APP_NAVIGATE('/search-products')}
-                  className="w-1/3 py-4 bg-gradient-to-r from-[#2F855A] to-emerald-600 text-white rounded-xl font-bold text-lg shadow-lg hover:from-[#276749] hover:to-emerald-700 hover:shadow-xl transition-all cursor-pointer flex items-center justify-center gap-2 whitespace-nowrap"
+                  // Change text-lg to -> text-xs md:text-lg
+                  // Change gap-2 to -> gap-1 md:gap-2
+                  className="w-1/3 py-4 bg-gradient-to-r from-[#2F855A] to-emerald-600 text-white rounded-xl font-bold text-xs md:text-lg shadow-lg hover:from-[#276749] hover:to-emerald-700 hover:shadow-xl transition-all cursor-pointer flex items-center justify-center gap-1 md:gap-2 whitespace-nowrap"
                 >
-                  <i className="ri-add-line text-xl"></i>
+                  {/* Adjust icon size: text-base on mobile, text-xl on desktop */}
+                  <i className="ri-add-line text-base md:text-xl"></i>
                   <span>Add Products</span>
                 </button>
-
               </div>
             </div>
           )}
