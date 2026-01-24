@@ -34,6 +34,7 @@ type EncodeBatchResponse struct {
 
 type IUserService interface {
 	CreateUserPreferences(ctx *gin.Context)
+	GetUserPreferences(ctx *gin.Context)
 	SetSelectedUserMarketId(ctx *gin.Context)
 	IsUserEmbeddingReady(ctx *gin.Context)
 	RecordUserAction(ctx *gin.Context)
@@ -232,4 +233,20 @@ func (service UserService) GetUserHistory(ctx *gin.Context) {
 	}
 
 	ctx.JSON(http.StatusOK, histories)
+}
+
+func (service UserService) GetUserPreferences(ctx *gin.Context) {
+	userId := ctx.GetString("user_id")
+
+	prefs, err := repository.GetUserPreferences(service.DB, userId)
+	if err == sql.ErrNoRows {
+		ctx.JSON(http.StatusNotFound, gin.H{"error": "user preferences not found"})
+		return
+	}
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	ctx.JSON(http.StatusOK, prefs)
 }

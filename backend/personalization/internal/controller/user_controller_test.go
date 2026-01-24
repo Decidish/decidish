@@ -16,6 +16,8 @@ func (m *mockUserService) CreateUserPreferences(c *gin.Context) {
 	c.JSON(201, gin.H{"ok": true})
 }
 
+func (m *mockUserService) GetUserPreferences(c *gin.Context) {}
+
 func (service mockUserService) IsUserEmbeddingReady(ctx *gin.Context) {}
 
 func (m *mockUserService) SetSelectedUserMarketId(c *gin.Context) {}

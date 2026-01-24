@@ -26,7 +26,7 @@ export default function MarketSelection() {
   const [postalCode, setPostalCode] = useState('');
   const [showMarkets, setShowMarkets] = useState(false);
   const [selectedMarket, setSelectedMarket] = useState<Market | null>(null);
-  const [mapCenter, setMapCenter] = useState<[number, number]>([40.7128, -74.0060]); // Default: New York
+  const [mapCenter, setMapCenter] = useState<[number, number]>([48.1374, 11.5755]); // Default: Munich
 
   // State for API data
   const [markets, setMarkets] = useState<Market[]>([]);
@@ -51,8 +51,8 @@ export default function MarketSelection() {
       setMarkets(results);
       setShowMarkets(true);
       // Center map on first market
-      if (markets.length > 0) {
-        setMapCenter([markets[0].address.latitude, markets[0].address.longitude]);
+      if (results.length > 0) {
+        setMapCenter([results[0].address.latitude, results[0].address.longitude]);
       }
     } catch (err) {
       console.error(err);
