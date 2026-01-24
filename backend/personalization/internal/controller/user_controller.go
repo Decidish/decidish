@@ -20,6 +20,7 @@ func NewUserController(service service.UserService, shoppingService service.Shop
 
 func (controller UserController) AddMappings(r *gin.RouterGroup) {
 	r.POST("/user/preferences", controller.UserService.CreateUserPreferences)
+	r.GET("/user/preferences", controller.UserService.GetUserPreferences)
 	r.POST("/user/market", controller.UserService.SetSelectedUserMarketId)
 	r.GET("/user/market", controller.UserService.GetUserSelectedMarket)
 	r.GET("/user/isembedded", controller.UserService.IsUserEmbeddingReady)
