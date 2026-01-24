@@ -30,6 +30,7 @@ export default function ShoppingFlowModal({
   const [showAllProducts, setShowAllProducts] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [loadingProducts, setLoadingProducts] = useState(false);
+  const [hasLoadedProducts, setHasLoadedProducts] = useState(false);
 
   useEffect(() => {
     const reset = () => {
@@ -41,6 +42,7 @@ export default function ShoppingFlowModal({
       setShowAllProducts(false);
       setIsEditing(false);
       setLoadingProducts(false);
+      setHasLoadedProducts(false);
     };
 
     if (!open || !recipe) {
@@ -55,12 +57,13 @@ export default function ShoppingFlowModal({
     setShowReviewModal(false);
     setShowAllProducts(false);
     setIsEditing(false);
-    setLoadingProducts(false);
 
     const ensureIngredients = async (target: UIRecipe) => {
-      if (target.richIngredients) return;
+      // Prevent multiple concurrent calls
+      if (target.richIngredients || loadingProducts || hasLoadedProducts) return;
 
       setLoadingProducts(true);
+      setHasLoadedProducts(true);
       try {
         const listResponse = await productsApi.generateShoppingList(marketId, [target.id]);
         const updated: UIRecipe = { ...target, richIngredients: listResponse.items };
@@ -68,13 +71,15 @@ export default function ShoppingFlowModal({
         onRecipeUpdate?.(updated);
       } catch (err) {
         console.error('Error loading products', err);
+        setHasLoadedProducts(false); // Reset on error to allow retry
       } finally {
         setLoadingProducts(false);
       }
     };
 
     void ensureIngredients({ ...recipe });
-  }, [open, recipe, marketId, onRecipeUpdate]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open, recipe?.id, marketId]);
 
   const currentIngredientGroup: IngredientGroup | undefined = useMemo(() => {
     if (!workingRecipe?.richIngredients) return undefined;

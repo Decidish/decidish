@@ -138,22 +138,24 @@ func AddUserPreference(tx *sql.Tx, userId string, userInfo AdditionalInfo) error
 }
 
 type UserPreferencesWithMarket struct {
-	MinCookingTime  int      `json:"min_cooking_time"`
-	MaxCookingTime  int      `json:"max_cooking_time"`
-	Allergies       string   `json:"allergies"`
-	Budget          int      `json:"budget"`
-	SkillLevel      string   `json:"skill_level"`
-	MarketId        *int64   `json:"market_id"`
-	MarketName      *string  `json:"market_name"`
-	MarketStreet    *string  `json:"market_street"`
-	MarketCity      *string  `json:"market_city"`
-	MarketZipCode   *string  `json:"market_zip_code"`
-	MarketLatitude  *float64 `json:"market_latitude"`
-	MarketLongitude *float64 `json:"market_longitude"`
+	MinCookingTime   int       `json:"min_cooking_time"`
+	MaxCookingTime   int       `json:"max_cooking_time"`
+	Allergies        string    `json:"allergies"`
+	Budget           int       `json:"budget"`
+	SkillLevel       string    `json:"skill_level"`
+	MarketId         *int64    `json:"market_id"`
+	PreferenceVector []float64 `json:"preference_vector"`
+	MarketName       *string   `json:"market_name"`
+	MarketStreet     *string   `json:"market_street"`
+	MarketCity       *string   `json:"market_city"`
+	MarketZipCode    *string   `json:"market_zip_code"`
+	MarketLatitude   *float64  `json:"market_latitude"`
+	MarketLongitude  *float64  `json:"market_longitude"`
 }
 
 func GetUserPreferences(db *sql.DB, userId string) (*UserPreferencesWithMarket, error) {
 	var prefs UserPreferencesWithMarket
+	var prefsVecBytes []byte
 
 	err := db.QueryRow(`
 		SELECT 
@@ -163,6 +165,7 @@ func GetUserPreferences(db *sql.DB, userId string) (*UserPreferencesWithMarket, 
 			up.budget,
 			up.skill_level,
 			up.market_id,
+			up.preferences_vec,
 			m.name,
 			a.street,
 			a.city,
@@ -180,6 +183,7 @@ func GetUserPreferences(db *sql.DB, userId string) (*UserPreferencesWithMarket, 
 		&prefs.Budget,
 		&prefs.SkillLevel,
 		&prefs.MarketId,
+		&prefsVecBytes,
 		&prefs.MarketName,
 		&prefs.MarketStreet,
 		&prefs.MarketCity,
@@ -188,7 +192,19 @@ func GetUserPreferences(db *sql.DB, userId string) (*UserPreferencesWithMarket, 
 		&prefs.MarketLongitude,
 	)
 
-	return &prefs, err
+	if err != nil {
+		return nil, err
+	}
+
+	// Unmarshal the JSON bytes into the float64 slice
+	if len(prefsVecBytes) > 0 {
+		err = json.Unmarshal(prefsVecBytes, &prefs.PreferenceVector)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	return &prefs, nil
 }
 
 // func (repository *UserPreferenceRepository) Save(tx *sql.Tx, userId string, preferences UserPreferences) error {

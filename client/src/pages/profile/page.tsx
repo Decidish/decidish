@@ -1,5 +1,5 @@
 
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { userHistoryApi, UserHistoryRecord } from '@/api/user-history/userHistoryApi';
 import { authApi, AuthProfile } from '@/api/auth/authApi';
 import { userApi, UserPreferencesWithMarket } from '@/api/questionnaire/userApi';
@@ -681,7 +681,7 @@ export default function Profile() {
             </div>
 
             {/* Stats Grid */}
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+            <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mb-6">
               <div className="bg-emerald-50 rounded-xl p-4 text-center">
                 <i className="ri-time-line text-2xl text-[#2F855A] mb-2"></i>
                 <div className="text-xl font-bold text-gray-900">{detailRecipe.recipe?.total_time}m</div>
@@ -696,11 +696,6 @@ export default function Profile() {
                 <i className="ri-fire-line text-2xl text-orange-600 mb-2"></i>
                 <div className="text-xl font-bold text-gray-900">{detailRecipe.recipe?.nutrients?.calories}</div>
                 <div className="text-xs text-gray-600">Calories</div>
-              </div>
-              <div className="bg-purple-50 rounded-xl p-4 text-center">
-                <i className="ri-bowl-line text-2xl text-purple-600 mb-2"></i>
-                <div className="text-xl font-bold text-gray-900">{detailRecipe.recipe?.nutrients?.servingSize || '—'}</div>
-                <div className="text-xs text-gray-600">Serving Size</div>
               </div>
             </div>
 

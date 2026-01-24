@@ -245,7 +245,58 @@ func (service UserService) RecordUserAction(ctx *gin.Context) {
 		log.Panicln("could not commit transaction", err.Error())
 	}
 
-	ctx.JSON(http.StatusOK, fmt.Sprintf("Recorded action for user: %s on recipe: %d", userId, recipeID))
+	// Fetch user preferences to get preference vector for embedding update
+	userPrefs, err := repository.GetUserPreferences(service.DB, userId)
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "failed to fetch user preferences"})
+		return
+	}
+
+	// Prepare request for mlpipeline to update user embedding
+	req := EncodeBatchRequest{
+		Users: []UserItem{
+			{
+				UserId:     userId,
+				UserVector: userPrefs.PreferenceVector,
+			},
+		},
+	}
+
+	var encodeResp EncodeBatchResponse
+
+	// TODO: This should be the real endpoint to update user embeddings from actions
+	status, err := service.MLClient.PostJSON(ctx.Request.Context(), fmt.Sprintf("%s/encode_users_batch", service.EmbedderServerUrl), req, &encodeResp, nil)
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "failed calling embedder", "details": err.Error()})
+		return
+	}
+	if status < 200 || status >= 300 {
+		ctx.JSON(status, gin.H{"error": "embedder returned non-2xx", "status_code": status})
+		return
+	}
+
+	// Update user embeddings with the new computed embedding
+	tx, err = service.DB.Begin()
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, "could not start a transaction")
+		log.Panicln("could not start a transaction", err.Error())
+	}
+	defer tx.Rollback()
+
+	for _, user := range encodeResp.Users {
+		err := repository.AddOrUpdateEmbeddings(tx, user.UserId, user.UserEmbedding)
+		if err != nil {
+			ctx.JSON(http.StatusInternalServerError, err)
+			return
+		}
+	}
+
+	if err = tx.Commit(); err != nil {
+		ctx.JSON(http.StatusInternalServerError, "could not commit transaction")
+		log.Panicln("could not commit transaction", err.Error())
+	}
+
+	ctx.JSON(http.StatusOK, fmt.Sprintf("Recorded action for user: %s on recipe: %d and updated embeddings", userId, recipeID))
 }
 
 func (service UserService) GetUserHistory(ctx *gin.Context) {
