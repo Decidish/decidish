@@ -1,10 +1,37 @@
 import { useState, useEffect } from 'react';
-import { recipesApi, RecipeRecommendation } from '@/api/recipe-swiper/recipesApi';
-import { productsApi, ShoppingListResponse, IngredientGroup, Product } from '@/api/recipe-swiper/productsApi';
-import {CartItem, shoppingListApi} from "@/api/shopping-list/shoppingCartApi";
-import { userApi } from '@/api/search-product/userApi';
+import { recipesApi, RecipeRecommendation } from '../../api/recipe-swiper/recipesApi';
+import { productsApi, ShoppingListResponse, IngredientGroup, Product } from '../../api/recipe-swiper/productsApi';
+import { adminApi } from '@/api/admin/adminApi';
 import { userHistoryApi } from '@/api/user-history/userHistoryApi';
 
+// interface Product {
+//   id: string;
+//   name: string;
+//   brand: string;
+//   image: string;
+//   price: number;
+//   weight: string;
+//   unit: string;
+// }
+
+// interface Ingredient {
+//   id: number;
+//   name: string;
+//   amount: string;
+//   products: Product[];
+// }
+
+// interface Recipe {
+//   recipe_id: number;
+//   name: string;
+//   image: string;
+//   calories: number;
+//   totalTime: number;
+//   difficulty: string;
+//   servings: number;
+//   description: string;
+//   ingredients: Ingredient[];
+// }
 
 // We extend the API response to include UI-specific fields if needed
 interface UIRecipe extends RecipeRecommendation {
@@ -21,6 +48,8 @@ export default function RecipeSwiper() {
   const [currentIngredientIndex, setCurrentIngredientIndex] = useState(0);
   const [selectedProducts, setSelectedProducts] = useState<Record<number, Product | 'already-have'>>({});
   const [likedRecipes, setLikedRecipes] = useState<UIRecipe[]>([]);
+  const [servingsNeeded, setServingsNeeded] = useState(12);
+  const [servingsCollected, setServingsCollected] = useState(0);
   const [showAllProducts, setShowAllProducts] = useState(false);
   const [showSuccessToast, setShowSuccessToast] = useState(false);
   const [successMessage, setSuccessMessage] = useState('');
@@ -28,16 +57,15 @@ export default function RecipeSwiper() {
   const [loading, setLoading] = useState(true);
   const [loadingProducts, setLoadingProducts] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
-  const [showRecipeDetailModal, setShowRecipeDetailModal] = useState(false);
-  // New states for quantity selection and shopping cart
-  const [productQuantities, setProductQuantities] = useState<Record<number, number>>({});
-  const [marketId, setMarketId] = useState<number | null>(null);
-  const [isMarketLoading, setIsMarketLoading] = useState(true);
 
   // FETCH RECIPES FROM BACKEND
   useEffect(() => {
     const fetchRecommendations = async () => {
+      
+
       try {
+        // await new Promise(resolve => setTimeout(resolve, 15000))
+        // await adminApi.addReweRecipes(); //? For testing purposes
         const data = await recipesApi.getRecommendations();
         console.log("data: ",data);
         const uiRecipes = data.map(r => ({ ...r, richIngredients: null }));
@@ -53,36 +81,6 @@ export default function RecipeSwiper() {
     fetchRecommendations();
   }, []);
   
-  useEffect(() => {
-    const fetchMarket = async () => {
-      try {
-        const id = await userApi.getUserMarketId();
-        if (id) {
-          setMarketId(id);
-        } else {
-          alert("Please select a market in your profile settings.");
-        }
-      } catch (err) {
-        console.error("Failed to fetch market preference");
-      } finally {
-        setIsMarketLoading(false);
-      }
-    };
-    fetchMarket();
-  }, []);
-
-
-  const handleQuantityChange = (productId: number, change: number) => {
-    setProductQuantities(prev => {
-      const currentQty = prev[productId] || 0;
-      const newQty = Math.max(0, currentQty + change);
-      return {
-        ...prev,
-        [productId]: newQty,
-      };
-    });
-  };
-  
   const handleLike = async() => {
     const recipe = recipes[currentIndex];
     
@@ -97,13 +95,21 @@ export default function RecipeSwiper() {
     setShowIngredientModal(true);
     setCurrentIngredientIndex(0);
     setSelectedProducts({});
-    setProductQuantities({});
     // If we haven't fetched products for this recipe yet, do it now (Lazy Load)
     if (!recipe.richIngredients) {
       setLoadingProducts(true);
       try {
         // Fetch products for just this one recipe
-        const listResponse: ShoppingListResponse = await productsApi.generateShoppingList(marketId, [recipe.id]); // Market ID hardcoded for now
+        const listResponse = await productsApi.generateShoppingList(441070, [recipe.id]); // Market ID hardcoded for now
+
+        // Debug what we got back for this recipe, all matched ingredients and their products
+        console.log("[RecipeSwiper] shopping list response", {
+          recipeId: recipe.id,
+          itemsCount: listResponse?.items?.length,
+          firstItem: listResponse?.items?.[0],
+          ingredientNames: listResponse?.items?.map(i => i.ingredientName), 
+          allItems: listResponse?.items
+        });
         
         // Update the specific recipe in our state with the new data
         setRecipes(prevRecipes => prevRecipes.map(r => {
@@ -173,22 +179,14 @@ export default function RecipeSwiper() {
     }
   };
 
-  const handleConfirmRecipe = async () => {
+  const handleConfirmRecipe = () => {
     if (currentRecipe) {
       setLikedRecipes([...likedRecipes, currentRecipe]);
-
-      const shoppingListElems = Object.entries(selectedProducts)
-          .filter(selectedProduct => selectedProduct[1] !== 'already-have')
-          .map((selectedProduct) => {
-          const cartItems: CartItem = {
-            product_id: (selectedProduct[1] as Product).id,
-            quantity: productQuantities[(selectedProduct[1] as Product).id] || 1,
-            recipe_id: currentRecipe.id,
-        }
-        return cartItems
-      })
-
-      await shoppingListApi.addItemsToShoppingList(shoppingListElems);
+      // PARSING NOTE: personalization sends 'yields' ("4 servings"), usually a string. 
+      // default to 4 if missing.
+      const recipeServings = parseInt(currentRecipe.yields) || 4;
+      const newServingsCollected = servingsCollected + recipeServings;
+      setServingsCollected(newServingsCollected);
 
       // Show success notification
       showSuccessNotification(currentRecipe.title);
@@ -211,10 +209,6 @@ export default function RecipeSwiper() {
     }
   };
 
-  const handleRecipeImageClick = () => {
-    setShowRecipeDetailModal(true);
-  };
-
   const calculateReviewTotal = () => {
     if (!currentRecipe || !currentRecipe.richIngredients) return 0;
     const totalInCents = currentRecipe.richIngredients.reduce((total, ingredient) => {
@@ -222,7 +216,7 @@ export default function RecipeSwiper() {
       const selected = selectedProducts[ingredient.ingredientId];
       
       if (selected && selected !== 'already-have') {
-        return total + selected.price * productQuantities[selected.id]; // Adds cents (e.g., 299)
+        return total + selected.price; // Adds cents (e.g., 299)
       }
       return total;
     }, 0);
@@ -355,6 +349,10 @@ export default function RecipeSwiper() {
                 <h2 className="text-lg font-semibold text-gray-900">Find Your Recipes</h2>
                 <p className="text-sm text-gray-600">Swipe to discover meals you'll love</p>
               </div>
+              <div className="text-right">
+                <div className="text-2xl font-bold text-[#2F855A]">{servingsCollected}/{servingsNeeded}</div>
+                <p className="text-xs text-gray-600">Servings</p>
+              </div>
             </div>
           </div>
 
@@ -363,24 +361,14 @@ export default function RecipeSwiper() {
               <div className="relative">
                 <div className="bg-white rounded-3xl shadow-xl overflow-hidden">
                   {/* Recipe Image */}
-                  <div
-                      className="relative w-full h-96 cursor-pointer group"
-                      onClick={handleRecipeImageClick}
-                  >
+                  <div className="relative w-full h-96">
                     <img
                         src={currentRecipeData.image}
                         alt={currentRecipeData.title}
-                        className="w-full h-full object-cover object-top group-hover:scale-105 transition-transform duration-300"
+                        className="w-full h-full object-cover object-top"
                     />
-                    <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-all duration-300 flex items-center justify-center">
-                      <div className="w-16 h-16 bg-white/90 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300 shadow-lg">
-                        <i className="ri-information-line text-3xl text-[#2F855A]"></i>
-                      </div>
-                    </div>
                     <div className="absolute top-4 right-4 bg-white/90 backdrop-blur-sm px-3 py-1.5 rounded-full">
-                  <span className="text-sm font-medium text-gray-900">
-                    {currentIndex + 1}/{recipes.length}
-                  </span>
+                      <span className="text-sm font-medium text-gray-900">{currentIndex + 1}/{recipes.length}</span>
                     </div>
                   </div>
 
@@ -475,17 +463,6 @@ export default function RecipeSwiper() {
                     <span className="text-sm text-gray-600">
                   {currentIngredientIndex + 1} of {currentRecipe.richIngredients.length}
                 </span>
-                    <button
-                        onClick={() => {
-                          setShowIngredientModal(false);
-                          setCurrentRecipe(null);
-                          setSelectedProducts({});
-                          setProductQuantities({});
-                        }}
-                        className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-gray-100 transition-colors cursor-pointer"
-                    >
-                      <i className="ri-close-line text-xl text-gray-600"></i>
-                    </button>
                   </div>
                   <div className="w-full bg-gray-200 rounded-full h-2 mb-3">
                     <div
@@ -528,65 +505,36 @@ export default function RecipeSwiper() {
                   </div>
 
                   <div className="space-y-3">
-                    {displayedProducts?.map(product => {
-                      const quantity = productQuantities[product.id] || 0;
-                      return (
-                          <div
-                              key={product.id}
-                              className="w-full p-4 bg-white border-2 border-gray-200 rounded-xl hover:border-[#2F855A] transition-all"
-                          >
-                            <div className="flex items-center gap-4 mb-3">
-                              <div className="w-20 h-20 flex-shrink-0 bg-gray-100 rounded-lg overflow-hidden">
-                                <img src={product.imageUrl} alt={product.name} className="w-full h-full object-cover" />
-                              </div>
-                              <div className="flex-1 min-w-0">
-                                <div className="font-semibold text-gray-900 mb-1">{product.name}</div>
-                                <div className="text-sm text-gray-600 mb-2">REWE</div>
-                                <div className="flex items-center gap-3">
-                                  {/* <span className="text-sm font-medium text-gray-700">{product.weight}{product.unit}</span> */}
-                                  <span className="text-sm font-medium text-gray-700">{product.grammage}</span>
-                                  {/* <span className="text-lg font-bold text-[#2F855A]">${product.price.toFixed(2)}</span> */}
-                                  {/* <span className="text-lg font-bold text-[#2F855A]">{(calculateReviewTotal() / 100).toFixed(2)}€</span> */}
-                                  <span className="text-lg font-bold text-[#2F855A]">{(product.price / 100).toFixed(2)}€</span>
-                                </div>
-                              </div>
+                    {displayedProducts?.map((product) => (
+                        <button
+                            key={`${currentIngredientGroup.ingredientId}-${product.reweId}`}
+                            onClick={() => handleSelectProduct(currentIngredientGroup.ingredientId, product)}
+                            className="w-full p-4 bg-white border-2 border-gray-200 rounded-xl hover:bg-emerald-50 hover:border-[#2F855A] transition-all text-left cursor-pointer group"
+                        >
+                          <div className="flex items-center gap-4">
+                            <div className="w-20 h-20 flex-shrink-0 bg-gray-100 rounded-lg overflow-hidden">
+                              <img
+                                  src={product.imageUrl}
+                                  alt={product.name}
+                                  className="w-full h-full object-cover"
+                              />
                             </div>
-
-                            {/* Quantity Selector */}
-                            <div className="flex items-center justify-between bg-gray-50 rounded-lg p-3">
-                              <span className="text-sm font-medium text-gray-700">Quantity:</span>
+                            <div className="flex-1 min-w-0">
+                              <div className="font-semibold text-gray-900 mb-1">{product.name}</div>
+                              {/* <div className="text-sm text-gray-600 mb-2">{product.brand}</div> */}
+                              <div className="text-sm text-gray-600 mb-2">REWE</div>
                               <div className="flex items-center gap-3">
-                                <button
-                                    onClick={() => handleQuantityChange(product.id, -1)}
-                                    disabled={quantity === 0}
-                                    className="w-10 h-10 flex items-center justify-center bg-white border-2 border-gray-300 rounded-lg hover:border-[#2F855A] hover:bg-emerald-50 transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
-                                >
-                                  <i className="ri-subtract-line text-xl text-gray-700"></i>
-                                </button>
-                                <span className="text-xl font-bold text-gray-900 min-w-[3rem] text-center">
-                            {quantity}
-                          </span>
-                                <button
-                                    onClick={() => handleQuantityChange(product.id, 1)}
-                                    className="w-10 h-10 flex items-center justify-center bg-white border-2 border-gray-300 rounded-lg hover:border-[#2F855A] hover:bg-emerald-50 transition-all cursor-pointer"
-                                >
-                                  <i className="ri-add-line text-xl text-gray-700"></i>
-                                </button>
+                                {/* <span className="text-sm font-medium text-gray-700">{product.weight}{product.unit}</span> */}
+                                <span className="text-sm font-medium text-gray-700">{product.grammage}</span>
+                                {/* <span className="text-lg font-bold text-[#2F855A]">${product.price.toFixed(2)}</span> */}
+                                {/* <span className="text-lg font-bold text-[#2F855A]">{(calculateReviewTotal() / 100).toFixed(2)}€</span> */}
+                                <span className="text-lg font-bold text-[#2F855A]">{(product.price / 100).toFixed(2)}€</span>
                               </div>
                             </div>
-
-                            {/* Add to Cart Button */}
-                            <button
-                                onClick={() => handleSelectProduct(currentIngredientGroup.ingredientId, product)}
-                                disabled={quantity === 0}
-                                className="w-full mt-3 py-3 bg-gradient-to-r from-[#2F855A] to-emerald-600 text-white rounded-lg font-semibold hover:from-[#276749] hover:to-emerald-700 transition-all cursor-pointer flex items-center justify-center gap-2 whitespace-nowrap disabled:opacity-50 disabled:cursor-not-allowed disabled:from-gray-400 disabled:to-gray-500"
-                            >
-                              <i className="ri-shopping-cart-line text-xl"></i>
-                              <span>{quantity === 0 ? 'Select Quantity' : `Add ${quantity} to Cart`}</span>
-                            </button>
+                            <i className="ri-arrow-right-line text-2xl text-gray-400 group-hover:text-[#2F855A] transition-colors"></i>
                           </div>
-                      );
-                    })}
+                        </button>
+                    ))}
                   </div>
 
                   {hasMoreProducts && !showAllProducts && (
@@ -668,7 +616,7 @@ export default function RecipeSwiper() {
                             <div className="flex items-start justify-between mb-3">
                               <div className="flex-1">
                                 <h5 className="font-semibold text-gray-900 mb-1">{ingredient.ingredientName}</h5>
-                                {!isAlreadyHave && <p className="text-sm text-gray-600">Amount added: {productQuantities[product.id]}</p>}
+                                <p className="text-sm text-gray-600">Amount needed: {ingredient.totalAmountNeeded}</p>
                               </div>
                               <button
                                   onClick={() => handleEditProduct(ingredient.ingredientId)}
@@ -699,9 +647,9 @@ export default function RecipeSwiper() {
                                     <div className="text-xs text-gray-600 mb-1">REWE</div>
                                     <div className="flex items-center gap-2">
                                     {/* <span className="text-sm font-medium text-gray-700">{product.weight}{product.unit}</span> */}
-                                    {/*<span className="text-sm font-medium text-gray-700">{product.grammage}</span>*/}
+                                    <span className="text-sm font-medium text-gray-700">{product.grammage}</span>
                                     {/* <span className="text-lg font-bold text-[#2F855A]">${product.price.toFixed(2)}</span> */}
-                                    <span className="text-lg font-bold text-[#2F855A]">{((product.price * productQuantities[product.id]) / 100).toFixed(2)}€</span>
+                                    <span className="text-lg font-bold text-[#2F855A]">{(product.price / 100).toFixed(2)}€</span>
                                     </div>
                                   </div>
                                 </div>
@@ -750,141 +698,6 @@ export default function RecipeSwiper() {
                         className="flex-1 py-4 bg-gradient-to-r from-[#2F855A] to-emerald-600 text-white rounded-xl font-semibold hover:from-[#276749] hover:to-emerald-700 transition-all shadow-lg cursor-pointer whitespace-nowrap flex items-center justify-center gap-2"
                     >
                       <i className="ri-check-line text-xl"></i>
-                      <span>Add to Shopping List</span>
-                    </button>
-                  </div>
-                </div>
-              </div>
-            </div>
-        )}
-
-        {/* -------- Recipe Detail Modal -------- */}
-        {showRecipeDetailModal && currentRecipeData && (
-            <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 z-50">
-              <div className="bg-white rounded-3xl shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-y-auto">
-                {/* Header with Image */}
-                <div className="relative w-full h-64">
-                  <img
-                      src={currentRecipeData.image}
-                      alt={currentRecipeData.title}
-                      className="w-full h-full object-cover object-top"
-                  />
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent"></div>
-                  <button
-                      onClick={() => setShowRecipeDetailModal(false)}
-                      className="absolute top-4 right-4 w-10 h-10 flex items-center justify-center rounded-full bg-white/90 backdrop-blur-sm hover:bg-white transition-colors cursor-pointer"
-                  >
-                    <i className="ri-close-line text-2xl text-gray-900"></i>
-                  </button>
-                  <div className="absolute bottom-4 left-6 right-6">
-                    <h2 className="text-3xl font-bold text-white mb-3">{currentRecipeData.title}</h2>
-                    <div className="flex flex-wrap gap-2">
-                      {currentRecipeData.keywords?.map((tag, index) => (
-                          <span
-                              key={index}
-                              className="px-3 py-1 bg-white/20 backdrop-blur-sm text-white text-sm rounded-full"
-                          >
-                      {tag}
-                    </span>
-                      ))}
-                    </div>
-                  </div>
-                </div>
-
-                <div className="p-6">
-                  {/* Quick Stats */}
-                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-                    <div className="bg-emerald-50 rounded-xl p-4 text-center">
-                      <i className="ri-time-line text-2xl text-[#2F855A] mb-2"></i>
-                      <div className="text-sm text-gray-600">Prep Time</div>
-                      <div className="text-lg font-bold text-gray-900">
-                        {currentRecipeData.prep_time || 10}m
-                      </div>
-                    </div>
-                    <div className="bg-teal-50 rounded-xl p-4 text-center">
-                      <i className="ri-fire-line text-2xl text-teal-600 mb-2"></i>
-                      <div className="text-sm text-gray-600">Cook Time</div>
-                      <div className="text-lg font-bold text-gray-900">
-                        {currentRecipeData.cook_time ||
-                            currentRecipeData.total_time - (currentRecipeData.prep_time || 10)}m
-                      </div>
-                    </div>
-                    <div className="bg-green-50 rounded-xl p-4 text-center">
-                      <i className="ri-restaurant-line text-2xl text-green-600 mb-2"></i>
-                      <div className="text-sm text-gray-600">Servings</div>
-                      <div className="text-lg font-bold text-gray-900">{currentRecipeData.nutrients.servingSize}</div>
-                    </div>
-                    <div className="bg-amber-50 rounded-xl p-4 text-center">
-                      <i className="ri-flashlight-line text-2xl text-amber-600 mb-2"></i>
-                      <div className="text-sm text-gray-600">Calories</div>
-                      <div className="text-lg font-bold text-gray-900">{currentRecipeData.nutrients.servingSize}</div>
-                    </div>
-                  </div>
-
-                  {/* Description */}
-                  <div className="mb-6">
-                    <h3 className="text-xl font-bold text-gray-900 mb-3">About This Recipe</h3>
-                    <p className="text-base text-gray-700 leading-relaxed">{currentRecipeData.description}</p>
-                  </div>
-
-                  {/* Ingredients */}
-                  <div className="mb-6">
-                    <h3 className="text-xl font-bold text-gray-900 mb-4 flex items-center gap-2">
-                      <i className="ri-shopping-basket-line text-[#2F855A]"></i>
-                      Ingredients
-                    </h3>
-                    <div className="bg-gray-50 rounded-xl p-4">
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                        {currentRecipeData.ingredients.map(ingredient => (
-                            <div
-                                key={ingredient}
-                                className="flex items-center gap-3 bg-white rounded-lg p-3 border border-gray-200"
-                            >
-                              <div className="w-2 h-2 bg-[#2F855A] rounded-full flex-shrink-0"></div>
-                              <div className="flex-1">
-                                <div className="font-semibold text-gray-900 text-sm">{ingredient}</div>
-                                <div className="text-xs text-gray-600">{ingredient}</div>
-                              </div>
-                            </div>
-                        ))}
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Instructions */}
-                  <div className="mb-6">
-                    <h3 className="text-xl font-bold text-gray-900 mb-4 flex items-center gap-2">
-                      <i className="ri-list-ordered text-[#2F855A]"></i>
-                      Instructions
-                    </h3>
-                    <div className="space-y-4">
-                      {currentRecipeData.instructions?.split("\n").map((instruction, index) => (
-                          <div key={index} className="flex gap-4">
-                            <div className="w-8 h-8 flex items-center justify-center bg-[#2F855A] text-white rounded-full font-bold text-sm flex-shrink-0">
-                              {index + 1}
-                            </div>
-                            <p className="flex-1 text-base text-gray-700 leading-relaxed pt-1">{instruction}</p>
-                          </div>
-                      ))}
-                    </div>
-                  </div>
-
-                  {/* Action Buttons */}
-                  <div className="flex gap-3 pt-4 border-t border-gray-200">
-                    <button
-                        onClick={() => setShowRecipeDetailModal(false)}
-                        className="flex-1 py-3 bg-gray-100 text-gray-700 rounded-xl font-semibold hover:bg-gray-200 transition-all cursor-pointer whitespace-nowrap"
-                    >
-                      Close
-                    </button>
-                    <button
-                        onClick={async () => {
-                          setShowRecipeDetailModal(false);
-                          await handleLike();
-                        }}
-                        className="flex-1 py-3 bg-gradient-to-r from-[#2F855A] to-emerald-600 text-white rounded-xl font-semibold hover:from-[#276749] hover:to-emerald-700 transition-all shadow-lg cursor-pointer whitespace-nowrap flex items-center justify-center gap-2"
-                    >
-                      <i className="ri-heart-line text-xl"></i>
                       <span>Add to Shopping List</span>
                     </button>
                   </div>
