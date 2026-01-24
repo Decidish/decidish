@@ -124,7 +124,7 @@ services:
       - REDIS_HOST=redis
       - JWT_SECRET=${JWT_SECRET}
       - DATABASE_URL=${DATABASE_BACKEND_URL}
-      - EMBEDDER_SERVER_URL=${EMBEDDER_SERVER_URL}
+      - EMBEDDER_SERVER_URL=http://mlpipeline:8000
     depends_on:
       migrator:
         condition: service_completed_successfully

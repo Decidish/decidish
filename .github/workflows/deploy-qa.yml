@@ -118,7 +118,7 @@ jobs:
         MINIO_USE_SSL: ${{ secrets.MINIO_USE_SSL }}
         MINIO_RECIPES_BUCKET: ${{ secrets.MINIO_RECIPES_BUCKET }}
         MINIO_RECIPES_OBJECT: ${{ secrets.MINIO_RECIPES_OBJECT }}
-        EMBEDDER_SERVER_URL: ${{ secrets.EMBEDDER_SERVER_URL }}
+        DATABASE_BACKEND_CONNECTION_STRING: ${{ secrets.DATABASE_BACKEND_CONNECTION_STRING }}
         STACK_NAME: qa
         IMAGE_TAG: qa
       run: |

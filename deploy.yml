@@ -40,8 +40,6 @@ services:
       interval: 5s
       timeout: 5s
       retries: 5
-    deploy:
-      replicas: 1
 
   db_authorisation:
     image: postgres:16-alpine
@@ -85,7 +83,7 @@ services:
     networks:
       - app-network
     deploy:
-      replicas: 1
+      replicas: 3
       restart_policy:
         condition: any
 
@@ -106,6 +104,10 @@ services:
       - MINIO_SECRET_KEY=${MINIO_SECRET_KEY}
     networks:
       - app-network
+    deploy:
+      replicas: 3
+      restart_policy:
+        condition: any
 
   # Personalization Server
   personalization-server:
@@ -118,9 +120,13 @@ services:
       - REDIS_HOST=redis
       - JWT_SECRET=${JWT_SECRET}
       - DATABASE_URL=${DATABASE_BACKEND_URL}
-      - EMBEDDER_SERVER_URL=${EMBEDDER_SERVER_URL}
+      - EMBEDDER_SERVER_URL=http://mlpipeline:8000
     networks:
       - app-network
+    deploy:
+      replicas: 3
+      restart_policy:
+        condition: any
 
   # MLPipeline
   mlpipeline:
@@ -138,6 +144,11 @@ services:
       - DATABASE_BACKEND_CONNECTION_STRING=${DATABASE_BACKEND_CONNECTION_STRING}
     networks:
       - app-network
+    deploy:
+      replicas: 1
+      restart_policy:
+        condition: any
+    
 
   client-web:
     # Build: "docker build --build-arg VITE_BASE_URL=${VITE_BASE_URL} -t my-registry/client-web ./client"
