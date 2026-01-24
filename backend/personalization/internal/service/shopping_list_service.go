@@ -70,22 +70,23 @@ func (this ShoppingListService) GetActiveShoppingList(ctx *gin.Context) {
 
 	response, err := repository.GetShoppingLists(this.DB, userId, false)
 
-    if err != nil {
-        ctx.JSON(http.StatusInternalServerError, err.Error())
-        return
-    }
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, err.Error())
+		return
+	}
 
 	if len(response) == 0 {
-        ctx.JSON(http.StatusOK, gin.H{"message": "No active shopping list found"})
-        return
-    }
+		ctx.JSON(http.StatusOK, gin.H{"message": "No active shopping list found"})
+		return
+	}
 
 	ctx.JSON(http.StatusOK, response[0])
 }
 
 type UpdateShoppingListItemRequest struct {
-	ItemID  string `json:"item_id"`
-	Checked *bool  `json:"checked,omitempty"`
+	ItemID   string `json:"item_id"`
+	Checked  *bool  `json:"checked,omitempty"`
+	Quantity *int   `json:"quantity,omitempty"`
 }
 
 func (this ShoppingListService) UpdateShoppingListItem(ctx *gin.Context) {
@@ -108,7 +109,7 @@ func (this ShoppingListService) UpdateShoppingListItem(ctx *gin.Context) {
 		return
 	}
 
-	err = repository.UpdateShoppingListItem(tx, userId, request.ItemID, request.Checked)
+	err = repository.UpdateShoppingListItem(tx, userId, request.ItemID, request.Checked, request.Quantity)
 	if err != nil {
 		ctx.JSON(http.StatusInternalServerError, err.Error())
 		return
@@ -167,19 +168,19 @@ func (this ShoppingListService) MarkShoppingListCompleted(ctx *gin.Context) {
 }
 
 func (this ShoppingListService) GetShoppingHistory(ctx *gin.Context) {
-    userId := ctx.GetString("user_id")
+	userId := ctx.GetString("user_id")
 
 	response, err := repository.GetShoppingLists(this.DB, userId, true)
 
-    if err != nil {
-        ctx.JSON(http.StatusInternalServerError, err.Error())
-        return
-    }
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, err.Error())
+		return
+	}
 
 	if len(response) == 0 {
-        ctx.JSON(http.StatusOK, gin.H{"message": "No shopping history found"})
-        return
-    }
+		ctx.JSON(http.StatusOK, gin.H{"message": "No shopping history found"})
+		return
+	}
 
 	ctx.JSON(http.StatusOK, response)
 }

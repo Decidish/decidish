@@ -7,18 +7,20 @@ import (
 	"time"
 )
 
-func UpdateShoppingListItem(tx *sql.Tx, userId string, itemId string, checked *bool) error {
+func UpdateShoppingListItem(tx *sql.Tx, userId string, itemId string, checked *bool, quantity *int) error {
 	_, err := tx.Exec(`
 	UPDATE shopping_list_items
-	SET checked = COALESCE($1, checked)
-	WHERE id = $2
+	SET 
+		checked = COALESCE($1, checked),
+		quantity = COALESCE($2, quantity)
+	WHERE id = $3
 	AND shopping_list_id = (
 		SELECT id FROM shopping_lists
-		WHERE user_id = $3
+		WHERE user_id = $4
 		AND completed = FALSE
 		LIMIT 1
 	)
-	`, checked, itemId, userId)
+	`, checked, quantity, itemId, userId)
 
 	if err != nil {
 		return fmt.Errorf("failed to update shopping list item: %w", err)
@@ -95,13 +97,13 @@ func GetShoppingLists(db *sql.DB, userId string, completed bool) ([]ShoppingList
             sl.id, sl.created_at,
             sli.id, sli.quantity, sli.checked,
             p.name, p.image_url, p.price,
-            COALESCE(r.title, 'Misc Items') as recipe_name -- Handle nulls directly in SQL
+            COALESCE(r.title, 'Misc Items') as recipe_name
         FROM shopping_lists sl
         JOIN shopping_list_items sli ON sl.id = sli.shopping_list_id
         JOIN products p ON sli.product_id = p.id
         LEFT JOIN recipes r ON sli.recipe_id = r.id
         WHERE sl.user_id = $1 AND sl.completed = $2
-        ORDER BY recipe_name -- Order helps us group faster if we wanted, but map is safer
+        ORDER BY sl.id, recipe_name
     `
 
 	rows, err := db.Query(query, userId, completed)
@@ -110,13 +112,9 @@ func GetShoppingLists(db *sql.DB, userId string, completed bool) ([]ShoppingList
 	}
 	defer rows.Close()
 
-	response := &ShoppingListResponse{
-		Groups: []RecipeGroup{},
-	}
-
-	groupedMap := make(map[string][]ShoppingItem)
-
-	var recipeOrder []string
+	// Map to track multiple shopping lists by ID
+	listsMap := make(map[int]*ShoppingListResponse)
+	var listOrder []int
 
 	for rows.Next() {
 		var (
@@ -131,10 +129,19 @@ func GetShoppingLists(db *sql.DB, userId string, completed bool) ([]ShoppingList
 			return nil, err
 		}
 
-		response.ID = strconv.Itoa(listID)
-		response.Date = createdAt
-		response.TotalItems += qty
-		response.TotalPrice += pPrice * float64(qty)
+		// Create a new response for this list if it doesn't exist
+		if _, exists := listsMap[listID]; !exists {
+			listsMap[listID] = &ShoppingListResponse{
+				ID:     strconv.Itoa(listID),
+				Date:   createdAt,
+				Groups: []RecipeGroup{},
+			}
+			listOrder = append(listOrder, listID)
+		}
+
+		resp := listsMap[listID]
+		resp.TotalItems += qty
+		resp.TotalPrice += pPrice * float64(qty)
 
 		item := ShoppingItem{
 			ID:       strconv.Itoa(itemID),
@@ -145,24 +152,33 @@ func GetShoppingLists(db *sql.DB, userId string, completed bool) ([]ShoppingList
 			Quantity: qty,
 		}
 
-		if _, exists := groupedMap[rName]; !exists {
-			recipeOrder = append(recipeOrder, rName)
+		// Find or create the recipe group
+		groupIndex := -1
+		for i, group := range resp.Groups {
+			if group.RecipeName == rName {
+				groupIndex = i
+				break
+			}
 		}
-		groupedMap[rName] = append(groupedMap[rName], item)
-	}
 
-	for _, recipeName := range recipeOrder {
-		group := RecipeGroup{
-			RecipeName: recipeName,
-			IsExpanded: true,
-			Items:      groupedMap[recipeName],
+		if groupIndex == -1 {
+			// Create new group
+			resp.Groups = append(resp.Groups, RecipeGroup{
+				RecipeName: rName,
+				IsExpanded: true,
+				Items:      []ShoppingItem{item},
+			})
+		} else {
+			// Add item to existing group
+			resp.Groups[groupIndex].Items = append(resp.Groups[groupIndex].Items, item)
 		}
-		response.Groups = append(response.Groups, group)
 	}
 
-	if response.ID == "" {
-		return []ShoppingListResponse{}, nil
+	// Build the result array in order
+	var results []ShoppingListResponse
+	for _, listID := range listOrder {
+		results = append(results, *listsMap[listID])
 	}
 
-	return []ShoppingListResponse{*response}, nil
+	return results, nil
 }
