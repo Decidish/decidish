@@ -3,6 +3,7 @@ import { lazy } from "react";
 import { RouteObject } from "react-router-dom";
 import MainLayout from "@/components/layout/MainLayout";
 import NotFound from "@/pages/NotFound";
+import MyRecipesPage from '@/pages/my-recipes/page';
 
 const Landing = lazy(() => import("@/pages/landing/page"));
 const Auth = lazy(() => import("@/pages/auth/page"));
@@ -31,6 +32,10 @@ const routes: RouteObject[] = [
   {
     path: "/questionnaire",
     element: <MainLayout><Questionnaire /></MainLayout>,
+  },
+  {
+    path: '/my-recipes',
+    element: <MyRecipesPage />
   },
   {
     path: "/recipe-swiper",
