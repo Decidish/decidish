@@ -8,6 +8,9 @@ import 'leaflet/dist/leaflet.css';
 import L from 'leaflet';
 import ShoppingFlowModal from '@/components/recipe/ShoppingFlowModal';
 import { SelectedProducts, UIRecipe } from '@/types/recipe';
+import { CartItem, shoppingListApi } from '@/api/shopping-list/shoppingCartApi';
+import { Product } from '@/api/recipe-swiper/productsApi';
+
 
 // Fix for default marker icons in React-Leaflet
 delete (L.Icon.Default.prototype as any)._getIconUrl;
@@ -224,7 +227,25 @@ export default function Profile() {
     }
   };
 
-  const handleHistoryFlowComplete = (recipe: UIRecipe, _selected: SelectedProducts) => {
+  const handleHistoryFlowComplete = async (recipe: UIRecipe, selectedProducts: SelectedProducts, productQuantities: Record<number, number>) => {
+    // Add to shopping cart
+    const shoppingListElems = Object.entries(selectedProducts)
+      .filter(([_, product]) => product !== 'already-have')
+      .map(([_, product]) => {
+        const typedProduct = product as Product;
+        return {
+          product_id: typedProduct.id,
+          quantity: productQuantities[typedProduct.id] || 1,
+          recipe_id: recipe.id,
+        };
+      });
+
+    try {
+      await shoppingListApi.addItemsToShoppingList(shoppingListElems);
+    } catch (err) {
+      console.error('[Profile] Failed to add items to shopping list', err);
+    }
+
     setRecipeCache((prev) => ({ ...prev, [recipe.id]: recipe }));
     setHistory((prev) => prev.map((h) => (h.recipe.id === recipe.id ? { ...h, recipe, action: true } : h)));
     setShoppingFlowOpen(false);

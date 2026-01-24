@@ -7,7 +7,7 @@ interface ShoppingFlowModalProps {
   open: boolean;
   marketId?: number;
   onClose: () => void;
-  onComplete: (recipe: UIRecipe, selected: SelectedProducts) => void;
+  onComplete: (recipe: UIRecipe, selected: SelectedProducts, quantities: Record<number, number>) => void;
   onRecipeUpdate?: (recipe: UIRecipe) => void;
 }
 
@@ -31,11 +31,13 @@ export default function ShoppingFlowModal({
   const [isEditing, setIsEditing] = useState(false);
   const [loadingProducts, setLoadingProducts] = useState(false);
   const [hasLoadedProducts, setHasLoadedProducts] = useState(false);
+  const [productQuantities, setProductQuantities] = useState<Record<number, number>>({});
 
   useEffect(() => {
     const reset = () => {
       setWorkingRecipe(null);
       setSelectedProducts({});
+      setProductQuantities({});
       setCurrentIngredientIndex(0);
       setShowIngredientModal(false);
       setShowReviewModal(false);
@@ -52,6 +54,7 @@ export default function ShoppingFlowModal({
 
     setWorkingRecipe(recipe);
     setSelectedProducts({});
+    setProductQuantities({});
     setCurrentIngredientIndex(0);
     setShowIngredientModal(true);
     setShowReviewModal(false);
@@ -86,6 +89,11 @@ export default function ShoppingFlowModal({
     return workingRecipe.richIngredients[currentIngredientIndex];
   }, [currentIngredientIndex, workingRecipe]);
 
+  // Reset showAllProducts when ingredient changes
+  useEffect(() => {
+    setShowAllProducts(false);
+  }, [currentIngredientIndex]);
+
   const displayedOptions = currentIngredientGroup?.options || [];
   const displayedProducts = showAllProducts
     ? displayedOptions.map((opt) => opt.product)
@@ -108,6 +116,17 @@ export default function ShoppingFlowModal({
     }
   };
 
+  const handleQuantityChange = (productId: number, change: number) => {
+    setProductQuantities((prev) => {
+      const currentQty = prev[productId] || 0;
+      const newQty = Math.max(0, currentQty + change);
+      return {
+        ...prev,
+        [productId]: newQty,
+      };
+    });
+  };
+
   const handleEditProduct = (ingredientId: number) => {
     if (!workingRecipe?.richIngredients) return;
     const ingredientIndex = workingRecipe.richIngredients.findIndex((ing) => ing.ingredientId === ingredientId);
@@ -127,7 +146,7 @@ export default function ShoppingFlowModal({
 
   const handleConfirm = () => {
     if (!workingRecipe) return;
-    onComplete(workingRecipe, selectedProducts);
+    onComplete(workingRecipe, selectedProducts, productQuantities);
     setShowIngredientModal(false);
     setShowReviewModal(false);
     setWorkingRecipe(null);
@@ -139,7 +158,7 @@ export default function ShoppingFlowModal({
     return workingRecipe.richIngredients.reduce((total, ingredient) => {
       const selected = selectedProducts[ingredient.ingredientId];
       if (selected && selected !== 'already-have') {
-        return total + selected.price;
+        return total + selected.price * (productQuantities[selected.id] || 1);
       }
       return total;
     }, 0);
@@ -151,21 +170,54 @@ export default function ShoppingFlowModal({
     <>
       {/* Ingredient Selection Modal */}
       {showIngredientModal && (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-3xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+        <div 
+          className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 z-50"
+          onClick={handleCancel}
+        >
+          <div 
+            className="bg-white rounded-3xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto"
+            onClick={(e) => e.stopPropagation()}
+          >
             <div className="sticky top-0 bg-white border-b border-gray-200 p-6 rounded-t-3xl z-10">
               <div className="flex items-center justify-between mb-2">
-                <h3 className="text-xl font-bold text-gray-900">Select Product</h3>
-                <span className="text-sm text-gray-600">
-                  {currentIngredientIndex + 1} of {workingRecipe.richIngredients.length}
-                </span>
+                <div className="flex items-center gap-2">
+                  {!isEditing && currentIngredientIndex > 0 && (
+                    <button
+                      onClick={() => {
+                        setCurrentIngredientIndex((prev) => Math.max(0, prev - 1));
+                        setShowAllProducts(false);
+                      }}
+                      className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-gray-100 transition-colors cursor-pointer"
+                      title="Go back to previous ingredient"
+                    >
+                      <i className="ri-arrow-left-line text-xl text-gray-700"></i>
+                    </button>
+                  )}
+                  <h3 className="text-xl font-bold text-gray-900">Select Product</h3>
+                </div>
+                <div className="flex items-center gap-3">
+                  {!isEditing && (
+                    <span className="text-sm text-gray-600">
+                      {currentIngredientIndex + 1} of {workingRecipe.richIngredients.length}
+                    </span>
+                  )}
+                  <button
+                    onClick={handleCancel}
+                    className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-gray-100 transition-colors cursor-pointer"
+                    title="Close"
+                  >
+                    <i className="ri-close-line text-xl text-gray-600"></i>
+                  </button>
+                </div>
               </div>
-              <div className="w-full bg-gray-200 rounded-full h-2 mb-3">
-                <div
-                  className="bg-gradient-to-r from-[#2F855A] to-emerald-600 h-2 rounded-full transition-all"
-                  style={{ width: `${((currentIngredientIndex + 1) / workingRecipe.richIngredients.length) * 100}%` }}
-                ></div>
-              </div>
+              {!isEditing && (
+                <div className="w-full bg-gray-200 rounded-full h-2 mb-3">
+                  <div
+                    className="bg-gradient-to-r from-[#2F855A] to-emerald-600 h-2 rounded-full transition-all"
+                    style={{ width: `${((currentIngredientIndex + 1) / workingRecipe.richIngredients.length) * 100}%` }}
+                  ></div>
+                </div>
+              )}
               <div className="bg-emerald-50 rounded-lg p-3 border border-emerald-200">
                 <h4 className="text-lg font-bold text-gray-900 mb-1">{currentIngredientGroup.ingredientName}</h4>
                 <p className="text-sm text-gray-600">
@@ -207,13 +259,14 @@ export default function ShoppingFlowModal({
               </div>
 
               <div className="space-y-3">
-                {displayedProducts?.map((product) => (
-                  <button
-                    key={`${currentIngredientGroup.ingredientId}-${product.reweId}`}
-                    onClick={() => handleSelectProduct(currentIngredientGroup.ingredientId, product)}
-                    className="w-full p-4 bg-white border-2 border-gray-200 rounded-xl hover:bg-emerald-50 hover:border-[#2F855A] transition-all text-left cursor-pointer group"
+                {displayedProducts?.map((product) => {
+                  const quantity = productQuantities[product.id] || 0;
+                  return (
+                  <div
+                    key={`ingredient-${currentIngredientGroup.ingredientId}-product-${product.id}`}
+                    className="w-full p-4 bg-white border-2 border-gray-200 rounded-xl hover:border-[#2F855A] transition-all"
                   >
-                    <div className="flex items-center gap-4">
+                    <div className="flex items-center gap-4 mb-3">
                       <div className="w-20 h-20 flex-shrink-0 bg-gray-100 rounded-lg overflow-hidden">
                         <img src={product.imageUrl} alt={product.name} className="w-full h-full object-cover" />
                       </div>
@@ -225,10 +278,43 @@ export default function ShoppingFlowModal({
                           <span className="text-lg font-bold text-[#2F855A]">{(product.price / 100).toFixed(2)}€</span>
                         </div>
                       </div>
-                      <i className="ri-arrow-right-line text-2xl text-gray-400 group-hover:text-[#2F855A] transition-colors"></i>
                     </div>
-                  </button>
-                ))}
+
+                    {/* Quantity Selector */}
+                    <div className="flex items-center justify-between bg-gray-50 rounded-lg p-3 mb-3">
+                      <span className="text-sm font-medium text-gray-700">Quantity:</span>
+                      <div className="flex items-center gap-3">
+                        <button
+                          onClick={() => handleQuantityChange(product.id, -1)}
+                          disabled={quantity === 0}
+                          className="w-10 h-10 flex items-center justify-center bg-white border-2 border-gray-300 rounded-lg hover:border-[#2F855A] hover:bg-emerald-50 transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
+                          <i className="ri-subtract-line text-xl text-gray-700"></i>
+                        </button>
+                        <span className="text-xl font-bold text-gray-900 min-w-[3rem] text-center">
+                          {quantity}
+                        </span>
+                        <button
+                          onClick={() => handleQuantityChange(product.id, 1)}
+                          className="w-10 h-10 flex items-center justify-center bg-white border-2 border-gray-300 rounded-lg hover:border-[#2F855A] hover:bg-emerald-50 transition-all cursor-pointer"
+                        >
+                          <i className="ri-add-line text-xl text-gray-700"></i>
+                        </button>
+                      </div>
+                    </div>
+
+                    {/* Add to Cart Button */}
+                    <button
+                      onClick={() => handleSelectProduct(currentIngredientGroup.ingredientId, product)}
+                      disabled={quantity === 0}
+                      className="w-full py-3 bg-gradient-to-r from-[#2F855A] to-emerald-600 text-white rounded-lg font-semibold hover:from-[#276749] hover:to-emerald-700 transition-all cursor-pointer flex items-center justify-center gap-2 whitespace-nowrap disabled:opacity-50 disabled:cursor-not-allowed disabled:from-gray-400 disabled:to-gray-500"
+                    >
+                      <i className="ri-shopping-cart-line text-xl"></i>
+                      <span>{quantity === 0 ? 'Select Quantity' : `Add ${quantity} to Cart`}</span>
+                    </button>
+                  </div>
+                  );
+                })}
               </div>
 
               {hasMoreProducts && !showAllProducts && (
@@ -257,8 +343,14 @@ export default function ShoppingFlowModal({
 
       {/* Review Modal */}
       {showReviewModal && workingRecipe && (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-3xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+        <div 
+          className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 z-50"
+          onClick={handleCancel}
+        >
+          <div 
+            className="bg-white rounded-3xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto"
+            onClick={(e) => e.stopPropagation()}
+          >
             <div className="sticky top-0 bg-white border-b border-gray-200 p-6 rounded-t-3xl z-10">
               <div className="flex items-center justify-between mb-2">
                 <h3 className="text-xl font-bold text-gray-900">Review Your Selections</h3>
@@ -305,7 +397,9 @@ export default function ShoppingFlowModal({
                       <div className="flex items-start justify-between mb-3">
                         <div className="flex-1">
                           <h5 className="font-semibold text-gray-900 mb-1">{ingredient.ingredientName}</h5>
-                          <p className="text-sm text-gray-600">Amount needed: {ingredient.totalAmountNeeded}</p>
+                          {!isAlreadyHave && product && (
+                            <p className="text-sm text-gray-600">Amount added: {productQuantities[product.id] || 1}</p>
+                          )}
                         </div>
                         <button
                           onClick={() => handleEditProduct(ingredient.ingredientId)}
@@ -331,7 +425,9 @@ export default function ShoppingFlowModal({
                             <div className="text-xs text-gray-600 mb-1">REWE</div>
                             <div className="flex items-center gap-2">
                               <span className="text-sm font-medium text-gray-700">{product.grammage}</span>
-                              <span className="text-lg font-bold text-[#2F855A]">{(product.price / 100).toFixed(2)}€</span>
+                              <span className="text-lg font-bold text-[#2F855A]">
+                                {((product.price * (productQuantities[product.id] || 1)) / 100).toFixed(2)}€
+                              </span>
                             </div>
                           </div>
                         </div>
