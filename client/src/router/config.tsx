@@ -56,6 +56,7 @@ const routes: RouteObject[] = [
     path: "/search-products",
     element: <MainLayout><SearchProducts /></MainLayout>,
   },
+  {
     path: "*",
     element: <NotFound></NotFound>
   }

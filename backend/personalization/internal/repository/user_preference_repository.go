@@ -26,6 +26,8 @@ func GetUserMarketId(db *sql.DB, userId string) (int64, error) {
 		return 0, err
 	}
 	return marketId, nil
+}
+
 func AddItemToShoppingList(tx *sql.Tx, userId string, productId int, quantity int, recipeId int) error {
 	var listId int
 
