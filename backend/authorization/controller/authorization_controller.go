@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
+	"github.com/golang-jwt/jwt/v5"
 	"golang.org/x/crypto/bcrypt"
 )
 
@@ -18,6 +19,7 @@ type AuthorizationController struct {
 func (controller *AuthorizationController) AddMappings(db *sql.DB, r *gin.Engine) {
 	controller.loginMapping(db, r)
 	controller.registerMapping(db, r)
+	controller.profileMapping(db, r)
 }
 
 /**
@@ -55,7 +57,6 @@ func (controller *AuthorizationController) loginMapping(db *sql.DB, r *gin.Engin
 
 		http.SetCookie(c.Writer, &cookie)
 
-		c.Header("Access-Control-Allow-Origin", "http://localhost:8081")
 		c.JSON(http.StatusOK, gin.H{
 			"message": "Successfully logged in",
 		})
@@ -77,13 +78,58 @@ func (controller *AuthorizationController) registerMapping(db *sql.DB, r *gin.En
 
 		if err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{
-				"error": fmt.Sprintf("Error registering user: %s", registerBody.Username),
+				"error": fmt.Sprintf("Error registering user: %s, %s", registerBody.Username, err.Error()),
 			})
 			return
 		}
 
 		c.JSON(http.StatusOK, gin.H{
 			"message": "Successfully registered user",
+		})
+	})
+}
+
+func (controller *AuthorizationController) profileMapping(db *sql.DB, r *gin.Engine) {
+	r.GET("/me", func(c *gin.Context) {
+		cookie, err := c.Request.Cookie("auth_token")
+		if err != nil {
+			c.JSON(http.StatusUnauthorized, gin.H{"error": "missing auth token"})
+			return
+		}
+
+		claims := &auth.CustomClaims{}
+		token, err := jwt.ParseWithClaims(cookie.Value, claims, func(token *jwt.Token) (interface{}, error) {
+			return []byte(controller.JWTSecret), nil
+		})
+		if err != nil || !token.Valid {
+			c.JSON(http.StatusUnauthorized, gin.H{"error": "invalid auth token"})
+			return
+		}
+
+		var (
+			id        int
+			username  string
+			name      string
+			createdAt time.Time
+		)
+
+		err = db.QueryRow("SELECT id, username, name, created_at FROM users WHERE id=$1", claims.UserID).Scan(&id, &username, &name, &createdAt)
+		if err == sql.ErrNoRows {
+			c.JSON(http.StatusNotFound, gin.H{"error": "user not found"})
+			return
+		}
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to load user profile"})
+			return
+		}
+
+		c.JSON(http.StatusOK, gin.H{
+			"id":         id,
+			"user_id":    claims.UserID,
+			"username":   username,
+			"email":      username, // currently username acts as email
+			"name":       name,
+			"created_at": createdAt,
 		})
 	})
 }
@@ -137,7 +183,7 @@ func (controller *AuthorizationController) registerRequestHandler(db *sql.DB, lo
 	}
 
 	_, err = db.Exec(
-		"INSERT INTO users (username, password_hash) VALUES ($1, $2)", loginBody.Username, password)
+		"INSERT INTO users (username, password_hash, name) VALUES ($1, $2, $3)", loginBody.Username, password, loginBody.Name)
 	if err != nil {
 		return err
 	}

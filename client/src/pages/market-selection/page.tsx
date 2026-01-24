@@ -2,11 +2,16 @@ import { useState } from 'react';
 import { MapContainer, TileLayer, Marker, Popup, useMap } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
 import L from 'leaflet';
-import { marketApi } from '@/api/marketApi';
+import { marketApi } from '@/api/market-selection/marketApi';
 import { Market } from '@/types/market';
 import * as React from "react";
+import { userApi } from '@/api/market-selection/saveMarketApi';
+// import { useNavigate } from 'react-router-dom';
 
-// Fix for default marker icons in React-Leaflet
+interface MarketSelectionProps {
+  onComplete?: (newMarketId: number) => void;
+}
+
 delete (L.Icon.Default.prototype as any)._getIconUrl;
 L.Icon.Default.mergeOptions({
   iconRetinaUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-icon-2x.png',
@@ -21,15 +26,18 @@ function MapViewController({ center }: { center: [number, number] }) {
   return null;
 }
 
-export default function MarketSelection() {
+export default function MarketSelection({ onComplete }: MarketSelectionProps) {
+  // const navigate = useNavigate();
+
   const [postalCode, setPostalCode] = useState('');
   const [showMarkets, setShowMarkets] = useState(false);
   const [selectedMarket, setSelectedMarket] = useState<Market | null>(null);
-  const [mapCenter, setMapCenter] = useState<[number, number]>([40.7128, -74.0060]); // Default: New York
+  const [mapCenter, setMapCenter] = useState<[number, number]>([48.1374, 11.5755]); // Default: Munich
 
   // State for API data
   const [markets, setMarkets] = useState<Market[]>([]);
   const [isLoading, setIsLoading] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const handleSearch = async (e: React.FormEvent) => {
@@ -49,8 +57,8 @@ export default function MarketSelection() {
       setMarkets(results);
       setShowMarkets(true);
       // Center map on first market
-      if (markets.length > 0) {
-        setMapCenter([markets[0].address.latitude, markets[0].address.longitude]);
+      if (results.length > 0) {
+        setMapCenter([results[0].address.latitude, results[0].address.longitude]);
       }
     } catch (err) {
       console.error(err);
@@ -65,11 +73,28 @@ export default function MarketSelection() {
     setMapCenter([market.address.latitude, market.address.longitude]);
   };
 
-  const handleContinue = () => {
+  const handleContinue = async() => {
     if (selectedMarket) {
+      setIsSaving(true);
+      try {
+        console.log("Saving selected market");
+        await userApi.saveMarket(selectedMarket.id.toString());
+        localStorage.setItem('selectedMarketId', selectedMarket.id.toString());
+        console.log("Selected market saved");
+        if (onComplete) {
+        // If inside a popup, just run the callback (close modal)
+        onComplete(selectedMarket.id);
+      } else {
+        // If running as a standalone page, navigate away
+        // navigate('/recipe-swiper');
+        window.REACT_APP_NAVIGATE('/recipe-swiper');
+      }
+      } catch (error) {
+        alert("Failed to save selected market. Please try again.");
+      } finally {
+        setIsSaving(false);
+      } 
       // Save the REWE ID for the next step (Recipe Generation)
-      localStorage.setItem('selectedMarketId', selectedMarket.id.toString());
-      window.REACT_APP_NAVIGATE('/recipe-swiper');
     }
   };
 
@@ -167,10 +192,10 @@ export default function MarketSelection() {
                                   <div className="p-2">
                                     <h3 className="font-semibold text-gray-900 mb-1">{market.name}</h3>
                                     <p className="text-xs text-gray-600 mb-1">{`${market.address.street}, ${market.address.zipCode}  ${market.address.city}`}</p>
-                                    <div className="flex items-center gap-1 mb-1">
+                                    {/* <div className="flex items-center gap-1 mb-1">
                                       <i className="ri-star-fill text-yellow-500 text-xs"></i>
                                       <span className="text-xs font-medium text-gray-700">{market.rating}</span>
-                                    </div>
+                                    </div> */}
                                     {/*<p className="text-xs text-gray-500">{market.hours}</p>*/}
                                   </div>
                                 </Popup>
@@ -195,13 +220,13 @@ export default function MarketSelection() {
                             >
                               <div className="flex items-start justify-between mb-1">
                                 <h3 className="text-base font-semibold text-gray-900">{market.name}</h3>
-                                <div className="flex items-center gap-1 ml-2">
+                                {/* <div className="flex items-center gap-1 ml-2">
                                   <i className="ri-star-fill text-yellow-500 text-sm"></i>
                                   <span className="text-sm font-medium text-gray-700">{market.rating}</span>
-                                </div>
+                                </div> */}
                               </div>
                               <p className="text-sm text-gray-600 mb-2">{`${market.address.street}, ${market.address.zipCode}  ${market.address.city}`}</p>
-                              <div className="flex items-center gap-4 text-xs text-gray-500">
+                              {/* <div className="flex items-center gap-4 text-xs text-gray-500">
                                 <div className="flex items-center gap-1">
                                   <i className="ri-map-pin-line"></i>
                                   <span>{market.distance}</span>
@@ -210,7 +235,7 @@ export default function MarketSelection() {
                                   <i className="ri-time-line"></i>
                                   <span>{market.hours}</span>
                                 </div>
-                              </div>
+                              </div> */}
                               {selectedMarket?.id === market.id && (
                                   <div className="mt-3 pt-3 border-t border-indigo-200 flex items-center gap-2 text-indigo-600">
                                     <i className="ri-check-line text-lg"></i>
@@ -232,7 +257,7 @@ export default function MarketSelection() {
                     onClick={handleContinue}
                     className="px-8 py-3 rounded-lg bg-gradient-to-r from-indigo-600 to-purple-600 text-white font-medium hover:from-indigo-700 hover:to-purple-700 transition-colors shadow-md hover:shadow-lg cursor-pointer whitespace-nowrap"
                 >
-                  Continue to Recipes
+                  Continue
                 </button>
               </div>
           )}

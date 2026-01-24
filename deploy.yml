@@ -1,8 +1,24 @@
-# yaml-language-server: $schema=https://raw.githubusercontent.com/compose-spec/compose-spec/master/schema/compose-spec.json
+version: '3.8'
+
 services:
   # ----------------------------------------------------------------
   # Databases & Cache
   # ----------------------------------------------------------------
+
+  migrator:
+    # Swarm cannot build. You must build this image: "docker build -t my-registry/migrator ./migrations"
+    image: decidish/migrator:${IMAGE_TAG}
+    environment:
+      DB_USER: ${POSTGRES_USER}
+      DB_PASSWORD: ${POSTGRES_PASSWORD}
+      DB_HOST: db_backend
+      DB_PORT: 5432
+      DB_NAME: ${POSTGRES_DB}
+    deploy:
+      restart_policy:
+        condition: on-failure
+    networks:
+      - app-network
 
   # PostgreSQL with pgvector
   db_backend:
@@ -15,9 +31,17 @@ services:
       POSTGRES_DB: ${POSTGRES_DB}
     volumes:
       - db_backend_data:/var/lib/postgresql/data
+      # Note: This path must exist on the node running this service
       - ./init_db:/docker-entrypoint-initdb.d
     networks:
       - app-network
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}" ]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    deploy:
+      replicas: 1
 
   db_authorisation:
     image: postgres:16-alpine
@@ -31,6 +55,11 @@ services:
       - db_authorisation_data:/var/lib/postgresql/data
     networks:
       - app-network
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}" ]
+      interval: 5s
+      timeout: 5s
+      retries: 5
 
   # Redis Cache
   redis:
@@ -46,118 +75,102 @@ services:
 
   # Authorization Server
   authorization-server:
+    # Build: "docker build -t my-registry/authorization-server ./backend/authorization"
     image: decidish/authorization-service:${IMAGE_TAG}
     ports:
       - "8083:8083"
-    volumes:
-      - ./backend/authorization:/app
     environment:
       JWT_SECRET: ${JWT_SECRET}
       DATABASE_URL: ${DATABASE_URL}
-      GIN_MODE: "release"
-    depends_on:
-      - db_authorisation
-    deploy:
-      mode: replicated
-      replicas: 3
-      endpoint_mode: vip
-      restart_policy:
-        condition: on-failure
-      update_config:
-        order: start-first
-        failure_action: rollback
     networks:
       - app-network
+    deploy:
+      replicas: 1
+      restart_policy:
+        condition: any
 
   # Core Server
-  # core-server:
-  #   image: decidish/core-service:latest
-  #   ports:
-  #     - "8080:8080"
-  #   volumes:
-  #     - ./backend/core:/app
-  #     - ~/.gradle:/home/gradle/.gradle
-  #   environment:
-  #     - SPRING_DATASOURCE_URL=jdbc:postgresql://db_backend:5432/${POSTGRES_DB}
-  #     - SPRING_DATASOURCE_USERNAME=${POSTGRES_USER}
-  #     - SPRING_DATASOURCE_PASSWORD=${POSTGRES_PASSWORD}
-  #     - REDIS_HOST=redis
-  #   depends_on:
-  #     - db_backend
-  #     - redis
-  #   networks:
-  #     - app-network
-
-  # Personalization Server
-  personalization-server:
-    image: decidish/personalization-service:${IMAGE_TAG}
+  core-server:
+    # Build: "docker build -t my-registry/core-server ./backend/core"
+    image: decidish/core-service:${IMAGE_TAG}
     ports:
-      - "8082:8082"
-    volumes:
-      - ./backend/personalization:/app
+      - "8080:8080"
     environment:
-      - DB_HOST=db_backend
-      - JWT_SECRET=${JWT_SECRET}
-      - DATABASE_URL=${DATABASE_BACKEND_URL}
-      - EMBEDDER_SERVER_URL=${EMBEDDER_SERVER_URL}
-      - KAFKA_CONNECTION_URL=${KAFKA_CONNECTION_URL}
+      - SPRING_DATASOURCE_URL=jdbc:postgresql://db_backend:5432/${POSTGRES_DB}
+      - SPRING_DATASOURCE_USERNAME=${POSTGRES_USER}
+      - SPRING_DATASOURCE_PASSWORD=${POSTGRES_PASSWORD}
+      - SPRING_DATA_REDIS_HOST=redis
+      - SPRING_DATA_REDIS_PORT=6379
       - MINIO_ENDPOINT=${MINIO_ENDPOINT}
       - MINIO_ACCESS_KEY=${MINIO_ACCESS_KEY}
       - MINIO_SECRET_KEY=${MINIO_SECRET_KEY}
-      - MINIO_USE_SSL=${MINIO_USE_SSL}
-      - MINIO_RECIPES_BUCKET=${MINIO_RECIPES_BUCKET}
-      - MINIO_RECIPES_OBJECT=${MINIO_RECIPES_OBJECT}
-      - GIN_MODE=release
-    depends_on:
-      - db_backend
-    deploy:
-      mode: replicated
-      replicas: 3
-      endpoint_mode: vip
-      restart_policy:
-        condition: on-failure
-      update_config:
-        order: start-first
-        failure_action: rollback
-    healthcheck:
-      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:8082/health"]
-      interval: 10s
-      timeout: 5s
-      retries: 3
-      start_period: 10s
+    networks:
+      - app-network
+
+  # Personalization Server
+  personalization-server:
+    # Build: "docker build -t my-registry/personalization-server ./backend/personalization"
+    image: decidish/personalization-service:${IMAGE_TAG}
+    ports:
+      - "8082:8082"
+    environment:
+      - DB_HOST=db_backend
+      - REDIS_HOST=redis
+      - JWT_SECRET=${JWT_SECRET}
+      - DATABASE_URL=${DATABASE_BACKEND_URL}
+      - EMBEDDER_SERVER_URL=${EMBEDDER_SERVER_URL}
     networks:
       - app-network
 
   # MLPipeline
   mlpipeline:
+    # Build: "docker build -t my-registry/mlpipeline ./mlpipeline"
     image: decidish/mlpipeline-service:${IMAGE_TAG}
     ports:
       - "8000:8000"
-    volumes:
-      - ./mlpipeline:/app
     environment:
-      - DATABASE_URL=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db_backend:5432/${POSTGRES_DB}
-    depends_on:
-      - db_backend
-    deploy:
-      mode: replicated
-      replicas: 3
-      endpoint_mode: vip
+      - POSTGRES_USER=${POSTGRES_USER}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+      - POSTGRES_DB=${POSTGRES_DB}
+      - POSTGRES_HOST=db_backend
+      - POSTGRES_PORT=5432
+      - POSTGRES_SSL_MODE=${POSTGRES_SSL_MODE}
+      - DATABASE_BACKEND_CONNECTION_STRING=${DATABASE_BACKEND_CONNECTION_STRING}
     networks:
       - app-network
 
   client-web:
+    # Build: "docker build --build-arg VITE_BASE_URL=${VITE_BASE_URL} -t my-registry/client-web ./client"
     image: decidish/client-web:${IMAGE_TAG}
     ports:
       - "3000:3000"
+    networks:
+      - app-network
     deploy:
+      replicas: 1
       update_config:
         order: start-first
     healthcheck:
-      test: ["CMD", "wget", "-q", "--spider", "http://localhost:3000"]
+      test: [ "CMD", "wget", "-q", "--spider", "http://localhost:3000" ]
       interval: 10s
       retries: 3
       start_period: 5s
+
+  # ----------------------------------------------------------------
+  # Reverse Proxy
+  # ----------------------------------------------------------------
+  nginx:
+    image: nginx:alpine
+    ports:
+      - "80:80"
+    volumes:
+      # Note: nginx.conf must exist on the node running this task
+      - ./nginx.conf:/etc/nginx/nginx.conf:ro
+    networks:
+      - app-network
+    deploy:
+      mode: global  # Runs one instance on every node (common for ingress)
+      # OR use 'replicas: 1' if you only want it on one node
 
   # ----------------------------------------------------------------
   # Monitoring
@@ -181,8 +194,6 @@ services:
       - "3031:3000"
     environment:
       - GF_SECURITY_ADMIN_PASSWORD=secret
-    depends_on:
-      - prometheus
     volumes:
       - ./datasources.yml:/etc/grafana/provisioning/datasources/datasources.yml
     networks:
@@ -199,3 +210,4 @@ volumes:
 networks:
   app-network:
     driver: overlay
+    attachable: true

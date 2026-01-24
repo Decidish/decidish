@@ -3,15 +3,86 @@ package repository
 import (
 	"database/sql"
 	"encoding/json"
+	"fmt"
 	"strings"
 )
 
 type AdditionalInfo struct {
 	Allergies        []string  `json:"allergies"`
-	CookingTime      string    `json:"cooking_time"`
-	Budget           string    `json:"budget"`
+	MinCookingTime   int       `json:"min_cooking_time"`
+	MaxCookingTime   int       `json:"max_cooking_time"`
+	Budget           int       `json:"budget"`
 	SkillLevel       string    `json:"skill_level"`
 	PreferenceVector []float64 `json:"preference_vector"`
+}
+
+func GetUserMarketId(db *sql.DB, userId string) (int64, error) {
+	var marketId int64
+	// Adjust table name 'user_preferences' and column 'user_id' if different
+	query := `SELECT market_id FROM user_preferences WHERE user_id = $1`
+
+	err := db.QueryRow(query, userId).Scan(&marketId)
+	if err != nil {
+		return 0, err
+	}
+	return marketId, nil
+}
+
+func AddItemToShoppingList(tx *sql.Tx, userId string, productId int, quantity int, recipeId int) error {
+	var listId int
+
+	err := tx.QueryRow(`
+        SELECT id 
+        FROM shopping_lists 
+        WHERE user_id = $1 AND completed = FALSE
+        LIMIT 1
+        FOR UPDATE
+    `, userId).Scan(&listId)
+
+	if err != nil {
+		if err == sql.ErrNoRows {
+			err = tx.QueryRow(`
+                INSERT INTO shopping_lists (user_id, completed)
+                VALUES ($1, FALSE)
+                RETURNING id
+            `, userId).Scan(&listId)
+
+			if err != nil {
+				return fmt.Errorf("failed to create new shopping list: %w", err)
+			}
+		} else {
+			return fmt.Errorf("failed to query active shopping list: %w", err)
+		}
+	}
+
+	_, err = tx.Exec(`
+        INSERT INTO shopping_list_items (shopping_list_id, product_id, quantity, recipe_id)
+        VALUES ($1, $2, $3, $4)
+        ON CONFLICT (shopping_list_id, product_id, recipe_id) 
+        DO UPDATE SET 
+            quantity = shopping_list_items.quantity + EXCLUDED.quantity, 
+            checked = FALSE
+    `, listId, productId, quantity, recipeId)
+
+	if err != nil {
+		return fmt.Errorf("failed to add item to list: %w", err)
+	}
+
+	return nil
+}
+
+func UpdateMarketId(tx *sql.Tx, userId string, marketId string) error {
+	_, err := tx.Exec(`
+	UPDATE user_preferences
+	SET market_id = $1
+	WHERE user_id = $2
+	`, marketId, userId)
+
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func AddOrUpdateEmbeddings(tx *sql.Tx, userId string, embedding []float64) error {
@@ -39,17 +110,21 @@ func AddUserPreference(tx *sql.Tx, userId string, userInfo AdditionalInfo) error
 
 	_, err := tx.Exec(`
 	INSERT INTO user_preferences (
-		user_id, cooking_time, allergies,
+		user_id, 
+		min_cooking_time, 
+        max_cooking_time,
+		allergies,
 	    budget, skill_level, preferences_vec)
-	VALUES ($1, $2, $3, $4, $5, $6)
+	VALUES ($1, $2, $3, $4, $5, $6, $7)
 	ON CONFLICT (user_id) DO UPDATE
-	SET cooking_time = EXCLUDED.cooking_time,
+	SET min_cooking_time = EXCLUDED.min_cooking_time,
+        max_cooking_time = EXCLUDED.max_cooking_time,
 	    allergies = EXCLUDED.allergies,
 	    budget = EXCLUDED.budget,
 	    skill_level = EXCLUDED.skill_level,
 	    preferences_vec = EXCLUDED.preferences_vec
 	`,
-		userId, userInfo.CookingTime,
+		userId, userInfo.MinCookingTime, userInfo.MaxCookingTime,
 		strings.Join(userInfo.Allergies, ","),
 		userInfo.Budget,
 		userInfo.SkillLevel,
@@ -60,6 +135,76 @@ func AddUserPreference(tx *sql.Tx, userId string, userInfo AdditionalInfo) error
 	}
 
 	return nil
+}
+
+type UserPreferencesWithMarket struct {
+	MinCookingTime   int       `json:"min_cooking_time"`
+	MaxCookingTime   int       `json:"max_cooking_time"`
+	Allergies        string    `json:"allergies"`
+	Budget           int       `json:"budget"`
+	SkillLevel       string    `json:"skill_level"`
+	MarketId         *int64    `json:"market_id"`
+	PreferenceVector []float64 `json:"preference_vector"`
+	MarketName       *string   `json:"market_name"`
+	MarketStreet     *string   `json:"market_street"`
+	MarketCity       *string   `json:"market_city"`
+	MarketZipCode    *string   `json:"market_zip_code"`
+	MarketLatitude   *float64  `json:"market_latitude"`
+	MarketLongitude  *float64  `json:"market_longitude"`
+}
+
+func GetUserPreferences(db *sql.DB, userId string) (*UserPreferencesWithMarket, error) {
+	var prefs UserPreferencesWithMarket
+	var prefsVecBytes []byte
+
+	err := db.QueryRow(`
+		SELECT 
+			up.min_cooking_time,
+			up.max_cooking_time,
+			up.allergies,
+			up.budget,
+			up.skill_level,
+			up.market_id,
+			up.preferences_vec,
+			m.name,
+			a.street,
+			a.city,
+			a.zip_code,
+			a.latitude,
+			a.longitude
+		FROM user_preferences up
+		LEFT JOIN markets m ON up.market_id::BIGINT = m.id
+		LEFT JOIN addresses a ON m.address_id = a.id
+		WHERE up.user_id = $1
+	`, userId).Scan(
+		&prefs.MinCookingTime,
+		&prefs.MaxCookingTime,
+		&prefs.Allergies,
+		&prefs.Budget,
+		&prefs.SkillLevel,
+		&prefs.MarketId,
+		&prefsVecBytes,
+		&prefs.MarketName,
+		&prefs.MarketStreet,
+		&prefs.MarketCity,
+		&prefs.MarketZipCode,
+		&prefs.MarketLatitude,
+		&prefs.MarketLongitude,
+	)
+
+	if err != nil {
+		return nil, err
+	}
+
+	// Unmarshal the JSON bytes into the float64 slice
+	if len(prefsVecBytes) > 0 {
+		err = json.Unmarshal(prefsVecBytes, &prefs.PreferenceVector)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	return &prefs, nil
 }
 
 // func (repository *UserPreferenceRepository) Save(tx *sql.Tx, userId string, preferences UserPreferences) error {

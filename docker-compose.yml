@@ -104,6 +104,7 @@ services:
       - MINIO_ENDPOINT=${MINIO_ENDPOINT}
       - MINIO_ACCESS_KEY=${MINIO_ACCESS_KEY}
       - MINIO_SECRET_KEY=${MINIO_SECRET_KEY}
+      - JAVA_OPTS=-Djava.net.preferIPv4Stack=true
     depends_on:
       migrator:
         condition: service_completed_successfully
@@ -150,10 +151,15 @@ services:
       - app-network
 
   client-web:
-    build: ./client
+    build: 
+      context: ./client
+      args:
+        - VITE_BASE_URL=${VITE_BASE_URL}
     container_name: dev_client
     ports:
       - "3000:3000"
+    depends_on:
+      - nginx
     deploy:
       update_config:
         order: start-first
@@ -162,6 +168,22 @@ services:
       interval: 10s
       retries: 3
       start_period: 5s
+
+  # ----------------------------------------------------------------
+  # Reverse Proxy
+  # ----------------------------------------------------------------
+  nginx:
+    image: nginx:alpine
+    ports:
+      - "80:80"
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf:ro
+    depends_on:
+      - authorization-server
+      - core-server
+      - personalization-server
+    networks:
+      - app-network
 
   # ----------------------------------------------------------------
   # Monitoring

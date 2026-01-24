@@ -3,6 +3,7 @@ package service
 import (
 	"context"
 	"database/sql"
+	"fmt"
 	"log"
 	"net/http"
 	"personalization/internal/repository"
@@ -39,13 +40,14 @@ func (service RecommenderService) RecommendRecipeForUser(ctx *gin.Context) {
 
 	recipes, err := service.RecommenderRepository.GetRecommendedRecipesForUser(tx, userId)
 	if err != nil {
+		fmt.Println("DB ERROR:", err.Error())
 		ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
 	}
 
 	if err = tx.Commit(); err != nil {
 		log.Panicln("could not commit", err.Error())
 	}
-
-	ctx.Header("Access-Control-Allow-Origin", "http://localhost:8081")
+	
 	ctx.JSON(http.StatusOK, recipes)
 }

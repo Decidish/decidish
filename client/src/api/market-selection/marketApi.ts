@@ -1,5 +1,5 @@
-import apiClient from './client';
-import { Market } from '../types/market';
+import apiClient from '../client';
+import { Market } from '@/types/market';
 
 export const marketApi = {
   /**
@@ -8,7 +8,7 @@ export const marketApi = {
    */
   searchMarkets: async (postalCode: string): Promise<Market[]> => {
     try {
-      const response = await apiClient.get<Market[]>('/markets', {
+      const response = await apiClient.get<Market[]>('shopping/api/v1/markets', {
         params: { plz: postalCode } // Java controller expects "plz", not "postalCode"
       });
       return response.data;

@@ -9,11 +9,18 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.jpa.domain.Specification;
+import org.springframework.util.StringUtils;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.domain.Specification;
 
 import org.springframework.stereotype.Service;
 
 import decidish.com.core.api.rewe.client.ReweApiClient;
 import decidish.com.core.model.rewe.Market;
+import decidish.com.core.model.rewe.MarketSearchResponse;
+import decidish.com.core.model.rewe.MarketSummaryDto;
 import decidish.com.core.model.rewe.Product;
 import decidish.com.core.model.rewe.ProductDto;
 import decidish.com.core.model.rewe.ProductSearchResponse;
@@ -22,7 +29,9 @@ import decidish.com.core.model.rewe.SearchTermMarketId;
 import decidish.com.core.model.rewe.MarketPickupDto;
 import decidish.com.core.model.rewe.MarketPickupResponse;
 import decidish.com.core.repository.MarketRepository;
+import decidish.com.core.repository.ProductRepository;
 import decidish.com.core.repository.SearchTermMarketRepository;
+import jakarta.persistence.EntityNotFoundException;
 
 import org.springframework.transaction.annotation.Transactional;
 
@@ -45,6 +54,16 @@ public class MarketService {
 
     @Autowired
     private ReweApiClient apiClient;
+    
+    @Autowired
+    private ProductRepository productRepository;
+    
+    public MarketSummaryDto getMarketById(Long id) {
+        Market market = marketRepository.findById(id)
+                .orElseThrow(() -> new EntityNotFoundException("Market not found with id: " + id));
+        
+        return MarketSummaryDto.fromEntity(market);
+    }
 
     /**
      * READ PATH (Hot)
@@ -152,6 +171,72 @@ public class MarketService {
         }
 
         return marketRepository.saveAll(finalBatch);
+    }
+    
+    public static Specification<Product> getProducts(String query, String filter, Long marketId) {
+        Specification<Product> spec = (root, queryObj, criteriaBuilder) -> criteriaBuilder.conjunction();
+
+        if (marketId != null) {
+            spec = spec.and((root, queryObj, cb) -> 
+                cb.equal(root.get("market").get("id"), marketId)); 
+        }
+
+        // Handle Text Search
+        if (StringUtils.hasText(query)) {
+            String pattern = "%" + query.toLowerCase() + "%";
+            spec = spec.and((root, queryObj, cb) -> 
+                cb.like(cb.lower(root.get("name")), pattern));
+        }
+
+        // Handle Boolean Filters
+        if (StringUtils.hasText(filter) && !filter.equals("all")) {
+
+            // Map URL param (snake_case) to Java Field (camelCase)
+            String fieldName = switch (filter) {
+                case "is_bulky_good" -> "isBulkyGood";
+                case "is_vegetatian" -> "isVegetatian";
+                case "is_dairy_free" -> "isDairyFree";
+                case "is_regional" -> "isRegional";
+                case "is_organic" -> "isOrganic";
+                case "is_vegan" -> "isVegan";
+                case "is_gluten_free" -> "isGlutenFree";
+                case "is_biocide" -> "isBiocide";
+                case "is_age_restricted" -> "isAgeRestricted";
+                case "is_lowest_price" -> "isLowestPrice";
+                case "is_tobacco" -> "isTobacco";
+                default -> null;
+            };
+
+            // Only apply the specification if we found a valid mapping
+            if (fieldName != null) {
+                spec = spec.and((root, queryObj, cb) -> 
+                    cb.isTrue(root.get("attributes").get(fieldName)));
+            }
+        }
+        return spec;
+    }
+    
+    @Transactional
+    public Page<Product> searchProductsWithFallback(String query, String filter, Long marketId, Pageable pageable) {
+        // Build Specification
+        Specification<Product> spec = getProducts(query, filter, marketId);
+
+        // Try Local DB Search
+        Page<Product> results = productRepository.findAll(spec, pageable);
+
+        // Fallback: If page 0 is empty, fetch from External API
+        if (results.isEmpty() && pageable.getPageNumber() == 0) {
+            System.out.println("Local DB empty. Fetching from External API for query: " + query);
+            String safeQuery = (query != null) ? query : "";
+            
+            // Logic to fetch from external API and save to DB
+            getProductsQuerySave(marketId,safeQuery);
+
+            // Search Local DB Again after update
+            return productRepository.findAll(spec, pageable);
+        }
+
+        return results;
     }
 
     /**
