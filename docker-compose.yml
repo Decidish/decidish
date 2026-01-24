@@ -104,6 +104,7 @@ services:
       - MINIO_ENDPOINT=${MINIO_ENDPOINT}
       - MINIO_ACCESS_KEY=${MINIO_ACCESS_KEY}
       - MINIO_SECRET_KEY=${MINIO_SECRET_KEY}
+      - JAVA_OPTS=-Djava.net.preferIPv4Stack=true
     depends_on:
       migrator:
         condition: service_completed_successfully
