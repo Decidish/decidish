@@ -31,6 +31,10 @@ export const userHistoryApi = {
   getUserHistory: async (): Promise<UserHistoryRecord[]> => {
     try {
       const response = await apiClient.get<UserHistoryRecordResponse[]>('/personalization/api/v1/user/history');
+      if (!response.data) {
+        console.warn("User history API returned null or empty data");
+        return [];
+      }
       return response.data.map((record) => ({
         ...record,
         recipe: { ...record.recipe, richIngredients: null },

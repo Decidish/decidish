@@ -2,12 +2,14 @@ package controller
 
 import (
 	"net/http/httptest"
+	"personalization/internal/service"
 	"testing"
 
 	"github.com/gin-gonic/gin"
 )
 
 type mockUserService struct {
+	service.UserService
 	called bool
 }
 
@@ -16,15 +18,9 @@ func (m *mockUserService) CreateUserPreferences(c *gin.Context) {
 	c.JSON(201, gin.H{"ok": true})
 }
 
-func (m *mockUserService) GetUserPreferences(c *gin.Context) {}
-
-func (service mockUserService) IsUserEmbeddingReady(ctx *gin.Context) {}
-
-func (m *mockUserService) SetSelectedUserMarketId(c *gin.Context) {}
-
-func (m *mockUserService) RecordUserAction(c *gin.Context) {}
-
-func (m *mockUserService) GetUserHistory(c *gin.Context) {}
+type mockShoppingListService struct {
+	service.ShoppingListService
+}
 
 func TestOnboardingEndpoint_CallsService(t *testing.T) {
 	// Arrange
@@ -32,8 +28,9 @@ func TestOnboardingEndpoint_CallsService(t *testing.T) {
 	router := gin.New()
 	group := router.Group("/")
 
-	mock := &mockUserService{}
-	ctrl := NewUserController(mock)
+	mockUser := &mockUserService{}
+	mockShopping := &mockShoppingListService{}
+	ctrl := NewUserController(mockUser.UserService, mockShopping.ShoppingListService)
 	ctrl.AddMappings(group)
 
 	req := httptest.NewRequest("POST", "/user/preferences", nil)
@@ -46,7 +43,7 @@ func TestOnboardingEndpoint_CallsService(t *testing.T) {
 	if w.Code != 201 {
 		t.Fatalf("expected status 201, got %d, body: %s", w.Code, w.Body.String())
 	}
-	if !mock.called {
+	if !mockUser.called {
 		t.Fatalf("expected CreateUserPreferences to be called")
 	}
 }

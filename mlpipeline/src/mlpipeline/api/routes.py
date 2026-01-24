@@ -33,7 +33,7 @@ def _load_model(ckpt_path: str, input_dim: int, device: torch.device) -> UserEnc
 
 # Route to add a single recipe (background task)
 @router.post("/recipes/add")
-async def add_recipe(background_tasks: BackgroundTasks, request: AddRecipeRequest):
+def add_recipe(background_tasks: BackgroundTasks, request: AddRecipeRequest):
     """
     Endpoint to add a single recipe. Triggers a background task for scraping and processing.
     """
@@ -42,7 +42,7 @@ async def add_recipe(background_tasks: BackgroundTasks, request: AddRecipeReques
 
 # Route to add REWE recipes (background task)
 @router.post("/recipes/add/rewe")
-async def add_rewe_recipes(background_tasks: BackgroundTasks, request: AddReweRecipesRequest):
+def add_rewe_recipes(background_tasks: BackgroundTasks, request: AddReweRecipesRequest):
     """
     Endpoint to add REWE recipes. Triggers a background ETL task.
     """

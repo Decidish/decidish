@@ -15,4 +15,5 @@ COPY src ./src
 EXPOSE 8080
 
 #    -t (--continuous) tells Gradle to watch for source changes and restart the task
-CMD ["./gradlew", "bootRun", "-t", "--no-daemon"]
+#    Pass JAVA_OPTS to the JVM via Gradle's application plugin
+CMD ["sh", "-c", "./gradlew bootRun -t --no-daemon -Dspring-boot.run.jvmArguments=\"${JAVA_OPTS}\""]

@@ -9,6 +9,7 @@ export default function Navigation() {
   const navigationLinks = [
     { path: '/', label: 'Home', icon: 'ri-home-line' },
     { path: '/search', label: 'Search Recipes', icon: 'ri-search-line' },
+    { path: '/search-products', label: 'Search Products', icon: 'ri-search-line' },
     { path: '/recipe-swiper', label: 'Recipe Swiper', icon: 'ri-heart-line' },
     { path: '/shopping-list', label: 'Shopping List', icon: 'ri-shopping-cart-line' },
     { path: '/profile', label: 'Profile', icon: 'ri-user-line' },

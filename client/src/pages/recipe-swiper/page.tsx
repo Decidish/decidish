@@ -4,34 +4,6 @@ import { userHistoryApi } from '@/api/user-history/userHistoryApi';
 import ShoppingFlowModal from '@/components/recipe/ShoppingFlowModal';
 import { SelectedProducts, UIRecipe } from '@/types/recipe';
 
-// interface Product {
-//   id: string;
-//   name: string;
-//   brand: string;
-//   image: string;
-//   price: number;
-//   weight: string;
-//   unit: string;
-// }
-
-// interface Ingredient {
-//   id: number;
-//   name: string;
-//   amount: string;
-//   products: Product[];
-// }
-
-// interface Recipe {
-//   recipe_id: number;
-//   name: string;
-//   image: string;
-//   calories: number;
-//   totalTime: number;
-//   difficulty: string;
-//   servings: number;
-//   description: string;
-//   ingredients: Ingredient[];
-// }
 
 export default function RecipeSwiper() {
   const [currentIndex, setCurrentIndex] = useState(0);
@@ -48,8 +20,6 @@ export default function RecipeSwiper() {
   // FETCH RECIPES FROM BACKEND
   useEffect(() => {
     const fetchRecommendations = async () => {
-      
-
       try {
         // await new Promise(resolve => setTimeout(resolve, 15000))
         const data = await recipesApi.getRecommendations();
@@ -255,10 +225,6 @@ export default function RecipeSwiper() {
                 <h2 className="text-lg font-semibold text-gray-900">Find Your Recipes</h2>
                 <p className="text-sm text-gray-600">Swipe to discover meals you'll love</p>
               </div>
-              <div className="text-right">
-                <div className="text-2xl font-bold text-[#2F855A]">{servingsCollected}/{servingsNeeded}</div>
-                <p className="text-xs text-gray-600">Servings</p>
-              </div>
             </div>
           </div>
 
@@ -267,14 +233,23 @@ export default function RecipeSwiper() {
               <div className="relative">
                 <div className="bg-white rounded-3xl shadow-xl overflow-hidden">
                   {/* Recipe Image */}
-                  <div className="relative w-full h-96">
+                  <div
+                      className="relative w-full h-96 group"
+                  >
                     <img
                         src={currentRecipeData.image}
                         alt={currentRecipeData.title}
-                        className="w-full h-full object-cover object-top"
+                        className="w-full h-full object-cover object-top group-hover:scale-105 transition-transform duration-300"
                     />
+                    <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-all duration-300 flex items-center justify-center">
+                      <div className="w-16 h-16 bg-white/90 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300 shadow-lg">
+                        <i className="ri-information-line text-3xl text-[#2F855A]"></i>
+                      </div>
+                    </div>
                     <div className="absolute top-4 right-4 bg-white/90 backdrop-blur-sm px-3 py-1.5 rounded-full">
-                      <span className="text-sm font-medium text-gray-900">{currentIndex + 1}/{recipes.length}</span>
+                  <span className="text-sm font-medium text-gray-900">
+                    {currentIndex + 1}/{recipes.length}
+                  </span>
                     </div>
                   </div>
 

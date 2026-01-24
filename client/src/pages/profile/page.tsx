@@ -58,8 +58,8 @@ export default function Profile() {
         console.log('[Profile] Profile response:', profileResponse);
         console.log('[Profile] Preferences response:', prefsResponse);
         
-        setHistory(historyResponse);
-        const cachedRecipes = historyResponse.reduce<Record<number, UIRecipe>>((acc, entry) => {
+        setHistory(historyResponse || []);
+        const cachedRecipes = (historyResponse || []).reduce<Record<number, UIRecipe>>((acc, entry) => {
           if (entry.recipe) {
             acc[entry.recipe.id] = entry.recipe;
           }
