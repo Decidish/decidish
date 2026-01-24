@@ -35,7 +35,7 @@ const routes: RouteObject[] = [
   },
   {
     path: '/my-recipes',
-    element: <MyRecipesPage />
+    element: <MainLayout><MyRecipesPage /></MainLayout>
   },
   {
     path: "/recipe-swiper",
