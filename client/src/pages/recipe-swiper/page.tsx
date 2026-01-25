@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { recipesApi, RecipeRecommendation } from '@/api/recipe-swiper/recipesApi';
 import { productsApi, ShoppingListResponse, IngredientGroup, Product } from '@/api/recipe-swiper/productsApi';
 import {CartItem, shoppingListApi} from "@/api/shopping-list/shoppingCartApi";
@@ -23,6 +23,11 @@ export default function RecipeSwiper() {
   const [shoppingFlowRecipe, setShoppingFlowRecipe] = useState<UIRecipe | null>(null);
   const [recipeStatus, setRecipeStatus] = useState<Record<string, 'liked' | 'disliked' | null>>({});
   const [showEndScreen, setShowEndScreen] = useState(false);
+  const [swipeX, setSwipeX] = useState(0);
+  const [isAnimating, setIsAnimating] = useState(false);
+  const disableSwipeRef = useRef(false);
+  const [touchStart, setTouchStart] = useState(0);
+  const [cardRef, setCardRef] = useState<HTMLDivElement | null>(null);
 
   // FETCH RECIPES FROM BACKEND
   useEffect(() => {
@@ -52,6 +57,59 @@ export default function RecipeSwiper() {
     fetchRecommendations();
     fetchUserMarket();
   }, []);
+
+  // Attach touch listeners with passive: false to allow preventDefault
+  useEffect(() => {
+    const cardElement = document.querySelector('[data-swipe-card]') as HTMLElement;
+    if (!cardElement) return;
+
+    const handleTouchMoveNonPassive = (e: TouchEvent) => {
+      if (disableSwipeRef.current) return;
+      e.preventDefault();
+      e.stopPropagation();
+      const currentX = (e.touches[0] as Touch).clientX;
+      const diff = currentX - touchStart;
+      setSwipeX(diff);
+    };
+
+    const handleTouchEndNonPassive = async (e: TouchEvent) => {
+      e.stopPropagation();
+      
+      if (disableSwipeRef.current) {
+        disableSwipeRef.current = false;
+        setSwipeX(0);
+        return;
+      }
+      
+      const threshold = 50;
+      
+      if (Math.abs(swipeX) < threshold) {
+        setSwipeX(0);
+        return;
+      }
+
+      setIsAnimating(true);
+
+      if (swipeX > threshold) {
+        await handleSwipeLike();
+      } else if (swipeX < -threshold) {
+        await handleSwipeDislike();
+      }
+
+      setTimeout(() => {
+        setSwipeX(0);
+        setIsAnimating(false);
+      }, 300);
+    };
+
+    cardElement.addEventListener('touchmove', handleTouchMoveNonPassive, { passive: false });
+    cardElement.addEventListener('touchend', handleTouchEndNonPassive, { passive: false });
+
+    return () => {
+      cardElement.removeEventListener('touchmove', handleTouchMoveNonPassive);
+      cardElement.removeEventListener('touchend', handleTouchEndNonPassive);
+    };
+  }, [swipeX, touchStart]);
 
   const advanceToNextRecipe = () => {
     if (!recipes.length) return;
@@ -97,6 +155,21 @@ export default function RecipeSwiper() {
     setLikedRecipes([...likedRecipes, recipe]);
   };
 
+  const handleSwipeLike = async() => {
+    const recipe = recipes[currentIndex];
+    
+    // Record like action in user history
+    try {
+      await userHistoryApi.recordAction('like', recipe.id);
+    } catch (err) {
+      console.error("Failed to record like action", err);
+    }
+
+    setRecipeStatus(prev => ({ ...prev, [recipe.id]: 'liked' }));
+    setLikedRecipes([...likedRecipes, recipe]);
+    advanceToNextRecipe();
+  };
+
   const handleLikeOnly = async () => {
     const recipe = recipes[currentIndex];
     if (!recipe) return;
@@ -123,6 +196,20 @@ export default function RecipeSwiper() {
     }
 
     setRecipeStatus(prev => ({ ...prev, [recipe.id]: 'disliked' }));
+  };
+
+  const handleSwipeDislike = async () => {
+    const recipe = recipes[currentIndex];
+    if (!recipe) return;
+    
+    try {
+      await userHistoryApi.recordAction('dislike', recipe.id);
+    } catch (err) {
+      console.error("Failed to record dislike action", err);
+    }
+
+    setRecipeStatus(prev => ({ ...prev, [recipe.id]: 'disliked' }));
+    advanceToNextRecipe();
   };
 
   const showSuccessNotification = (recipeName: string) => {
@@ -161,6 +248,60 @@ export default function RecipeSwiper() {
     if (!target) return;
     setShoppingFlowRecipe(target);
     setShoppingFlowOpen(true);
+  };
+
+  const handleTouchStart = (e: React.TouchEvent) => {
+    e.stopPropagation();
+    // Disable swipe if starting on button or other interactive elements
+    const target = e.target as HTMLElement;
+    const isInteractive = target.closest('button') || target.closest('[onClick]');
+    disableSwipeRef.current = !!isInteractive;
+    
+    // If on an interactive element, don't set up swipe
+    if (disableSwipeRef.current) return;
+    
+    setTouchStart(e.touches[0].clientX);
+  };
+
+  const handleTouchMove = (e: React.TouchEvent) => {
+    if (disableSwipeRef.current) return;
+    e.stopPropagation();
+    const currentX = e.touches[0].clientX;
+    const diff = currentX - touchStart;
+    setSwipeX(diff);
+  };
+
+  const handleTouchEnd = async (e: React.TouchEvent) => {
+    e.stopPropagation();
+    
+    // If swipe was disabled (button press), don't process swipe
+    if (disableSwipeRef.current) {
+      disableSwipeRef.current = false;
+      setSwipeX(0);
+      return;
+    }
+    
+    const threshold = 50;
+    
+    if (Math.abs(swipeX) < threshold) {
+      setSwipeX(0);
+      return;
+    }
+
+    setIsAnimating(true);
+
+    if (swipeX > threshold) {
+      // Swiped right - Like
+      await handleSwipeLike();
+    } else if (swipeX < -threshold) {
+      // Swiped left - Dislike
+      await handleSwipeDislike();
+    }
+
+    setTimeout(() => {
+      setSwipeX(0);
+      setIsAnimating(false);
+    }, 300);
   };
 
   const handleRecipeImageClick = () => {
@@ -281,12 +422,41 @@ export default function RecipeSwiper() {
 
           {/* Recipe Card */}
           {!showEndScreen && currentRecipeData && (
-              <div className="relative">
+              <div 
+                data-swipe-card
+                ref={setCardRef}
+                className="relative transition-opacity"
+                onTouchStart={handleTouchStart}
+                onTouchMove={handleTouchMove}
+                onTouchEnd={handleTouchEnd}
+                style={{
+                  transform: `translateX(${swipeX}px) rotate(${swipeX * 0.05}deg)`,
+                  opacity: 1 - Math.abs(swipeX) / 500,
+                  transition: isAnimating ? 'all 0.3s ease-out' : 'none',
+                  touchAction: 'pan-y',
+                }}
+              >
+                {/* Swipe Indicators */}
+                {swipeX > 30 && (
+                  <div className="absolute top-4 left-4 z-10 pointer-events-none">
+                    <div className="bg-gradient-to-r from-green-400 to-emerald-500 text-white w-14 h-14 rounded-full shadow-xl animate-pulse flex items-center justify-center">
+                      <i className="ri-heart-fill text-3xl"></i>
+                    </div>
+                  </div>
+                )}
+                {swipeX < -30 && (
+                  <div className="absolute top-4 right-4 z-10 pointer-events-none">
+                    <div className="bg-gradient-to-r from-gray-400 to-gray-600 text-white w-14 h-14 rounded-full shadow-xl animate-pulse flex items-center justify-center">
+                      <i className="ri-thumb-down-fill text-3xl"></i>
+                    </div>
+                  </div>
+                )}
+
                 <div className="bg-white rounded-3xl shadow-xl overflow-hidden">
                   {/* Recipe Image */}
                   <div
                       className="relative w-full h-96 cursor-pointer group"
-                      onClick={handleRecipeImageClick}
+                      onClick={(e) => { e.stopPropagation(); handleRecipeImageClick(); }}
                   >
                     <img
                         src={currentRecipeData.image}
@@ -299,27 +469,21 @@ export default function RecipeSwiper() {
                       </div>
                     </div>
                     
-                    {/* Status Indicator Badge - Top Left */}
-                    {recipeStatus[currentRecipeData.id] && (
+                    {/* Status Indicator Badge (hidden while swiping to avoid overlap) */}
+                    {recipeStatus[currentRecipeData.id] === 'liked' && Math.abs(swipeX) <= 30 && (
                       <div className="absolute top-4 left-4">
-                        {recipeStatus[currentRecipeData.id] === 'liked' ? (
-                          <div className="w-10 h-10 bg-red-500 rounded-full flex items-center justify-center shadow-lg">
-                            <i className="ri-heart-fill text-lg text-white"></i>
-                          </div>
-                        ) : (
-                          <div className="w-10 h-10 bg-gray-400 rounded-full flex items-center justify-center shadow-lg">
-                            <i className="ri-thumb-down-fill text-lg text-white"></i>
-                          </div>
-                        )}
+                        <div className="w-10 h-10 bg-gradient-to-r from-green-400 to-emerald-500 rounded-full flex items-center justify-center shadow-lg">
+                          <i className="ri-heart-fill text-lg text-white"></i>
+                        </div>
                       </div>
                     )}
-
-                    {/* Recipe Counter - Top Right */}
-                    <div className="absolute top-4 right-4 bg-white/90 backdrop-blur-sm px-3 py-1.5 rounded-full">
-                  <span className="text-sm font-medium text-gray-900">
-                    {currentIndex + 1}/{recipes.length}
-                  </span>
-                    </div>
+                    {recipeStatus[currentRecipeData.id] === 'disliked' && Math.abs(swipeX) <= 30 && (
+                      <div className="absolute top-4 left-4">
+                        <div className="w-10 h-10 bg-gradient-to-r from-gray-400 to-gray-600 rounded-full flex items-center justify-center shadow-lg">
+                          <i className="ri-thumb-down-fill text-lg text-white"></i>
+                        </div>
+                      </div>
+                    )}
                   </div>
 
                   {/* Recipe Info */}
@@ -356,22 +520,23 @@ export default function RecipeSwiper() {
                       {/* Like/Dislike Row */}
                       <div className="flex gap-3">
                         <button
-                          onClick={handleDislike}
+                          onClick={(e) => { e.stopPropagation(); handleDislike(); }}
                           className={`flex-1 py-4 rounded-xl font-semibold transition-all flex items-center justify-center gap-2 cursor-pointer whitespace-nowrap text-lg ${
                             recipeStatus[currentRecipeData.id] === 'disliked'
-                              ? 'bg-gray-400 text-white border-2 border-gray-500'
-                              : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                              ? 'bg-gray-500 text-white border-2 border-gray-600'
+                              : 'bg-gray-100 text-gray-700 border-2 border-gray-200 hover:bg-gray-200'
                           }`}
                         >
-                          <i className="ri-thumb-down-line text-2xl"></i>
+                          <i className="ri-thumb-down-fill text-2xl"></i>
                           <span>Dislike</span>
                         </button>
                         <button
-                          onClick={handleLike}
+                          onClick={(e) => { e.stopPropagation(); handleLike(); }}
+
                           className={`flex-1 py-4 rounded-xl font-semibold transition-all flex items-center justify-center gap-2 cursor-pointer whitespace-nowrap text-lg ${
                             recipeStatus[currentRecipeData.id] === 'liked'
-                              ? 'bg-red-500 text-white border-2 border-red-600'
-                              : 'bg-red-50 text-red-600 border-2 border-red-200 hover:bg-red-100'
+                              ? 'bg-[#2F855A] text-white border-2 border-emerald-700'
+                              : 'bg-emerald-50 text-[#2F855A] border-2 border-emerald-200 hover:bg-emerald-100'
                           }`}
                         >
                           <i className="ri-heart-fill text-2xl"></i>
@@ -414,7 +579,7 @@ export default function RecipeSwiper() {
           )}
 
           {/* Navigation Buttons - Below Recipe Card */}
-          <div className="flex justify-center gap-2 mt-6 mb-6">
+          <div className="flex justify-center items-center gap-3 mt-6 mb-6">
             <button
               onClick={goToPreviousRecipe}
               disabled={isAtStart}
@@ -423,6 +588,9 @@ export default function RecipeSwiper() {
             >
               <i className="ri-arrow-left-s-line text-xl"></i>
             </button>
+            <div className="text-sm font-medium text-gray-700 px-3 py-1.5 bg-white border border-gray-200 rounded-full shadow-sm">
+              {currentIndex + 1}/{recipes.length}
+            </div>
             <button
               onClick={advanceToNextRecipe}
               disabled={showEndScreen}
