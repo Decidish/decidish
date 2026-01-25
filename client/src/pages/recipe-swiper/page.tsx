@@ -65,7 +65,10 @@ export default function RecipeSwiper() {
 
     const handleTouchMoveNonPassive = (e: TouchEvent) => {
       if (disableSwipeRef.current) return;
-      e.preventDefault();
+      // Only preventDefault if the event is cancelable
+      if (e.cancelable) {
+        e.preventDefault();
+      }
       e.stopPropagation();
       const currentX = (e.touches[0] as Touch).clientX;
       const diff = currentX - touchStart;
