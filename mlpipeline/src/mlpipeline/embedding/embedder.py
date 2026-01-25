@@ -1,11 +1,9 @@
-from fastembed import TextEmbedding
+from sentence_transformers import SentenceTransformer
+import numpy as np
 
 class TextEmbedder:
-    def __init__(self, model=None):
-        if model:
-            self.model = model
-        else:
-            self.model = TextEmbedding(model_name="sentence-transformers/all-MiniLM-L6-v2")
+    def __init__(self):
+        self.model = SentenceTransformer("sentence-transformers/all-MiniLM-L6-v2")
 
-    def embed_recipes(self, recipes: list[str]):
-        return self.model.embed(recipes)
+    def embed_recipes(self, recipes: list[str]) -> np.ndarray:
+        return self.model.encode(recipes)

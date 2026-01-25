@@ -1,6 +1,6 @@
 import logging
 import numpy as np
-import spacy
+from mlpipeline.embedding.services import AdapterService, InferenceService
 import uvicorn
 import asyncio
 from ollama import AsyncClient

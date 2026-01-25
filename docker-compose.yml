@@ -145,6 +145,9 @@ services:
       - POSTGRES_PORT=5432
       - POSTGRES_SSL_MODE=${POSTGRES_SSL_MODE}
       - DATABASE_BACKEND_CONNECTION_STRING=${DATABASE_BACKEND_CONNECTION_STRING}
+      - ADAPTER_CKPT_DIR=/app/models/adapter_checkpoints
+    volumes:
+      - ./ckpts_weekly_user_adapter:/app/models/adapter_checkpoints
     depends_on:
       - personalization-server
     networks:

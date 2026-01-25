@@ -6,7 +6,7 @@ import json
 import torch
 
 
-def load_from_json(json_path: str = "recipe.json"):
+def load_from_json(json_path: str = "mlpipeline/pretrain/recipe.json"):
     with open(json_path, 'r', encoding='utf-8') as f:
         data = json.load(f)
     recipes = []
@@ -18,7 +18,7 @@ def load_from_json(json_path: str = "recipe.json"):
 
 
 class PairDataset(Dataset):
-    def __init__(self, json_path: str = "recipe.json"):
+    def __init__(self, json_path: str = "mlpipeline/pretrain/recipe.json"):
         super().__init__()
         self.recipes_embed, self.recipes = load_from_json(json_path)
 
@@ -31,15 +31,14 @@ class PairDataset(Dataset):
         return recipe_embed, recipe
 
 
-dataset = PairDataset("recipe.json")
-train_ratio = 0.9
-train_size = int(train_ratio * len(dataset))
-val_size = len(dataset) - train_size
-train_set, val_set = random_split(dataset, [train_size, val_size])
-train_loader = DataLoader(train_set, batch_size=32, shuffle=True, pin_memory=True)
-val_loader = DataLoader(val_set, batch_size=32, shuffle=False, pin_memory=True)
-
 if __name__ == "__main__":
+    dataset = PairDataset("recipe.json")
+    train_ratio = 0.9
+    train_size = int(train_ratio * len(dataset))
+    val_size = len(dataset) - train_size
+    train_set, val_set = random_split(dataset, [train_size, val_size])
+    train_loader = DataLoader(train_set, batch_size=32, shuffle=True, pin_memory=True)
+    val_loader = DataLoader(val_set, batch_size=32, shuffle=False, pin_memory=True)
     print(f"train set length: {len(train_set)}")
     print(f"val set length: {len(val_set)}")
 
