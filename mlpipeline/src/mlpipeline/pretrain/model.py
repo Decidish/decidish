@@ -6,7 +6,7 @@ from torch import nn
 import torch.nn.functional as F
 from typing import Optional, Tuple, List
 from dataclasses import dataclass
-# from sentence_transformers import SentenceTransformer
+from sentence_transformers import SentenceTransformer
 
 
 def mean_pool_embeddings(
@@ -59,88 +59,88 @@ class UserEncoder(nn.Module):
         return z
 
 
-# class RecipeMLPBlock(nn.Module):
-#     def __init__(self, out_dim: int = 384, hidden_dim: int = 512, dropout: float = 0.1):
-#         super().__init__()
-#         self.mapping = nn.Sequential(
-#             nn.LayerNorm(out_dim),
-#             nn.Linear(in_features=out_dim, out_features=hidden_dim),
-#             nn.ReLU(),
-#             nn.Dropout(dropout),
-#             nn.Linear(in_features=hidden_dim, out_features=out_dim)
-#         )
-#         # self.ln = nn.LayerNorm(out_dim)
-#         # self.linear1 = nn.Linear(in_features=out_dim, out_features=hidden_dim)
-#         # self.act = nn.ReLU()
-#         # self.dropout = nn.Dropout(dropout)
-#         # self.linear = nn.Linear(in_features=hidden_dim, out_features=out_dim)
+class RecipeMLPBlock(nn.Module):
+    def __init__(self, out_dim: int = 384, hidden_dim: int = 512, dropout: float = 0.1):
+        super().__init__()
+        self.mapping = nn.Sequential(
+            nn.LayerNorm(out_dim),
+            nn.Linear(in_features=out_dim, out_features=hidden_dim),
+            nn.ReLU(),
+            nn.Dropout(dropout),
+            nn.Linear(in_features=hidden_dim, out_features=out_dim)
+        )
+        # self.ln = nn.LayerNorm(out_dim)
+        # self.linear1 = nn.Linear(in_features=out_dim, out_features=hidden_dim)
+        # self.act = nn.ReLU()
+        # self.dropout = nn.Dropout(dropout)
+        # self.linear = nn.Linear(in_features=hidden_dim, out_features=out_dim)
 
-#     def forward(self, x: torch.Tensor) -> torch.Tensor:
-#         return self.mapping(x) + x
-
-
-# class RecipeEncoder(nn.Module):
-#     def __init__(self, cfg: RecipeEncoderConfig):
-#         super().__init__()
-#         self.cfg = cfg
-#         self.base_model = SentenceTransformer(cfg.st_model_name)
-#         base_dim = self.base_model.get_sentence_embedding_dimension()
-
-#         if base_dim != cfg.output_dim:
-#             print(f"Attention!!! the sentence transformer output dim is not equal to the out_dim")
-#             cfg.output_dim = base_dim
-
-#         if cfg.freeze_base:
-#             for p in self.base_model.parameters():
-#                 p.requires_grad = False
-
-#         blocks = []
-#         for _ in range(cfg.num_layers):
-#             blocks.append(RecipeMLPBlock(
-#                 out_dim=cfg.output_dim,
-#                 hidden_dim=cfg.hidden_dim,
-#                 dropout=cfg.dropout
-#             ))
-#         self.mlp = nn.Sequential(*blocks)
-
-#     def forward(self, x: List[str]):
-#         with torch.no_grad():
-#             emb = self.base_model.encode(
-#                 x,
-#                 convert_to_tensor=True,
-#                 show_progress_bar=False,
-#             )  # [B,D]
-
-#         device = next(self.mlp.parameters()).device
-#         emb = emb.detach().clone()
-#         emb = emb.to(device)
-#         out = self.mlp(emb)
-
-#         z = F.normalize(out, dim=-1)
-#         return z
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        return self.mapping(x) + x
 
 
-# class UserRecipeModel(nn.Module):
-#     def __init__(self, user_cfg: UserEncoderConfig, recipe_cfg: RecipeEncoderConfig):
-#         super().__init__()
-#         assert user_cfg.output_dim == recipe_cfg.output_dim, "the dimensions of users and recipes must be the same!"
-#         self.user_encoder = UserEncoder(user_cfg)
-#         self.recipe_encoder = RecipeEncoder(recipe_cfg)
+class RecipeEncoder(nn.Module):
+    def __init__(self, cfg: RecipeEncoderConfig):
+        super().__init__()
+        self.cfg = cfg
+        self.base_model = SentenceTransformer(cfg.st_model_name)
+        base_dim = self.base_model.get_sentence_embedding_dimension() or 384
 
-#     def encode_user(self, x_user: torch.Tensor) -> torch.Tensor:
-#         return self.user_encoder(x_user)
+        if base_dim != cfg.output_dim:
+            print(f"Attention!!! the sentence transformer output dim is not equal to the out_dim")
+            cfg.output_dim = base_dim
 
-#     def encode_recipe(self, x_recipe: torch.Tensor) -> torch.Tensor:
-#         return self.recipe_encoder(x_recipe)
+        if cfg.freeze_base:
+            for p in self.base_model.parameters():
+                p.requires_grad = False
 
-#     def forward(
-#             self,
-#             x_user: torch.Tensor,
-#             x_recipe: torch.Tensor,
-#     ) -> Tuple[torch.Tensor, torch.Tensor]:
-#         emb_user = self.encode_user(x_user)
-#         emb_recipe = self.encode_recipe(x_recipe)
-#         return emb_user, emb_recipe
+        blocks = []
+        for _ in range(cfg.num_layers):
+            blocks.append(RecipeMLPBlock(
+                out_dim=cfg.output_dim,
+                hidden_dim=cfg.hidden_dim,
+                dropout=cfg.dropout
+            ))
+        self.mlp = nn.Sequential(*blocks)
+
+    def forward(self, x: List[str]):
+        with torch.no_grad():
+            emb = self.base_model.encode(
+                x,
+                convert_to_tensor=True,
+                show_progress_bar=False,
+            )  # [B,D]
+
+        device = next(self.mlp.parameters()).device
+        emb = emb.detach().clone()
+        emb = emb.to(device)
+        out = self.mlp(emb)
+
+        z = F.normalize(out, dim=-1)
+        return z
+
+
+class UserRecipeModel(nn.Module):
+    def __init__(self, user_cfg: UserEncoderConfig, recipe_cfg: RecipeEncoderConfig):
+        super().__init__()
+        assert user_cfg.output_dim == recipe_cfg.output_dim, "the dimensions of users and recipes must be the same!"
+        self.user_encoder = UserEncoder(user_cfg)
+        self.recipe_encoder = RecipeEncoder(recipe_cfg)
+
+    def encode_user(self, x_user: torch.Tensor) -> torch.Tensor:
+        return self.user_encoder(x_user)
+
+    def encode_recipe(self, x_recipe: torch.Tensor) -> torch.Tensor:
+        return self.recipe_encoder(x_recipe)
+
+    def forward(
+            self,
+            x_user: torch.Tensor,
+            x_recipe: torch.Tensor,
+    ) -> Tuple[torch.Tensor, torch.Tensor]:
+        emb_user = self.encode_user(x_user)
+        emb_recipe = self.encode_recipe(x_recipe)
+        return emb_user, emb_recipe
 
 
 # regarding the loss, maybe we should consider using BCElogit loss

@@ -5,7 +5,7 @@ from mlpipeline.etl.pipeline import Pipeline
 from typing import List, Optional
 import numpy as np
 
-from mlpipeline.api.schemas import EncodeBatchResponse, UserEmbeddingItem, UserItem
+from mlpipeline.api.schemas import UserItem
 
     
 class Tasks:

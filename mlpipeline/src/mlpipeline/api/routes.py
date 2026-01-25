@@ -1,19 +1,27 @@
 import logging
-from typing import Optional
 from fastapi import APIRouter, BackgroundTasks, HTTPException
 
 from mlpipeline.pretrain.model import UserEncoder, UserEncoderConfig, UserEncoderConfig
-from .tasks import run_add_recipe_background_task, run_etl_background_task, run_user_embedding_task
-from .schemas import AddRecipeRequest, AddReweRecipesRequest, EncodeBatchRequest, EncodeBatchResponse, UserEmbeddingItem
+from mlpipeline.embedding.services import AdapterService, InferenceService
+from .tasks import run_add_recipe_background_task, run_etl_background_task
+from .schemas import AdapterFinetuneRequest, AdapterFinetuneResponse, AddRecipeRequest, AddReweRecipesRequest, EncodeBatchRequest, EncodeBatchResponse, TuneRequest, TuneResponse
 import torch
-import numpy as np
-from pathlib import Path
+import logging
+import traceback
+
+# Import our refactored modules
+from .schemas import (
+    EncodeBatchRequest, EncodeBatchResponse,
+    TuneRequest, TuneResponse,
+    AdapterFinetuneRequest, AdapterFinetuneResponse
+)
 
 router = APIRouter()
 
-_MODEL: Optional[UserEncoder] = None
-_INPUT_DIM: Optional[int] = None
-
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger("mlpipeline.api")
+inference_service = InferenceService()
+adapter_service = AdapterService()
 
 def _load_model(ckpt_path: str, input_dim: int, device: torch.device) -> UserEncoder:
     cfg = UserEncoderConfig()
@@ -49,47 +57,109 @@ def add_rewe_recipes(background_tasks: BackgroundTasks, request: AddReweRecipesR
     background_tasks.add_task(run_etl_background_task, request.job_id)
     return {"status": "Import started"}
 
-# Route to encode a batch of users
-@router.post("/encode_users_batch", response_model=EncodeBatchResponse)
-def encode_users_batch(req: EncodeBatchRequest):
+# --- Endpoints: Inference ---
+
+@router.post("/encode_users_batch", response_model=EncodeBatchResponse, tags=["Inference"])
+async def encode_users_batch(req: EncodeBatchRequest):
     """
-    Endpoint to encode a batch of user vectors using the UserEncoder model.
+    Encodes a batch of raw user vectors using the pre-trained UserEncoder.
+    This is a stateless, read-only operation.
     """
-    global _MODEL, _INPUT_DIM
+    try:
+        users, dim = inference_service.encode(req.users)
+        return EncodeBatchResponse(users=users, embedding_dim=dim)
+    except ValueError as e:
+        logger.warning(f"Bad Request in encode_users_batch: {e}")
+        raise HTTPException(status_code=400, detail=str(e))
+    except Exception as e:
+        logger.error(f"Inference Error: {traceback.format_exc()}")
+        raise HTTPException(status_code=500, detail="Internal inference error")
 
-    if not req.users:
-        raise HTTPException(400, "user is empty")
 
-    d = len(req.users[0].user_vector)
-    if d == 0:
-        raise HTTPException(400, "user vector must be non-empty")
+# --- Endpoints: Fine-Tuning ---
 
-    for u in req.users:
-        if len(u.user_vector) != d:
-            raise HTTPException(400, "all user_vector must have same length")
+@router.get("/health", tags=["System"])
+async def health():
+    """
+    Returns the status of the ML service and the currently loaded adapter version.
+    Used by Docker Healthchecks and Load Balancers.
+    """
+    try:
+        info = adapter_service.get_health()
+        return {"status": "ok", **info}
+    except Exception as e:
+        logger.error(f"Health Check Failed: {e}")
+        raise HTTPException(status_code=503, detail="Service unhealthy")
 
-    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
-    HERE = Path(__file__).resolve().parent
-    ROOT = HERE.parent
-    ckpt_path = ROOT / "pretrain" / "checkpoints" / "user_encoder.pt"
+@router.post("/tune", response_model=TuneResponse, tags=["Training"])
+async def tune(req: TuneRequest):
+    """
+    Online Tuning: Updates user embeddings based on a small batch of recent interactions.
+    Does NOT permanently retrain the global adapter model weights, 
+    but calculates specific adjustments for the users in the batch.
+    """
+    B = len(req.user_emb)
+    if B == 0:
+        raise HTTPException(status_code=400, detail="Empty batch")
+    if B > req.max_batch_size:
+        raise HTTPException(status_code=400, detail=f"Batch too large: {B} > {req.max_batch_size}")
+    if len(req.recipe_emb) != B or len(req.like) != B:
+        raise HTTPException(status_code=400, detail="Mismatched lengths for user_emb, recipe_emb, and like")
 
-    if _MODEL is None or _INPUT_DIM != d:
-        if not ckpt_path.exists():
-            raise HTTPException(500, f"checkpoint not found: {ckpt_path}")
-        try:
-            _MODEL = _load_model(str(ckpt_path), input_dim=d, device=device)
-        except Exception as e:
-            raise HTTPException(500, f"failed to load model: {e}")
-        _INPUT_DIM = d
+    batch = {
+        "user_emb": req.user_emb,
+        "recipe_emb": req.recipe_emb,
+        "like": req.like,
+    }
 
     try:
-        z_np = run_user_embedding_task(req.users, device, _MODEL)
-        out = [
-            UserEmbeddingItem(user_id = req.users[i].user_id, user_embedding = z_np[i].astype(float).tolist())
-            for i in range(len(req.users))
-        ]
-        return EncodeBatchResponse(users=out, embedding_dim = z_np.shape[1])
+        # We pass specific params explicitly to avoid coupling API req object to logic
+        result = adapter_service.tune_online(
+            batch=batch,
+            use_weekly_user_adapter=req.use_weekly_user_adapter,
+            do_online_bce=req.do_online_bce,
+            bce_steps=req.bce_steps,
+            bce_lr=req.bce_lr,
+            bce_temperature=req.bce_temperature,
+            bce_l2_anchor=req.bce_l2_anchor,
+            bce_clip_grad_norm=req.bce_clip_grad_norm,
+            bce_pos_weight=req.bce_pos_weight,
+        )
+        return result
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
     except Exception as e:
-        logging.log(msg="failed to encode users", level=logging.ERROR, exc_info=e)
-        raise HTTPException(500, f"failed to encode users: {e}")
+        logger.error(f"Tune Error: {traceback.format_exc()}")
+        raise HTTPException(status_code=500, detail="Internal tuning error")
+
+
+@router.post("/finetune_user_adapter", response_model=AdapterFinetuneResponse, tags=["Training"])
+async def finetune_user_adapter(req: AdapterFinetuneRequest):
+    """
+    Global Fine-Tuning: Runs a full training loop to update the Adapter Model.
+    
+    CRITICAL: This endpoint uses a Distributed Postgres Lock. 
+    If another replica is currently training, this request will BLOCK until 
+    the lock is released or timeout occurs.
+    """
+    if not req.interactions:
+        raise HTTPException(status_code=400, detail="Interactions list is empty")
+    
+    if len(req.interactions) > req.max_batch_size:
+        raise HTTPException(status_code=400, detail=f"Batch too large: {len(req.interactions)} > {req.max_batch_size}")
+
+    if not (0.0 <= req.val_split <= 0.5):
+        raise HTTPException(status_code=400, detail="val_split must be between 0.0 and 0.5")
+
+    try:
+        return adapter_service.run_training_job(req)
+    except RuntimeError as e:
+        # Likely a lock acquisition failure or database connection issue
+        logger.error(f"Locking Error: {e}")
+        raise HTTPException(status_code=503, detail="Could not acquire lock or connect to DB. System busy.")
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except Exception as e:
+        logger.error(f"Fine-Tuning Error: {traceback.format_exc()}")
+        raise HTTPException(status_code=500, detail="Internal training error")
