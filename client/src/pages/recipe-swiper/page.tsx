@@ -12,6 +12,7 @@ export default function RecipeSwiper() {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [currentRecipe, setCurrentRecipe] = useState<UIRecipe | null>(null);
   const [likedRecipes, setLikedRecipes] = useState<UIRecipe[]>([]);
+  const [shoppingListRecipes, setShoppingListRecipes] = useState<UIRecipe[]>([]);
   const [showSuccessToast, setShowSuccessToast] = useState(false);
   const [successMessage, setSuccessMessage] = useState('');
   const [recipes, setRecipes] = useState<UIRecipe[]>([]);
@@ -20,6 +21,8 @@ export default function RecipeSwiper() {
   const [marketId, setMarketId] = useState<number | null>(null);
   const [shoppingFlowOpen, setShoppingFlowOpen] = useState(false);
   const [shoppingFlowRecipe, setShoppingFlowRecipe] = useState<UIRecipe | null>(null);
+  const [recipeStatus, setRecipeStatus] = useState<Record<string, 'liked' | 'disliked' | null>>({});
+  const [showEndScreen, setShowEndScreen] = useState(false);
 
   // FETCH RECIPES FROM BACKEND
   useEffect(() => {
@@ -52,9 +55,32 @@ export default function RecipeSwiper() {
 
   const advanceToNextRecipe = () => {
     if (!recipes.length) return;
-    const nextIndex = (currentIndex + 1) % recipes.length;
+    if (currentIndex === recipes.length - 1) {
+      setShowEndScreen(true);
+      return;
+    }
+    const nextIndex = currentIndex + 1;
     setCurrentIndex(nextIndex);
     setCurrentRecipe(recipes[nextIndex]);
+  };
+
+  const goToPreviousRecipe = () => {
+    if (!recipes.length) return;
+    if (showEndScreen) {
+      setShowEndScreen(false);
+      setCurrentIndex(recipes.length - 1);
+      setCurrentRecipe(recipes[recipes.length - 1]);
+      return;
+    }
+    const prevIndex = Math.max(0, currentIndex - 1);
+    setCurrentIndex(prevIndex);
+    setCurrentRecipe(recipes[prevIndex]);
+  };
+
+  const goToFirstRecipe = () => {
+    setShowEndScreen(false);
+    setCurrentIndex(0);
+    setCurrentRecipe(recipes[0]);
   };
   
   const handleLike = async() => {
@@ -67,8 +93,8 @@ export default function RecipeSwiper() {
       console.error("Failed to record like action", err);
     }
 
-    setShoppingFlowRecipe(recipe);
-    setShoppingFlowOpen(true);
+    setRecipeStatus(prev => ({ ...prev, [recipe.id]: 'liked' }));
+    setLikedRecipes([...likedRecipes, recipe]);
   };
 
   const handleLikeOnly = async () => {
@@ -81,6 +107,8 @@ export default function RecipeSwiper() {
       console.error("Failed to record like action", err);
     }
 
+    setRecipeStatus(prev => ({ ...prev, [recipe.id]: 'liked' }));
+    setLikedRecipes([...likedRecipes, recipe]);
     advanceToNextRecipe();
   };
 
@@ -93,8 +121,8 @@ export default function RecipeSwiper() {
     } catch (err) {
       console.error("Failed to record dislike action", err);
     }
-    
-    advanceToNextRecipe();
+
+    setRecipeStatus(prev => ({ ...prev, [recipe.id]: 'disliked' }));
   };
 
   const showSuccessNotification = (recipeName: string) => {
@@ -110,7 +138,7 @@ export default function RecipeSwiper() {
   };
 
   const handleShoppingFlowComplete = async (recipe: UIRecipe, selectedProducts: SelectedProducts, productQuantities: Record<number, number>) => {
-    setLikedRecipes([...likedRecipes, recipe]);
+    setShoppingListRecipes([...shoppingListRecipes, recipe]);
 
     const shoppingListElems = Object.entries(selectedProducts)
       .filter(selectedProduct => selectedProduct[1] !== 'already-have')
@@ -128,11 +156,19 @@ export default function RecipeSwiper() {
     advanceToNextRecipe();
   };
 
+  const openShoppingFlow = (recipe?: UIRecipe | null) => {
+    const target = recipe || recipes[currentIndex];
+    if (!target) return;
+    setShoppingFlowRecipe(target);
+    setShoppingFlowOpen(true);
+  };
+
   const handleRecipeImageClick = () => {
     setShowRecipeDetailModal(true);
   };
 
   const currentRecipeData = recipes[currentIndex];
+  const isAtStart = currentIndex === 0 && !showEndScreen;
 
   // Loading State
   if (loading) {
@@ -185,7 +221,7 @@ export default function RecipeSwiper() {
   }
 
   // No Recipes State
-  if (!currentRecipeData) {
+  if (!recipes.length) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-emerald-50 via-green-50 to-teal-50 flex items-center justify-center px-4">
         <div className="text-center max-w-md">
@@ -244,7 +280,7 @@ export default function RecipeSwiper() {
           </div>
 
           {/* Recipe Card */}
-          {currentRecipeData && (
+          {!showEndScreen && currentRecipeData && (
               <div className="relative">
                 <div className="bg-white rounded-3xl shadow-xl overflow-hidden">
                   {/* Recipe Image */}
@@ -262,6 +298,23 @@ export default function RecipeSwiper() {
                         <i className="ri-information-line text-3xl text-[#2F855A]"></i>
                       </div>
                     </div>
+                    
+                    {/* Status Indicator Badge - Top Left */}
+                    {recipeStatus[currentRecipeData.id] && (
+                      <div className="absolute top-4 left-4">
+                        {recipeStatus[currentRecipeData.id] === 'liked' ? (
+                          <div className="w-10 h-10 bg-red-500 rounded-full flex items-center justify-center shadow-lg">
+                            <i className="ri-heart-fill text-lg text-white"></i>
+                          </div>
+                        ) : (
+                          <div className="w-10 h-10 bg-gray-400 rounded-full flex items-center justify-center shadow-lg">
+                            <i className="ri-thumb-down-fill text-lg text-white"></i>
+                          </div>
+                        )}
+                      </div>
+                    )}
+
+                    {/* Recipe Counter - Top Right */}
                     <div className="absolute top-4 right-4 bg-white/90 backdrop-blur-sm px-3 py-1.5 rounded-full">
                   <span className="text-sm font-medium text-gray-900">
                     {currentIndex + 1}/{recipes.length}
@@ -293,50 +346,102 @@ export default function RecipeSwiper() {
                       </div>
                       <div className="bg-amber-50 rounded-lg p-3 text-center">
                         <i className="ri-star-line text-xl text-amber-600 mb-1"></i>
-                        {/* <div className="text-sm font-semibold text-gray-900">{currentRecipeData.difficulty}</div> */}
                         <div className="text-sm font-semibold text-gray-900">{"Medium"}</div>
                         <div className="text-xs text-gray-600">Level</div>
                       </div>
                     </div>
 
                     {/* Action Buttons */}
-                    <div className="flex flex-col sm:flex-row gap-3">
-                      <button
-                        onClick={handleDislike}
-                        className="flex-1 py-4 bg-gray-100 text-gray-700 rounded-xl font-semibold hover:bg-gray-200 transition-all flex items-center justify-center gap-2 cursor-pointer whitespace-nowrap"
-                      >
-                        <i className="ri-close-line text-2xl"></i>
-                        <span>Skip</span>
-                      </button>
-                      <button
-                        onClick={handleLikeOnly}
-                        className="flex-1 py-4 bg-gradient-to-r from-[#2F855A] to-emerald-600 text-white rounded-xl font-semibold hover:from-[#276749] hover:to-emerald-700 transition-all flex items-center justify-center gap-2 shadow-lg cursor-pointer whitespace-nowrap"
-                      >
-                        <i className="ri-heart-line text-2xl"></i>
-                        <span>Like</span>
-                      </button>
-                      <button
-                        onClick={handleLike}
-                        className="flex-1 py-4 bg-gradient-to-r from-amber-500 to-orange-500 text-white rounded-xl font-semibold hover:from-amber-600 hover:to-orange-600 transition-all flex items-center justify-center gap-2 shadow-lg cursor-pointer whitespace-nowrap"
-                      >
-                        <i className="ri-shopping-cart-2-line text-2xl"></i>
-                        <span>Add to Shopping List</span>
-                      </button>
+                    <div className="flex flex-col gap-3">
+                      {/* Like/Dislike Row */}
+                      <div className="flex gap-3">
+                        <button
+                          onClick={handleDislike}
+                          className={`flex-1 py-4 rounded-xl font-semibold transition-all flex items-center justify-center gap-2 cursor-pointer whitespace-nowrap text-lg ${
+                            recipeStatus[currentRecipeData.id] === 'disliked'
+                              ? 'bg-gray-400 text-white border-2 border-gray-500'
+                              : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                          }`}
+                        >
+                          <i className="ri-thumb-down-line text-2xl"></i>
+                          <span>Dislike</span>
+                        </button>
+                        <button
+                          onClick={handleLike}
+                          className={`flex-1 py-4 rounded-xl font-semibold transition-all flex items-center justify-center gap-2 cursor-pointer whitespace-nowrap text-lg ${
+                            recipeStatus[currentRecipeData.id] === 'liked'
+                              ? 'bg-red-500 text-white border-2 border-red-600'
+                              : 'bg-red-50 text-red-600 border-2 border-red-200 hover:bg-red-100'
+                          }`}
+                        >
+                          <i className="ri-heart-fill text-2xl"></i>
+                          <span>Like</span>
+                        </button>
+                      </div>
                     </div>
                   </div>
                 </div>
               </div>
           )}
 
+          {/* End Screen */}
+          {showEndScreen && (
+            <div className="mt-6 bg-white rounded-3xl shadow-xl p-8 flex flex-col gap-5 items-center text-center">
+              <div className="w-14 h-14 rounded-full bg-emerald-100 text-emerald-700 flex items-center justify-center shadow-inner">
+                <i className="ri-check-double-line text-2xl"></i>
+              </div>
+              <div>
+                <h3 className="text-2xl font-bold text-gray-900 mb-2">You're all caught up!</h3>
+                <p className="text-sm text-gray-600">Jump back to the start or search for more recipes.</p>
+              </div>
+              <div className="flex flex-col sm:flex-row gap-3 w-full">
+                <button
+                  onClick={goToFirstRecipe}
+                  className="flex-1 py-4 bg-gradient-to-r from-[#2F855A] to-emerald-600 text-white rounded-xl font-semibold hover:from-[#276749] hover:to-emerald-700 transition-all flex items-center justify-center gap-2 shadow-lg cursor-pointer whitespace-nowrap"
+                >
+                  <i className="ri-refresh-line text-xl"></i>
+                  <span>Back to First Recipe</span>
+                </button>
+                <button
+                  onClick={() => window.REACT_APP_NAVIGATE('/search')}
+                  className="flex-1 py-4 bg-white text-[#2F855A] rounded-xl font-semibold hover:bg-gray-50 transition-all flex items-center justify-center gap-2 shadow-md cursor-pointer whitespace-nowrap border-2 border-[#2F855A]"
+                >
+                  <i className="ri-search-line text-xl"></i>
+                  <span>Go to Search</span>
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* Navigation Buttons - Below Recipe Card */}
+          <div className="flex justify-center gap-2 mt-6 mb-6">
+            <button
+              onClick={goToPreviousRecipe}
+              disabled={isAtStart}
+              className="w-10 h-10 flex items-center justify-center rounded-lg border border-gray-200 hover:bg-gray-50 disabled:opacity-50 cursor-pointer transition-all"
+              title="Previous"
+            >
+              <i className="ri-arrow-left-s-line text-xl"></i>
+            </button>
+            <button
+              onClick={advanceToNextRecipe}
+              disabled={showEndScreen}
+              className="w-10 h-10 flex items-center justify-center rounded-lg border border-gray-200 hover:bg-gray-50 disabled:opacity-50 cursor-pointer transition-all"
+              title="Next"
+            >
+              <i className="ri-arrow-right-s-line text-xl"></i>
+            </button>
+          </div>
+
           {/* View Shopping List Button */}
-          {likedRecipes.length > 0 && (
+          {shoppingListRecipes.length > 0 && (
               <div className="mt-6">
                 <button
                     onClick={() => window.REACT_APP_NAVIGATE('/shopping-list')}
                     className="w-full py-4 bg-white text-[#2F855A] rounded-xl font-semibold hover:bg-gray-50 transition-all flex items-center justify-center gap-2 shadow-md cursor-pointer whitespace-nowrap border-2 border-[#2F855A]"
                 >
                   <i className="ri-shopping-cart-line text-xl"></i>
-                  <span>View Shopping List ({likedRecipes.length} {likedRecipes.length === 1 ? 'Recipe' : 'Recipes'})</span>
+                  <span>View Shopping List ({shoppingListRecipes.length} {shoppingListRecipes.length === 1 ? 'Recipe' : 'Recipes'})</span>
                 </button>
               </div>
           )}
@@ -372,7 +477,7 @@ export default function RecipeSwiper() {
           onClose={() => setShowRecipeDetailModal(false)}
           onAddToShoppingList={async () => {
             setShowRecipeDetailModal(false);
-            await handleLike();
+            openShoppingFlow(currentRecipeData);
           }}
         />
       </div>

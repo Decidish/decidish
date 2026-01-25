@@ -93,10 +93,21 @@ export default function RecipeDetailModal({
           {/* Ingredients */}
           {recipe.ingredients && recipe.ingredients.length > 0 && (
             <div className="mb-6">
-              <h3 className="text-xl font-bold text-gray-900 mb-4 flex items-center gap-2">
-                <i className="ri-shopping-basket-line text-[#2F855A]"></i>
-                Ingredients
-              </h3>
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-xl font-bold text-gray-900 flex items-center gap-2">
+                  <i className="ri-shopping-basket-line text-[#2F855A]"></i>
+                  Ingredients
+                </h3>
+                {onAddToShoppingList && (
+                  <button
+                    onClick={onAddToShoppingList}
+                    className="px-4 py-2 bg-gradient-to-r from-amber-500 to-orange-500 text-white rounded-lg font-semibold hover:from-amber-600 hover:to-orange-600 transition-all text-sm whitespace-nowrap flex items-center gap-2 shadow-md cursor-pointer"
+                  >
+                    <i className="ri-search-line text-lg"></i>
+                    <span>Search in my market</span>
+                  </button>
+                )}
+              </div>
               <div className="bg-gray-50 rounded-xl p-4">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                   {recipe.ingredients.map((ingredient, index) => (
@@ -133,24 +144,7 @@ export default function RecipeDetailModal({
             </div>
           </div>
 
-          {/* Action Buttons */}
-          <div className="flex gap-3 pt-4 border-t border-gray-200">
-            <button
-              onClick={onClose}
-              className="flex-1 py-3 bg-gray-100 text-gray-700 rounded-xl font-semibold hover:bg-gray-200 transition-all cursor-pointer whitespace-nowrap"
-            >
-              Close
-            </button>
-            {showAddToShoppingButton && onAddToShoppingList && (
-              <button
-                onClick={onAddToShoppingList}
-                className="flex-1 py-3 bg-gradient-to-r from-[#2F855A] to-emerald-600 text-white rounded-xl font-semibold hover:from-[#276749] hover:to-emerald-700 transition-all shadow-lg cursor-pointer whitespace-nowrap flex items-center justify-center gap-2"
-              >
-                <i className="ri-shopping-cart-2-line text-xl"></i>
-                <span>Add to Shopping List</span>
-              </button>
-            )}
-          </div>
+          {/* Action buttons (removed) */}
         </div>
       </div>
     </div>
