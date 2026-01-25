@@ -26,6 +26,8 @@ export default function RecipeSwiper() {
   const [swipeX, setSwipeX] = useState(0);
   const [isAnimating, setIsAnimating] = useState(false);
   const disableSwipeRef = useRef(false);
+  const mouseDownRef = useRef(false);
+  const swipingRef = useRef(false);
   const [touchStart, setTouchStart] = useState(0);
   const [cardRef, setCardRef] = useState<HTMLDivElement | null>(null);
 
@@ -84,25 +86,7 @@ export default function RecipeSwiper() {
         return;
       }
       
-      const threshold = 50;
-      
-      if (Math.abs(swipeX) < threshold) {
-        setSwipeX(0);
-        return;
-      }
-
-      setIsAnimating(true);
-
-      if (swipeX > threshold) {
-        await handleSwipeLike();
-      } else if (swipeX < -threshold) {
-        await handleSwipeDislike();
-      }
-
-      setTimeout(() => {
-        setSwipeX(0);
-        setIsAnimating(false);
-      }, 300);
+      await finalizeSwipe();
     };
 
     cardElement.addEventListener('touchmove', handleTouchMoveNonPassive, { passive: false });
@@ -266,48 +250,86 @@ export default function RecipeSwiper() {
     setTouchStart(e.touches[0].clientX);
   };
 
-  const handleTouchMove = (e: React.TouchEvent) => {
-    if (disableSwipeRef.current) return;
-    e.stopPropagation();
-    const currentX = e.touches[0].clientX;
-    const diff = currentX - touchStart;
-    setSwipeX(diff);
-  };
-
-  const handleTouchEnd = async (e: React.TouchEvent) => {
-    e.stopPropagation();
-    
-    // If swipe was disabled (button press), don't process swipe
-    if (disableSwipeRef.current) {
-      disableSwipeRef.current = false;
-      setSwipeX(0);
-      return;
-    }
-    
+  const finalizeSwipe = async () => {
     const threshold = 50;
-    
     if (Math.abs(swipeX) < threshold) {
       setSwipeX(0);
+      swipingRef.current = false;
       return;
     }
 
     setIsAnimating(true);
 
     if (swipeX > threshold) {
-      // Swiped right - Like
       await handleSwipeLike();
     } else if (swipeX < -threshold) {
-      // Swiped left - Dislike
       await handleSwipeDislike();
     }
 
     setTimeout(() => {
       setSwipeX(0);
       setIsAnimating(false);
+      swipingRef.current = false;
     }, 300);
   };
 
+  const handleTouchMove = (e: React.TouchEvent) => {
+    if (disableSwipeRef.current) return;
+    e.stopPropagation();
+    const currentX = e.touches[0].clientX;
+    const diff = currentX - touchStart;
+    if (Math.abs(diff) > 10) swipingRef.current = true;
+    setSwipeX(diff);
+  };
+
+  const handleTouchEnd = async (e: React.TouchEvent) => {
+    e.stopPropagation();
+    
+    if (disableSwipeRef.current) {
+      disableSwipeRef.current = false;
+      setSwipeX(0);
+      return;
+    }
+
+    await finalizeSwipe();
+  };
+
+  const handleMouseDown = (e: React.MouseEvent) => {
+    const target = e.target as HTMLElement;
+    const isInteractive = target.closest('button') || target.closest('[onClick]');
+    disableSwipeRef.current = !!isInteractive;
+    if (disableSwipeRef.current) return;
+    mouseDownRef.current = true;
+    setTouchStart(e.clientX);
+  };
+
+  const handleMouseMove = (e: React.MouseEvent) => {
+    if (!mouseDownRef.current || disableSwipeRef.current) return;
+    e.preventDefault();
+    const diff = e.clientX - touchStart;
+    if (Math.abs(diff) > 10) swipingRef.current = true;
+    setSwipeX(diff);
+  };
+
+  const handleMouseUp = async () => {
+    if (!mouseDownRef.current) return;
+    mouseDownRef.current = false;
+
+    if (disableSwipeRef.current) {
+      disableSwipeRef.current = false;
+      setSwipeX(0);
+      swipingRef.current = false;
+      return;
+    }
+
+    await finalizeSwipe();
+  };
+
   const handleRecipeImageClick = () => {
+    if (swipingRef.current) {
+      swipingRef.current = false;
+      return;
+    }
     setShowRecipeDetailModal(true);
   };
 
@@ -428,10 +450,14 @@ export default function RecipeSwiper() {
               <div 
                 data-swipe-card
                 ref={setCardRef}
-                className="relative transition-opacity"
+                className="relative transition-opacity select-none"
                 onTouchStart={handleTouchStart}
                 onTouchMove={handleTouchMove}
                 onTouchEnd={handleTouchEnd}
+                onMouseDown={handleMouseDown}
+                onMouseMove={handleMouseMove}
+                onMouseUp={handleMouseUp}
+                onMouseLeave={handleMouseUp}
                 style={{
                   transform: `translateX(${swipeX}px) rotate(${swipeX * 0.05}deg)`,
                   opacity: 1 - Math.abs(swipeX) / 500,
@@ -464,7 +490,9 @@ export default function RecipeSwiper() {
                     <img
                         src={currentRecipeData.image}
                         alt={currentRecipeData.title}
-                        className="w-full h-full object-cover object-top group-hover:scale-105 transition-transform duration-300"
+                      className="w-full h-full object-cover object-top group-hover:scale-105 transition-transform duration-300 select-none"
+                      draggable={false}
+                      onDragStart={(e) => e.preventDefault()}
                     />
                     <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-all duration-300 flex items-center justify-center">
                       <div className="w-16 h-16 bg-white/90 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300 shadow-lg">
@@ -521,29 +549,30 @@ export default function RecipeSwiper() {
                     {/* Action Buttons */}
                     <div className="flex flex-col gap-3">
                       {/* Like/Dislike Row */}
-                      <div className="flex gap-3">
+                      <div className="flex gap-3 justify-center">
                         <button
                           onClick={(e) => { e.stopPropagation(); handleDislike(); }}
-                          className={`flex-1 py-4 rounded-xl font-semibold transition-all flex items-center justify-center gap-2 cursor-pointer whitespace-nowrap text-lg ${
+                          className={`w-14 h-14 rounded-full transition-all flex items-center justify-center cursor-pointer text-xl shadow-sm border-2 ${
                             recipeStatus[currentRecipeData.id] === 'disliked'
-                              ? 'bg-gray-500 text-white border-2 border-gray-600'
-                              : 'bg-gray-100 text-gray-700 border-2 border-gray-200 hover:bg-gray-200'
+                              ? 'bg-gray-500 text-white border-gray-600'
+                              : 'bg-gray-100 text-gray-700 border-gray-200 hover:bg-gray-200'
                           }`}
+                          title="Dislike"
+                          aria-label="Dislike"
                         >
                           <i className="ri-thumb-down-fill text-2xl"></i>
-                          <span>Dislike</span>
                         </button>
                         <button
                           onClick={(e) => { e.stopPropagation(); handleLike(); }}
-
-                          className={`flex-1 py-4 rounded-xl font-semibold transition-all flex items-center justify-center gap-2 cursor-pointer whitespace-nowrap text-lg ${
+                          className={`w-14 h-14 rounded-full transition-all flex items-center justify-center cursor-pointer text-xl shadow-sm border-2 ${
                             recipeStatus[currentRecipeData.id] === 'liked'
-                              ? 'bg-[#2F855A] text-white border-2 border-emerald-700'
-                              : 'bg-emerald-50 text-[#2F855A] border-2 border-emerald-200 hover:bg-emerald-100'
+                              ? 'bg-[#2F855A] text-white border-emerald-700'
+                              : 'bg-emerald-50 text-[#2F855A] border-emerald-200 hover:bg-emerald-100'
                           }`}
+                          title="Like"
+                          aria-label="Like"
                         >
                           <i className="ri-heart-fill text-2xl"></i>
-                          <span>Like</span>
                         </button>
                       </div>
                     </div>
