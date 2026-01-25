@@ -10,6 +10,7 @@ import (
 	"personalization/internal/config"
 	"personalization/internal/repository"
 	"strconv"
+	"strings"
 
 	"github.com/gin-gonic/gin"
 	"github.com/gin-gonic/gin/binding"
@@ -67,14 +68,66 @@ func (s *RecipeService) SearchRecipes(ctx *gin.Context) {
 	page, _ := strconv.Atoi(ctx.DefaultQuery("page", "1"))
 	limit, _ := strconv.Atoi(ctx.DefaultQuery("limit", "12"))
 
-	params := repository.SearchParams{
-		Query:      ctx.Query("q"),          // matches ?q=
-		Cuisine:    ctx.Query("cuisine"),    // matches ?cuisine=
-		Difficulty: ctx.Query("difficulty"), // matches ?difficulty=
-		MaxTime:    ctx.Query("maxTime"),    // matches ?maxTime=
-		Page:       page,
-		Limit:      limit,
+	// Parse multiple categories; support CSV or repeated query params
+	var categories []string
+	var keywords []string
+
+	// First, get all query values (could be array or single CSV)
+	if arr := ctx.QueryArray("categories"); len(arr) > 0 {
+		// If we got query params, split each one by comma (in case of CSV)
+		for _, item := range arr {
+			for _, c := range strings.Split(item, ",") {
+				t := strings.TrimSpace(c)
+				if t != "" {
+					categories = append(categories, t)
+				}
+			}
+		}
+		fmt.Printf("DEBUG Service: Got categories from query array (parsed CSV): %v\n", categories)
+	} else if csv := ctx.Query("categories"); csv != "" {
+		// Fallback: single query parameter
+		for _, c := range strings.Split(csv, ",") {
+			t := strings.TrimSpace(c)
+			if t != "" {
+				categories = append(categories, t)
+			}
+		}
+		fmt.Printf("DEBUG Service: Got categories from single CSV: %v (original: %q)\n", categories, csv)
 	}
+
+	// Parse keywords similarly (CSV or repeated params)
+	if arr := ctx.QueryArray("keywords"); len(arr) > 0 {
+		for _, item := range arr {
+			for _, k := range strings.Split(item, ",") {
+				t := strings.TrimSpace(k)
+				if t != "" {
+					keywords = append(keywords, t)
+				}
+			}
+		}
+		fmt.Printf("DEBUG Service: Got keywords from query array (parsed CSV): %v\n", keywords)
+	} else if csv := ctx.Query("keywords"); csv != "" {
+		for _, k := range strings.Split(csv, ",") {
+			t := strings.TrimSpace(k)
+			if t != "" {
+				keywords = append(keywords, t)
+			}
+		}
+		fmt.Printf("DEBUG Service: Got keywords from single CSV: %v (original: %q)\n", keywords, csv)
+	}
+
+	params := repository.SearchParams{
+		Query:       ctx.Query("q"),       // matches ?q=
+		Cuisine:     ctx.Query("cuisine"), // fallback single cuisine
+		Categories:  categories,           // multiple categories
+		Keywords:    keywords,
+		MaxTime:     ctx.Query("maxTime"), // matches ?maxTime=
+		MaxCalories: ctx.Query("maxCalories"),
+		Page:        page,
+		Limit:       limit,
+	}
+
+	fmt.Printf("DEBUG Service: SearchParams = %+v\n", params)
 
 	result, err := s.Repo.SearchRecipes(params)
 	if err != nil {
@@ -84,6 +137,40 @@ func (s *RecipeService) SearchRecipes(ctx *gin.Context) {
 	}
 
 	ctx.JSON(http.StatusOK, result)
+}
+
+// GetCategories returns a list of category names filtered by optional query
+func (s *RecipeService) GetCategories(ctx *gin.Context) {
+	q := ctx.Query("q")
+	limit, _ := strconv.Atoi(ctx.DefaultQuery("limit", "5"))
+	if limit <= 0 || limit > 50 {
+		limit = 5
+	}
+
+	cats, err := s.Repo.ListCategories(q, limit)
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to list categories"})
+		return
+	}
+
+	ctx.JSON(http.StatusOK, gin.H{"categories": cats})
+}
+
+// GetKeywords returns a list of keyword names filtered by optional query
+func (s *RecipeService) GetKeywords(ctx *gin.Context) {
+	q := ctx.Query("q")
+	limit, _ := strconv.Atoi(ctx.DefaultQuery("limit", "5"))
+	if limit <= 0 || limit > 50 {
+		limit = 5
+	}
+
+	kws, err := s.Repo.ListKeywords(q, limit)
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to list keywords"})
+		return
+	}
+
+	ctx.JSON(http.StatusOK, gin.H{"keywords": kws})
 }
 
 func (service RecipeService) AddRecipe(ctx *gin.Context) {
