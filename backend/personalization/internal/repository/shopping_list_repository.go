@@ -97,6 +97,7 @@ func GetShoppingLists(db *sql.DB, userId string, completed bool) ([]ShoppingList
             sl.id, sl.created_at,
             sli.id, sli.quantity, sli.checked,
             p.name, p.image_url, p.price,
+            sli.recipe_id,
             COALESCE(r.title, 'Misc Items') as recipe_name
         FROM shopping_lists sl
         JOIN shopping_list_items sli ON sl.id = sli.shopping_list_id
@@ -123,9 +124,10 @@ func GetShoppingLists(db *sql.DB, userId string, completed bool) ([]ShoppingList
 			checked             bool
 			pName, pImg, rName  string
 			pPrice              float64
+			recipeID            *int
 		)
 
-		if err := rows.Scan(&listID, &createdAt, &itemID, &qty, &checked, &pName, &pImg, &pPrice, &rName); err != nil {
+		if err := rows.Scan(&listID, &createdAt, &itemID, &qty, &checked, &pName, &pImg, &pPrice, &recipeID, &rName); err != nil {
 			return nil, err
 		}
 
@@ -143,13 +145,21 @@ func GetShoppingLists(db *sql.DB, userId string, completed bool) ([]ShoppingList
 		resp.TotalItems += qty
 		resp.TotalPrice += pPrice * float64(qty)
 
+		var recipeIDStr *string
+		if recipeID != nil {
+			idStr := strconv.Itoa(*recipeID)
+			recipeIDStr = &idStr
+		}
+
 		item := ShoppingItem{
-			ID:       strconv.Itoa(itemID),
-			Name:     pName,
-			Image:    pImg,
-			Price:    pPrice,
-			Checked:  checked,
-			Quantity: qty,
+			ID:         strconv.Itoa(itemID),
+			Name:       pName,
+			Image:      pImg,
+			Price:      pPrice,
+			Checked:    checked,
+			Quantity:   qty,
+			RecipeID:   recipeIDStr,
+			RecipeName: &rName,
 		}
 
 		// Find or create the recipe group

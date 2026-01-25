@@ -13,6 +13,8 @@ export interface ShoppingItem {
   price: number;
   checked: boolean;
   quantity: number;
+  recipeId?: string;
+  recipeName?: string;
 }
 
 export interface RecipeGroup {

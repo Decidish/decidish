@@ -26,11 +26,12 @@ export default function RecipeSwiper() {
   const [showInfoPanel, setShowInfoPanel] = useState(true);
   const [swipeX, setSwipeX] = useState(0);
   const [isAnimating, setIsAnimating] = useState(false);
+  const [recipesInShoppingList, setRecipesInShoppingList] = useState<Set<number>>(new Set());
+  const [touchStart, setTouchStart] = useState(0);
+  const [cardRef, setCardRef] = useState<HTMLDivElement | null>(null);
   const disableSwipeRef = useRef(false);
   const mouseDownRef = useRef(false);
   const swipingRef = useRef(false);
-  const [touchStart, setTouchStart] = useState(0);
-  const [cardRef, setCardRef] = useState<HTMLDivElement | null>(null);
 
   // FETCH RECIPES FROM BACKEND
   useEffect(() => {
@@ -75,8 +76,32 @@ export default function RecipeSwiper() {
       }
     };
 
+    const fetchActiveShoppingList = async () => {
+      try {
+        const active = await shoppingListApi.getActiveShoppingList();
+        if (active?.groups) {
+          // Extract recipe IDs from all items in the shopping list
+          const recipeIds = new Set<number>();
+          active.groups.forEach(group => {
+            group.items.forEach(item => {
+              if (item.recipeId) {
+                const id = parseInt(item.recipeId, 10);
+                if (!isNaN(id)) {
+                  recipeIds.add(id);
+                }
+              }
+            });
+          });
+          setRecipesInShoppingList(recipeIds);
+        }
+      } catch (error) {
+        console.error("Failed to fetch active shopping list", error);
+      }
+    };
+
     initializeData();
     fetchUserMarket();
+    fetchActiveShoppingList();
   }, []);
 
   // Attach touch listeners with passive: false to allow preventDefault
@@ -283,22 +308,83 @@ export default function RecipeSwiper() {
   };
 
   const handleShoppingFlowComplete = async (recipe: UIRecipe, selectedProducts: SelectedProducts, productQuantities: Record<number, number>) => {
-    setShoppingListRecipes([...shoppingListRecipes, recipe]);
+    const isUpdate = recipesInShoppingList.has(recipe.id);
 
-    const shoppingListElems = Object.entries(selectedProducts)
-      .filter(selectedProduct => selectedProduct[1] !== 'already-have')
-      .map((selectedProduct) => {
-        const cartItem: CartItem = {
-          product_id: (selectedProduct[1] as Product).id,
-          quantity: productQuantities[(selectedProduct[1] as Product).id] || 1,
-          recipe_id: recipe.id,
-        };
-        return cartItem;
+    const shoppingListElems: CartItem[] = [];
+    Object.entries(selectedProducts)
+      .filter(([, value]) => value !== 'already-have')
+      .forEach(([, value]) => {
+        if (Array.isArray(value)) {
+          value.forEach(prod => {
+            shoppingListElems.push({
+              product_id: prod.id,
+              quantity: productQuantities[prod.id] || 1,
+              recipe_id: recipe.id,
+            });
+          });
+        } else {
+          shoppingListElems.push({
+            product_id: (value as Product).id,
+            quantity: productQuantities[(value as Product).id] || 1,
+            recipe_id: recipe.id,
+          });
+        }
       });
 
-    await shoppingListApi.addItemsToShoppingList(shoppingListElems);
+    // If recipe is being updated (already in list), delete old items first
+    if (isUpdate) {
+      try {
+        const activeList = await shoppingListApi.getActiveShoppingList();
+        if (activeList?.groups) {
+          // Find all items for this recipe and delete them
+          const itemsToDelete: string[] = [];
+          activeList.groups.forEach(group => {
+            group.items.forEach(item => {
+              if (item.recipeId && parseInt(item.recipeId, 10) === recipe.id) {
+                itemsToDelete.push(item.id);
+              }
+            });
+          });
+          if (itemsToDelete.length > 0) {
+            await Promise.all(
+              itemsToDelete.map(id => shoppingListApi.deleteItem(id))
+            );
+          }
+        }
+      } catch (error) {
+        console.error('Failed to delete old recipe items:', error);
+      }
+    }
+    // Update local counters/state only for creation; handle removal on update
+    if (isUpdate) {
+      if (shoppingListElems.length === 0) {
+        // Removal: recipe no longer in list
+        setShoppingListRecipes(prev => prev.filter(r => r.id !== recipe.id));
+        setRecipesInShoppingList(prev => {
+          const next = new Set(prev);
+          next.delete(recipe.id);
+          return next;
+        });
+      }
+      // For updates with items, do not increment counters (recipe already counted)
+    } else {
+      // Creation only when there are items to add
+      if (shoppingListElems.length > 0) {
+        setShoppingListRecipes([...shoppingListRecipes, recipe]);
+        setRecipesInShoppingList(prev => {
+          const next = new Set(prev);
+          next.add(recipe.id);
+          return next;
+        });
+      }
+    }
+
+    if (shoppingListElems.length > 0) {
+      await shoppingListApi.addItemsToShoppingList(shoppingListElems);
+    }
     showSuccessNotification(recipe.title);
-    advanceToNextRecipe();
+    setShoppingFlowOpen(false);
+    setShowRecipeDetailModal(true);
   };
 
   const openShoppingFlow = (recipe?: UIRecipe | null) => {
@@ -749,6 +835,7 @@ export default function RecipeSwiper() {
           recipe={shoppingFlowRecipe}
           open={shoppingFlowOpen}
           marketId={marketId || undefined}
+          alreadyInList={shoppingFlowRecipe ? recipesInShoppingList.has(shoppingFlowRecipe.id) : false}
           onClose={() => setShoppingFlowOpen(false)}
           onComplete={handleShoppingFlowComplete}
           onRecipeUpdate={handleRecipeUpdate}
