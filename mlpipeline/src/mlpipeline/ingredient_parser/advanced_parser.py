@@ -23,6 +23,7 @@ class IngredientParsed(BaseModel):
     unit: str = Field(description="The unit detected. Standardize slightly (e.g. 'tbsp.' -> 'tbsp', 'Pck.' -> 'Pck').")
     food: str = Field(description="Main ingredient name (English or German).")
     additional_info: str = Field(description="Adjectives/Prep (e.g. 'diced', 'gewürfelt').")
+    allergies: str = Field(description="List of possible allergenics of ingredient")
 
 # --- SINGLE INGREDIENT PROCESSOR (Bilingual) ---
 async def parse_single_ingredient(client, text: str, semaphore: asyncio.Semaphore) -> Optional[IngredientParsed]:
@@ -116,7 +117,8 @@ async def process_recipe_batch(client, recipes: List[dict], semaphore: asyncio.S
                 "amount": result.amount,
                 "unit": result.unit,
                 "food": result.food,
-                "info": result.additional_info
+                "info": result.additional_info,
+                "allergies": result.allergies
             }
         else:
             recipes[r_idx]["ingredients"][i_idx] = {
@@ -124,7 +126,8 @@ async def process_recipe_batch(client, recipes: List[dict], semaphore: asyncio.S
                 "amount": None,
                 "unit": "",
                 "food": original_text,
-                "info": "FAILED_TO_PARSE"
+                "info": "FAILED_TO_PARSE",
+                "allergies": ""
             }
 
     return recipes
