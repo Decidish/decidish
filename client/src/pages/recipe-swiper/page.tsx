@@ -23,6 +23,7 @@ export default function RecipeSwiper() {
   const [shoppingFlowRecipe, setShoppingFlowRecipe] = useState<UIRecipe | null>(null);
   const [recipeStatus, setRecipeStatus] = useState<Record<string, 'liked' | 'disliked' | null>>({});
   const [showEndScreen, setShowEndScreen] = useState(false);
+  const [showInfoPanel, setShowInfoPanel] = useState(true);
   const [swipeX, setSwipeX] = useState(0);
   const [isAnimating, setIsAnimating] = useState(false);
   const disableSwipeRef = useRef(false);
@@ -33,15 +34,33 @@ export default function RecipeSwiper() {
 
   // FETCH RECIPES FROM BACKEND
   useEffect(() => {
-    const fetchRecommendations = async () => {
+    const initializeData = async () => {
       try {
-        const data = await recipesApi.getRecommendations();
-        console.log("data: ",data);
-        const uiRecipes = data.map(r => ({ ...r, richIngredients: null }));
+        // Fetch recipes and user history in parallel
+        const [recipesData, history] = await Promise.all([
+          recipesApi.getRecommendations(),
+          userHistoryApi.getUserHistory(),
+        ]);
+
+        console.log("data: ", recipesData);
+        
+        // Build status map from user history (use nested recipe.id from API)
+        const statusMap: Record<string, 'liked' | 'disliked' | null> = {};
+        history.forEach(record => {
+          const rid = record?.recipe?.id ?? record?.recipe_id;
+          if (rid !== undefined && rid !== null) {
+            statusMap[rid] = record.action ? 'liked' : 'disliked';
+          }
+        });
+        
+        // Set recipes and status map
+        const uiRecipes = recipesData.map(r => ({ ...r, richIngredients: null }));
         setRecipes(uiRecipes);
+        setRecipeStatus(statusMap);
+        
         if (uiRecipes.length > 0) setCurrentRecipe(uiRecipes[0]);
       } catch (error) {
-        console.error("Failed to fetch recipes", error);
+        console.error("Failed to fetch data", error);
       } finally {
         setLoading(false);
       }
@@ -56,7 +75,7 @@ export default function RecipeSwiper() {
       }
     };
 
-    fetchRecommendations();
+    initializeData();
     fetchUserMarket();
   }, []);
 
@@ -130,6 +149,19 @@ export default function RecipeSwiper() {
   
   const handleLike = async() => {
     const recipe = recipes[currentIndex];
+    const currentStatus = recipeStatus[recipe.id];
+    
+    // If already liked, toggle to null (unlike)
+    if (currentStatus === 'liked') {
+      try {
+        await userHistoryApi.removeAction(recipe.id);
+      } catch (err) {
+        console.error("Failed to remove like action", err);
+      }
+      setRecipeStatus(prev => ({ ...prev, [recipe.id]: null }));
+      setLikedRecipes(likedRecipes.filter(r => r.id !== recipe.id));
+      return;
+    }
     
     // Record like action in user history
     try {
@@ -144,6 +176,19 @@ export default function RecipeSwiper() {
 
   const handleSwipeLike = async() => {
     const recipe = recipes[currentIndex];
+    const currentStatus = recipeStatus[recipe.id];
+    
+    // If already liked, toggle to null (unlike) and stay on same recipe
+    if (currentStatus === 'liked') {
+      try {
+        await userHistoryApi.removeAction(recipe.id);
+      } catch (err) {
+        console.error("Failed to remove like action", err);
+      }
+      setRecipeStatus(prev => ({ ...prev, [recipe.id]: null }));
+      setLikedRecipes(likedRecipes.filter(r => r.id !== recipe.id));
+      return;
+    }
     
     // Record like action in user history
     try {
@@ -176,6 +221,19 @@ export default function RecipeSwiper() {
     const recipe = recipes[currentIndex];
     if (!recipe) return;
     
+    const currentStatus = recipeStatus[recipe.id];
+    
+    // If already disliked, toggle to null (remove dislike)
+    if (currentStatus === 'disliked') {
+      try {
+        await userHistoryApi.removeAction(recipe.id);
+      } catch (err) {
+        console.error("Failed to remove dislike action", err);
+      }
+      setRecipeStatus(prev => ({ ...prev, [recipe.id]: null }));
+      return;
+    }
+    
     try {
       await userHistoryApi.recordAction('dislike', recipe.id);
     } catch (err) {
@@ -188,6 +246,19 @@ export default function RecipeSwiper() {
   const handleSwipeDislike = async () => {
     const recipe = recipes[currentIndex];
     if (!recipe) return;
+    
+    const currentStatus = recipeStatus[recipe.id];
+    
+    // If already disliked, toggle to null (remove dislike) and stay on same recipe
+    if (currentStatus === 'disliked') {
+      try {
+        await userHistoryApi.removeAction(recipe.id);
+      } catch (err) {
+        console.error("Failed to remove dislike action", err);
+      }
+      setRecipeStatus(prev => ({ ...prev, [recipe.id]: null }));
+      return;
+    }
     
     try {
       await userHistoryApi.recordAction('dislike', recipe.id);
@@ -445,6 +516,23 @@ export default function RecipeSwiper() {
             </div>
           </div>
 
+          {/* Info Text */}
+          {showInfoPanel && (
+            <div className="mb-6 p-3 bg-blue-50 border border-blue-200 rounded-xl flex items-start justify-between gap-2">
+              <p className="text-sm text-blue-900 flex items-center gap-2 flex-1">
+                <i className="ri-information-line text-lg flex-shrink-0"></i>
+                Tip: Click on the image to see full details, swipe right to like, left to dislike!
+              </p>
+              <button
+                onClick={() => setShowInfoPanel(false)}
+                className="flex-shrink-0 w-5 h-5 flex items-center justify-center hover:bg-blue-200 rounded transition-colors cursor-pointer"
+                aria-label="Close info panel"
+              >
+                <i className="ri-close-line text-lg text-blue-900"></i>
+              </button>
+            </div>
+          )}
+
           {/* Recipe Card */}
           {!showEndScreen && currentRecipeData && (
               <div 
@@ -523,7 +611,7 @@ export default function RecipeSwiper() {
                     <p className="text-sm text-gray-600 mb-4">{currentRecipeData.description}</p>
 
                     {/* Stats */}
-                    <div className="grid grid-cols-4 gap-3 mb-6">
+                    <div className="grid grid-cols-3 gap-3 mb-6">
                       <div className="bg-emerald-50 rounded-lg p-3 text-center">
                         <i className="ri-fire-line text-xl text-[#2F855A] mb-1"></i>
                         <div className="text-sm font-semibold text-gray-900">{currentRecipeData.nutrients.calories}</div>
@@ -538,11 +626,6 @@ export default function RecipeSwiper() {
                         <i className="ri-restaurant-line text-xl text-green-600 mb-1"></i>
                         <div className="text-sm font-semibold text-gray-900">{currentRecipeData.yields}</div>
                         <div className="text-xs text-gray-600">Servings</div>
-                      </div>
-                      <div className="bg-amber-50 rounded-lg p-3 text-center">
-                        <i className="ri-star-line text-xl text-amber-600 mb-1"></i>
-                        <div className="text-sm font-semibold text-gray-900">{"Medium"}</div>
-                        <div className="text-xs text-gray-600">Level</div>
                       </div>
                     </div>
 
@@ -678,6 +761,17 @@ export default function RecipeSwiper() {
           onAddToShoppingList={async () => {
             setShowRecipeDetailModal(false);
             openShoppingFlow(currentRecipeData);
+          }}
+          onStatusChange={(id, newStatus) => {
+            setRecipeStatus(prev => ({ ...prev, [id]: newStatus }));
+            if (newStatus === 'liked') {
+              const recipe = recipes.find(r => r.id === id);
+              if (recipe && !likedRecipes.some(r => r.id === id)) {
+                setLikedRecipes([...likedRecipes, recipe]);
+              }
+            } else {
+              setLikedRecipes(likedRecipes.filter(r => r.id !== id));
+            }
           }}
         />
       </div>

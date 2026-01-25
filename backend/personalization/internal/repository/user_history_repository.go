@@ -196,3 +196,16 @@ func getUserRecipes(db *sql.DB, userId string, like bool) ([]int, error) {
 
 	return recipeIds, rows.Err()
 }
+
+func RemoveUserHistory(tx *sql.Tx, userId string, recipeId int) error {
+	_, err := tx.Exec(`
+		DELETE FROM user_history
+		WHERE user_id = $1 AND recipe_id = $2
+	`, userId, recipeId)
+
+	if err != nil {
+		return err
+	}
+
+	return nil
+}

@@ -27,6 +27,17 @@ export const userHistoryApi = {
     }
   },
 
+  // Remove a user action (unlike or un-dislike a recipe)
+  removeAction: async (recipeId: number): Promise<string> => {
+    try {
+      const response = await apiClient.delete<string>(`/personalization/api/v1/user/record/${recipeId}`);
+      return response.data;
+    } catch (error) {
+      console.error(`Failed to remove action for recipe ${recipeId}:`, error);
+      throw error;
+    }
+  },
+
   // Get user's full history
   getUserHistory: async (): Promise<UserHistoryRecord[]> => {
     try {

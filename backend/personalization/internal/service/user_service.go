@@ -39,6 +39,7 @@ type IUserService interface {
 	SetSelectedUserMarketId(ctx *gin.Context)
 	IsUserEmbeddingReady(ctx *gin.Context)
 	RecordUserAction(ctx *gin.Context)
+	RemoveUserAction(ctx *gin.Context)
 	GetUserHistory(ctx *gin.Context)
 }
 
@@ -246,6 +247,37 @@ func (service UserService) RecordUserAction(ctx *gin.Context) {
 	}
 
 	ctx.JSON(http.StatusOK, fmt.Sprintf("Recorded action for user: %s on recipe: %d", userId, recipeID))
+}
+
+func (service UserService) RemoveUserAction(ctx *gin.Context) {
+	userId := ctx.GetString("user_id")
+	recipeIDStr := ctx.Param("recipeID")
+
+	recipeID, err := strconv.Atoi(recipeIDStr)
+	if err != nil {
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": "invalid recipe ID"})
+		return
+	}
+
+	tx, err := service.DB.Begin()
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, "could not start a transaction")
+		log.Panicln("could not start a transaction", err.Error())
+	}
+	defer tx.Rollback()
+
+	err = repository.RemoveUserHistory(tx, userId, recipeID)
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, err)
+		return
+	}
+
+	if err = tx.Commit(); err != nil {
+		ctx.JSON(http.StatusInternalServerError, "could not commit transaction")
+		log.Panicln("could not commit transaction", err.Error())
+	}
+
+	ctx.JSON(http.StatusOK, fmt.Sprintf("Removed action for user: %s on recipe: %d", userId, recipeID))
 }
 
 func (service UserService) GetUserHistory(ctx *gin.Context) {

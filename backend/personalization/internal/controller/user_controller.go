@@ -31,5 +31,6 @@ func (controller UserController) AddMappings(r *gin.RouterGroup) {
 	r.PUT("/user/complete/list/:list_id", controller.ShoppingListService.MarkShoppingListCompleted)
 	r.GET("/user/shopping/history", controller.ShoppingListService.GetShoppingHistory)
 	r.POST("/user/record/:action/:recipeID", controller.UserService.RecordUserAction)
+	r.DELETE("/user/record/:recipeID", controller.UserService.RemoveUserAction)
 	r.GET("/user/history", controller.UserService.GetUserHistory)
 }

@@ -630,6 +630,16 @@ export default function Profile() {
           if (entry) handleOpenShoppingFlow(entry);
         }
       }}
+      onStatusChange={(id, newStatus) => {
+        setHistory(prev => {
+          // If status is null, remove entry from local history to reflect removal
+          if (newStatus === null) {
+            return prev.filter(h => h.recipe.id !== id);
+          }
+          // Update action boolean: true for liked, false for disliked
+          return prev.map(h => h.recipe.id === id ? { ...h, action: newStatus === 'liked' } : h);
+        });
+      }}
     />
 
     {showMarketModal && (
