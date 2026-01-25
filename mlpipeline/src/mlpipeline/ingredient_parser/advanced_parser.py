@@ -23,7 +23,7 @@ class IngredientParsed(BaseModel):
     unit: str = Field(description="The unit detected. Standardize slightly (e.g. 'tbsp.' -> 'tbsp', 'Pck.' -> 'Pck').")
     food: str = Field(description="Main ingredient name (English or German).")
     additional_info: str = Field(description="Adjectives/Prep (e.g. 'diced', 'gewürfelt').")
-    allergies: str = Field(description="List of possible allergenics of ingredient")
+    allergies: str = Field(description="Comma-separated list of potential allergens (e.g. 'Gluten, Dairy', 'Nuts', 'Eggs'). Return 'None' if no common allergens.")
 
 # --- SINGLE INGREDIENT PROCESSOR (Bilingual) ---
 async def parse_single_ingredient(client, text: str, semaphore: asyncio.Semaphore) -> Optional[IngredientParsed]:
@@ -41,21 +41,55 @@ async def parse_single_ingredient(client, text: str, semaphore: asyncio.Semaphor
             )
 
             few_shot_examples = [
-                # 1. German Decimal Case (Your original issue)
+                # 1. German Decimal Case (Dairy)
                 {'role': 'user', 'content': 'Extract from: 175.0 g Frischkäse Natur'},
-                {'role': 'assistant', 'content': json.dumps({"amount": 175.0, "unit": "g", "food": "Frischkäse", "additional_info": "Natur"})},
+                {'role': 'assistant', 'content': json.dumps({
+                    "amount": 175.0, 
+                    "unit": "g", 
+                    "food": "Frischkäse", 
+                    "additional_info": "Natur",
+                    "allergies": "Dairy"
+                })},
                 
-                # 2. English Imperial (Cup)
+                # 2. English Imperial (Gluten/Wheat)
                 {'role': 'user', 'content': 'Extract from: 1 1/2 cup all-purpose flour'},
-                {'role': 'assistant', 'content': json.dumps({"amount": 1.5, "unit": "cup", "food": "flour", "additional_info": "all-purpose"})},
+                {'role': 'assistant', 'content': json.dumps({
+                    "amount": 1.5, 
+                    "unit": "cup", 
+                    "food": "flour", 
+                    "additional_info": "all-purpose",
+                    "allergies": "Gluten, Wheat"
+                })},
                 
-                # 3. German Abbreviation (EL)
+                # 3. German Abbreviation (No Allergies)
                 {'role': 'user', 'content': 'Extract from: 3 EL Olivenöl'},
-                {'role': 'assistant', 'content': json.dumps({"amount": 3.0, "unit": "EL", "food": "Olivenöl", "additional_info": ""})},
+                {'role': 'assistant', 'content': json.dumps({
+                    "amount": 3.0, 
+                    "unit": "EL", 
+                    "food": "Olivenöl", 
+                    "additional_info": "",
+                    "allergies": "None"
+                })},
 
-                # 4. English Count (No unit)
+                # 4. English Count (Eggs)
                 {'role': 'user', 'content': 'Extract from: 2 large eggs, beaten'},
-                {'role': 'assistant', 'content': json.dumps({"amount": 2.0, "unit": "", "food": "eggs", "additional_info": "large, beaten"})}
+                {'role': 'assistant', 'content': json.dumps({
+                    "amount": 2.0, 
+                    "unit": "", 
+                    "food": "eggs", 
+                    "additional_info": "large, beaten",
+                    "allergies": "Eggs"
+                })},
+
+                # 5. Nut Example (Nuts)
+                {'role': 'user', 'content': 'Extract from: 50g gehackte Walnüsse'},
+                {'role': 'assistant', 'content': json.dumps({
+                    "amount": 50.0, 
+                    "unit": "g", 
+                    "food": "Walnüsse", 
+                    "additional_info": "gehackte",
+                    "allergies": "Nuts"
+                })}
             ]
 
             response = await client.chat(
@@ -68,7 +102,8 @@ async def parse_single_ingredient(client, text: str, semaphore: asyncio.Semaphor
                         'RULES:\n'
                         '1. **Language**: Detect the language automatically. Preserve the original language for the "food" field.\n'
                         '2. **Unit**: Extract the unit if present. Remove dots (e.g. "oz." -> "oz"). If it is a count (e.g. "3 Apples"), unit is "".\n'
-                        '3. **Amount**: Convert fractions to decimals. Handle ranges by averaging (e.g., "1-2" -> 1.5).'
+                        '3. **Amount**: Convert fractions to decimals. Handle ranges by averaging (e.g., "1-2" -> 1.5).\n'
+                        '4. **Allergies**: Identify common allergens (e.g. Gluten, Dairy, Eggs, Soy, Peanuts, Tree Nuts, Fish, Shellfish). Return "None" if safe.'
                     )}
                 ] + few_shot_examples + [
                     {'role': 'user', 'content': f"Extract from: {text}"}
