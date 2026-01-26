@@ -36,13 +36,17 @@ func (service ShoppingListService) AddProductsToShoppingList(ctx *gin.Context) {
 	err := ctx.ShouldBindJSON(&cartItems)
 
 	if err != nil {
+		log.Printf("[shopping-list] user=%s bind error: %v", userId, err)
 		ctx.JSON(http.StatusBadRequest, err.Error())
 		return
 	}
 
+	log.Printf("[shopping-list] user=%s items=%d payload=%+v", userId, len(cartItems), cartItems)
+
 	tx, err := service.DB.Begin()
 
 	if err != nil {
+		log.Printf("[shopping-list] user=%s failed to start transaction: %v", userId, err)
 		ctx.JSON(http.StatusInternalServerError, "could not start a transaction")
 		log.Panicln("could not start a transaction", err.Error())
 	}
@@ -50,18 +54,22 @@ func (service ShoppingListService) AddProductsToShoppingList(ctx *gin.Context) {
 	defer tx.Rollback()
 
 	for _, item := range cartItems {
+		log.Printf("[shopping-list] user=%s add item product_id=%d quantity=%d recipe_id=%d", userId, item.ProductId, item.Quantity, item.RecipeId)
 		err := repository.AddItemToShoppingList(tx, userId, item.ProductId, item.Quantity, item.RecipeId)
 		if err != nil {
+			log.Printf("[shopping-list] user=%s failed to add item product_id=%d recipe_id=%d: %v", userId, item.ProductId, item.RecipeId, err)
 			ctx.JSON(http.StatusInternalServerError, err.Error())
 			return
 		}
 	}
 
 	if err = tx.Commit(); err != nil {
+		log.Printf("[shopping-list] user=%s failed to commit transaction: %v", userId, err)
 		ctx.JSON(http.StatusInternalServerError, "could not commit transaction")
 		log.Panicln("could not commit transaction", err.Error())
 	}
 
+	log.Printf("[shopping-list] user=%s successfully added %d items", userId, len(cartItems))
 	ctx.JSON(http.StatusOK, fmt.Sprintf("Added %d items to cart for user: %s", len(cartItems), userId))
 }
 

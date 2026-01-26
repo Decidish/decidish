@@ -142,11 +142,26 @@ export default function Search() {
   ) => {
     const itemsToAdd: CartItem[] = Object.entries(selectedProducts)
       .filter(([_, product]) => product !== 'already-have')
-      .map(([_, product]) => ({
-        product_id: (product as Product).id,
-        quantity: productQuantities[(product as Product).id] || 1,
-        recipe_id: recipe.id,
-      }));
+      .map(([ingredientId, product]) => {
+        const prod = product as Product;
+        // Backend bug: id is sometimes null, use reweId as fallback
+        const productId = prod.id || prod.reweId;
+        
+        if (!productId) {
+          console.error(
+            `[BACKEND BUG] Product missing both id and reweId for ingredient ${ingredientId}:`,
+            { product: prod, id: prod.id, reweId: prod.reweId }
+          );
+          return null;
+        }
+        
+        return {
+          product_id: productId,
+          quantity: productQuantities[productId] || 1,
+          recipe_id: recipe.id,
+        };
+      })
+      .filter((item): item is CartItem => item !== null);
 
     try {
       await shoppingListApi.addItemsToShoppingList(itemsToAdd);

@@ -35,12 +35,11 @@ export default function ShoppingFlowModal({
   
   // Step 2: Product Selection & Preview
   const [productQuantities, setProductQuantities] = useState<Record<number, number>>({});
-  const [selectedProducts, setSelectedProducts] = useState<Record<number, number[]>>({}); // ingredientId -> productIds
+  const [selectedProducts, setSelectedProducts] = useState<Record<number, Product | 'already-have'>>({}); // ingredientId -> product
   const [showPreview, setShowPreview] = useState(false);
   const [showMoreOptionsModal, setShowMoreOptionsModal] = useState(false);
   const [moreOptionsIngredientId, setMoreOptionsIngredientId] = useState<number | null>(null);
   const [showAllProducts, setShowAllProducts] = useState(false);
-  const [allowMultipleOptions, setAllowMultipleOptions] = useState(false);
   const [showProductError, setShowProductError] = useState(false);
   
   // Product Search
@@ -50,10 +49,22 @@ export default function ShoppingFlowModal({
   const [isSearching, setIsSearching] = useState(false);
   const [searchCurrentPage, setSearchCurrentPage] = useState(1);
   const [searchTotalPages, setSearchTotalPages] = useState(0);
-  const [defaultProductsBackup, setDefaultProductsBackup] = useState<Record<number, number[]>>({});
   const [hasPerformedSearch, setHasPerformedSearch] = useState(false);
   const [searchProductsMap, setSearchProductsMap] = useState<Record<number, Product>>({});
   const [ingredientIdToOriginal, setIngredientIdToOriginal] = useState<Record<number, string>>({});
+
+  // Validate that products have valid database IDs (not reweIds)
+  const normalizeProductIds = (product: Product, context: string): Product | null => {
+    const resolvedId = Number(product.id);
+
+    // Require a valid database ID - never fallback to reweId as it's not a valid product.id
+    if (!Number.isFinite(resolvedId) || resolvedId <= 0) {
+      console.error(`[BACKEND BUG] ${context} missing or invalid database id (got id=${product.id}, reweId=${product.reweId}):`, product);
+      return null;
+    }
+
+    return product;
+  };
 
 
   const resetState = () => {
@@ -69,14 +80,12 @@ export default function ShoppingFlowModal({
     setHasLoadedProducts(false);
     setShowAllProducts(false);
     setHasCompletedOnce(false);
-    setAllowMultipleOptions(false);
     setShowProductError(false);
     setShowProductSearch(false);
     setSearchQuery('');
     setSearchResults([]);
     setSearchCurrentPage(1);
     setSearchTotalPages(0);
-    setDefaultProductsBackup({});
     setHasPerformedSearch(false);
     setSearchProductsMap({});
     setIngredientIdToOriginal({});
@@ -107,27 +116,53 @@ export default function ShoppingFlowModal({
         setWorkingRecipe(updated);
         onRecipeUpdate?.(updated);
 
-        // Create mapping from ingredientId to original ingredient text
-        // Assume richIngredients are in the same order as recipe.ingredients
-        if (listResponse.items && target.ingredients) {
+        // Create mapping from ingredientId to original ingredient text, even when backend order differs
+        if (listResponse.items) {
           const mapping: Record<number, string> = {};
-          listResponse.items.forEach((ing, index) => {
-            if (target.ingredients && target.ingredients[index]) {
-              mapping[ing.ingredientId] = target.ingredients[index];
-            }
-          });
+
+          if (target.ingredients && target.ingredients.length > 0) {
+            const normalize = (value: string) =>
+              value
+                .normalize('NFD')
+                .replace(/[^a-zA-Z0-9\s]/g, '')
+                .toLowerCase()
+                .trim();
+
+            listResponse.items.forEach((ing) => {
+              const normalizedName = normalize(ing.ingredientName);
+              const matchedOriginal = target.ingredients.find((orig) => {
+                const normalizedOrig = normalize(orig);
+                return (
+                  normalizedOrig.includes(normalizedName) ||
+                  normalizedName.includes(normalizedOrig)
+                );
+              });
+
+              mapping[ing.ingredientId] = matchedOriginal || ing.ingredientName;
+            });
+          } else {
+            // Fallback to backend-provided names when we have no recipe ingredients
+            listResponse.items.forEach((ing) => {
+              mapping[ing.ingredientId] = ing.ingredientName;
+            });
+          }
+
           setIngredientIdToOriginal(mapping);
         }
 
         // Initialize all ingredients as selected with defaults if we have no prior selections
         if (listResponse.items && !isSameRecipe) {
           setSelectedIngredients(new Set(listResponse.items.map(ing => ing.ingredientId)));
-          const defaultProducts: Record<number, number[]> = {};
+          const defaultProducts: Record<number, Product | 'already-have'> = {};
           const defaultQuantities: Record<number, number> = {};
           listResponse.items.forEach(ing => {
             if (ing.options.length > 0) {
-              defaultProducts[ing.ingredientId] = [ing.options[0].product.id];
-              defaultQuantities[ing.options[0].product.id] = 1;
+              const product = ing.options[0].product;
+              const normalized = normalizeProductIds(product, 'Default product');
+              if (normalized?.id) {
+                defaultProducts[ing.ingredientId] = normalized;
+                defaultQuantities[normalized.id] = 1;
+              }
             }
           });
           setSelectedProducts(defaultProducts);
@@ -171,10 +206,13 @@ export default function ShoppingFlowModal({
 
     // Ensure default products for any ingredient missing a selection
     setSelectedProducts(prev => {
-      const updated = { ...prev } as Record<number, number[]>;
+      const updated = { ...prev } as Record<number, Product | 'already-have'>;
       workingRecipe.richIngredients!.forEach((ing) => {
         if (updated[ing.ingredientId] === undefined && ing.options.length > 0) {
-          updated[ing.ingredientId] = [ing.options[0].product.id];
+          const normalized = normalizeProductIds(ing.options[0].product, 'Default product');
+          if (normalized?.id) {
+            updated[ing.ingredientId] = normalized;
+          }
         }
       });
       return updated;
@@ -202,10 +240,13 @@ export default function ShoppingFlowModal({
     // Ensure any newly re-selected ingredient has a default product
     setSelectedProducts(prev => {
       if (!workingRecipe?.richIngredients) return prev;
-      const updated = { ...prev } as Record<number, number[]>;
+      const updated = { ...prev } as Record<number, Product | 'already-have'>;
       workingRecipe.richIngredients.forEach((ing) => {
         if (selectedIngredients.has(ing.ingredientId) && updated[ing.ingredientId] === undefined && ing.options.length > 0) {
-          updated[ing.ingredientId] = [ing.options[0].product.id];
+          const normalized = normalizeProductIds(ing.options[0].product, 'Default product');
+          if (normalized?.id) {
+            updated[ing.ingredientId] = normalized;
+          }
         }
       });
       return updated;
@@ -226,16 +267,15 @@ export default function ShoppingFlowModal({
       newSet.delete(ingredientId);
       return newSet;
     });
-    // Remove all search products associated with this ingredient
-    const selectedIds = selectedProducts[ingredientId] || [];
+    // Remove the product associated with this ingredient
+    const product = selectedProducts[ingredientId];
+    const productId = typeof product === 'object' ? product.id : undefined;
     setSearchProductsMap(prev => {
-      const updated = { ...prev };
-      selectedIds.forEach(id => {
-        if (updated[id]) {
-          delete updated[id];
-        }
-      });
-      return updated;
+      if (productId && prev[productId]) {
+        const { [productId]: _, ...rest } = prev;
+        return rest;
+      }
+      return prev;
     });
   };
 
@@ -251,33 +291,27 @@ export default function ShoppingFlowModal({
   };
 
   const handleSelectProduct = (ingredientId: number, productId: number) => {
-    setSelectedProducts(prev => {
-      const current = prev[ingredientId] || [];
-      if (allowMultipleOptions) {
-        const exists = current.includes(productId);
-        const nextList = exists ? current.filter(id => id !== productId) : [...current, productId];
-        return {
-          ...prev,
-          [ingredientId]: nextList,
-        };
-      }
-      return {
-        ...prev,
-        [ingredientId]: [productId],
-      };
-    });
+    if (!workingRecipe?.richIngredients) return;
+    const ingredient = workingRecipe.richIngredients.find(ing => ing.ingredientId === ingredientId);
+    const optionProduct = ingredient?.options.find(opt => Number(opt.product.reweId) === Number(productId))?.product;
+    const normalized = optionProduct ? normalizeProductIds(optionProduct, 'Default product') : null;
+    if (!normalized?.id) return;
+
+    setSelectedProducts(prev => ({
+      ...prev,
+      [ingredientId]: normalized,
+    }));
 
     setProductQuantities(prev => {
-      if (prev[productId] !== undefined) return prev;
-      return { ...prev, [productId]: 1 };
+      if (prev[normalized.id] !== undefined) return prev;
+      return { ...prev, [normalized.id]: 1 };
     });
   };
 
   const handleRemoveProduct = (ingredientId: number, productId: number) => {
     setSelectedProducts(prev => {
-      const current = prev[ingredientId] || [];
-      const nextList = current.filter(id => id !== productId);
-      return { ...prev, [ingredientId]: nextList };
+      const { [ingredientId]: _, ...rest } = prev;
+      return rest;
     });
     setProductQuantities(prev => {
       const { [productId]: _, ...rest } = prev;
@@ -297,18 +331,17 @@ export default function ShoppingFlowModal({
     // Keep selected search products in searchProductsMap for persistence
     // Only clear unselected search results
     if (moreOptionsIngredientId) {
-      const selectedIds = selectedProducts[moreOptionsIngredientId] || [];
+      const selectedProduct = selectedProducts[moreOptionsIngredientId];
+      const selectedId = typeof selectedProduct === 'object' ? selectedProduct.id : undefined;
       // Don't remove selected products from searchProductsMap - they need to persist
       // Only clear search results that weren't selected
       setSearchResults(prev => {
-        const selectedSet = new Set(selectedIds);
-        return prev.filter(result => selectedSet.has(result.id));
+        return prev.filter(result => result.id === selectedId);
       });
     }
     
     setShowMoreOptionsModal(false);
     setMoreOptionsIngredientId(null);
-    setAllowMultipleOptions(false);
     setShowProductSearch(false);
     setSearchQuery('');
     setSearchCurrentPage(1);
@@ -329,22 +362,10 @@ export default function ShoppingFlowModal({
       // Don't clear searchProductsMap - keep all selected search products
     }
 
-    const preselected = selectedProducts[ingredientId] || [];
     setMoreOptionsIngredientId(ingredientId);
     setShowMoreOptionsModal(true);
     setShowAllProducts(false);
-    // Always start in single-select mode to prevent accidental multi-selection
-    setAllowMultipleOptions(false);
-    // If there are multiple products already selected, keep only the first one in the UI
-    if (preselected.length > 1) {
-      setSelectedProducts(prev => ({
-        ...prev,
-        [ingredientId]: [preselected[0]],
-      }));
-    }
     setShowProductError(false);
-    // Backup default products for the reset button
-    setDefaultProductsBackup(selectedProducts);
   };
 
   const handleSearchProducts = async (page: number = 1) => {
@@ -375,10 +396,19 @@ export default function ShoppingFlowModal({
   const handleSelectSearchProduct = (product: SearchProduct) => {
     if (!moreOptionsIngredientId) return;
     
-    // Convert SearchProduct to Product format (compatible with the existing system)
-    const convertedProduct: Product = {
-      id: product.id,
-      reweId: product.id,
+    // Validate product ID
+    const productId = Number(product.id);
+    if (!productId || !Number.isFinite(productId) || productId <= 0) {
+      console.error('Invalid product ID from search result:', product.id, product);
+      return;
+    }
+
+    const rawReweId = (product as SearchProduct & { reweId?: number }).reweId;
+    const resolvedReweId = Number(rawReweId ?? productId);
+
+    const normalizedProduct = normalizeProductIds({
+      id: productId,
+      reweId: resolvedReweId,
       name: product.name,
       price: product.price,
       imageUrl: product.imageUrl,
@@ -391,53 +421,26 @@ export default function ShoppingFlowModal({
         isGlutenFree: false,
         isLowestPrice: false,
       }
-    };
+    }, 'Search product');
+
+    if (!normalizedProduct?.id) return;
 
     setSelectedProducts(prev => {
-      const current = prev[moreOptionsIngredientId] || [];
-      const exists = current.includes(convertedProduct.id);
-      
-      if (allowMultipleOptions) {
-        const nextList = exists ? current.filter(id => id !== convertedProduct.id) : [...current, convertedProduct.id];
-        // If deselecting, remove from searchProductsMap
-        if (exists) {
-          setSearchProductsMap(prevMap => {
-            if (prevMap[convertedProduct.id]) {
-              const { [convertedProduct.id]: _, ...rest } = prevMap;
-              return rest;
-            }
-            return prevMap;
-          });
-        } else {
-          // If selecting, store in searchProductsMap
-          setSearchProductsMap(prevMap => ({
-            ...prevMap,
-            [convertedProduct.id]: convertedProduct
-          }));
-        }
-        return {
-          ...prev,
-          [moreOptionsIngredientId]: nextList,
-        };
-      }
-      
-      // Single select mode: store or clear from map
-      if (!exists) {
-        setSearchProductsMap(prevMap => ({
-          ...prevMap,
-          [convertedProduct.id]: convertedProduct
-        }));
-      }
+      // Store in searchProductsMap using reweId as key
+      setSearchProductsMap(prevMap => ({
+        ...prevMap,
+        [normalizedProduct.id]: normalizedProduct
+      }));
       
       return {
         ...prev,
-        [moreOptionsIngredientId]: [convertedProduct.id],
+        [moreOptionsIngredientId]: normalizedProduct,
       };
     });
 
     setProductQuantities(prev => {
-      if (prev[convertedProduct.id] !== undefined) return prev;
-      return { ...prev, [convertedProduct.id]: 1 };
+      if (prev[normalizedProduct.id] !== undefined) return prev;
+      return { ...prev, [normalizedProduct.id]: 1 };
     });
   };
 
@@ -459,55 +462,57 @@ export default function ShoppingFlowModal({
     
     // If no default options available, clear all selections for this ingredient
     if (ingredient.options.length === 0) {
-      setSelectedProducts(prev => ({
-        ...prev,
-        [moreOptionsIngredientId]: []
-      }));
+      setSelectedProducts(prev => {
+        const { [moreOptionsIngredientId]: _, ...rest } = prev;
+        return rest;
+      });
       
       // Remove quantities for all products of this ingredient
       setProductQuantities(prev => {
         const updated = { ...prev };
-        const currentProducts = selectedProducts[moreOptionsIngredientId] || [];
-        currentProducts.forEach(id => {
-          delete updated[id];
-        });
+        const currentProduct = selectedProducts[moreOptionsIngredientId];
+        const currentProductId = typeof currentProduct === 'object' ? currentProduct.id : undefined;
+        if (currentProductId !== undefined) {
+          delete updated[currentProductId];
+        }
         return updated;
       });
       
       // Clear all search products for this ingredient
       setSearchProductsMap(prev => {
         const updated = { ...prev };
-        const currentSelectedIds = selectedProducts[moreOptionsIngredientId] || [];
-        currentSelectedIds.forEach(id => {
-          delete updated[id];
-        });
+        const currentProduct = selectedProducts[moreOptionsIngredientId];
+        const currentSelectedId = typeof currentProduct === 'object' ? currentProduct.id : undefined;
+        if (currentSelectedId !== undefined && updated[currentSelectedId]) {
+          delete updated[currentSelectedId];
+        }
         return updated;
       });
       
       return;
     }
     
-    // Select ONLY the first available product for this ingredient
-    const firstProductId = ingredient.options[0].product.id;
+    // Select only the first available product for this ingredient
+    const normalized = normalizeProductIds(ingredient.options[0].product, 'Default product');
+    if (!normalized?.id) return;
     
     setSelectedProducts(prev => ({
       ...prev,
-      [moreOptionsIngredientId]: [firstProductId]
+      [moreOptionsIngredientId]: normalized
     }));
     
     // Reset quantities for this ingredient only
     setProductQuantities(prev => {
       const updated = { ...prev };
-      // Remove quantities for all products of this ingredient except the first one
-      const currentProducts = selectedProducts[moreOptionsIngredientId] || [];
-      currentProducts.forEach(id => {
-        if (id !== firstProductId) {
-          delete updated[id];
-        }
-      });
+      // Remove quantities for the old product (if any)
+      const currentProduct = selectedProducts[moreOptionsIngredientId];
+      const currentProductId = typeof currentProduct === 'object' ? currentProduct.id : undefined;
+      if (currentProductId !== undefined && currentProductId !== normalized.id) {
+        delete updated[currentProductId];
+      }
       // Set quantity to 1 for the first product if not already set
-      if (!updated[firstProductId]) {
-        updated[firstProductId] = 1;
+      if (!updated[normalized.id]) {
+        updated[normalized.id] = 1;
       }
       return updated;
     });
@@ -515,13 +520,12 @@ export default function ShoppingFlowModal({
     // Clear search products for this ingredient from searchProductsMap
     setSearchProductsMap(prev => {
       const updated = { ...prev };
-      const currentSelectedIds = selectedProducts[moreOptionsIngredientId] || [];
-      currentSelectedIds.forEach(id => {
+        const currentProduct = selectedProducts[moreOptionsIngredientId];
+        const currentSelectedId = typeof currentProduct === 'object' ? currentProduct.id : undefined;
         // Remove if it's not in the default options
-        if (!ingredient.options.some(opt => opt.product.id === id)) {
-          delete updated[id];
-        }
-      });
+        if (currentSelectedId !== undefined && !ingredient.options.some(opt => opt.product.id === currentSelectedId)) {
+          delete updated[currentSelectedId];
+      }
       return updated;
     });
   };
@@ -529,7 +533,7 @@ export default function ShoppingFlowModal({
   const handleResetAllToDefaults = () => {
     if (!workingRecipe?.richIngredients) return;
     
-    const newSelectedProducts: Record<number, number[]> = {};
+    const newSelectedProducts: Record<number, Product | 'already-have'> = {};
     const newProductQuantities: Record<number, number> = {};
     const validDefaultProductIds = new Set<number>();
     
@@ -543,13 +547,12 @@ export default function ShoppingFlowModal({
       
       // If ingredient has default options, select the first one
       if (ingredient.options.length > 0) {
-        const firstProductId = ingredient.options[0].product.id;
-        newSelectedProducts[ingredientId] = [firstProductId];
-        newProductQuantities[firstProductId] = 1;
-        validDefaultProductIds.add(firstProductId);
-      } else {
-        // If no default options, clear selections
-        newSelectedProducts[ingredientId] = [];
+        const normalized = normalizeProductIds(ingredient.options[0].product, 'Default product');
+        if (normalized?.id) {
+          newSelectedProducts[ingredientId] = normalized;
+          newProductQuantities[normalized.id] = 1;
+          validDefaultProductIds.add(normalized.id);
+        }
       }
     });
     
@@ -573,7 +576,7 @@ export default function ShoppingFlowModal({
     if (!workingRecipe) return;
 
     // Check if any products are selected
-    const hasProducts = Array.from(selectedIngredients).some(ingId => (selectedProducts[ingId]?.length || 0) > 0);
+    const hasProducts = Array.from(selectedIngredients).some(ingId => selectedProducts[ingId] !== undefined);
     
     // Show error if no products selected
     if (!hasProducts) {
@@ -589,32 +592,25 @@ export default function ShoppingFlowModal({
       const ingredient = workingRecipe.richIngredients?.find(ing => ing.ingredientId === ingredientId);
       if (!ingredient) return;
       
-      const productIds = selectedProducts[ingredientId] || [];
-      if (productIds.length === 0) return;
-
-      // First, try to get products from ingredient.options (default products)
-      const products = ingredient.options
-        .filter(opt => productIds.includes(opt.product.id))
-        .map(opt => opt.product);
-
-      // Then, check if any selected products are from the search (not in ingredient.options)
-      const searchProducts = productIds
-        .filter(id => !ingredient.options.some(opt => opt.product.id === id))
-        .map(id => searchProductsMap[id])
-        .filter((p): p is Product => p !== undefined);
-
-      // Combine both default and search products
-      const allProducts = [...products, ...searchProducts];
-
-      if (allProducts.length === 1) {
-        selected[ingredientId] = allProducts[0];
-        finalQuantities[allProducts[0].id] = productQuantities[allProducts[0].id] || 1;
-      } else if (allProducts.length > 1) {
-        selected[ingredientId] = allProducts;
-        allProducts.forEach(prod => {
-          finalQuantities[prod.id] = productQuantities[prod.id] || 1;
-        });
+      const selection = selectedProducts[ingredientId];
+      if (selection === undefined) {
+        console.warn(`No product selected for ingredient ${ingredientId}`);
+        return;
       }
+
+      if (selection === 'already-have') {
+        selected[ingredientId] = 'already-have';
+        return;
+      }
+
+      const normalized = normalizeProductIds(selection, 'Selected product');
+      if (!normalized?.id) {
+        console.warn(`[BACKEND BUG] Skipping ingredient ${ingredientId} - product has invalid id. Product:`, selection);
+        return;
+      }
+
+      selected[ingredientId] = normalized;
+      finalQuantities[normalized.id] = productQuantities[normalized.id] || 1;
     });
 
     onComplete(workingRecipe, selected, finalQuantities);
@@ -778,22 +774,9 @@ export default function ShoppingFlowModal({
                   .filter(ing => selectedIngredients.has(ing.ingredientId))
                   .map((ingredient) => {
                     const originalName = ingredientIdToOriginal[ingredient.ingredientId] || ingredient.ingredientName;
-                    const selectedProductIds = selectedProducts[ingredient.ingredientId] || [];
-                    
-                    // Get products from ingredient options
-                    const defaultProducts = ingredient.options
-                      .filter(opt => selectedProductIds.includes(opt.product.id))
-                      .map(opt => opt.product);
-                    
-                    // Get products from search (those not in ingredient.options)
-                    const searchedProducts = selectedProductIds
-                      .filter(id => !ingredient.options.some(opt => opt.product.id === id))
-                      .map(id => searchProductsMap[id])
-                      .filter((p): p is Product => p !== undefined);
-                    
-                    // Combine both lists
-                    const selectedProductsList = [...defaultProducts, ...searchedProducts];
+                    const selectedProduct = selectedProducts[ingredient.ingredientId];
                     const hasOptions = ingredient.options.length > 0;
+                    const quantity = typeof selectedProduct === 'object' && selectedProduct.id ? (productQuantities[selectedProduct.id] || 1) : 0;
 
                     return (
                       <div
@@ -813,7 +796,7 @@ export default function ShoppingFlowModal({
 
                         {!hasOptions ? (
                           <div className="space-y-3">
-                            {selectedProductsList.length === 0 && (
+                            {selectedProduct === undefined && (
                               <>
                                 <div className="flex items-center gap-2 bg-gray-50 border border-gray-200 rounded-lg p-3">
                                   <i className="ri-alert-line text-xl text-gray-400"></i>
@@ -829,55 +812,50 @@ export default function ShoppingFlowModal({
                               </>
                             )}
 
-                            {selectedProductsList.length > 0 && (
+                            {selectedProduct && typeof selectedProduct === 'object' && (
                               <div className="space-y-3">
-                                {selectedProductsList.map(prod => {
-                                  const quantity = productQuantities[prod.id] || 1;
-                                  return (
-                                    <div key={prod.id} className="border border-emerald-200 bg-emerald-50 rounded-xl p-3">
-                                      <div className="flex items-start justify-between gap-3">
-                                        <div className="flex items-start gap-3">
-                                          <div className="w-16 h-16 flex-shrink-0 bg-gray-100 rounded-lg overflow-hidden">
-                                            <img src={prod.imageUrl} alt={prod.name} className="w-full h-full object-cover" />
-                                          </div>
-                                          <div className="min-w-0">
-                                            <div className="font-semibold text-gray-900 text-sm mb-0.5">{prod.name}</div>
-                                            <div className="flex items-center gap-2 text-sm text-gray-700">
-                                              <span>{prod.grammage}</span>
-                                              <span className="font-bold text-[#2F855A]">{(prod.price / 100).toFixed(2)}€</span>
-                                            </div>
-                                          </div>
-                                        </div>
-                                        <button
-                                          onClick={() => handleRemoveProduct(ingredient.ingredientId, prod.id)}
-                                          className="px-3 py-1 bg-gray-100 text-gray-700 rounded-lg text-sm font-medium hover:bg-gray-200 transition-colors cursor-pointer whitespace-nowrap"
-                                        >
-                                          Remove
-                                        </button>
+                                <div className="border border-emerald-200 bg-emerald-50 rounded-xl p-3">
+                                  <div className="flex items-start justify-between gap-3">
+                                    <div className="flex items-start gap-3">
+                                      <div className="w-16 h-16 flex-shrink-0 bg-gray-100 rounded-lg overflow-hidden">
+                                        <img src={selectedProduct.imageUrl} alt={selectedProduct.name} className="w-full h-full object-cover" />
                                       </div>
-
-                                      <div className="mt-3 flex items-center justify-between bg-gray-50 rounded-lg p-3">
-                                        <span className="text-sm font-medium text-gray-700">Quantity</span>
-                                        <div className="flex items-center gap-3">
-                                          <button
-                                            onClick={() => handleQuantityChange(prod.id, -1)}
-                                            disabled={quantity <= 1}
-                                            className="w-10 h-10 flex items-center justify-center bg-white border-2 border-gray-300 rounded-lg hover:border-[#2F855A] hover:bg-emerald-50 transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
-                                          >
-                                            <i className="ri-subtract-line text-xl text-gray-700"></i>
-                                          </button>
-                                          <span className="text-xl font-bold text-gray-900 min-w-[3rem] text-center">{quantity}</span>
-                                          <button
-                                            onClick={() => handleQuantityChange(prod.id, 1)}
-                                            className="w-10 h-10 flex items-center justify-center bg-white border-2 border-gray-300 rounded-lg hover:border-[#2F855A] hover:bg-emerald-50 transition-all cursor-pointer"
-                                          >
-                                            <i className="ri-add-line text-xl text-gray-700"></i>
-                                          </button>
+                                      <div className="min-w-0">
+                                        <div className="font-semibold text-gray-900 text-sm mb-0.5">{selectedProduct.name}</div>
+                                        <div className="flex items-center gap-2 text-sm text-gray-700">
+                                          <span>{selectedProduct.grammage}</span>
+                                          <span className="font-bold text-[#2F855A]">{(selectedProduct.price / 100).toFixed(2)}€</span>
                                         </div>
                                       </div>
                                     </div>
-                                  );
-                                })}
+                                    <button
+                                      onClick={() => handleRemoveProduct(ingredient.ingredientId, selectedProduct.id)}
+                                      className="px-3 py-1 bg-gray-100 text-gray-700 rounded-lg text-sm font-medium hover:bg-gray-200 transition-colors cursor-pointer whitespace-nowrap"
+                                    >
+                                      Remove
+                                    </button>
+                                  </div>
+
+                                  <div className="mt-3 flex items-center justify-between bg-gray-50 rounded-lg p-3">
+                                    <span className="text-sm font-medium text-gray-700">Quantity</span>
+                                    <div className="flex items-center gap-3">
+                                      <button
+                                        onClick={() => handleQuantityChange(selectedProduct.id, -1)}
+                                        disabled={quantity <= 1}
+                                        className="w-10 h-10 flex items-center justify-center bg-white border-2 border-gray-300 rounded-lg hover:border-[#2F855A] hover:bg-emerald-50 transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                                      >
+                                        <i className="ri-subtract-line text-xl text-gray-700"></i>
+                                      </button>
+                                      <span className="text-xl font-bold text-gray-900 min-w-[3rem] text-center">{quantity}</span>
+                                      <button
+                                        onClick={() => handleQuantityChange(selectedProduct.id, 1)}
+                                        className="w-10 h-10 flex items-center justify-center bg-white border-2 border-gray-300 rounded-lg hover:border-[#2F855A] hover:bg-emerald-50 transition-all cursor-pointer"
+                                      >
+                                        <i className="ri-add-line text-xl text-gray-700"></i>
+                                      </button>
+                                    </div>
+                                  </div>
+                                </div>
 
                                 <button
                                   onClick={() => handleOpenMoreOptions(ingredient.ingredientId)}
@@ -892,62 +870,55 @@ export default function ShoppingFlowModal({
                         ) : (
                           <>
                             <div className="space-y-3">
-                              {selectedProductsList.length === 0 && (
+                              {selectedProduct === undefined && (
                                 <div className="flex items-center gap-2 bg-gray-50 border border-gray-200 rounded-lg p-3 text-sm text-gray-600">
                                   <i className="ri-alert-line text-lg"></i>
                                   <span>No product selected for this ingredient.</span>
                                 </div>
                               )}
 
-                              {selectedProductsList.length > 0 && (
-                                <div className="space-y-3">
-                                  {selectedProductsList.map(prod => {
-                                    const quantity = productQuantities[prod.id] || 1;
-                                    return (
-                                      <div key={prod.id} className="border border-emerald-200 bg-emerald-50 rounded-xl p-3">
-                                        <div className="flex items-start justify-between gap-3">
-                                          <div className="flex items-start gap-3">
-                                            <div className="w-16 h-16 flex-shrink-0 bg-gray-100 rounded-lg overflow-hidden">
-                                              <img src={prod.imageUrl} alt={prod.name} className="w-full h-full object-cover" />
-                                            </div>
-                                            <div className="min-w-0">
-                                              <div className="font-semibold text-gray-900 text-sm mb-0.5">{prod.name}</div>
-                                              <div className="flex items-center gap-2 text-sm text-gray-700">
-                                                <span>{prod.grammage}</span>
-                                                <span className="font-bold text-[#2F855A]">{(prod.price / 100).toFixed(2)}€</span>
-                                              </div>
-                                            </div>
-                                          </div>
-                                          <button
-                                            onClick={() => handleRemoveProduct(ingredient.ingredientId, prod.id)}
-                                            className="px-3 py-1 bg-gray-100 text-gray-700 rounded-lg text-sm font-medium hover:bg-gray-200 transition-colors cursor-pointer whitespace-nowrap"
-                                          >
-                                            Remove
-                                          </button>
-                                        </div>
-
-                                        <div className="mt-3 flex items-center justify-between bg-gray-50 rounded-lg p-3">
-                                          <span className="text-sm font-medium text-gray-700">Quantity</span>
-                                          <div className="flex items-center gap-3">
-                                            <button
-                                              onClick={() => handleQuantityChange(prod.id, -1)}
-                                              disabled={quantity <= 1}
-                                              className="w-10 h-10 flex items-center justify-center bg-white border-2 border-gray-300 rounded-lg hover:border-[#2F855A] hover:bg-emerald-50 transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
-                                            >
-                                              <i className="ri-subtract-line text-xl text-gray-700"></i>
-                                            </button>
-                                            <span className="text-xl font-bold text-gray-900 min-w-[3rem] text-center">{quantity}</span>
-                                            <button
-                                              onClick={() => handleQuantityChange(prod.id, 1)}
-                                              className="w-10 h-10 flex items-center justify-center bg-white border-2 border-gray-300 rounded-lg hover:border-[#2F855A] hover:bg-emerald-50 transition-all cursor-pointer"
-                                            >
-                                              <i className="ri-add-line text-xl text-gray-700"></i>
-                                            </button>
-                                          </div>
+                              {selectedProduct && typeof selectedProduct === 'object' && (
+                                <div className="border border-emerald-200 bg-emerald-50 rounded-xl p-3">
+                                  <div className="flex items-start justify-between gap-3">
+                                    <div className="flex items-start gap-3">
+                                      <div className="w-16 h-16 flex-shrink-0 bg-gray-100 rounded-lg overflow-hidden">
+                                        <img src={selectedProduct.imageUrl} alt={selectedProduct.name} className="w-full h-full object-cover" />
+                                      </div>
+                                      <div className="min-w-0">
+                                        <div className="font-semibold text-gray-900 text-sm mb-0.5">{selectedProduct.name}</div>
+                                        <div className="flex items-center gap-2 text-sm text-gray-700">
+                                          <span>{selectedProduct.grammage}</span>
+                                          <span className="font-bold text-[#2F855A]">{(selectedProduct.price / 100).toFixed(2)}€</span>
                                         </div>
                                       </div>
-                                    );
-                                  })}
+                                    </div>
+                                    <button
+                                      onClick={() => handleRemoveProduct(ingredient.ingredientId, selectedProduct.id)}
+                                      className="px-3 py-1 bg-gray-100 text-gray-700 rounded-lg text-sm font-medium hover:bg-gray-200 transition-colors cursor-pointer whitespace-nowrap"
+                                    >
+                                      Remove
+                                    </button>
+                                  </div>
+
+                                  <div className="mt-3 flex items-center justify-between bg-gray-50 rounded-lg p-3">
+                                    <span className="text-sm font-medium text-gray-700">Quantity</span>
+                                    <div className="flex items-center gap-3">
+                                      <button
+                                        onClick={() => handleQuantityChange(selectedProduct.id, -1)}
+                                        disabled={quantity <= 1}
+                                        className="w-10 h-10 flex items-center justify-center bg-white border-2 border-gray-300 rounded-lg hover:border-[#2F855A] hover:bg-emerald-50 transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                                      >
+                                        <i className="ri-subtract-line text-xl text-gray-700"></i>
+                                      </button>
+                                      <span className="text-xl font-bold text-gray-900 min-w-[3rem] text-center">{quantity}</span>
+                                      <button
+                                        onClick={() => handleQuantityChange(selectedProduct.id, 1)}
+                                        className="w-10 h-10 flex items-center justify-center bg-white border-2 border-gray-300 rounded-lg hover:border-[#2F855A] hover:bg-emerald-50 transition-all cursor-pointer"
+                                      >
+                                        <i className="ri-add-line text-xl text-gray-700"></i>
+                                      </button>
+                                    </div>
+                                  </div>
                                 </div>
                               )}
 
@@ -977,14 +948,11 @@ export default function ShoppingFlowModal({
                         workingRecipe.richIngredients
                           .filter(ing => selectedIngredients.has(ing.ingredientId))
                           .reduce((total, ingredient) => {
-                            const selectedIds = selectedProducts[ingredient.ingredientId] || [];
-                            const products = ingredient.options
-                              .filter(opt => selectedIds.includes(opt.product.id))
-                              .map(opt => opt.product);
-                            return total + products.reduce((sub, prod) => {
-                              const quantity = productQuantities[prod.id] || 1;
-                              return sub + prod.price * quantity;
-                            }, 0);
+                            const selectedProduct = selectedProducts[ingredient.ingredientId];
+                            if (typeof selectedProduct !== 'object' || !selectedProduct.id) return total;
+                            
+                            const quantity = productQuantities[selectedProduct.id] || 1;
+                            return total + selectedProduct.price * quantity;
                           }, 0) / 100
                       ).toFixed(2)}€
                     </p>
@@ -1082,30 +1050,6 @@ export default function ShoppingFlowModal({
               {/* Available Options Tab */}
               {!showProductSearch && (
                 <>
-                  <div className="flex items-center gap-3 mb-4 text-sm text-gray-700">
-                    <label className="inline-flex items-center gap-2 cursor-pointer select-none">
-                      <input
-                        type="checkbox"
-                        checked={allowMultipleOptions}
-                        onChange={(e) => {
-                          const checked = e.target.checked;
-                          setAllowMultipleOptions(checked);
-                          if (!checked && moreOptionsIngredient) {
-                            const current = selectedProducts[moreOptionsIngredient.ingredientId] || [];
-                            if (current.length > 1) {
-                              setSelectedProducts(prev => ({
-                                ...prev,
-                                [moreOptionsIngredient.ingredientId]: [current[0]],
-                              }));
-                            }
-                          }
-                        }}
-                        className="w-4 h-4 accent-[#2F855A] cursor-pointer"
-                      />
-                      <span className="font-medium">Select multiple options</span>
-                    </label>
-                  </div>
-
                   <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 mb-4 flex items-start gap-3">
                     <i className="ri-information-line text-blue-600 text-lg flex-shrink-0 mt-0.5"></i>
                     <div className="text-sm text-blue-900">
@@ -1116,12 +1060,17 @@ export default function ShoppingFlowModal({
 
                   <div className="space-y-3">
                     {moreOptionsIngredient.options.map((option) => {
-                      const selectedIds = selectedProducts[moreOptionsIngredient.ingredientId] || [];
-                      const isSelected = selectedIds.includes(option.product.id);
+                      const selected = selectedProducts[moreOptionsIngredient.ingredientId];
+                      const isSelected = typeof selected === 'object' && selected.id === option.product.id;
                       return (
                         <button
-                          key={option.product.id}
-                          onClick={() => handleSelectProduct(moreOptionsIngredient.ingredientId, option.product.id)}
+                          key={option.product.id ?? option.product.reweId}
+                          type="button"
+                          onClick={(e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            handleSelectProduct(moreOptionsIngredient.ingredientId, Number(option.product.reweId));
+                          }}
                           className={`w-full p-4 rounded-xl transition-all text-left border-2 ${
                             isSelected
                               ? 'border-[#2F855A] bg-emerald-50'
@@ -1152,6 +1101,7 @@ export default function ShoppingFlowModal({
 
                   <div className="flex gap-3 mt-6">
                     <button
+                      type="button"
                       onClick={handleResetToDefaults}
                       className="flex-1 py-3 bg-gray-100 text-gray-700 rounded-xl font-medium hover:bg-gray-200 transition-all cursor-pointer flex items-center justify-center gap-2"
                     >
@@ -1159,6 +1109,7 @@ export default function ShoppingFlowModal({
                       <span>Reset</span>
                     </button>
                     <button
+                      type="button"
                       onClick={handleCloseMoreOptions}
                       className="flex-1 py-3 bg-gradient-to-r from-[#2F855A] to-emerald-600 text-white rounded-xl font-semibold hover:from-[#276749] hover:to-emerald-700 transition-all shadow-lg cursor-pointer"
                     >
@@ -1193,40 +1144,20 @@ export default function ShoppingFlowModal({
                   </div>
 
                   {searchResults.length > 0 && (
-                    <div className="flex items-center gap-3 mb-4 text-sm text-gray-700">
-                      <label className="inline-flex items-center gap-2 cursor-pointer select-none">
-                        <input
-                          type="checkbox"
-                          checked={allowMultipleOptions}
-                          onChange={(e) => {
-                            const checked = e.target.checked;
-                            setAllowMultipleOptions(checked);
-                            if (!checked && moreOptionsIngredient) {
-                              const current = selectedProducts[moreOptionsIngredient.ingredientId] || [];
-                              if (current.length > 1) {
-                                setSelectedProducts(prev => ({
-                                  ...prev,
-                                  [moreOptionsIngredient.ingredientId]: [current[0]],
-                                }));
-                              }
-                            }
-                          }}
-                          className="w-4 h-4 accent-[#2F855A] cursor-pointer"
-                        />
-                        <span className="font-medium">Select multiple options</span>
-                      </label>
-                    </div>
-                  )}
-
-                  <div className="space-y-3 mb-4 max-h-[400px] overflow-y-auto">
-                    {searchResults.length > 0 ? (
-                      searchResults.map((product) => {
-                        const selectedIds = selectedProducts[moreOptionsIngredient.ingredientId] || [];
-                        const isSelected = selectedIds.includes(product.id);
+                    <div className="space-y-3 mb-4 max-h-[400px] overflow-y-auto">
+                      {searchResults.map((product) => {
+                        const selected = selectedProducts[moreOptionsIngredient.ingredientId];
+                        const productSelectionKey = Number((product as SearchProduct & { reweId?: number }).reweId ?? product.id);
+                        const isSelected = typeof selected === 'object' && selected.reweId === productSelectionKey;
                         return (
                           <button
                             key={product.id}
-                            onClick={() => handleSelectSearchProduct(product)}
+                            type="button"
+                            onClick={(e) => {
+                              e.preventDefault();
+                              e.stopPropagation();
+                              handleSelectSearchProduct(product);
+                            }}
                             className={`w-full p-4 rounded-xl transition-all text-left border-2 ${
                               isSelected
                                 ? 'border-[#2F855A] bg-emerald-50'
@@ -1252,19 +1183,9 @@ export default function ShoppingFlowModal({
                             </div>
                           </button>
                         );
-                      })
-                    ) : hasPerformedSearch && searchQuery.trim() ? (
-                      <div className="text-center py-8 text-gray-600">
-                        <i className="ri-search-line text-3xl mb-2"></i>
-                        <p>No products found. Try different keywords.</p>
-                      </div>
-                    ) : (
-                      <div className="text-center py-8 text-gray-600">
-                        <i className="ri-search-line text-3xl mb-2"></i>
-                        <p>Search for products by name or type</p>
-                      </div>
-                    )}
-                  </div>
+                      })}
+                    </div>
+                  )}
 
                   {searchTotalPages > 1 && (
                     <div className="flex gap-1 justify-center items-center mb-4">
@@ -1311,6 +1232,7 @@ export default function ShoppingFlowModal({
 
                   <div className="flex gap-3">
                     <button
+                      type="button"
                       onClick={handleResetToDefaults}
                       className="flex-1 py-3 bg-gray-100 text-gray-700 rounded-xl font-medium hover:bg-gray-200 transition-all cursor-pointer flex items-center justify-center gap-2"
                     >
@@ -1318,6 +1240,7 @@ export default function ShoppingFlowModal({
                       <span>Reset</span>
                     </button>
                     <button
+                      type="button"
                       onClick={handleCloseMoreOptions}
                       className="flex-1 py-3 bg-gradient-to-r from-[#2F855A] to-emerald-600 text-white rounded-xl font-semibold hover:from-[#276749] hover:to-emerald-700 transition-all shadow-lg cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
                     >

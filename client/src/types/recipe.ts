@@ -9,4 +9,4 @@ export interface UIRecipe extends RecipeRecommendation {
     richIngredients: IngredientGroup[] | null;
 }
 
-export type SelectedProducts = Record<number, Product | Product[] | 'already-have'>;
+export type SelectedProducts = Record<number, Product | 'already-have'>;

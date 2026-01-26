@@ -210,6 +210,17 @@ public class RecipeService {
             .map(CompletableFuture::join)
             .sorted(Comparator.comparing(IngredientGroup::ingredientName))
             .collect(Collectors.toList());
+
+        // Print matchings for debugging
+        for (IngredientGroup group : groups) {
+            log.info("Ingredient: {} ({}), Options: {}", 
+                group.ingredientName(), 
+                group.totalAmountNeeded(),
+                group.options().stream()
+                    .map(o -> String.format("%s (x%d, conf: %.2f)", o.product().getName(), o.quantityToBuy(), o.confidence()))
+                    .collect(Collectors.joining("; "))
+            );
+        }
         
         return new ShoppingListResponse(groups);
     }

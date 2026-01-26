@@ -311,18 +311,12 @@ export default function RecipeSwiper() {
     const isUpdate = recipesInShoppingList.has(recipe.id);
 
     const shoppingListElems: CartItem[] = [];
-    Object.entries(selectedProducts)
-      .filter(([, value]) => value !== 'already-have')
-      .forEach(([, value]) => {
-        if (Array.isArray(value)) {
-          value.forEach(prod => {
-            shoppingListElems.push({
-              product_id: prod.id,
-              quantity: productQuantities[prod.id] || 1,
-              recipe_id: recipe.id,
-            });
-          });
-        } else {
+    
+    // Iterate through richIngredients in order to maintain consistency
+    if (recipe.richIngredients) {
+      recipe.richIngredients.forEach((ingredient) => {
+        const value = selectedProducts[ingredient.ingredientId];
+        if (value && value !== 'already-have') {
           shoppingListElems.push({
             product_id: (value as Product).id,
             quantity: productQuantities[(value as Product).id] || 1,
@@ -330,6 +324,7 @@ export default function RecipeSwiper() {
           });
         }
       });
+    }
 
     // If recipe is being updated (already in list), delete old items first
     if (isUpdate) {

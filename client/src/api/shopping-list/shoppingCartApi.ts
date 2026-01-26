@@ -35,13 +35,14 @@ export interface ShoppingList {
 export const shoppingListApi = {
   addItemsToShoppingList: async (cartItems: CartItem[]): Promise<void[]> => {
     try {
+      console.log("[shopping-list] payload", cartItems);
       const response = await apiClient.post<void[]>(
         "/personalization/api/v1/user/add-to-list",
         cartItems,
       );
       return response.data;
     } catch (error) {
-      console.error("Failed to fetch recipe recommendations:", error);
+      console.error("Failed to add items to shopping list:", error);
       throw error;
     }
   },

@@ -251,16 +251,21 @@ export default function Profile() {
 
   const handleHistoryFlowComplete = async (recipe: UIRecipe, selectedProducts: SelectedProducts, productQuantities: Record<number, number>) => {
     // Add to shopping cart
-    const shoppingListElems = Object.entries(selectedProducts)
-      .filter(([_, product]) => product !== 'already-have')
-      .map(([_, product]) => {
-        const typedProduct = product as Product;
-        return {
-          product_id: typedProduct.id,
-          quantity: productQuantities[typedProduct.id] || 1,
-          recipe_id: recipe.id,
-        };
+    const shoppingListElems: CartItem[] = [];
+    
+    // Iterate through richIngredients in order to maintain consistency
+    if (recipe.richIngredients) {
+      recipe.richIngredients.forEach((ingredient) => {
+        const product = selectedProducts[ingredient.ingredientId];
+        if (product && product !== 'already-have') {
+          shoppingListElems.push({
+            product_id: (product as Product).id,
+            quantity: productQuantities[(product as Product).id] || 1,
+            recipe_id: recipe.id,
+          });
+        }
       });
+    }
 
     try {
       await shoppingListApi.addItemsToShoppingList(shoppingListElems);
