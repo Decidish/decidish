@@ -53,16 +53,7 @@ class TuneResponse(BaseModel):
     model_info: Dict[str, Any]
 
 
-class InteractionItem(BaseModel):
-    user_id: str
-    user_emb: FloatVec384
-    recipe_emb: FloatVec384
-    like: int  # 0/1
-
-
 class AdapterFinetuneRequest(BaseModel):
-    interactions: List[InteractionItem]
-
     epochs: int = 1  # can be set to whatever int, depends on how long you want to pretrain the model
     val_split: float = 0.1  # 0~0.5 for small batches
     max_batch_size: int = 2048
@@ -79,7 +70,7 @@ class AdapterFinetuneRequest(BaseModel):
 
 
 class AdapterFinetuneResponse(BaseModel):
-    users: List[UserEmbeddingItem]
+    updated_count: int
     train_metrics: Dict[str, float]
     val_metrics: Dict[str, float]
     model_info: Dict[str, Any]

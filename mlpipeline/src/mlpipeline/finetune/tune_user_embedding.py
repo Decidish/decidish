@@ -174,6 +174,10 @@ class ModelCache:
             "ckpt_mtime": self._ckpt_mtime,
             "loaded_at": self._loaded_at,
         }
+
+        if self._model is None:
+            raise RuntimeError("ModelCache internal error: model is None after loading")
+        
         return self._model, info
 
 

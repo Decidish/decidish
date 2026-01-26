@@ -12,6 +12,7 @@ from pathlib import Path
 from typing import List, Tuple, Dict, Optional
 from collections import defaultdict
 from contextlib import contextmanager
+from psycopg2.extras import execute_values
 
 # --- Internal Imports ---
 from mlpipeline.pretrain.model import UserEncoder, UserEncoderConfig
@@ -20,7 +21,7 @@ from mlpipeline.finetune.BCE_model import (
     BCEConfig, make_bce_loss, load_or_init, ensure_dir, atomic_save, batch_stats
 )
 from mlpipeline.api.schemas import (
-    UserItem, UserEmbeddingItem, InteractionItem,
+    UserItem, UserEmbeddingItem,
     AdapterFinetuneRequest, AdapterFinetuneResponse, DIM
 )
 
@@ -122,14 +123,19 @@ class InferenceService:
 
 class AdapterService:
     """
-    Handles fine-tuning logic.
-    Uses POSTGRES ADVISORY LOCKS for distributed coordination.
+    Handles fine-tuning logic for the User Adapter.
+    
+    Scalability Features:
+    1. Reads training data directly from DB using JOINs (avoids passing massive JSON payloads).
+    2. Updates User Embeddings in-place using Server-Side Cursors (avoids OOM on large user bases).
+    3. Uses Postgres Distributed Locks to ensure only one training job runs at a time per cluster.
     """
+
     def __init__(self):
         # Retrieve the connection string from environment
         self.db_url = os.getenv("DATABASE_BACKEND_CONNECTION_STRING", "")
         if not self.db_url:
-            # Fallback construction if full string isn't provided (based on your deploy.yml vars)
+            # Fallback construction
             user = os.getenv("POSTGRES_USER", "postgres")
             pwd = os.getenv("POSTGRES_PASSWORD", "password")
             host = os.getenv("POSTGRES_HOST", "db_backend")
@@ -149,11 +155,23 @@ class AdapterService:
         )
         self.model_cache = ModelCache(self.cfg)
 
+    @contextmanager
+    def _get_conn(self):
+        """Helper context manager to get a raw psycopg2 connection."""
+        conn = psycopg2.connect(self.db_url)
+        try:
+            yield conn
+        finally:
+            conn.close()
+
     def get_health(self):
         _, info = self.model_cache.get(reload_if_changed=True)
         return info
 
     def tune_online(self, batch: Dict, **kwargs):
+        """
+        Used for on-the-fly tuning during inference if needed.
+        """
         return compute_updated_user_embeddings(
             batch=batch,
             model_cache=self.model_cache,
@@ -165,17 +183,25 @@ class AdapterService:
         Executes the full fine-tuning loop protected by a Postgres Lock.
         """
         # --- CRITICAL SECTION START ---
-        # This blocks until any other server finishes training
+        # This blocks until any other server finishes training or times out
         with PostgresDistributedLock(self.db_url, self.lock_name):
             logger.info("Lock acquired. Starting training job.")
             
             try:
                 ensure_dir(self.cfg.ckpt_dir)
 
-                U, R, y = self._prepare_tensors(req.interactions)
-                tr_idx, val_idx = self._split_data(len(req.interactions), req.val_split)
+                # 1. FETCH STAGE: Read training data directly from DB
+                # This replaces the need to pass interactions in the request payload
+                logger.info("Fetching training interactions from DB...")
+                U, R, y = self._fetch_training_data_from_db(limit=req.max_batch_size)
+                
+                logger.info(f"Loaded {len(y)} interactions for training.")
 
+                # 2. TRAINING STAGE
+                tr_idx, val_idx = self._split_data(len(y), req.val_split)
                 bce_cfg = self._create_bce_config(req)
+                
+                # Load (Resume) or Init model
                 model, optimizer, load_info = load_or_init(self.cfg.ckpt_dir, bce_cfg)
                 criterion = make_bce_loss(bce_cfg)
 
@@ -184,15 +210,22 @@ class AdapterService:
                     req.epochs, U, R, y, tr_idx, val_idx
                 )
 
+                # 3. SAVE STAGE
                 tag = req.tag or f"api_{int(time.time())}"
                 self._save_artifacts(tag, req, bce_cfg, best_state, metrics, load_info)
 
+                # 4. UPDATE STAGE: In-place Database Update
+                # Load the best state found during training
                 model.load_state_dict(best_state, strict=False)
                 model.eval()
-                updated_users = self._recompute_users(model, req.interactions)
+                
+                logger.info("Starting in-place user embedding update...")
+                # Stream all users from DB, transform, and update back
+                updated_count = self._update_users_in_place(model, batch_size=2048)
 
                 return AdapterFinetuneResponse(
-                    users=updated_users,
+                    # Ensure your Pydantic schema supports these fields
+                    updated_count=updated_count,
                     train_metrics=metrics['train'],
                     val_metrics=metrics['val'],
                     model_info={
@@ -207,6 +240,124 @@ class AdapterService:
                 logger.error(f"Training failed: {traceback.format_exc()}")
                 raise e
         # --- CRITICAL SECTION END ---
+
+    def _fetch_training_data_from_db(self, limit: int = 50000):
+        """
+        Joins interactions with user and recipe embeddings.
+        Returns PyTorch tensors directly.
+        """
+        # Join interactions with Users and Recipes to get raw embeddings
+        query = """
+            SELECT 
+                u.embedding as user_emb,
+                r.embedding as recipe_emb,
+                uh.action as like_value
+            FROM user_history uh
+            JOIN user_embeddings u ON uh.user_id = u.id
+            JOIN recipe_embeddings r ON uh.recipe_id = r.id
+            WHERE u.embedding IS NOT NULL 
+              AND r.embedding IS NOT NULL
+            ORDER BY uh.created_at DESC
+            LIMIT %s;
+        """
+        
+        user_embs, recipe_embs, targets = [], [], []
+        
+        with self._get_conn() as conn:
+            with conn.cursor() as cur:
+                cur.execute(query, (limit,))
+                rows = cur.fetchall()
+                
+                for u_emb, r_emb, val in rows:
+                    if u_emb is None or r_emb is None: 
+                        continue # Safety check
+                    user_embs.append(u_emb)
+                    recipe_embs.append(r_emb)
+                    targets.append(val)
+
+        if not targets:
+            raise ValueError("No valid interactions found in database to train on.")
+
+        # Convert to Tensor directly on configured Device
+        U = torch.tensor(user_embs, dtype=torch.float32, device=self.cfg.device)
+        R = torch.tensor(recipe_embs, dtype=torch.float32, device=self.cfg.device)
+        y = torch.tensor(targets, dtype=torch.float32, device=self.cfg.device)
+        
+        return U, R, y
+
+    def _update_users_in_place(self, model, batch_size=1024) -> int:
+        """
+        Streams users from DB, applies adapter, and updates DB in batches.
+        Uses server-side cursors to handle millions of users safely.
+        """
+        # SQL to read all users with embeddings
+        read_sql = "SELECT id, embedding FROM user_embeddings WHERE embedding IS NOT NULL"
+        
+        # SQL to bulk update. 
+        # NOTE: Ensure 'embedding_adapted' column exists, or change to 'embedding' to overwrite.
+        write_sql = """
+            UPDATE user_embeddings AS t 
+            SET embedding = v.new_emb 
+            FROM (VALUES %s) AS v(id, new_emb) 
+            WHERE t.id = v.id
+        """
+
+        total_processed = 0
+        
+        with self._get_conn() as conn:
+            # IMPORTANT: name="..." creates a server-side cursor. 
+            # This prevents loading millions of rows into RAM.
+            with conn.cursor(name="user_stream_cursor") as read_cur:
+                read_cur.itersize = batch_size
+                read_cur.execute(read_sql)
+                
+                batch_ids = []
+                batch_embs = []
+                
+                while True:
+                    rows = read_cur.fetchmany(batch_size)
+                    if not rows:
+                        break
+                        
+                    for uid, emb in rows:
+                        batch_ids.append(uid)
+                        batch_embs.append(emb)
+
+                    if batch_ids:
+                        # 1. Process Batch on GPU
+                        with torch.no_grad():
+                            u_tensor = torch.tensor(batch_embs, dtype=torch.float32, device=self.cfg.device)
+                            u_adapted = model.user_adapter(u_tensor)
+                            u_norm = F.normalize(u_adapted, dim=-1)
+                            new_embs = u_norm.cpu().tolist()
+
+                        # 2. Prepare Data for Bulk Update
+                        update_data = list(zip(batch_ids, new_embs))
+
+                        # 3. Write Batch to DB using a separate cursor
+                        # We use a separate transaction block or cursor for writing to avoid messing up the read cursor
+                        with conn.cursor() as write_cur:
+                            execute_values(
+                                write_cur, 
+                                write_sql, 
+                                update_data, 
+                                template="(%s, %s::vector)"
+                            )
+                        # Commit the batch update
+                        conn.commit()
+                        
+                        total_processed += len(batch_ids)
+                        if total_processed % (batch_size * 10) == 0:
+                            logger.info(f"Updated {total_processed} users...")
+                        
+                        # Clear lists to free memory
+                        batch_ids = []
+                        batch_embs = []
+
+        logger.info(f"Completed updating {total_processed} users.")
+        return total_processed
+
+    # --- Helper Methods for Training Logic ---
 
     def _create_bce_config(self, req: AdapterFinetuneRequest) -> BCEConfig:
         return BCEConfig(
@@ -224,12 +375,6 @@ class AdapterService:
             log_every=0,
             device=self.cfg.device,
         )
-
-    def _prepare_tensors(self, interactions: List[InteractionItem]):
-        U = torch.tensor([it.user_emb for it in interactions], dtype=torch.float32, device=self.cfg.device)
-        R = torch.tensor([it.recipe_emb for it in interactions], dtype=torch.float32, device=self.cfg.device)
-        y = torch.tensor([it.like for it in interactions], dtype=torch.float32, device=self.cfg.device)
-        return U, R, y
 
     def _split_data(self, n: int, val_split: float):
         if n <= 1:
@@ -256,7 +401,8 @@ class AdapterService:
         last_train_stats = {}
         last_val_stats = {}
 
-        for ep in range(epochs):
+        for _ in range(epochs):
+            # Training Step
             model.train()
             out_tr = model(U[tr_idx], R[tr_idx])
             loss_tr = criterion(out_tr["logits"], y[tr_idx])
@@ -270,6 +416,7 @@ class AdapterService:
             last_train_loss = float(loss_tr.detach().cpu())
             last_train_stats = batch_stats(out_tr["cos"].detach(), y[tr_idx].detach())
 
+            # Validation Step
             model.eval()
             with torch.no_grad():
                 out_v = model(U[val_idx], R[val_idx])
@@ -277,10 +424,12 @@ class AdapterService:
                 last_val_loss = float(loss_v)
                 last_val_stats = batch_stats(out_v["cos"].detach(), y[val_idx].detach())
 
+            # Save Best State
             if loss_v < best_val_loss:
                 best_val_loss = loss_v
                 best_state = {k: v.detach().cpu().clone() for k, v in model.state_dict().items()}
 
+        # Fallback if training exploded
         if best_state is None:
             best_state = {k: v.detach().cpu().clone() for k, v in model.state_dict().items()}
             best_val_loss = last_val_loss
@@ -315,22 +464,5 @@ class AdapterService:
         
         if req.save_best_as_last:
             atomic_save(payload, last_path)
+            # Reload cache if we just overwrote the file it's watching
             self.model_cache.get(reload_if_changed=True)
-
-    def _recompute_users(self, model, interactions):
-        model.eval()
-        device = self.cfg.device
-        per_user = defaultdict(list)
-        with torch.no_grad():
-            for it in interactions:
-                u = torch.tensor(it.user_emb, dtype=torch.float32, device=device).unsqueeze(0)
-                u_adapted = model.user_adapter(u)
-                u_norm = F.normalize(u_adapted, dim=-1).squeeze(0).cpu()
-                per_user[it.user_id].append(u_norm)
-
-        results = []
-        for uid, vecs in per_user.items():
-            m = torch.stack(vecs, dim=0).mean(dim=0)
-            m = F.normalize(m, dim=-1)
-            results.append(UserEmbeddingItem(user_id=uid, user_embedding=m.tolist()))
-        return results

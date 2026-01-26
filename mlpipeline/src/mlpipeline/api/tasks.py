@@ -88,6 +88,7 @@ def run_etl_background_task(job_id: int):
         raise RuntimeError("tasks runner not initialized; call init(...) from app startup")
     return runner.run_etl_background_task(job_id)
 
+@DeprecationWarning
 def run_user_embedding_task(users: List[UserItem], device: torch.device, model: torch.nn.Module):
     """Wrapper that delegates to the registered `Tasks` instance."""
     x = np.asarray([u.user_vector for u in users], dtype=np.float32)

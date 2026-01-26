@@ -1,6 +1,8 @@
-import asyncio
 import logging
+import os
 from typing import Generator, Optional
+
+import torch
 
 from mlpipeline.embedding.embedder import TextEmbedder
 import psycopg2
@@ -10,6 +12,7 @@ from mlpipeline.config.app_config import AppConfig
 from mlpipeline.etl.models import BaseRecipe, Ingredient, ProcessedRecipe, RawRecipe
 from mlpipeline.ingredient_parser.parser import IngredientParser
 from mlpipeline.scraper.recipe_scraper import scrape_recipe
+from mlpipeline.pretrain.rewrite_recipe_embedding import RecipeHeadConfig, load_recipe_head
 
 
 class Pipeline:
@@ -18,6 +21,14 @@ class Pipeline:
         self.parser = parser
         self.embedder = embedder
         self.config = config
+        self.device = "cuda" if torch.cuda.is_available() else "cpu"
+        CKPT_PATH = os.getenv("ADAPTER_CKPT_DIR", "")
+
+        if CKPT_PATH == "":
+            raise Exception("ADAPTER_CKPT_DIR path not set")
+
+        cfg = RecipeHeadConfig(output_dim=384, hidden_dim=512, num_layers=3, dropout=0.1)
+        self.mlp_model = load_recipe_head(str(CKPT_PATH), cfg, device=self.device)
         # Register pgvector support with psycopg2
         register_vector(conn)
 
@@ -274,18 +285,41 @@ class Pipeline:
         texts = [item['text'] for item in recipe_data]
 
         try:
-            embeddings = self.embedder.embed_recipes(texts)
+            # base embeddings
+            base_embeddings = self.embedder.embed_recipes(texts)
 
-            # Convert numpy arrays to lists for pgvector
-            # Format: [(id, [vector_values]), (id, [vector_values]), ...]
-            insert_data = [(id, embedding.tolist()) for id, embedding in zip(ids, embeddings)]
+            # Convert numpy -> torch tensor
+            with torch.no_grad():
+                x_tensor = torch.tensor(base_embeddings, dtype=torch.float32, device=self.device)
+                
+                # Pass through the MLP model
+                mlp_output = self.mlp_model(x_tensor)
+                
+                # Convert back to list for database insertion
+                mlp_embeddings = mlp_output.detach().cpu().tolist()
+
+            # Format: [(id, [base_vector], [mlp_vector]), ...]
+            insert_data = [
+                (id, mlp) 
+                for id, mlp in zip(ids, mlp_embeddings)
+            ]
 
             with self.conn.cursor() as cursor:
-                query = "INSERT INTO recipe_embeddings (recipe_id, embedding) VALUES (%s, %s::vector) ON CONFLICT (recipe_id) DO NOTHING;"
+                # Update query to include embedding_mlp
+                query = """
+                    INSERT INTO recipe_embeddings (recipe_id, embedding) 
+                    VALUES (%s, %s::vector, %s::vector) 
+                    ON CONFLICT (recipe_id) DO NOTHING
+                """
+                # Note: Changed 'DO NOTHING' to 'DO UPDATE' so re-running this updates old values.
+                # If you prefer keeping old values, switch back to DO NOTHING.
+                
                 cursor.executemany(query, insert_data)
+                self.conn.commit()
             
         except Exception as e:
             logging.error(f"Failed to insert embedding batch: {e}")
+            self.conn.rollback() # Good practice to rollback on error
             raise e
 
     async def process_recipe_batch(self, batch: list[str]) -> list[dict]:
