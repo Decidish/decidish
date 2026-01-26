@@ -1,13 +1,12 @@
 package service
 
 import (
+	"context"
 	"database/sql"
 	"fmt"
 	"personalization/internal/client"
 	"strconv"
 	"strings"
-
-	"github.com/gin-gonic/gin"
 )
 
 type TuneRequest struct {
@@ -57,7 +56,7 @@ type TuneResponse struct {
 	ModelInfo      map[string]any `json:"model_info"`
 }
 
-func UpdateNewUserEmbedding(ctx *gin.Context, db *sql.DB, MLClient *client.Client, embedderServerUrl string, actionId int, userId string, recipeId string, action bool) error {
+func UpdateNewUserEmbedding(ctx context.Context, db *sql.DB, MLClient *client.Client, embedderServerUrl string, actionId int, userId string, recipeId string, action bool) error {
 	var userEmbStr, recipeEmbStr string
 
 	tx , err := db.Begin()
@@ -96,7 +95,7 @@ func UpdateNewUserEmbedding(ctx *gin.Context, db *sql.DB, MLClient *client.Clien
 
 	var mlResp TuneResponse
 
-	status, err := MLClient.PostJSON(ctx.Request.Context(), fmt.Sprintf("%s/recipes/add", embedderServerUrl), req, &mlResp, nil)
+	status, err := MLClient.PostJSON(ctx, fmt.Sprintf("%s/recipes/add", embedderServerUrl), req, &mlResp, nil)
 	if err != nil {
 		return err
 	}

@@ -1,6 +1,7 @@
 package service
 
 import (
+	"context"
 	"database/sql"
 	"errors"
 	"fmt"
@@ -252,7 +253,7 @@ func (service UserService) RecordUserAction(ctx *gin.Context) {
 
 		for i := 0; i < maxRetries; i++ {
 			// Attempt the update
-			err := UpdateNewUserEmbedding(ctx, service.DB, service.MLClient, service.EmbedderServerUrl, id, userId, recipeIDStr, action)
+			err := UpdateNewUserEmbedding(context.Background(), service.DB, service.MLClient, service.EmbedderServerUrl, id, userId, recipeIDStr, action)
 			if err == nil {
 				return
 			}
