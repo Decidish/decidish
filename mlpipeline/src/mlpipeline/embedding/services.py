@@ -155,10 +155,11 @@ class AdapterService:
         )
         self.model_cache = ModelCache(self.cfg)
 
-    @contextmanager
+    `@contextmanager`
     def _get_conn(self):
         """Helper context manager to get a raw psycopg2 connection."""
         conn = psycopg2.connect(self.db_url)
+        register_vector(conn)
         try:
             yield conn
         finally:
