@@ -59,8 +59,11 @@ class Pipeline:
         try:
             with self.conn.cursor() as cursor:
                 insert_query = """
-                INSERT INTO recipes (title, description, instructions, cook_time, prep_time, total_time, image, rating, serving_size, calories, yields)
-                VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)
+                INSERT INTO recipes (title, description, 
+                    instructions, cook_time, prep_time, total_time, 
+                    image, rating, serving_size, calories, carbohydrate_content, cholesterol_content, fiber_content, protein_content, saturated_fat_content, sodium_content, sugar_content, fat_content, unsaturated_fat_content,
+                    yields)
+                VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)
                 ON CONFLICT (title) DO NOTHING
                 RETURNING id;
                 """
@@ -76,6 +79,15 @@ class Pipeline:
                     recipe_data.ratings,
                     recipe_data.nutrients.serving_size,
                     recipe_data.nutrients.calories,
+                    recipe_data.nutrients.carbohydrate_content,
+                    recipe_data.nutrients.cholesterol_content,
+                    recipe_data.nutrients.fiber_content,
+                    recipe_data.nutrients.protein_content,
+                    recipe_data.nutrients.saturated_fat_content,
+                    recipe_data.nutrients.sodium_content,
+                    recipe_data.nutrients.sugar_content,
+                    recipe_data.nutrients.fat_content,
+                    recipe_data.nutrients.unsaturated_fat_content,
                     recipe_data.yields
                 ))
                 recipe_id = cursor.fetchone()
@@ -93,6 +105,9 @@ class Pipeline:
                 # Insert categories
                 if recipe_data.category:
                     self.process_categories(recipe_id, recipe_data.category.split(","), cursor)
+
+                if recipe_data.cuisine:
+                    self.process_cuisines(recipe_id, recipe_data.cuisine.split(","), cursor)
 
                 if isinstance(recipe_data, ProcessedRecipe):
                     for ingredient in recipe_data.ingredients:
@@ -159,6 +174,35 @@ class Pipeline:
                 cursor.execute("""
                     INSERT INTO recipe_categories (recipe_id, category_id) VALUES (%s, %s) ON CONFLICT DO NOTHING;
                 """, (recipe_id, category_id))
+        except Exception as err:
+            print(f"Error processing categories: {err}")
+            raise err
+        
+    @staticmethod
+    def process_cuisines(recipe_id: int, cuisines: list[str], cursor):
+        try:
+            for cuisine in cuisines:
+                cuisine = cuisine.strip()
+                if cuisine == "":
+                    continue
+                # Insert category and get category_id
+                cursor.execute("""
+                    WITH ins AS (
+                        INSERT INTO cuisine (name) VALUES (%s)
+                        ON CONFLICT (name) DO NOTHING
+                        RETURNING id
+                    )
+                    SELECT id FROM ins
+                    UNION ALL
+                    SELECT id FROM cuisine WHERE name = %s
+                    LIMIT 1;
+                """, (cuisine,cuisine))
+                cuisine_id = cursor.fetchone()[0]
+
+                # Insert into recipe_categories
+                cursor.execute("""
+                    INSERT INTO recipe_cuisine (recipe_id, cuisine_id) VALUES (%s, %s) ON CONFLICT DO NOTHING;
+                """, (recipe_id, cuisine_id))
         except Exception as err:
             print(f"Error processing categories: {err}")
             raise err

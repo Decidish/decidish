@@ -15,6 +15,11 @@ CREATE TABLE IF NOT EXISTS ingredients (
     name VARCHAR(255) UNIQUE NOT NULL
 );
 
+CREATE TABLE IF NOT EXISTS cuisine (
+    id SERIAL PRIMARY KEY,
+    name VARCHAR(100) UNIQUE NOT NULL
+);
+
 CREATE TABLE recipes (
     id SERIAL PRIMARY KEY,
     title TEXT UNIQUE,
@@ -27,6 +32,15 @@ CREATE TABLE recipes (
     rating FLOAT,
     serving_size VARCHAR(50),
     calories VARCHAR(10),
+    carbohydrate_content VARCHAR(10),
+    cholesterol_content VARCHAR(10),
+    fiber_content VARCHAR(10),
+    protein_content VARCHAR(10),
+    saturated_fat_content VARCHAR(10),
+    sodium_content VARCHAR(10),
+    sugar_content VARCHAR(10),
+    fat_content VARCHAR(10),
+    unsaturated_fat_content VARCHAR(10),
     yields VARCHAR(20)
 );
 
@@ -38,7 +52,14 @@ VALUES (
   '', 
   0, 
   0, 
-  1,'',0,0,0,0
+  1,'',0,0,0,0,0,0,0,0,0
+);
+
+CREATE TABLE IF NOT EXISTS recipe_cuisine (
+    recipe_id INT references recipes(id) ON DELETE CASCADE,
+    cuisine_id INT references cuisine(id),
+
+    PRIMARY KEY (recipe_id, cuisine_id)
 );
 
 CREATE TABLE recipe_keywords (

@@ -27,6 +27,7 @@ class BaseRecipe(BaseModel, Generic[T]):
     category: str | None = None
     cook_time: int | None = None
     description: str
+    cuisine: str | None = None
     image: str
     ingredients: List[T]
     instructions: str
