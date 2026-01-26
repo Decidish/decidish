@@ -181,14 +181,14 @@ class Pipeline:
             print(f"Error processing categories: {err}")
             raise err
         
-    @staticmethod
+    `@staticmethod`
     def process_cuisines(recipe_id: int, cuisines: list[str], cursor):
         try:
             for cuisine in cuisines:
                 cuisine = cuisine.strip()
                 if cuisine == "":
                     continue
-                # Insert category and get category_id
+                # Insert cuisine and get cuisine_id
                 cursor.execute("""
                     WITH ins AS (
                         INSERT INTO cuisine (name) VALUES (%s)
@@ -202,12 +202,12 @@ class Pipeline:
                 """, (cuisine,cuisine))
                 cuisine_id = cursor.fetchone()[0]
 
-                # Insert into recipe_categories
+                # Insert into recipe_cuisine
                 cursor.execute("""
                     INSERT INTO recipe_cuisine (recipe_id, cuisine_id) VALUES (%s, %s) ON CONFLICT DO NOTHING;
                 """, (recipe_id, cuisine_id))
         except Exception as err:
-            print(f"Error processing categories: {err}")
+            print(f"Error processing cuisines: {err}")
             raise err
     
     async def process_ingredients(self, recipe_id: int, ingredients: list[str], cursor):
