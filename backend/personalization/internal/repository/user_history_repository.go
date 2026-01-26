@@ -117,7 +117,7 @@ func GetUserHistory(db *sql.DB, userId string) ([]UserHistory, error) {
 	}
 	defer rows.Close()
 
-	var histories []UserHistory
+	histories := []UserHistory{}
 	for rows.Next() {
 		var h UserHistory
 		var r Recipe
