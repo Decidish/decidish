@@ -254,7 +254,7 @@ if __name__ == "__main__":
 
     res = train_one_week(
         train_loader=dummy_loader(),
-        ckpt_dir="./ckpts_weekly_user_adapter",
+        ckpt_dir=os.getenv("ADAPTER_CKPT_DIR", "./ckpts_weekly_user_adapter"),
         cfg=cfg,
         week_tag="2026W03",
     )

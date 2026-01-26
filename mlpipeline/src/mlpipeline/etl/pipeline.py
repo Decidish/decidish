@@ -22,23 +22,17 @@ class Pipeline:
         self.embedder = embedder
         self.config = config
         self.device = "cuda" if torch.cuda.is_available() else "cpu"
-        CKPT_PATH = os.getenv("ADAPTER_CKPT_DIR", "")
-
-        if CKPT_PATH == "":
-            raise Exception("ADAPTER_CKPT_DIR path not set")
-
         cfg = RecipeHeadConfig(output_dim=384, hidden_dim=512, num_layers=3, dropout=0.1)
-        self.mlp_model = load_recipe_head(str(CKPT_PATH), cfg, device=self.device)
+        self.mlp_model = load_recipe_head('src/mlpipeline/pretrain/checkpoints/recipe_encoder.pt', cfg, device=self.device)
         # Register pgvector support with psycopg2
         register_vector(conn)
 
     async def scrape_process_recipe(self, recipe_url: str, job_id: int):
         try:
             self.set_running_job_status(job_id)
+            self.conn.commit()
 
             recipe_json = scrape_recipe(recipe_url)
-            
-            print(recipe_json, flush=True)
             recipe_data = RawRecipe.model_validate_json(recipe_json)
             recipe_id, err = await self.process_recipe(recipe_data)
 
@@ -53,9 +47,12 @@ class Pipeline:
                 raise err
             
             self.set_done_job_status(job_id)
+            self.conn.commit()
         except Exception as e:
             logging.error(f"ETL Job {job_id} failed: {e}")
+            self.conn.rollback()
             self.set_error_job_status(job_id)
+            self.conn.commit()
             raise e
 
     async def process_recipe(self, recipe_data: BaseRecipe) -> tuple[int, Optional[Exception]]:
@@ -219,7 +216,7 @@ class Pipeline:
         Sets the job status to 'processing' in the database.
         """
         with self.conn.cursor() as cursor:
-            cursor.execute("UPDATE jobs SET status = 'processing' WHERE id = %s;", (job_id,))
+            cursor.execute("UPDATE jobs SET status = 'processing', updated_at = NOW() WHERE id = %s;", (job_id,))
             self.conn.commit()
     
     def set_done_job_status(self, job_id: int):
@@ -227,7 +224,7 @@ class Pipeline:
         Sets the job status to 'success' in the database.
         """
         with self.conn.cursor() as cursor:
-            cursor.execute("UPDATE jobs SET status = 'success' WHERE id = %s;", (job_id,))
+            cursor.execute("UPDATE jobs SET status = 'success', updated_at = NOW() WHERE id = %s;", (job_id,))
             self.conn.commit()
 
     ############################################################################
@@ -252,6 +249,7 @@ class Pipeline:
         try:
             logging.info(f"Starting ETL Job {job_id}...")
             self.set_running_job_status(job_id)
+            self.conn.commit()
 
             # 1. Estimate total (e.g., counting lines in file)
             # For efficiency, you can hardcode this or run a quick line count
@@ -270,12 +268,15 @@ class Pipeline:
                 # 3. Update Progress
                 processed_count += len(batch)
                 self.update_job_progress(job_id, processed_count, total_recipes)
-
+                self.conn.commit()
             self.set_done_job_status(job_id)
+            self.conn.commit()
             logging.info(f"Finished ETL Job {job_id}...")
         except Exception as e:
             logging.error(f"ETL Job {job_id} failed: {e}")
+            self.conn.rollback()
             self.set_error_job_status(job_id)
+            self.conn.commit()
             raise e
 
     def create_recipe_embeddings_batch(self, recipe_data: list[dict]):
@@ -308,7 +309,7 @@ class Pipeline:
                 # Update query to include embedding_mlp
                 query = """
                     INSERT INTO recipe_embeddings (recipe_id, embedding) 
-                    VALUES (%s, %s::vector, %s::vector) 
+                    VALUES (%s, %s::vector) 
                     ON CONFLICT (recipe_id) DO NOTHING
                 """
                 # Note: Changed 'DO NOTHING' to 'DO UPDATE' so re-running this updates old values.

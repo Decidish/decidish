@@ -1,9 +1,8 @@
 import os
-from pydantic import BaseModel, Field, conlist
-from typing import Annotated, Any, Dict, List, Optional
+from pydantic import BaseModel
+from typing import Any, Dict, List, Optional
 
 DIM = int(os.getenv("EMB_DIM", "384"))
-FloatVec384 = Annotated[List[float], Field(min_length=DIM, max_length=DIM)]
 
 class AddRecipeRequest(BaseModel):
     recipe_url: str
@@ -28,13 +27,13 @@ class EncodeBatchResponse(BaseModel):
     embedding_dim: int
 
 class TuneRequest(BaseModel):
-    user_emb: List[FloatVec384]
-    recipe_emb: List[FloatVec384]
-    like: List[int]
+    user_emb: List[float]
+    recipe_emb: List[float]
+    like: int
 
     # pipeline switches
     use_weekly_user_adapter: bool = True
-    do_online_bce: bool = True
+    do_online_bce: bool = False
 
     # online BCE knobs (optional)
     bce_steps: int = 5
@@ -49,7 +48,6 @@ class TuneRequest(BaseModel):
 
 class TuneResponse(BaseModel):
     updated_user_emb: List[List[float]]
-    metrics: Dict[str, float]
     model_info: Dict[str, Any]
 
 

@@ -1,0 +1,27 @@
+meta {
+  name: FinetuneAdapter
+  type: http
+  seq: 5
+}
+
+post {
+  url: http://localhost:8000/finetune_user_adapter
+  body: json
+  auth: inherit
+}
+
+body:json {
+  {
+    "epochs": 5,
+    "val_split": 0.1,
+    "max_batch_size": 50000,
+    "lr_user": 0.001,
+    "save_best_as_last": true,
+    "tag": "cron_weekly_finetune"
+  }
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}

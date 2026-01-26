@@ -86,13 +86,11 @@ def tune(req: TuneRequest):
         raise HTTPException(status_code=400, detail="Empty batch")
     if B > req.max_batch_size:
         raise HTTPException(status_code=400, detail=f"Batch too large: {B} > {req.max_batch_size}")
-    if len(req.recipe_emb) != B or len(req.like) != B:
-        raise HTTPException(status_code=400, detail="Mismatched lengths for user_emb, recipe_emb, and like")
 
     batch = {
-        "user_emb": req.user_emb,
-        "recipe_emb": req.recipe_emb,
-        "like": req.like,
+        "user_emb": [req.user_emb],
+        "recipe_emb": [req.recipe_emb],
+        "like": [req.like],
     }
 
     try:
@@ -108,6 +106,8 @@ def tune(req: TuneRequest):
             bce_clip_grad_norm=req.bce_clip_grad_norm,
             bce_pos_weight=req.bce_pos_weight,
         )
+
+        print(result)
         return result
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))

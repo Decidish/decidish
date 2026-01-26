@@ -52,7 +52,7 @@ class IngredientParser:
                     info="FAILED_TO_PARSE"
                 )
 
-        results = asyncio.gather(*[parse_one(raw) for raw in raw_ingredients])
+        results = await asyncio.gather(*[parse_one(raw) for raw in raw_ingredients])
         return list(results)
 
     async def parse_ingredient(self, raw_ingredient: str) -> Ingredient:

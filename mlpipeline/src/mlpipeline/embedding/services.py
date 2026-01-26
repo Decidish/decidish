@@ -257,7 +257,7 @@ class AdapterService:
             JOIN recipe_embeddings r ON uh.recipe_id = r.id
             WHERE u.embedding IS NOT NULL 
               AND r.embedding IS NOT NULL
-            ORDER BY uh.created_at DESC
+            ORDER BY uh.action_timestamp DESC
             LIMIT %s;
         """
         
