@@ -106,8 +106,6 @@ def tune(req: TuneRequest):
             bce_clip_grad_norm=req.bce_clip_grad_norm,
             bce_pos_weight=req.bce_pos_weight,
         )
-
-        print(result)
         return result
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
