@@ -304,10 +304,10 @@ class AdapterService:
 
         total_processed = 0
         
-        with self._get_conn() as conn:
+        with self._get_conn() as read_conn, self._get_conn() as write_conn:
             # IMPORTANT: name="..." creates a server-side cursor. 
             # This prevents loading millions of rows into RAM.
-            with conn.cursor(name="user_stream_cursor") as read_cur:
+            with read_conn.cursor(name="user_stream_cursor") as read_cur:
                 read_cur.itersize = batch_size
                 read_cur.execute(read_sql)
                 
@@ -336,7 +336,7 @@ class AdapterService:
 
                         # 3. Write Batch to DB using a separate cursor
                         # We use a separate transaction block or cursor for writing to avoid messing up the read cursor
-                        with conn.cursor() as write_cur:
+                        with write_conn.cursor() as write_cur:
                             execute_values(
                                 write_cur, 
                                 write_sql, 
@@ -344,8 +344,7 @@ class AdapterService:
                                 template="(%s, %s::vector)"
                             )
                         # Commit the batch update
-                        conn.commit()
-                        
+                        write_conn.commit()
                         total_processed += len(batch_ids)
                         if total_processed % (batch_size * 10) == 0:
                             logger.info(f"Updated {total_processed} users...")
