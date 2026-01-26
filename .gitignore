@@ -16,4 +16,5 @@ node_modules/
 **/temp/**
 **/chronicle/logs
 **/temp
-**/urlset*.xml
+**/urlset*.xml**/urlset*.xml
+**/temp/**
