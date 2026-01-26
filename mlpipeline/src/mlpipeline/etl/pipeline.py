@@ -61,9 +61,12 @@ class Pipeline:
                 insert_query = """
                 INSERT INTO recipes (title, description, 
                     instructions, cook_time, prep_time, total_time, 
-                    image, rating, serving_size, calories, carbohydrate_content, cholesterol_content, fiber_content, protein_content, saturated_fat_content, sodium_content, sugar_content, fat_content, unsaturated_fat_content,
+                    image, rating, serving_size, calories, carbohydrate_content, 
+                    cholesterol_content, fiber_content, protein_content, 
+                    saturated_fat_content, sodium_content, 
+                    sugar_content, fat_content, unsaturated_fat_content,
                     yields)
-                VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)
+                VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)
                 ON CONFLICT (title) DO NOTHING
                 RETURNING id;
                 """

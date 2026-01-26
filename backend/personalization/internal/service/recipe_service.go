@@ -220,12 +220,6 @@ func (service RecipeService) AddRecipe(ctx *gin.Context) {
 		return
 	}
 
-	err = repository.CreateLog(service.DB, "url", body.RecipeUrl, "success", jobId)
-	if err != nil {
-		log.Println("Failed to write import log:", err)
-		// Don't fail the request just because logging failed
-	}
-
 	// Return job id and basic info about the embedding response
 	ctx.JSON(http.StatusOK, gin.H{
 		"job_id":   jobId,

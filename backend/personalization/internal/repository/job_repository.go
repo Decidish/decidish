@@ -18,12 +18,10 @@ type Job struct {
 
 type ImportLog struct {
 	ID           int       `json:"id"`
-	Type         string    `json:"source"` // 'url' or 'file'
-	Identifier   string    `json:"name"`   // The URL or Filename
+	Name         string    `json:"name"`   // The URL or Filename
 	Status       string    `json:"status"`
 	RecipeName   string    `json:"recipe_name"`
-	CreatedAt    time.Time `json:"timestamp"`
-	ErrorMessage string    `json:"error,omitempty"`
+	CreatedAt    time.Time `json:"created_at"`
 }
 
 func CreateJob(tx *sql.Tx, name string, status string) (int, error) {
@@ -84,20 +82,11 @@ func GetReweJobs(db *sql.DB) ([]Job, error) {
 	return jobs, nil
 }
 
-func CreateLog(db *sql.DB, logType, identifier, status string, jobId int) error {
-    _, err := db.Exec(`
-        INSERT INTO import_logs (type, identifier, status, job_id, created_at)
-        VALUES ($1, $2, $3, $4, NOW())`,
-        logType, identifier, status, jobId,
-    )
-    return err
-}
-
 func GetUrlImportHistory(db *sql.DB) ([]ImportLog, error) {
     rows, err := db.Query(`
-        SELECT id, type, identifier, status, created_at 
-        FROM import_logs 
-        WHERE type = 'url'
+        SELECT id, name, status, created_at 
+        FROM jobs 
+        WHERE name = 'add_recipe'
         ORDER BY created_at DESC LIMIT 50`)
     if err != nil {
         return nil, err
@@ -107,9 +96,10 @@ func GetUrlImportHistory(db *sql.DB) ([]ImportLog, error) {
     var logs []ImportLog
     for rows.Next() {
         var l ImportLog
-        if err := rows.Scan(&l.ID, &l.Type, &l.Identifier, &l.Status, &l.CreatedAt); err != nil {
+        if err := rows.Scan(&l.ID, &l.Name, &l.Status, &l.CreatedAt); err != nil {
             return nil, err
         }
+		// TODO: Retrieve the recipe name from the jobs as well if it is of type add_recipe
         logs = append(logs, l)
     }
     return logs, nil
