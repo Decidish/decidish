@@ -74,7 +74,7 @@ func UpdateNewUserEmbedding(ctx *gin.Context, db *sql.DB, MLClient *client.Clien
         JOIN user_embeddings u ON uh.user_id = u.user_id
         JOIN recipe_embeddings r ON uh.recipe_id = r.id
         WHERE uh.id = $1
-    `, actionId).Scan(&userEmbStr, &recipeEmbStr, &action)
+    `, actionId).Scan(&userEmbStr, &recipeEmbStr)
 
 	if err != nil {
 		return err
