@@ -263,7 +263,7 @@ export default function SearchProducts() {
               <input
                 type="text"
                 disabled={isMarketLoading}
-                placeholder={isMarketLoading ? "Loading market..." : "Search by recipe name, ingredient, or cuisine..."}
+                placeholder={isMarketLoading ? "Loading market..." : "Search products"}
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 onKeyPress={handleKeyPress}
