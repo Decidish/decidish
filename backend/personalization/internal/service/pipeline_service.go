@@ -12,9 +12,9 @@ import (
 
 type TuneRequest struct {
 	// Data Payloads
-	UserEmb   [][]float64 `json:"user_emb"`
-	RecipeEmb [][]float64 `json:"recipe_emb"`
-	Like      []int       `json:"like"`
+	UserEmb   []float64 `json:"user_emb"`
+	RecipeEmb []float64 `json:"recipe_emb"`
+	Like      int       `json:"like"`
 
 	// Pipeline Switches
 	// NOTE: In Go, bool defaults to false. 
@@ -36,11 +36,11 @@ type TuneRequest struct {
 	MaxBatchSize int `json:"max_batch_size,omitempty"`
 }
 
-func NewDefaultTuneRequest(userEmb, recipeEmb [][]float64, likes []int) TuneRequest {
+func NewDefaultTuneRequest(userEmb, recipeEmb []float64, like int) TuneRequest {
 	return TuneRequest{
 		UserEmb:              userEmb,
 		RecipeEmb:            recipeEmb,
-		Like:                 likes,
+		Like:                 like,
 		UseWeeklyUserAdapter: true,
 		DoOnlineBCE:          false,
 		BCESteps:             5,
@@ -54,7 +54,6 @@ func NewDefaultTuneRequest(userEmb, recipeEmb [][]float64, likes []int) TuneRequ
 
 type TuneResponse struct {
 	UpdatedUserEmb [][]float64    `json:"updated_user_emb"`
-	Metrics        map[string]float64 `json:"metrics"`
 	ModelInfo      map[string]any `json:"model_info"`
 }
 
@@ -90,9 +89,9 @@ func UpdateNewUserEmbedding(ctx *gin.Context, db *sql.DB, MLClient *client.Clien
 	var req TuneRequest
 
 	if action {
-		req = NewDefaultTuneRequest([][]float64{userVec}, [][]float64{recipeVec}, []int{1})
+		req = NewDefaultTuneRequest(userVec, recipeVec, 1)
 	} else {
-		req = NewDefaultTuneRequest([][]float64{userVec}, [][]float64{recipeVec}, []int{0})
+		req = NewDefaultTuneRequest(userVec, recipeVec, 0)
 	}
 
 	var mlResp TuneResponse
