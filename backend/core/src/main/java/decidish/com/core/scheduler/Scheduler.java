@@ -1,6 +1,5 @@
 package decidish.com.core.scheduler;
 
-import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
 import org.slf4j.Logger;
@@ -20,8 +19,8 @@ public class Scheduler {
 
     private RecipeService recipeService;
 
-    @Scheduled(cron = "${cron.weekly-sync}")
-    // @Scheduled(cron = "${cron.quick-sync}")
+    // Managed externally via JobController
+    // @Scheduled(cron = "${cron.weekly-sync}") 
     public void weeklySync() {
 
         // sync products for all markets
