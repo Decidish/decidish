@@ -249,14 +249,14 @@ class AdapterService:
         # Join interactions with Users and Recipes to get raw embeddings
         query = """
             SELECT 
-                u.embedding as user_emb,
-                r.embedding as recipe_emb,
-                uh.action as like_value
+            u.embedding as user_emb,
+            r.embedding as recipe_emb,
+            uh.action as like_value
             FROM user_history uh
-            JOIN user_embeddings u ON uh.user_id = u.id
-            JOIN recipe_embeddings r ON uh.recipe_id = r.id
+            JOIN user_embeddings u ON uh.user_id = u.user_id
+            JOIN recipe_embeddings r ON uh.recipe_id = r.recipe_id
             WHERE u.embedding IS NOT NULL 
-              AND r.embedding IS NOT NULL
+            AND r.embedding IS NOT NULL
             ORDER BY uh.action_timestamp DESC
             LIMIT %s;
         """
