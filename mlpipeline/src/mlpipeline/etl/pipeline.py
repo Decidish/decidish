@@ -181,7 +181,7 @@ class Pipeline:
             print(f"Error processing categories: {err}")
             raise err
         
-    `@staticmethod`
+    @staticmethod
     def process_cuisines(recipe_id: int, cuisines: list[str], cursor):
         try:
             for cuisine in cuisines:

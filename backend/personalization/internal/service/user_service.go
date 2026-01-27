@@ -271,7 +271,7 @@ func (service UserService) RecordUserAction(ctx *gin.Context) {
 			sleepDuration := baseDelay * time.Duration(1<<i)
 			time.Sleep(sleepDuration)
 		}
-}()
+	}()
 
 	ctx.JSON(http.StatusOK, fmt.Sprintf("Recorded action for user: %s on recipe: %d", userId, recipeID))
 }

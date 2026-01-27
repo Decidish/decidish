@@ -95,7 +95,7 @@ func UpdateNewUserEmbedding(ctx context.Context, db *sql.DB, MLClient *client.Cl
 
 	var mlResp TuneResponse
 
-	status, err := MLClient.PostJSON(ctx, fmt.Sprintf("%s/recipes/add", embedderServerUrl), req, &mlResp, nil)
+	status, err := MLClient.PostJSON(ctx, fmt.Sprintf("%s/tune", embedderServerUrl), req, &mlResp, nil)
 	if err != nil {
 		return err
 	}
@@ -107,7 +107,7 @@ func UpdateNewUserEmbedding(ctx context.Context, db *sql.DB, MLClient *client.Cl
 
 	_, err = tx.Exec(`
 		UPDATE user_embeddings
-		SET embedding = $1, updated_at = NOW()
+		SET embedding = $1
 		WHERE user_id = $2
 	`, updatedEmbStr, userId)
 	if err != nil {
