@@ -18,3 +18,5 @@ node_modules/
 **/_cleanup
 **/temp
 **/urlset*.xml
+**/global
+**/data/temp/
