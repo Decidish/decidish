@@ -15,6 +15,18 @@ CREATE TABLE IF NOT EXISTS ingredients (
     name VARCHAR(255) UNIQUE NOT NULL
 );
 
+CREATE TABLE IF NOT EXISTS allergens (
+    id SERIAL PRIMARY KEY,
+    name VARCHAR(50) UNIQUE NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS ingredients_allergens(
+    ingredient_id INT references ingredients(id) ON DELETE CASCADE,
+    allergen_id INT references allergens(id) ON DELETE CASCADE,
+
+    PRIMARY KEY(ingredient_id, allergen_id)
+);
+
 CREATE TABLE IF NOT EXISTS cuisine (
     id SERIAL PRIMARY KEY,
     name VARCHAR(100) UNIQUE NOT NULL

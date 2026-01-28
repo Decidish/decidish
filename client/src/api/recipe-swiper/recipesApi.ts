@@ -15,6 +15,7 @@ export interface RecipeRecommendation {
     servingSize: string;
   };
   ingredients: string[]; // Go currently sends raw strings
+  allergies: string[];
   instructions: string; // Go currently sends raw strings
   category: string;
   keywords: string[];

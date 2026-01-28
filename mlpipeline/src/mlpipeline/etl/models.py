@@ -22,6 +22,7 @@ class Ingredient(BaseModel):
     unit: str | None = None
     food: str | None = None
     info: str | None = None
+    allergies: str | None = None
 
 class BaseRecipe(BaseModel, Generic[T]):
     category: str | None = None

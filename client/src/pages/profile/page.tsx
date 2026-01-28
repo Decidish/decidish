@@ -81,7 +81,7 @@ export default function Profile() {
           });
         }
       } catch (err: any) {
-        if (err?.response?.status == 401) {
+        if (err?.response?.status == 401 || err?.response?.status == 404) {
           window.REACT_APP_NAVIGATE('/auth');
         }
         console.error('[Profile] Failed to load user data', err);

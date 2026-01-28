@@ -231,6 +231,38 @@ class Pipeline:
         name = ingredient.food
         original = ingredient.original
         info = ingredient.info
+        allergies = ingredient.allergies
+
+        allergyIds = []
+
+        # add allergies to allergies and ingredients_allergies tables
+        if allergies:
+            for allergy in allergies.split(","):
+                # preprocess the allergy string  Tree Nuts (depending on the recipe) --> Tree Nuts
+                allergy = allergy.strip()
+                if allergy == "":
+                    continue
+
+                # remove parenthetical info
+                if "(" in allergy:
+                    allergy = allergy[:allergy.index("(")].strip()
+
+                # Insert allergy and get allergy_id
+                cursor.execute("""
+                    WITH ins AS (
+                        INSERT INTO allergens (name) VALUES (%s)
+                        ON CONFLICT (name) DO NOTHING
+                        RETURNING id
+                    )
+                    SELECT id FROM ins
+                    UNION ALL
+                    SELECT id FROM allergens WHERE name = %s
+                    LIMIT 1;
+                """, (allergy, allergy))
+                allergy_id = cursor.fetchone()[0]
+
+                # Insert into ingredients_allergies later after getting ingredient_id
+                allergyIds.append(allergy_id)
 
         cursor.execute("""
                         WITH ins AS (
@@ -243,8 +275,13 @@ class Pipeline:
                         SELECT id FROM ingredients WHERE name = %s
                         LIMIT 1;
                     """, (name, name))
-        
+
         ingredient_id = cursor.fetchone()[0]
+
+        for allergen_id in allergyIds:
+            cursor.execute("""
+                INSERT INTO ingredients_allergens (ingredient_id, allergen_id) VALUES (%s, %s) ON CONFLICT DO NOTHING;
+                """, (ingredient_id, allergen_id))
 
         cursor.execute("""
         INSERT INTO recipe_ingredients (recipe_id, ingredient_id, quantity, unit, original, info) VALUES (%s, %s, %s, %s, %s, %s) ON CONFLICT DO NOTHING;

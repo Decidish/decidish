@@ -56,6 +56,27 @@ export default function RecipeDetailModal({
         </div>
 
         <div className="p-6">
+          {/* Allergens */}
+          {recipe.allergies && recipe.allergies.length > 0 && (
+            <div className="mb-6">
+              <h3 className="text-xl font-bold text-gray-900 mb-4 flex items-center gap-2">
+                <i className="ri-alert-line text-amber-600"></i>
+                Allergens
+              </h3>
+              <div className="bg-amber-50 rounded-xl p-4">
+                <div className="flex flex-wrap gap-2">
+                  {recipe.allergies.map((allergy, index) => (
+                    <span
+                      key={index}
+                      className="px-3 py-1 bg-white/90 text-amber-700 rounded-full text-sm font-medium border border-amber-200"
+                    >
+                      {allergy}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            </div>
+          )}
           {/* Quick Stats */}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
             <div className="bg-emerald-50 rounded-xl p-4 text-center">

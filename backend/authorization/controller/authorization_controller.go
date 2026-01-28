@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"fmt"
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -43,17 +44,30 @@ func (controller *AuthorizationController) loginMapping(db *sql.DB, r *gin.Engin
 			return
 		}
 
-		expiration := time.Now().Add(24 * time.Hour)
+		cookieDomain := ".decidish.win"
+        cookieSameSite := http.SameSiteLaxMode
 
-		cookie := http.Cookie{
-			Name:     "auth_token",
-			Value:    jwtToken,
-			Path:     "/",
-			HttpOnly: true,
-			Secure:   true,
-			SameSite: http.SameSiteNoneMode,
-			Expires:  expiration,
-		}
+        if strings.Contains(c.Request.Host, "localhost") {
+            cookieDomain = ""                   // Host-only for dev
+            cookieSameSite = http.SameSiteNoneMode // Needed for Chrome to accept it on localhost
+        }
+
+        // 2. CONFIGURE COOKIE
+        cookie := http.Cookie{
+            Name:     "auth_token",
+            Value:    jwtToken,
+            Path:     "/",
+            
+            // Critical for cross-subdomain support:
+            Domain:   cookieDomain, 
+            
+            SameSite: cookieSameSite, 
+            
+            Secure:   true,
+            HttpOnly: true,
+            
+            MaxAge:   3600 * 24, 
+        }
 
 		http.SetCookie(c.Writer, &cookie)
 
