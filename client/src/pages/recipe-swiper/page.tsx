@@ -31,6 +31,9 @@ export default function RecipeSwiper() {
         setRecipes(uiRecipes);
         if (uiRecipes.length > 0) setCurrentRecipe(uiRecipes[0]);
       } catch (error) {
+        if (error?.response?.status == 401) {
+          window.REACT_APP_NAVIGATE('/auth');
+        }
         console.error("Failed to fetch recipes", error);
       } finally {
         setLoading(false);
@@ -42,6 +45,9 @@ export default function RecipeSwiper() {
         const marketId = await userApi.getUserMarketId();
         setMarketId(marketId);
       } catch (error) {
+        if (error?.response?.status == 404) {
+          window.REACT_APP_NAVIGATE('/questionnaire');
+        }
         console.error("Failed to fetch user market ID", error);
       }
     };
