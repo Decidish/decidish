@@ -24,4 +24,20 @@ public class RecipeIngredient {
 
     private BigDecimal quantity;
     private String unit;
+
+    @Column(columnDefinition = "TEXT")
+    private String original;
+
+    @Column(columnDefinition = "TEXT")
+    private String info;
+
+    // Constructor
+    public RecipeIngredient(Recipe recipe, Ingredient ingredient, BigDecimal quantity, String unit) {
+        this.recipe = recipe;
+        this.ingredient = ingredient;
+        this.quantity = quantity;
+        this.unit = unit;
+        this.original = this.ingredient.getName();
+        this.info = "";
+    }
 }

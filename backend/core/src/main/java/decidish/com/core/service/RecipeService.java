@@ -136,6 +136,7 @@ public class RecipeService {
             .map(ingId -> CompletableFuture.supplyAsync(() -> {
                 Ingredient ingredient = ingredientRef.get(ingId).getIngredient();
                 String ingName = ingredient.getName();
+                String origName = ingredientRef.get(ingId).getOriginal();
                 Double needed = totalNeeds.get(ingId);
                 
                 // 4a. Check Local DB first (using our pre-fetched map)
@@ -157,7 +158,9 @@ public class RecipeService {
 
                 // 4b. API Fallback
                 try {
-                    List<Product> apiProducts = marketService.getProductsQueryNoSave(marketId, ingName);
+                    String query = ingName.isBlank() ? origName : ingName;
+
+                    List<Product> apiProducts = marketService.getProductsQueryNoSave(marketId, query);
                     if (apiProducts.isEmpty()) {
                         return new IngredientGroup(ingId, ingName, needed, List.of());
                     }
