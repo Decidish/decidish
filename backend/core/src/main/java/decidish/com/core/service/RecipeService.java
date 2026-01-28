@@ -53,7 +53,7 @@ public class RecipeService {
     private static final Float DESC_INCREMENT = 0.01f;
 
     // Max number of API matches to consider per ingredient
-    private static final int API_MATCHING_LIMIT = 5;
+    private static final int API_MATCHING_LIMIT = 8;
 
     // Number of threads for parallel API calls
     private static final int API_THREADS = 20;
@@ -187,8 +187,13 @@ public class RecipeService {
                         saveProductsIndividually(marketId, productsToSave);
                         ingredientProductRepository.saveAll(newMappings);
                         
-                        // Create a local map of the fresh products to avoid re-querying the DB
-                        Map<Long, Product> freshApiMap = productsToSave.stream()
+                        // Re-fetch saved products from DB to get their generated IDs
+                        List<Long> reweIds = productsToSave.stream()
+                            .map(Product::getReweId)
+                            .toList();
+                        Map<Long, Product> freshApiMap = productRepository
+                            .findByMarketIdAndReweIds(marketId, reweIds)
+                            .stream()
                             .collect(Collectors.toMap(Product::getReweId, p -> p));
 
                         return new IngredientGroup(ingId, ingName, needed, 
