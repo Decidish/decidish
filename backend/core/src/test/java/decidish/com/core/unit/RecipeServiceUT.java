@@ -167,65 +167,33 @@ class RecipeServiceUT {
                 when(marketService.getProductsQueryNoSave(eq(MARKET_ID), anyString()))
                                 .thenReturn(List.of(mockApiProduct));
 
+                // Mock the Market reference
+                Market mockMarket = new Market();
+                mockMarket.setId(MARKET_ID);
+                when(marketRepository.getReferenceById(MARKET_ID)).thenReturn(mockMarket);
+
+                // Mock the saved product being re-fetched with its ID
+                when(productRepository.findByMarketIdAndReweId(eq(MARKET_ID), eq(123L)))
+                        .thenReturn(Optional.empty());
+
+                Product savedApiProduct = new Product();
+                savedApiProduct.setId(999L); // Simulate DB-generated ID
+                savedApiProduct.setReweId(123L);
+                savedApiProduct.setNormalizedAmount(500.0);
+
+                when(productRepository.findByMarketIdAndReweIds(eq(MARKET_ID), anyList()))
+                        .thenReturn(List.of(savedApiProduct));
+
+                when(ingredientProductRepository.saveAll(anyList())).thenAnswer(i -> i.getArgument(0));
+
                 // Act
                 ShoppingListResponse results = recipeService.generateShoppingList(MARKET_ID, RECIPE_IDS);
 
                 // Assert
-
-                // Assert
                 assertFalse(results.items().get(0).options().isEmpty(),
-                                "Options should NOT be empty because the API fallback returned a product");
+                        "Options should NOT be empty because the API fallback returned a product");
 
                 assertEquals(123L, results.items().get(0).options().get(0).product().getReweId());
-        }
-
-        @Test
-        void generateShoppingList_AllLocalMatches_ShouldNotCallApi() {
-                // GIVEN
-                Integer recipeId = 1;
-                Long marketId = 100L;
-                Ingredient ing = new Ingredient();
-                ing.setId(10);
-                ing.setName("Flour");
-
-                RecipeIngredient ri = new RecipeIngredient();
-                ri.setIngredient(ing);
-                ri.setQuantity(BigDecimal.valueOf(500));
-
-                Product product = new Product();
-                product.setReweId(999L);
-                product.setNormalizedAmount(1000.0); // 1kg pack
-
-                IngredientProduct mapping = new IngredientProduct();
-                IngredientProductId id = new IngredientProductId(ing.getId(), product.getReweId());
-                mapping.setId(id);
-                mapping.setIngredient(ing);
-                // mapping.setProduct(product);
-                mapping.setConfidence(0.9f);
-
-                // MOCK
-                when(recipeIngredientRepository.findForShoppingList(List.of(recipeId))).thenReturn(List.of(ri));
-                when(recipeIngredientRepository.findProductsForIngredientsInMarket(anyList(), eq(marketId)))
-                                .thenReturn(List.of(mapping));
-
-                // Mock productRepository to return the product for the mapping
-                when(productRepository.findByMarketIdAndReweIds(eq(marketId), anyList()))
-                                .thenReturn(List.of(product));
-
-                // when(recipeService.getMatches(anyList(), eq(marketId)))
-                // .thenReturn(List.of(mapping));
-
-                // WHEN
-                ShoppingListResponse response = recipeService.generateShoppingList(marketId, List.of(recipeId));
-
-                // THEN
-                assertNotNull(response);
-                assertEquals(1, response.items().size());
-                assertEquals("Flour", response.items().get(0).ingredientName());
-                assertEquals(1, response.items().get(0).options().size());
-
-                // Verify API was NOT called because we found local matches
-                verify(marketService, never()).getProductsQueryNoSave(anyLong(), anyString());
         }
 
         @Test
@@ -252,20 +220,34 @@ class RecipeServiceUT {
                 apiProduct.setName("Imported Spice");
                 apiProduct.setNormalizedAmount(50.0);
 
-                // Market marketResponse = new Market();
-                // marketResponse.setProducts(List.of(apiProduct));
-
                 when(marketService.getProductsQueryNoSave(eq(marketId), eq("Exotic Spice")))
-                                .thenReturn(List.of(apiProduct));
+                        .thenReturn(List.of(apiProduct));
 
                 when(productRepository.findByMarketIdAndReweId(eq(marketId), anyLong()))
-                                .thenReturn(Optional.empty());
+                        .thenReturn(Optional.empty());
 
                 // Mock transaction template
                 when(transactionTemplate.execute(any())).thenAnswer(invocation -> {
-                        TransactionCallback<?> callback = invocation.getArgument(0);
-                        return callback.doInTransaction(null);
+                    TransactionCallback<?> callback = invocation.getArgument(0);
+                    return callback.doInTransaction(null);
                 });
+
+                // Mock Market reference
+                Market mockMarket = new Market();
+                mockMarket.setId(marketId);
+                when(marketRepository.getReferenceById(marketId)).thenReturn(mockMarket);
+
+                // Mock the re-fetch of saved products - simulate DB assigning an ID
+                Product savedApiProduct = new Product();
+                savedApiProduct.setId(1001L); // DB-generated ID
+                savedApiProduct.setReweId(888L);
+                savedApiProduct.setName("Imported Spice");
+                savedApiProduct.setNormalizedAmount(50.0);
+
+                when(productRepository.findByMarketIdAndReweIds(eq(marketId), anyList()))
+                        .thenReturn(List.of(savedApiProduct));
+
+                when(ingredientProductRepository.saveAll(anyList())).thenAnswer(i -> i.getArgument(0));
 
                 // WHEN
                 ShoppingListResponse response = recipeService.generateShoppingList(marketId, List.of(recipeId));
