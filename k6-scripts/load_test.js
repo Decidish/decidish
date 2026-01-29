@@ -391,15 +391,23 @@ export default function (data) {
             const product = selectedOption.product;
             const quantity = Math.max(1, Math.ceil(selectedOption.quantityToBuy || 1));
             
-            cartItems.push({
-              product_id: product.id,
-              quantity: quantity,
-              recipe_id: recipeId
-            });
-            
-            if (isDebugEnabled('shopping')) {
-              console.log(`[Shopping Workflow DEBUG] Ingredient ${idx + 1}: Selected ${product.name} (qty: ${quantity})`);
-            }
+              // IMPORTANT: Only use products with valid product.id (not null)
+              // reweId is NOT unique and will cause foreign key errors
+              if (product.id !== null && product.id !== undefined) {
+                cartItems.push({
+                  product_id: product.id,
+                  quantity: quantity,
+                  recipe_id: recipeId
+                });
+              
+                if (isDebugEnabled('shopping')) {
+                  console.log(`[Shopping Workflow DEBUG] Ingredient ${idx + 1}: Selected ${product.name} (id: ${product.id}, qty: ${quantity})`);
+                }
+              } else {
+                if (isDebugEnabled('shopping')) {
+                  console.log(`[Shopping Workflow DEBUG] Ingredient ${idx + 1}: Skipped ${product.name} - no valid product.id (reweId: ${product.reweId})`);
+                }
+              }
           }
         });
 
@@ -416,7 +424,7 @@ export default function (data) {
       if (cartItems.length > 0) {
         if (isDebugEnabled('shopping')) {
           console.log(`[Shopping Workflow DEBUG] About to add ${cartItems.length} items for recipe_id: ${recipeId}`);
-          console.log(`[Shopping Workflow DEBUG] Sample cart item: ${JSON.stringify(cartItems[0])}`);
+          console.log(`[Shopping Workflow DEBUG] Sample cart item (with fallback): ${JSON.stringify(cartItems[0])}`);
         }
         
         const addStart = new Date();

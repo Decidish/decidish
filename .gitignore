@@ -20,3 +20,5 @@ node_modules/
 **/urlset*.xml
 **/data/temp/
 *.json
+!grafana-dashboards/*.json
+!grafana-dashboards-decidish.json
