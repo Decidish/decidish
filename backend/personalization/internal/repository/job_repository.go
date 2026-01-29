@@ -104,3 +104,14 @@ func GetUrlImportHistory(db *sql.DB) ([]ImportLog, error) {
     }
     return logs, nil
 }
+
+func DeleteDeprecatedJobs(db *sql.DB, cutoff time.Time) (int64, error) {
+	result, err := db.Exec(`
+		DELETE FROM jobs 
+		WHERE created_at < $1`,
+		cutoff)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected()
+}

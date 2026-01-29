@@ -64,5 +64,5 @@ func createRecipeMappings(config config.ApplicationConfig, r *gin.Engine, db *sq
 	jobController := controller.NewJobController(db)
 
 	recipeController.AddMappings(r)
-	jobController.AddMappings(r);
+	jobController.AddMappings(r)
 }

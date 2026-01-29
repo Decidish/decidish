@@ -215,3 +215,14 @@ func getUserRecipes(db *sql.DB, userId string, like bool) ([]int, error) {
 
 	return recipeIds, rows.Err()
 }
+
+func DeleteDeprecatedUserHistory(db *sql.DB, cutoff time.Time) (int64, error) {
+	result, err := db.Exec(`
+		DELETE FROM user_history 
+		WHERE action_timestamp < $1`,
+		cutoff)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected()
+}
