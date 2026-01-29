@@ -226,30 +226,23 @@ When running via Docker Compose, k6 automatically sends metrics to Prometheus, w
    - Username: `admin`
    - Password: `secret` (configured in docker-compose.yml)
 
-3. **Import k6 Dashboard**:
-   - Go to Dashboards → New → Import
-   - Use dashboard ID `19665` (k6 Prometheus)
-   - Or use ID `2587` (k6 Load Testing Results)
-   - Select Prometheus as data source
+3. **Import Decidish Scalability Dashboard** (it should already be there):
+   - Go to **Dashboards** → **Manage**
+   - Click **+ Import**
+   - Click **Upload JSON file** and select `./grafana-dashboard-decidish.json`
+   - Or paste the JSON content directly
+   - Select **Prometheus** as data source
+   - Click **Import**
+   - **Dashboard auto-opens with all metrics pre-configured!**
 
-4. **Create Custom Dashboard**:
-   - Add panels with PromQL queries like:
-     ```promql
-     # HTTP Request Duration p95
-     histogram_quantile(0.95, sum(rate(http_req_duration_bucket[5m])) by (le))
-     
-     # Error Rate
-     sum(rate(errors[5m]))
-     
-     # Recommendation Latency
-     histogram_quantile(0.95, sum(rate(recommendation_latency_bucket[5m])) by (le))
-     
-     # Virtual Users
-     k6_vus
-     
-     # Requests per Second
-     sum(rate(http_reqs[5m]))
-     ```
+4. **Available Dashboard Panels**:
+   - **Response Times**: p95, p99 latency metrics
+   - **Virtual Users**: Load ramp-up visualization
+   - **Error Rates**: 4xx, 5xx breakdown
+   - **Throughput**: Requests per second (RPS)
+   - **Service Bottleneck Analysis**: Response times per service
+   - **Scalability Indicators**: VUs, throughput, latency relationships
+   - **Custom Metrics**: Recommendation, shopping list, search latencies
 
 ### Standalone k6 with InfluxDB Output
 If not using Docker Compose:

@@ -21,4 +21,4 @@ node_modules/
 **/data/temp/
 *.json
 !grafana-dashboards/*.json
-!grafana-dashboards-decidish.json
+!grafana-dashboard-decidish-v2.json
