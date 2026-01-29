@@ -21,11 +21,14 @@ export interface Recipe {
   // These arrays are populated in the specific Search/Get logic
   ingredients: string[];  
   keywords: string[];     
+  allergies?: string[];   // optional, may not always be provided
+  instructions?: string;  // optional, may not always be provided
   
   // Derived fields typically returned for filtering/UI
   cuisine?: string;
   difficulty?: string;
   nutrients?: RecipeNutrients;
+  yields?: string;        // optional servings
 }
 
 export interface RecipeSearchResult {

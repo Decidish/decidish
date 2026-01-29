@@ -5,6 +5,7 @@ import { keywordsApi } from '../../api/search/keywordsApi';
 import { productsApi, ShoppingListResponse, Product } from '@/api/recipe-swiper/productsApi';
 import { CartItem, shoppingListApi } from '@/api/shopping-list/shoppingCartApi';
 import { userApi } from '@/api/search-product/userApi';
+import { userHistoryApi } from '@/api/user-history/userHistoryApi';
 import RecipeDetailModal from '@/components/recipe/RecipeDetailModal';
 import ShoppingFlowModal from '@/components/recipe/ShoppingFlowModal';
 import { UIRecipe, SelectedProducts } from '@/types/recipe';
@@ -42,6 +43,8 @@ export default function Search() {
   const [showSuccessToast, setShowSuccessToast] = useState(false);
   const [successMessage, setSuccessMessage] = useState('');
 
+  const [historyRecipeByTitle, setHistoryRecipeByTitle] = useState<Map<string, UIRecipe>>(new Map());
+
   const timeOptions = ['All', '15 min', '30 min', '45 min', '60 min', '60+ min'];
   const calorieOptions = ['All', '100', '200', '300', '400', '500', '750', '1000', '1500'];
 
@@ -59,6 +62,22 @@ export default function Search() {
       }
     };
     fetchMarket();
+
+    const fetchHistory = async () => {
+      try {
+        const historyRecords = await userHistoryApi.getUserHistory();
+        const map = new Map(
+          historyRecords
+            .map((record) => record.recipe)
+            .filter((recipe) => recipe?.title)
+            .map((recipe) => [recipe.title.toLowerCase(), recipe])
+        );
+        setHistoryRecipeByTitle(map);
+      } catch (err) {
+        console.warn('Failed to fetch user history for recipe enrichment', err);
+      }
+    };
+    fetchHistory();
 
     categoriesApi.listCategories(undefined, 30)
       .then(setSuggestedCategories)
@@ -153,7 +172,23 @@ export default function Search() {
       });
 
       const recipes = response.recipes || [];
-      const mappedRecipes: UIRecipe[] = recipes.map((r: any) => ({
+      const mappedRecipes: UIRecipe[] = recipes.map((r: any) => {
+        const rawAllergies = r?.allergies;
+        const normalizedAllergies = Array.isArray(rawAllergies)
+          ? rawAllergies
+          : typeof rawAllergies === 'string'
+            ? rawAllergies.split(/[,;]+/).map((a: string) => a.trim()).filter(Boolean)
+            : [];
+
+        const historyRecipe = historyRecipeByTitle.get((r.title || '').toLowerCase());
+        const enrichedAllergies = normalizedAllergies.length > 0
+          ? normalizedAllergies
+          : (historyRecipe?.allergies || []);
+        const enrichedYields = r.nutrients?.servingSize || r.yields || historyRecipe?.yields || '4';
+        const enrichedServingSize = r.nutrients?.servingSize || historyRecipe?.nutrients?.servingSize || r.yields || historyRecipe?.yields || '4';
+        const enrichedCalories = r.nutrients?.calories || r.calories || historyRecipe?.nutrients?.calories || '0';
+
+        return {
         id: r.id,
         title: r.title,
         description: r.description || '',
@@ -161,18 +196,20 @@ export default function Search() {
         cook_time: r.cook_time || 0,
         prep_time: r.prep_time || 0,
         total_time: r.total_time || 0,
-        yields: r.yields || '4',
-        ratings: r.ratings || r.rating || 0,
-        nutrients: {
-          calories: r.calories || r.nutrients?.calories || '0',
-          servingSize: r.yields || '4',
-        },
-        ingredients: r.ingredients || [],
-        instructions: r.instructions || '',
-        category: r.cuisine || 'International',
-        keywords: r.keywords || [],
-        richIngredients: null,
-      }));
+          yields: enrichedYields,
+          ratings: r.ratings || r.rating || 0,
+          nutrients: {
+            calories: enrichedCalories,
+            servingSize: enrichedServingSize,
+          },
+          ingredients: r.ingredients || [],
+          allergies: enrichedAllergies,
+          instructions: r.instructions || '',
+          category: r.cuisine || 'International',
+          keywords: r.keywords || [],
+          richIngredients: null,
+        };
+      });
 
       setTotalResults(response.total_count);
       setTotalPages(response.total_pages);

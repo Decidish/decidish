@@ -176,7 +176,7 @@ func (repo RecommenderRepository) GetRecommendedRecipesForUser(tx *sql.Tx, userI
 			&recipe.Yields,
 			&keywordsStr,
 			&ingredientsStr,
-            &allergiesStr,
+			&allergiesStr,
 			&categoriesStr,
 		); err != nil {
 			return nil, err
