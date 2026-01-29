@@ -23,38 +23,81 @@ export default function RecipeSwiper() {
 
   // FETCH RECIPES FROM BACKEND
   useEffect(() => {
-    const fetchRecommendations = async () => {
-      try {
-        const data = await recipesApi.getRecommendations();
-        console.log("data: ",data);
-        const uiRecipes = data.map(r => ({ ...r, richIngredients: null }));
-        setRecipes(uiRecipes);
-        if (uiRecipes.length > 0) setCurrentRecipe(uiRecipes[0]);
-      } catch (error) {
-        console.error("Failed to fetch recipes", error);
-      } finally {
-        setLoading(false);
-      }
-    };
-
     const fetchUserMarket = async () => {
       try {
         const marketId = await userApi.getUserMarketId();
         setMarketId(marketId);
-      } catch (error) {
-        console.error("Failed to fetch user market ID", error);
+      } catch (error: any) {
+        if (error?.response?.status == 404) {
+          window.REACT_APP_NAVIGATE('/questionnaire');
+        }
+        console.error('Failed to fetch user market ID', error);
       }
     };
 
+    // initial load
+    setLoading(true);
     fetchRecommendations();
     fetchUserMarket();
   }, []);
 
-  const advanceToNextRecipe = () => {
+  const fetchRecommendations = async (append: boolean = false) => {
+    try {
+      const data = await recipesApi.getRecommendations();
+      console.log("data: ", data);
+      const uiRecipes: UIRecipe[] = data.map((r: any) => ({ ...r, richIngredients: null }));
+
+      if (append) {
+        setRecipes(prev => {
+          const combined = [...prev, ...uiRecipes];
+          return combined;
+        });
+      } else {
+        setRecipes(uiRecipes);
+        if (uiRecipes.length > 0) {
+          setCurrentIndex(0);
+          setCurrentRecipe(uiRecipes[0]);
+        } else {
+          setCurrentIndex(0);
+          setCurrentRecipe(null);
+        }
+      }
+
+      return uiRecipes;
+    } catch (err: any) {
+      if (err?.response?.status == 401 || err?.response?.status == 404) {
+        window.REACT_APP_NAVIGATE('/auth');
+      }
+      console.error('Failed to fetch recipes', err);
+      return [];
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const advanceToNextRecipe = async () => {
     if (!recipes.length) return;
-    const nextIndex = (currentIndex + 1) % recipes.length;
-    setCurrentIndex(nextIndex);
-    setCurrentRecipe(recipes[nextIndex]);
+
+    const nextIndex = currentIndex + 1;
+
+    // If there are more recipes in the current batch, just advance
+    if (nextIndex < recipes.length) {
+      setCurrentIndex(nextIndex);
+      setCurrentRecipe(recipes[nextIndex]);
+      return;
+    }
+
+    // We're at the end of the current batch — fetch more and then advance
+    const newBatch = await fetchRecommendations(true);
+    if (newBatch && newBatch.length > 0) {
+      // After appending, advance to the next index
+      setCurrentIndex(nextIndex);
+      setCurrentRecipe((recipes.concat(newBatch))[nextIndex]);
+    } else {
+      // No new recipes available — mark as exhausted
+      setCurrentIndex(0);
+      setCurrentRecipe(null);
+    }
   };
   
   const handleLike = async() => {
@@ -206,7 +249,7 @@ export default function RecipeSwiper() {
             </button>
             
             <button
-              onClick={() => window.REACT_APP_NAVIGATE('/home')}
+              onClick={() => window.REACT_APP_NAVIGATE('/')}
               className="w-full py-4 bg-white text-[#2F855A] rounded-xl font-semibold hover:bg-gray-50 transition-all shadow-md cursor-pointer whitespace-nowrap flex items-center justify-center gap-2 border-2 border-[#2F855A]"
             >
               <i className="ri-home-line text-xl"></i>

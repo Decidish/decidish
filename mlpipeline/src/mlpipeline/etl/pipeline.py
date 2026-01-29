@@ -1,6 +1,8 @@
-import asyncio
 import logging
+import os
 from typing import Generator, Optional
+
+import torch
 
 from mlpipeline.embedding.embedder import TextEmbedder
 import psycopg2
@@ -10,6 +12,7 @@ from mlpipeline.config.app_config import AppConfig
 from mlpipeline.etl.models import BaseRecipe, Ingredient, ProcessedRecipe, RawRecipe
 from mlpipeline.ingredient_parser.parser import IngredientParser
 from mlpipeline.scraper.recipe_scraper import scrape_recipe
+from mlpipeline.pretrain.rewrite_recipe_embedding import RecipeHeadConfig, load_recipe_head
 
 
 class Pipeline:
@@ -18,16 +21,18 @@ class Pipeline:
         self.parser = parser
         self.embedder = embedder
         self.config = config
+        self.device = "cuda" if torch.cuda.is_available() else "cpu"
+        cfg = RecipeHeadConfig(output_dim=384, hidden_dim=512, num_layers=3, dropout=0.1)
+        self.mlp_model = load_recipe_head('src/mlpipeline/pretrain/checkpoints/recipe_encoder.pt', cfg, device=self.device)
         # Register pgvector support with psycopg2
         register_vector(conn)
 
     async def scrape_process_recipe(self, recipe_url: str, job_id: int):
         try:
             self.set_running_job_status(job_id)
+            self.conn.commit()
 
             recipe_json = scrape_recipe(recipe_url)
-            
-            print(recipe_json, flush=True)
             recipe_data = RawRecipe.model_validate_json(recipe_json)
             recipe_id, err = await self.process_recipe(recipe_data)
 
@@ -42,17 +47,26 @@ class Pipeline:
                 raise err
             
             self.set_done_job_status(job_id)
+            self.conn.commit()
         except Exception as e:
             logging.error(f"ETL Job {job_id} failed: {e}")
+            self.conn.rollback()
             self.set_error_job_status(job_id)
+            self.conn.commit()
             raise e
 
     async def process_recipe(self, recipe_data: BaseRecipe) -> tuple[int, Optional[Exception]]:
         try:
             with self.conn.cursor() as cursor:
                 insert_query = """
-                INSERT INTO recipes (title, description, instructions, cook_time, prep_time, total_time, image, rating, serving_size, calories, yields)
-                VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)
+                INSERT INTO recipes (title, description, 
+                    instructions, cook_time, prep_time, total_time, 
+                    image, rating, serving_size, calories, carbohydrate_content, 
+                    cholesterol_content, fiber_content, protein_content, 
+                    saturated_fat_content, sodium_content, 
+                    sugar_content, fat_content, unsaturated_fat_content,
+                    yields)
+                VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)
                 ON CONFLICT (title) DO NOTHING
                 RETURNING id;
                 """
@@ -68,6 +82,15 @@ class Pipeline:
                     recipe_data.ratings,
                     recipe_data.nutrients.serving_size,
                     recipe_data.nutrients.calories,
+                    recipe_data.nutrients.carbohydrate_content,
+                    recipe_data.nutrients.cholesterol_content,
+                    recipe_data.nutrients.fiber_content,
+                    recipe_data.nutrients.protein_content,
+                    recipe_data.nutrients.saturated_fat_content,
+                    recipe_data.nutrients.sodium_content,
+                    recipe_data.nutrients.sugar_content,
+                    recipe_data.nutrients.fat_content,
+                    recipe_data.nutrients.unsaturated_fat_content,
                     recipe_data.yields
                 ))
                 recipe_id = cursor.fetchone()
@@ -85,6 +108,9 @@ class Pipeline:
                 # Insert categories
                 if recipe_data.category:
                     self.process_categories(recipe_id, recipe_data.category.split(","), cursor)
+
+                if recipe_data.cuisine:
+                    self.process_cuisines(recipe_id, recipe_data.cuisine.split(","), cursor)
 
                 if isinstance(recipe_data, ProcessedRecipe):
                     for ingredient in recipe_data.ingredients:
@@ -154,6 +180,35 @@ class Pipeline:
         except Exception as err:
             print(f"Error processing categories: {err}")
             raise err
+        
+    @staticmethod
+    def process_cuisines(recipe_id: int, cuisines: list[str], cursor):
+        try:
+            for cuisine in cuisines:
+                cuisine = cuisine.strip()
+                if cuisine == "":
+                    continue
+                # Insert cuisine and get cuisine_id
+                cursor.execute("""
+                    WITH ins AS (
+                        INSERT INTO cuisine (name) VALUES (%s)
+                        ON CONFLICT (name) DO NOTHING
+                        RETURNING id
+                    )
+                    SELECT id FROM ins
+                    UNION ALL
+                    SELECT id FROM cuisine WHERE name = %s
+                    LIMIT 1;
+                """, (cuisine,cuisine))
+                cuisine_id = cursor.fetchone()[0]
+
+                # Insert into recipe_cuisine
+                cursor.execute("""
+                    INSERT INTO recipe_cuisine (recipe_id, cuisine_id) VALUES (%s, %s) ON CONFLICT DO NOTHING;
+                """, (recipe_id, cuisine_id))
+        except Exception as err:
+            print(f"Error processing cuisines: {err}")
+            raise err
     
     async def process_ingredients(self, recipe_id: int, ingredients: list[str], cursor):
         """
@@ -176,6 +231,38 @@ class Pipeline:
         name = ingredient.food
         original = ingredient.original
         info = ingredient.info
+        allergies = ingredient.allergies
+
+        allergyIds = []
+
+        # add allergies to allergies and ingredients_allergies tables
+        if allergies:
+            for allergy in allergies.split(","):
+                # preprocess the allergy string  Tree Nuts (depending on the recipe) --> Tree Nuts
+                allergy = allergy.strip()
+                if allergy == "":
+                    continue
+
+                # remove parenthetical info
+                if "(" in allergy:
+                    allergy = allergy[:allergy.index("(")].strip()
+
+                # Insert allergy and get allergy_id
+                cursor.execute("""
+                    WITH ins AS (
+                        INSERT INTO allergens (name) VALUES (%s)
+                        ON CONFLICT (name) DO NOTHING
+                        RETURNING id
+                    )
+                    SELECT id FROM ins
+                    UNION ALL
+                    SELECT id FROM allergens WHERE name = %s
+                    LIMIT 1;
+                """, (allergy, allergy))
+                allergy_id = cursor.fetchone()[0]
+
+                # Insert into ingredients_allergies later after getting ingredient_id
+                allergyIds.append(allergy_id)
 
         cursor.execute("""
                         WITH ins AS (
@@ -188,8 +275,13 @@ class Pipeline:
                         SELECT id FROM ingredients WHERE name = %s
                         LIMIT 1;
                     """, (name, name))
-        
+
         ingredient_id = cursor.fetchone()[0]
+
+        for allergen_id in allergyIds:
+            cursor.execute("""
+                INSERT INTO ingredients_allergens (ingredient_id, allergen_id) VALUES (%s, %s) ON CONFLICT DO NOTHING;
+                """, (ingredient_id, allergen_id))
 
         cursor.execute("""
         INSERT INTO recipe_ingredients (recipe_id, ingredient_id, quantity, unit, original, info) VALUES (%s, %s, %s, %s, %s, %s) ON CONFLICT DO NOTHING;
@@ -208,7 +300,7 @@ class Pipeline:
         Sets the job status to 'processing' in the database.
         """
         with self.conn.cursor() as cursor:
-            cursor.execute("UPDATE jobs SET status = 'processing' WHERE id = %s;", (job_id,))
+            cursor.execute("UPDATE jobs SET status = 'processing', updated_at = NOW() WHERE id = %s;", (job_id,))
             self.conn.commit()
     
     def set_done_job_status(self, job_id: int):
@@ -216,7 +308,7 @@ class Pipeline:
         Sets the job status to 'success' in the database.
         """
         with self.conn.cursor() as cursor:
-            cursor.execute("UPDATE jobs SET status = 'success' WHERE id = %s;", (job_id,))
+            cursor.execute("UPDATE jobs SET status = 'success', updated_at = NOW() WHERE id = %s;", (job_id,))
             self.conn.commit()
 
     ############################################################################
@@ -241,6 +333,7 @@ class Pipeline:
         try:
             logging.info(f"Starting ETL Job {job_id}...")
             self.set_running_job_status(job_id)
+            self.conn.commit()
 
             # 1. Estimate total (e.g., counting lines in file)
             # For efficiency, you can hardcode this or run a quick line count
@@ -259,12 +352,15 @@ class Pipeline:
                 # 3. Update Progress
                 processed_count += len(batch)
                 self.update_job_progress(job_id, processed_count, total_recipes)
-
+                self.conn.commit()
             self.set_done_job_status(job_id)
+            self.conn.commit()
             logging.info(f"Finished ETL Job {job_id}...")
         except Exception as e:
             logging.error(f"ETL Job {job_id} failed: {e}")
+            self.conn.rollback()
             self.set_error_job_status(job_id)
+            self.conn.commit()
             raise e
 
     def create_recipe_embeddings_batch(self, recipe_data: list[dict]):
@@ -274,18 +370,41 @@ class Pipeline:
         texts = [item['text'] for item in recipe_data]
 
         try:
-            embeddings = self.embedder.embed_recipes(texts)
+            # base embeddings
+            base_embeddings = self.embedder.embed_recipes(texts)
 
-            # Convert numpy arrays to lists for pgvector
-            # Format: [(id, [vector_values]), (id, [vector_values]), ...]
-            insert_data = [(id, embedding.tolist()) for id, embedding in zip(ids, embeddings)]
+            # Convert numpy -> torch tensor
+            with torch.no_grad():
+                x_tensor = torch.tensor(base_embeddings, dtype=torch.float32, device=self.device)
+                
+                # Pass through the MLP model
+                mlp_output = self.mlp_model(x_tensor)
+                
+                # Convert back to list for database insertion
+                mlp_embeddings = mlp_output.detach().cpu().tolist()
+
+            # Format: [(id, [base_vector], [mlp_vector]), ...]
+            insert_data = [
+                (id, mlp) 
+                for id, mlp in zip(ids, mlp_embeddings)
+            ]
 
             with self.conn.cursor() as cursor:
-                query = "INSERT INTO recipe_embeddings (recipe_id, embedding) VALUES (%s, %s::vector) ON CONFLICT (recipe_id) DO NOTHING;"
+                # Update query to include embedding_mlp
+                query = """
+                    INSERT INTO recipe_embeddings (recipe_id, embedding) 
+                    VALUES (%s, %s::vector) 
+                    ON CONFLICT (recipe_id) DO NOTHING
+                """
+                # Note: Changed 'DO NOTHING' to 'DO UPDATE' so re-running this updates old values.
+                # If you prefer keeping old values, switch back to DO NOTHING.
+                
                 cursor.executemany(query, insert_data)
+                self.conn.commit()
             
         except Exception as e:
             logging.error(f"Failed to insert embedding batch: {e}")
+            self.conn.rollback() # Good practice to rollback on error
             raise e
 
     async def process_recipe_batch(self, batch: list[str]) -> list[dict]:

@@ -22,11 +22,13 @@ class Ingredient(BaseModel):
     unit: str | None = None
     food: str | None = None
     info: str | None = None
+    allergies: str | None = None
 
 class BaseRecipe(BaseModel, Generic[T]):
     category: str | None = None
     cook_time: int | None = None
     description: str
+    cuisine: str | None = None
     image: str
     ingredients: List[T]
     instructions: str

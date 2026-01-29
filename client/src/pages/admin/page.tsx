@@ -5,9 +5,8 @@ import apiClient from '@/api/client';
 interface RecipeImport {
   id: string;
   name: string;
-  source: 'url' | 'file' | 'rewe';
   status: 'pending' | 'processing' | 'success' | 'error';
-  timestamp: string;
+  createdAt: string;
   error?: string;
   progress?: number;
 }
@@ -31,7 +30,6 @@ export default function AdminPage() {
   const [reweJobs, setReweJobs] = useState<ReweJob[]>([]);
   const [showSuccessToast, setShowSuccessToast] = useState(false);
   const [successMessage, setSuccessMessage] = useState('');
-  const [errorMessage, setErrorMessage] = useState('');
   const [stats, setStats] = useState({ total: 0, today: 0, users: 0 });
   
   const activeReweJobs = reweJobs.filter(job => job.status === 'running' || job.status === 'queued');
@@ -47,7 +45,7 @@ export default function AdminPage() {
         name: item.name || 'Untitle Recipe',     // Map 'identifier' from DB to 'name'
         source: (item.source || 'url') as 'url' | 'file', // FALLBACK
         status: item.status === 'failed' ? 'error' : item.status, // normalize status
-        timestamp: item.timestamp
+        createdAt: item.created_at
       }));
       setImportHistory(mappedUrlHistory);
 
@@ -540,25 +538,12 @@ export default function AdminPage() {
                 <div key={item.id} className="p-6 hover:bg-gray-50 transition-colors">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-4 flex-1">
-                      <div className={`w-12 h-12 flex items-center justify-center rounded-xl ${
-                        item.source === 'url' ? 'bg-blue-50' : 'bg-purple-50'
-                      }`}>
-                        <i className={`text-2xl ${
-                          item.source === 'url' 
-                            ? 'ri-link text-blue-600' 
-                            : 'ri-file-text-line text-purple-600'
-                        }`}></i>
-                      </div>
                       <div className="flex-1 min-w-0">
                         <h4 className="font-semibold text-gray-900 mb-1">{item.name}</h4>
                         <div className="flex items-center gap-3 text-xs text-gray-600">
                           <span className="flex items-center gap-1">
                             <i className="ri-time-line"></i>
-                            {new Date(item.timestamp).toLocaleString()}
-                          </span>
-                          <span className="flex items-center gap-1">
-                            <i className={item.source === 'url' ? 'ri-link' : 'ri-file-line'}></i>
-                            {item.source.toUpperCase()}
+                            {new Date(item.createdAt).toLocaleString()}
                           </span>
                         </div>
                       </div>

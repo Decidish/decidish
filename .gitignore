@@ -12,5 +12,10 @@ node_modules/
 **/recipes.jsonl
 **/example_recipes_enriched.jsonl
 **/out
+**/logs
+**/sessions
+**/_temp
+**/_cleanup
+**/temp
 **/urlset*.xml
-**/temp/**
+**/data/temp/

@@ -18,6 +18,7 @@ type Recipe struct {
 	Image       string `json:"image"`
 
 	Ingredients  []string  `json:"ingredients"`
+	Allergies    []string  `json:"allergies"`
 	Instructions string    `json:"instructions"`
 	KeyWords     []string  `json:"keywords"`
 	Nutrients    Nutrients `json:"nutrients"`
@@ -66,15 +67,7 @@ func GetAdminStats(db *sql.DB) (int, int, int, error) {
 }
 
 func (repo RecommenderRepository) GetRecommendedRecipesForUser(tx *sql.Tx, userId string) ([]Recipe, error) {
-
-	// TODO: Optimize candidates apply hard filters and don't show recently seen recipes
-	// WHERE re.recipe_id NOT IN (
-    //             SELECT recipe_id 
-    //             FROM user_interactions 
-    //             WHERE user_id = $1
-    //         )
-
-    querySQL := `
+	querySQL := `
         WITH user_vec AS (
             SELECT embedding 
             FROM user_embeddings 
@@ -86,6 +79,12 @@ func (repo RecommenderRepository) GetRecommendedRecipesForUser(tx *sql.Tx, userI
                 (uv.embedding <=> re.embedding) as dist
             FROM recipe_embeddings re
             JOIN user_vec uv ON true
+            WHERE re.recipe_id NOT IN (
+                SELECT recipe_id
+                FROM user_history
+                WHERE user_id = $1
+                AND action_timestamp > NOW() - INTERVAL '7 days'
+            )
             ORDER BY dist ASC
             LIMIT 1000
         ),
@@ -105,10 +104,14 @@ func (repo RecommenderRepository) GetRecommendedRecipesForUser(tx *sql.Tx, userI
         ),
         RecipeIngredients AS (
             SELECT
-                ri.recipe_id,
-                STRING_AGG(ri.original, ', ') AS all_ingredients
-            FROM recipe_ingredients ri
-            GROUP BY ri.recipe_id
+				ri.recipe_id,
+				STRING_AGG(ri.original, ', ') AS all_ingredients,
+				STRING_AGG(i.name, ', ') AS all_allergens
+			FROM recipe_ingredients ri
+					JOIN ingredients_allergens a ON ri.ingredient_id = a.ingredient_id
+					JOIN allergens i ON a.allergen_id = i.id
+			WHERE i.name != 'None'
+			GROUP BY ri.recipe_id
         ),
         RecipeCategories AS (
             SELECT
@@ -134,6 +137,7 @@ func (repo RecommenderRepository) GetRecommendedRecipesForUser(tx *sql.Tx, userI
             re.yields,
             COALESCE(rkd.all_keywords, ''),
             COALESCE(rid.all_ingredients, ''),
+            COALESCE(rid.all_allergens, ''),
             COALESCE(rcd.all_categories, '')
         
         FROM recommender r
@@ -142,56 +146,63 @@ func (repo RecommenderRepository) GetRecommendedRecipesForUser(tx *sql.Tx, userI
         LEFT JOIN RecipeIngredients rid ON re.id = rid.recipe_id
         LEFT JOIN RecipeCategories rcd ON re.id = rcd.recipe_id`
 
-    rows, err := tx.Query(querySQL, userId)
-    if err != nil {
-        return nil, err
-    }
-    defer rows.Close()
+	rows, err := tx.Query(querySQL, userId)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
 
-    var recipes []Recipe
+	var recipes []Recipe
 
-    for rows.Next() {
-        var recipe Recipe
-        var keywordsStr, ingredientsStr, categoriesStr string
+	for rows.Next() {
+		var recipe Recipe
+		var keywordsStr, ingredientsStr, allergiesStr, categoriesStr string
 
-        // Using standard scan. 
-        // Note: I switched sql.NullString to string with COALESCE in SQL 
-        // to simplify the Go code, but you can revert if you prefer NullString.
-        if err := rows.Scan(
-            &recipe.ID,
-            &recipe.Title,
-            &recipe.Description,
-            &recipe.Instructions,
-            &recipe.CookTime,
-            &recipe.PrepTime,
-            &recipe.TotalTime,
-            &recipe.Image,
-            &recipe.Ratings,
-            &recipe.Nutrients.ServingSize,
-            &recipe.Nutrients.Calories,
-            &recipe.Yields,
-            &keywordsStr,
-            &ingredientsStr,
-            &categoriesStr,
-        ); err != nil {
-            return nil, err
-        }
+		// Using standard scan.
+		// Note: I switched sql.NullString to string with COALESCE in SQL
+		// to simplify the Go code, but you can revert if you prefer NullString.
+		if err := rows.Scan(
+			&recipe.ID,
+			&recipe.Title,
+			&recipe.Description,
+			&recipe.Instructions,
+			&recipe.CookTime,
+			&recipe.PrepTime,
+			&recipe.TotalTime,
+			&recipe.Image,
+			&recipe.Ratings,
+			&recipe.Nutrients.ServingSize,
+			&recipe.Nutrients.Calories,
+			&recipe.Yields,
+			&keywordsStr,
+			&ingredientsStr,
+            &allergiesStr,
+			&categoriesStr,
+		); err != nil {
+			return nil, err
+		}
 
-        if keywordsStr != "" {
-            recipe.KeyWords = strings.Split(keywordsStr, ", ")
-        } else {
-            recipe.KeyWords = []string{}
-        }
+		if keywordsStr != "" {
+			recipe.KeyWords = strings.Split(keywordsStr, ", ")
+		} else {
+			recipe.KeyWords = []string{}
+		}
 
-        if ingredientsStr != "" {
-            recipe.Ingredients = strings.Split(ingredientsStr, ", ")
-        } else {
-            recipe.Ingredients = []string{}
-        }
+		if ingredientsStr != "" {
+			recipe.Ingredients = strings.Split(ingredientsStr, ", ")
+		} else {
+			recipe.Ingredients = []string{}
+		}
 
-        recipe.Category = categoriesStr
-        recipes = append(recipes, recipe)
-    }
+		if allergiesStr != "" {
+			recipe.Allergies = strings.Split(allergiesStr, ", ")
+		} else {
+			recipe.Allergies = []string{}
+		}
 
-    return recipes, nil
+		recipe.Category = categoriesStr
+		recipes = append(recipes, recipe)
+	}
+
+	return recipes, nil
 }

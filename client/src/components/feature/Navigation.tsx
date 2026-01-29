@@ -11,9 +11,6 @@ export default function Navigation() {
     { path: '/search', label: 'Search Recipes', icon: 'ri-search-line' },
     { path: '/search-products', label: 'Search Products', icon: 'ri-search-line' },
     { path: '/my-recipes', label: 'My Recipes', icon: 'ri-book-line' },
-    { path: '/recipe-swiper', label: 'Recipe Swiper', icon: 'ri-heart-line' },
-    { path: '/shopping-list', label: 'Shopping List', icon: 'ri-shopping-cart-line' },
-    { path: '/profile', label: 'Profile', icon: 'ri-user-line' },
     { path: '/admin', label: 'Admin Panel', icon: 'ri-admin-line' },
   ];
 

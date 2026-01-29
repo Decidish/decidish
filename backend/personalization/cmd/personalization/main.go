@@ -25,7 +25,7 @@ func main() {
 
 	// Cors Settings for Security
 	r.Use(cors.New(cors.Config{
-		AllowOrigins:     []string{"http://localhost:8081", "http://localhost:3000"},
+		AllowOrigins:     []string{"http://localhost:8081", "http://localhost:3000", "https://qa.decidish.win"},
 		AllowMethods:     []string{"PUT", "PATCH", "POST", "GET", "OPTIONS", "DELETE"},
 		AllowHeaders:     []string{"Origin", "Content-Type", "Authorization"},
 		AllowCredentials: true,

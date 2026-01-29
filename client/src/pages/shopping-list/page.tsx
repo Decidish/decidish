@@ -23,6 +23,9 @@ export default function ShoppingListPage() {
           setShoppingHistory(historyData);
         }
       } catch (error) {
+        if (error?.response?.status == 401) {
+          window.REACT_APP_NAVIGATE('/auth');
+        }
         console.error("Failed to load shopping list", error);
       }
     };

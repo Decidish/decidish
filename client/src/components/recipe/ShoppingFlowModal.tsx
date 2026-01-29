@@ -231,7 +231,7 @@ export default function ShoppingFlowModal({
               <div className="bg-emerald-50 rounded-lg p-3 border border-emerald-200">
                 <h4 className="text-lg font-bold text-gray-900 mb-1">{currentIngredientGroup.ingredientName}</h4>
                 <p className="text-sm text-gray-600">
-                  Amount needed: <span className="font-semibold text-[#2F855A]">{currentIngredientGroup.totalAmountNeeded}</span>
+                   Ingredient: <span className="font-semibold text-[#2F855A]">{currentIngredientGroup.ingredientName}</span>
                 </p>
               </div>
             </div>

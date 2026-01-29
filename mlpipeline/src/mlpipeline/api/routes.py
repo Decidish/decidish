@@ -1,11 +1,9 @@
 import logging
 from fastapi import APIRouter, BackgroundTasks, HTTPException
 
-from mlpipeline.pretrain.model import UserEncoder, UserEncoderConfig, UserEncoderConfig
 from mlpipeline.embedding.services import AdapterService, InferenceService
 from .tasks import run_add_recipe_background_task, run_etl_background_task
 from .schemas import AdapterFinetuneRequest, AdapterFinetuneResponse, AddRecipeRequest, AddReweRecipesRequest, EncodeBatchRequest, EncodeBatchResponse, TuneRequest, TuneResponse
-import torch
 import logging
 import traceback
 
@@ -22,22 +20,6 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("mlpipeline.api")
 inference_service = InferenceService()
 adapter_service = AdapterService()
-
-def _load_model(ckpt_path: str, input_dim: int, device: torch.device) -> UserEncoder:
-    cfg = UserEncoderConfig()
-    if input_dim != cfg.user_input_dim:
-        raise ValueError(f"the pretrained in_dim is {cfg.user_input_dim}, but we get {input_dim}")
-    model = UserEncoder(cfg)
-
-    ckpt = torch.load(ckpt_path, map_location="cpu")
-    state_dict = ckpt["state_dict"] if isinstance(ckpt, dict) and "state_dict" in ckpt else ckpt
-    missing, unexpected = model.load_state_dict(state_dict, strict=True)
-    if missing or unexpected:
-        raise RuntimeError(f"state_dict mismatch, missing = {missing}, unexpected = {unexpected}")
-
-    model.eval().to(device)
-
-    return model
 
 # Route to add a single recipe (background task)
 @router.post("/recipes/add")
@@ -79,7 +61,7 @@ async def encode_users_batch(req: EncodeBatchRequest):
 # --- Endpoints: Fine-Tuning ---
 
 @router.get("/health", tags=["System"])
-async def health():
+def health():
     """
     Returns the status of the ML service and the currently loaded adapter version.
     Used by Docker Healthchecks and Load Balancers.
@@ -93,7 +75,7 @@ async def health():
 
 
 @router.post("/tune", response_model=TuneResponse, tags=["Training"])
-async def tune(req: TuneRequest):
+def tune(req: TuneRequest):
     """
     Online Tuning: Updates user embeddings based on a small batch of recent interactions.
     Does NOT permanently retrain the global adapter model weights, 
@@ -104,13 +86,11 @@ async def tune(req: TuneRequest):
         raise HTTPException(status_code=400, detail="Empty batch")
     if B > req.max_batch_size:
         raise HTTPException(status_code=400, detail=f"Batch too large: {B} > {req.max_batch_size}")
-    if len(req.recipe_emb) != B or len(req.like) != B:
-        raise HTTPException(status_code=400, detail="Mismatched lengths for user_emb, recipe_emb, and like")
 
     batch = {
-        "user_emb": req.user_emb,
-        "recipe_emb": req.recipe_emb,
-        "like": req.like,
+        "user_emb": [req.user_emb],
+        "recipe_emb": [req.recipe_emb],
+        "like": [req.like],
     }
 
     try:
@@ -135,7 +115,7 @@ async def tune(req: TuneRequest):
 
 
 @router.post("/finetune_user_adapter", response_model=AdapterFinetuneResponse, tags=["Training"])
-async def finetune_user_adapter(req: AdapterFinetuneRequest):
+def finetune_user_adapter(req: AdapterFinetuneRequest):
     """
     Global Fine-Tuning: Runs a full training loop to update the Adapter Model.
     
@@ -143,12 +123,6 @@ async def finetune_user_adapter(req: AdapterFinetuneRequest):
     If another replica is currently training, this request will BLOCK until 
     the lock is released or timeout occurs.
     """
-    if not req.interactions:
-        raise HTTPException(status_code=400, detail="Interactions list is empty")
-    
-    if len(req.interactions) > req.max_batch_size:
-        raise HTTPException(status_code=400, detail=f"Batch too large: {len(req.interactions)} > {req.max_batch_size}")
-
     if not (0.0 <= req.val_split <= 0.5):
         raise HTTPException(status_code=400, detail="val_split must be between 0.0 and 0.5")
 

@@ -219,6 +219,19 @@ services:
       - ./datasources.yml:/etc/grafana/provisioning/datasources/datasources.yml
     networks:
       - app-network
+  
+  cronicle:
+    image: soulteary/cronicle:latest
+    container_name: cronicle
+    ports:
+      - "3012:3012"
+    environment:
+      - TZ=UTC
+    volumes:
+      - ./chronicle/data:/opt/cronicle/data
+      - ./chronicle/logs:/opt/cronicle/logs
+    networks:
+      - app-network
 
 
 # ----------------------------------------------------------------

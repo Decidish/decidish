@@ -122,7 +122,7 @@ class CoreCfg:
     dropout: float = 0.0
     adapter_temperature: float = 0.07
 
-    ckpt_dir: str = "./ckpts_weekly_user_adapter"
+    ckpt_dir: str = os.getenv("ADAPTER_CKPT_DIR", "./ckpts_weekly_user_adapter")
     device: str = "cuda" if torch.cuda.is_available() else "cpu"
 
 
@@ -174,6 +174,10 @@ class ModelCache:
             "ckpt_mtime": self._ckpt_mtime,
             "loaded_at": self._loaded_at,
         }
+
+        if self._model is None:
+            raise RuntimeError("ModelCache internal error: model is None after loading")
+        
         return self._model, info
 
 

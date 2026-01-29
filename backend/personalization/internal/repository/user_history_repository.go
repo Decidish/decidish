@@ -2,6 +2,7 @@ package repository
 
 import (
 	"database/sql"
+	"fmt"
 	"strings"
 	"time"
 )
@@ -16,42 +17,60 @@ type UserHistory struct {
 
 const THRESHOLD = 99 // Max number of likes and dislikes per user
 
-func AddUserHistory(tx *sql.Tx, userId string, recipeId int, action bool) error {
+func AddUserHistory(tx *sql.Tx, userId string, recipeId int, action bool) (int, error) {
+	var id int
+
 	// Insert only if (userId, recipeId, action) combination does not already exist
 	// If pair (userId, recipeId) exists with different action, allow insertion updating the action
-	_, err := tx.Exec(`
-		WITH deleted AS (
-			DELETE FROM user_history
-			WHERE id IN (
-				SELECT id
-				FROM user_history
-				WHERE user_id = $1
-				  AND action = $3
-				  AND recipe_id <> $2
-				ORDER BY action_timestamp ASC
-				LIMIT 1
-			)
-			AND (
-				SELECT COUNT(*)
-				FROM user_history
-				WHERE user_id = $1
-				  AND action = $3
-			) >= $4
-		)
-		INSERT INTO user_history (user_id, recipe_id, action)
-		VALUES ($1, $2, $3)
-		ON CONFLICT (user_id, recipe_id)
-		DO UPDATE SET
-			action = EXCLUDED.action,
-			action_timestamp = CURRENT_TIMESTAMP
-		WHERE user_history.action IS DISTINCT FROM EXCLUDED.action
-	`, userId, recipeId, action, THRESHOLD)
+	query := `
+        WITH deleted AS (
+            DELETE FROM user_history
+            WHERE id IN (
+                SELECT id
+                FROM user_history
+                WHERE user_id = $1
+                  AND action = $3
+                  AND recipe_id <> $2
+                ORDER BY action_timestamp ASC
+                LIMIT 1
+            )
+            AND (
+                SELECT COUNT(*)
+                FROM user_history
+                WHERE user_id = $1
+                  AND action = $3
+            ) >= $4
+        )
+        INSERT INTO user_history (user_id, recipe_id, action)
+        VALUES ($1, $2, $3)
+        ON CONFLICT (user_id, recipe_id)
+        DO UPDATE SET
+            action = EXCLUDED.action,
+            action_timestamp = CURRENT_TIMESTAMP
+        WHERE user_history.action IS DISTINCT FROM EXCLUDED.action
+        RETURNING id
+    `
 
-	if err != nil {
-		return err
-	}
+	err := tx.QueryRow(query, userId, recipeId, action, THRESHOLD).Scan(&id)
 
-	return nil
+    if err != nil {
+        if err == sql.ErrNoRows {
+            // This occurs if the INSERT conflicted, and the DO UPDATE was skipped 
+            // because the action was identical. In this case, we retrieve the existing ID.
+            err = tx.QueryRow(`
+                SELECT id FROM user_history 
+                WHERE user_id = $1 AND recipe_id = $2
+            `, userId, recipeId).Scan(&id)
+            
+            if err != nil {
+                return 0, fmt.Errorf("failed to fetch existing user history id: %w", err)
+            }
+            return id, nil
+        }
+        return 0, err
+    }
+
+    return id, nil
 }
 
 func GetUserHistory(db *sql.DB, userId string) ([]UserHistory, error) {

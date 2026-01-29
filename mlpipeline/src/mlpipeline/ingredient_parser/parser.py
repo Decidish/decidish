@@ -33,7 +33,8 @@ class IngredientParser:
                         amount=response.amount,
                         unit=clean_unit_label(response.unit),
                         food=response.food,
-                        info=response.additional_info
+                        info=response.additional_info,
+                        allergies=response.allergies
                     )
                 else:
                     return Ingredient(
@@ -41,7 +42,8 @@ class IngredientParser:
                         amount=normalized["normalized"],
                         unit="g",
                         food=response.food,
-                        info=response.additional_info
+                        info=response.additional_info,
+                        allergies=response.allergies
                     )
             else:
                 return Ingredient(
@@ -52,7 +54,7 @@ class IngredientParser:
                     info="FAILED_TO_PARSE"
                 )
 
-        results = asyncio.gather(*[parse_one(raw) for raw in raw_ingredients])
+        results = await asyncio.gather(*[parse_one(raw) for raw in raw_ingredients])
         return list(results)
 
     async def parse_ingredient(self, raw_ingredient: str) -> Ingredient:

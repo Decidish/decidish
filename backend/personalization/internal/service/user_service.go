@@ -1,6 +1,7 @@
 package service
 
 import (
+	"context"
 	"database/sql"
 	"errors"
 	"fmt"
@@ -10,6 +11,7 @@ import (
 	"personalization/internal/config"
 	"personalization/internal/repository"
 	"strconv"
+	"time"
 
 	"github.com/gin-gonic/gin"
 )
@@ -234,7 +236,7 @@ func (service UserService) RecordUserAction(ctx *gin.Context) {
 	}
 	defer tx.Rollback()
 
-	err = repository.AddUserHistory(tx, userId, recipeID, action)
+	id, err := repository.AddUserHistory(tx, userId, recipeID, action)
 	if err != nil {
 		ctx.JSON(http.StatusInternalServerError, err)
 		return
@@ -244,6 +246,32 @@ func (service UserService) RecordUserAction(ctx *gin.Context) {
 		ctx.JSON(http.StatusInternalServerError, "could not commit transaction")
 		log.Panicln("could not commit transaction", err.Error())
 	}
+
+	go func() {
+		const maxRetries = 5
+		const baseDelay = 2 * time.Second
+
+		for i := 0; i < maxRetries; i++ {
+			// Attempt the update
+			err := UpdateNewUserEmbedding(context.Background(), service.DB, service.MLClient, service.EmbedderServerUrl, id, userId, recipeIDStr, action)
+			if err == nil {
+				return
+			}
+
+			// Log failure
+			log.Printf("Error updating new user embedding (attempt %d/%d): %v", i+1, maxRetries, err)
+
+			// If this was the last attempt, stop
+			if i == maxRetries-1 {
+				log.Println("Final failure: Could not update user embedding after max retries.")
+				return
+			}
+
+			// Exponential Backoff: 2s, 4s, 8s, 16s...
+			sleepDuration := baseDelay * time.Duration(1<<i)
+			time.Sleep(sleepDuration)
+		}
+	}()
 
 	ctx.JSON(http.StatusOK, fmt.Sprintf("Recorded action for user: %s on recipe: %d", userId, recipeID))
 }

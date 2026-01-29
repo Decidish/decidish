@@ -9,10 +9,7 @@ CREATE TABLE IF NOT EXISTS user_history (
 
     CONSTRAINT unique_user_recipe UNIQUE (user_id, recipe_id) -- User must like or dislike, not both
 );
--- +goose StatementEnd
 
--- Index
--- +goose StatementBegin
 CREATE INDEX user_history_user_action_timestamp_idx
 ON user_history (user_id, action, action_timestamp);
 -- +goose StatementEnd
