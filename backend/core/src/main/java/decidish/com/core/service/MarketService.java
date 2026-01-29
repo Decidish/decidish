@@ -409,6 +409,14 @@ public class MarketService {
 
     @Transactional
     protected int cleanupClosedMarkets() {
+        LocalDateTime associationCutoff = LocalDateTime.now().minusWeeks(TTL_WEEKS_MARKET);
+        int deletedAssociations = searchTermMarketRepository.deleteDeprecatedAssociations(associationCutoff);
+        if (deletedAssociations > 0) {
+            searchTermMarketRepository.flush();
+            log.info("Deleted {} stale search-term associations (updatedAt before {}).",
+                    deletedAssociations, associationCutoff);
+        }
+
         List<String> searchTerms = searchTermMarketRepository.findAllSearchTerms();
         if (searchTerms.isEmpty()) {
             log.info("No search terms found; skipping market cleanup.");

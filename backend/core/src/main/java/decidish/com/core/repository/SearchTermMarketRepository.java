@@ -23,4 +23,9 @@ public interface SearchTermMarketRepository extends JpaRepository<SearchTermMark
     @Transactional
     @Query("DELETE FROM SearchTermMarket stm WHERE stm.id.searchTerm = :searchTerm")
     void deleteAllBySearchTerm(@Param("searchTerm") String searchTerm);
+
+    @Modifying
+    @Transactional
+    @Query("DELETE FROM SearchTermMarket stm WHERE stm.updatedAt IS NULL OR stm.updatedAt < :cutoff")
+    int deleteDeprecatedAssociations(@Param("cutoff") java.time.LocalDateTime cutoff);
 }
