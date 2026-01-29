@@ -1,5 +1,6 @@
 package decidish.com.core.configuration;
 
+import decidish.com.core.api.rewe.client.NormalizedReweApiClient;
 import decidish.com.core.api.rewe.client.ReweApiClient;
 import io.minio.GetObjectArgs;
 import io.minio.MinioClient;
@@ -101,7 +102,8 @@ public class ApiClientConfig {
         RestClientAdapter adapter = RestClientAdapter.create(restClient);
         HttpServiceProxyFactory factory = HttpServiceProxyFactory.builderFor(adapter).build();
 
-        return factory.createClient(ReweApiClient.class);
+        ReweApiClient rawClient = factory.createClient(ReweApiClient.class);
+        return new NormalizedReweApiClient(rawClient);
     }
     
     /**
