@@ -191,6 +191,21 @@ services:
   # ----------------------------------------------------------------
   # Monitoring
   # ----------------------------------------------------------------
+  k6:
+    image: grafana/k6:latest
+    ports:
+      - "6565:6565"
+    volumes:
+      - ./k6-scripts:/scripts
+    environment:
+      - K6_PROMETHEUS_RW_SERVER_URL=http://prometheus:9090/api/v1/write
+      - K6_PROMETHEUS_RW_TREND_AS_NATIVE_HISTOGRAM=true
+    entrypoint: ["tail", "-f", "/dev/null"] 
+    depends_on:
+      - nginx
+      - prometheus
+    networks:     
+      - app-network
 
   prometheus:
     image: prom/prometheus:latest
@@ -202,6 +217,7 @@ services:
       - prometheus_data:/prometheus
     command:
       - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--web.enable-remote-write-receiver'
     networks:
       - app-network
 
