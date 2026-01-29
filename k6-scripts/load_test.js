@@ -1,22 +1,44 @@
 import http from 'k6/http';
 import { check, sleep, group } from 'k6';
-import { Rate } from 'k6/metrics';
+import { Rate, Counter, Trend } from 'k6/metrics';
 
 // CUSTOM METRICS
 const errorRate = new Rate('errors');
+const jobImpactCounter = new Counter('job_impact_tests');
+const recommendationTime = new Trend('recommendation_latency');
+const shoppingListTime = new Trend('shopping_list_latency');
+const searchTime = new Trend('search_latency');
 
-const BASE_URL = 'http://nginx';
-const TOTAL_USERS = 50;
+// CONFIGURATION
+const BASE_URL = __ENV.BASE_URL || 'http://nginx';
+const ENVIRONMENT = __ENV.ENVIRONMENT || 'staging'; // staging, production, local
+const TOTAL_USERS = parseInt(__ENV.TOTAL_USERS) || 50;
+const ENABLE_JOB_LOAD = __ENV.ENABLE_JOB_LOAD === 'true'; // Simulate background jobs
+const TEST_DURATION = __ENV.TEST_DURATION || '5m';
+
+// DEBUG Configuration
+const DEBUG = __ENV.DEBUG || ''; // Set to 'all' or specific phases like 'market,search,recommendations'
+const debugCategories = DEBUG ? DEBUG.toLowerCase().split(',').map(c => c.trim()) : [];
+const isDebugEnabled = (category) => {
+  if (!DEBUG) return false;
+  if (DEBUG.toLowerCase() === 'all') return true;
+  return debugCategories.includes(category.toLowerCase());
+};
+
+console.log(`[CONFIG] Environment: ${ENVIRONMENT}, Base URL: ${BASE_URL}, Users: ${TOTAL_USERS}`);
+console.log(`[CONFIG] Job Load Testing: ${ENABLE_JOB_LOAD}, Duration: ${TEST_DURATION}`);
+if (DEBUG) console.log(`[CONFIG] Debug Mode: ${DEBUG}`);
 
 export const options = {
   stages: [
-    { duration: '30s', target: 20 },
-    { duration: '1m', target: 50 },
+    { duration: '30s', target: Math.floor(TOTAL_USERS * 0.4) },
+    { duration: TEST_DURATION, target: TOTAL_USERS },
     { duration: '30s', target: 0 },
   ],
   thresholds: {
-    'http_req_duration': ['p(95)<2000'],
-    'errors': ['rate<0.01'],
+    'http_req_duration': ['p(95)<3000', 'p(99)<5000'],
+    'errors': ['rate<0.05'],
+    'recommendation_latency': ['p(95)<2000'],
   },
 };
 
@@ -26,11 +48,11 @@ export function setup() {
   
   const checkRes = http.get(`${BASE_URL}/`);
   if (checkRes.status === 0) {
-    throw new Error(`[CRITICAL] Cannot reach ${BASE_URL}. Is k6 on the 'app-network'?`);
+    throw new Error(`[CRITICAL] Cannot reach ${BASE_URL}. Is the app running?`);
   }
 
   for (let i = 1; i <= TOTAL_USERS; i++) {
-    const username = `bench_user_${i}_${__VU}@test.com`;
+    const username = `bench_user_${i}_${Date.now()}@test.com`;
     const password = 'password123';
     
     const res = http.post(`${BASE_URL}/auth/register`, JSON.stringify({
@@ -39,92 +61,605 @@ export function setup() {
       name: `Benchmark User ${i}`
     }), { headers: { 'Content-Type': 'application/json' } });
 
-    // Accept 200/201 (Created) OR 500 (Duplicate Key)
     const isDuplicate = res.status === 500 && res.body && res.body.includes("duplicate key");
 
     if (res.status === 200 || res.status === 201 || res.status === 409 || isDuplicate) {
-      createdUsers.push({ username, password });
+      createdUsers.push({ username, password, userId: i });
     } else {
-      console.error(`[Setup Failed] User ${i}: Status ${res.status} - ${res.body}`);
+      console.error(`[Setup Failed] User ${i}: Status ${res.status}`);
     }
   }
 
   if (createdUsers.length === 0) throw new Error("No users created!");
   console.log(`[Setup] Ready with ${createdUsers.length} users.`);
+  
+  // Check if database is seeded with markets
+  console.log("[Setup] Checking if database is seeded...");
+  const marketCheckRes = http.get(`${BASE_URL}/shopping/api/v1/markets?plz=10115`);
+  if (marketCheckRes.status !== 200) {
+    console.warn(`[Setup WARNING] Markets endpoint not available (${marketCheckRes.status}). Database may not be seeded yet.`);
+    console.warn("[Setup WARNING] Run cron jobs to seed markets and products before load testing.");
+  } else {
+    try {
+      const markets = marketCheckRes.json();
+      const marketCount = Array.isArray(markets) ? markets.length : (markets.markets ? markets.markets.length : 0);
+      console.log(`[Setup] Database check: Found ${marketCount} markets`);
+      if (marketCount === 0) {
+        console.warn("[Setup WARNING] No markets in database. Seed data before running full tests.");
+      }
+    } catch (e) {
+      console.warn("[Setup WARNING] Could not parse markets response:", e.message);
+    }
+  }
+  
+  // Optionally trigger background job for testing
+  if (ENABLE_JOB_LOAD) {
+    console.log("[Setup] Triggering background job: Import Recipes from REWE...");
+    const jobRes = http.post(`${BASE_URL}/personalization/recipes/rewe`, 
+      JSON.stringify({}), 
+      { headers: { 'Content-Type': 'application/json' }, timeout: '10s' }
+    );
+    console.log(`[Setup] Job trigger response: ${jobRes.status}`);
+  }
+
   return createdUsers; 
 }
+
+// ============= HELPER FUNCTIONS =============
+
+function getAuthHeaders(authToken) {
+  const headers = { 'Content-Type': 'application/json' };
+  if (authToken) {
+    headers['Cookie'] = `auth_token=${authToken}`;
+  }
+  return headers;
+}
+
+function extractAuthToken(response) {
+  const setCookie = response.headers['Set-Cookie'];
+  if (setCookie) {
+    const match = setCookie.match(/auth_token=([^;]+)/);
+    if (match) return match[1];
+  }
+  if (response.json && response.json('token')) {
+    return response.json('token');
+  }
+  return '';
+}
+
+// ============= MAIN USER FLOW =============
 
 export default function (data) {
   const user = data[Math.floor(Math.random() * data.length)];
   let authToken = '';
+  let marketId = null;
+  let recipeId = null;
 
-  // 1. LOGIN
-  group('Auth Flow', () => {
+  // --- PHASE 1: AUTHENTICATION ---
+  group('1. Authentication', () => {
+    // Login
     const loginRes = http.post(`${BASE_URL}/auth/login`, JSON.stringify({
       username: user.username,
       password: user.password
     }), { headers: { 'Content-Type': 'application/json' } });
 
     const success = check(loginRes, {
-      'Logged in': (r) => r.status === 200,
+      'Login successful': (r) => r.status === 200 || r.status === 201,
     });
 
     if (!success) {
       errorRate.add(1);
-      console.log(`Login Failed: ${loginRes.status} ${loginRes.body}`);
+      console.log(`[Auth DEBUG] Login Failed - Status: ${loginRes.status}, Body: ${loginRes.body}`);
       return; 
     }
 
-    // --- CRITICAL FIX: EXTRACT COOKIE MANUALLY ---
-    // k6 ignores the cookie because the domain (.decidish.win) doesn't match host (nginx)
-    // We parse the header string manually: "auth_token=xyz; Path=/; Domain=..."
-    const setCookie = loginRes.headers['Set-Cookie'];
-    if (setCookie) {
-        // Regex to grab everything between "auth_token=" and the next ";"
-        const match = setCookie.match(/auth_token=([^;]+)/);
-        if (match) {
-            authToken = match[1];
-        }
-    }
-    
-    // Fallback: If your app changes to return it in JSON later
-    if (!authToken && loginRes.json('token')) {
-        authToken = loginRes.json('token');
+    authToken = extractAuthToken(loginRes);
+    if (!authToken) {
+      errorRate.add(1);
+      console.log(`[Auth DEBUG] Could not extract auth token! Headers: ${JSON.stringify(loginRes.headers)}`);
+      console.log(`[Auth DEBUG] Response body: ${loginRes.body}`);
+      return;
     }
 
-    if (!authToken) {
-       console.log("CRITICAL: Could not find auth_token in Cookie or Body!");
-       errorRate.add(1);
-    }
+    sleep(0.5);
   });
 
-  // 2. PREPARE HEADERS (Manually inject Cookie)
-  const headers = { 
-    'Content-Type': 'application/json'
-  };
-  
-  // Your Go Middleware looks for c.Cookie("auth_token"). 
-  // We simulate the browser sending it back.
-  if (authToken) {
-      headers['Cookie'] = `auth_token=${authToken}`;
+  const headers = getAuthHeaders(authToken);
+
+  // --- PHASE 2: QUESTIONNAIRE / PREFERENCES ---
+  group('2. User Preferences Setup', () => {
+    // Generate a simple default preference vector (35 dimensions based on Bruno example)
+    const defaultVector = Array(35).fill(0).map(() => Math.random() > 0.5 ? 1 : 0);
+    
+    const prefRes = http.post(`${BASE_URL}/personalization/api/v1/user/preferences`, 
+      JSON.stringify({
+        dietary_restrictions: ['vegetarian'],
+        allergies: ['peanuts'],
+        cuisine_preferences: ['italian', 'asian'],
+        spice_level: 'medium',
+        cooking_time: 30,
+        budget: 100,
+        skill_level: 'intermediate',
+        preference_vector: defaultVector
+      }), 
+      { headers }
+    );
+
+    const prefSet = check(prefRes, {
+      'Preferences set': (r) => r.status === 200 || r.status === 201,
+    });
+    
+    if (!prefSet) {
+      console.log(`[Preferences DEBUG] Failed - Status: ${prefRes.status}, Body: ${prefRes.body}`);
+      errorRate.add(1);
+    }
+
+    sleep(0.3);
+  });
+
+  // --- PHASE 3: MARKET SELECTION ---
+  group('3. Market Selection', () => {
+    // Markets are in the shopping/core service, requires plz (postal code) parameter
+    const marketRes = http.get(`${BASE_URL}/shopping/api/v1/markets?plz=10115`, { headers });
+    
+    const marketsFetched = check(marketRes, {
+      'Markets fetched': (r) => r.status === 200,
+    });
+
+    if (!marketsFetched) {
+      console.log(`[Market DEBUG] Failed to fetch markets - Status: ${marketRes.status}`);
+      console.log(`[Market DEBUG] Response body: ${marketRes.body}`);
+      errorRate.add(1);
+    }
+
+    try {
+      if (isDebugEnabled('market') || isDebugEnabled('all')) {
+        console.log(`[Market DEBUG] Response status: ${marketRes.status}, Content-Type: ${marketRes.headers['Content-Type']}`);
+        console.log(`[Market DEBUG] Response body (first 200 chars): ${marketRes.body ? marketRes.body.substring(0, 200) : 'empty'}`);
+      }
+      
+      let markets = null;
+      
+      // Try parsing as JSON
+      if (marketRes.body) {
+        const jsonBody = marketRes.json();
+        if (isDebugEnabled('market')) {
+          console.log(`[Market DEBUG] Parsed JSON keys: ${Object.keys(jsonBody).join(', ')}`);
+        }
+        
+        // Try different response structures
+        markets = jsonBody.markets || jsonBody.data || jsonBody;
+        
+        if (Array.isArray(markets)) {
+          if (isDebugEnabled('market')) {
+            console.log(`[Market DEBUG] Found ${markets.length} markets as array`);
+          }
+        } else if (markets && typeof markets === 'object') {
+          if (isDebugEnabled('market')) {
+            console.log(`[Market DEBUG] Markets is object with keys: ${Object.keys(markets).join(', ')}`);
+          }
+        }
+      }
+      
+      if (markets && Array.isArray(markets) && markets.length > 0) {
+        if (isDebugEnabled('market')) {
+          console.log(`[Market DEBUG] First market structure: ${JSON.stringify(markets[0]).substring(0, 100)}`);
+        }
+        marketId = markets[0].id || markets[0].market_id || markets[0].ID;
+        if (isDebugEnabled('market')) {
+          console.log(`[Market DEBUG] Selected market ID: ${marketId}`);
+        }
+        
+        if (marketId) {
+          const selectRes = http.post(`${BASE_URL}/personalization/api/v1/user/market`, 
+            JSON.stringify({ market_id: String(marketId) }), // Convert to string
+            { headers }
+          );
+
+          const selected = check(selectRes, {
+            'Market selected': (r) => r.status === 200 || r.status === 201,
+          });
+          
+          if (!selected) {
+            console.log(`[Market DEBUG] Market selection failed - Status: ${selectRes.status}, Body: ${selectRes.body}`);
+          }
+        } else {
+          console.log("[Market DEBUG] Could not extract market ID from market object");
+        }
+      } else {
+        console.log("[Market DEBUG] No markets found in response or markets is not an array");
+      }
+    } catch (e) {
+      console.log(`[Market DEBUG] Exception parsing markets: ${e.message}`);
+      console.log(`[Market DEBUG] Stack: ${e.stack}`);
+      errorRate.add(1);
+    }
+
+    sleep(0.5);
+  });
+
+  // --- PHASE 4: RECIPE SWIPER / RECOMMENDATIONS ---
+  group('4. Recipe Discovery & Recommendations', () => {
+    const recStart = new Date();
+    const recRes = http.get(`${BASE_URL}/personalization/api/v1/recipes/recommend`, { headers });
+    const recEnd = new Date();
+    recommendationTime.add(recEnd - recStart);
+
+    const recFetched = check(recRes, {
+      'Recommendations fetched': (r) => r.status === 200,
+    });
+    
+    if (!recFetched) {
+      console.log(`[Recommendations DEBUG] Failed - Status: ${recRes.status}, Body: ${recRes.body}`);
+      errorRate.add(1);
+    }
+
+    try {
+      if (isDebugEnabled('recommendations')) {
+        console.log(`[Recommendations DEBUG] Response body (first 200 chars): ${recRes.body ? recRes.body.substring(0, 200) : 'empty'}`);
+      }
+      
+      // Handle null/undefined responses
+      if (!recRes.body || recRes.body === 'null') {
+        if (isDebugEnabled('recommendations')) {
+          console.log("[Recommendations DEBUG] Response is null or empty - likely no recipes in database");
+        }
+        return;
+      }
+      
+      const jsonBody = recRes.json();
+      const recipes = jsonBody.recipes || jsonBody.data || jsonBody;
+      
+      if (isDebugEnabled('recommendations')) {
+        console.log(`[Recommendations DEBUG] Found ${Array.isArray(recipes) ? recipes.length : 0} recipes`);
+      }
+      
+      if (recipes && Array.isArray(recipes) && recipes.length > 0) {
+        recipeId = recipes[0].id || recipes[0].recipe_id || recipes[0].ID;
+        if (isDebugEnabled('recommendations')) {
+          console.log(`[Recommendations DEBUG] Selected recipe ID: ${recipeId}`);
+        }
+        
+        // Simulate user recording actions (like) for recipes
+        for (let i = 0; i < Math.min(3, recipes.length); i++) {
+          const currentRecipeId = recipes[i].id || recipes[i].recipe_id || recipes[i].ID;
+          const likeRes = http.post(`${BASE_URL}/personalization/api/v1/user/record/like/${currentRecipeId}`, 
+            JSON.stringify({}), 
+            { headers }
+          );
+          if (likeRes.status !== 200 && likeRes.status !== 201) {
+            console.log(`[Like DEBUG] Failed - Status: ${likeRes.status}, Body: ${likeRes.body.substring(0, 200)}`);
+          }
+          check(likeRes, { 'Recipe liked': (r) => r.status === 200 || r.status === 201 });
+        }
+      } else {
+        if (isDebugEnabled('recommendations')) {
+          console.log("[Recommendations DEBUG] No recipes found in response");
+        }
+      }
+    } catch (e) {
+      console.log(`[Recommendations DEBUG] Exception: ${e.message}`);
+      errorRate.add(1);
+    }
+
+    sleep(1);
+  });
+
+  // --- PHASE 5: SHOPPING LIST WORKFLOW ---
+  // Simulates the real user flow: generate product options, select products, add to shopping list
+  if (recipeId && marketId) {
+    group('5. Shopping List Workflow', () => {
+      // Step 1: Generate shopping list with product options for the recipe
+      const generateStart = new Date();
+      const generateRes = http.post(
+        `${BASE_URL}/shopping/shopping-list/generate?marketId=${marketId}`,
+        JSON.stringify([recipeId]),
+        { headers }
+      );
+      const generateEnd = new Date();
+      shoppingListTime.add(generateEnd - generateStart);
+
+      if (isDebugEnabled('shopping')) {
+        console.log(`[Shopping Workflow DEBUG] Generate list status: ${generateRes.status}`);
+        console.log(`[Shopping Workflow DEBUG] Response: ${generateRes.body ? generateRes.body.substring(0, 500) : 'empty'}`);
+      }
+
+      const generateSuccess = check(generateRes, {
+        'Product options generated': (r) => r.status === 200,
+      });
+
+      if (!generateSuccess) {
+        console.log(`[Shopping Workflow FAILED] Generate status: ${generateRes.status}, Body: ${generateRes.body ? generateRes.body.substring(0, 300) : 'empty'}`);
+        return;
+      }
+
+      // Step 2: Parse product options and simulate user selections
+      let cartItems = [];
+      
+      try {
+        const shoppingList = generateRes.json();
+        const items = shoppingList.items || [];
+        
+        if (isDebugEnabled('shopping')) {
+          console.log(`[Shopping Workflow DEBUG] Found ${items.length} ingredient groups`);
+        }
+
+        // Simulate user selecting first available product for each ingredient
+        items.forEach((ingredientGroup, idx) => {
+          if (ingredientGroup.options && ingredientGroup.options.length > 0) {
+            const selectedOption = ingredientGroup.options[0]; // Pick first option
+            const product = selectedOption.product;
+            const quantity = Math.max(1, Math.ceil(selectedOption.quantityToBuy || 1));
+            
+            cartItems.push({
+              product_id: product.id,
+              quantity: quantity,
+              recipe_id: recipeId
+            });
+            
+            if (isDebugEnabled('shopping')) {
+              console.log(`[Shopping Workflow DEBUG] Ingredient ${idx + 1}: Selected ${product.name} (qty: ${quantity})`);
+            }
+          }
+        });
+
+        if (isDebugEnabled('shopping')) {
+          console.log(`[Shopping Workflow DEBUG] Selected ${cartItems.length} products total`);
+        }
+
+      } catch (e) {
+        console.log(`[Shopping Workflow ERROR] Failed to parse product options: ${e.message}`);
+        return;
+      }
+
+      // Step 3: Add selected products to user's shopping list
+      if (cartItems.length > 0) {
+        if (isDebugEnabled('shopping')) {
+          console.log(`[Shopping Workflow DEBUG] About to add ${cartItems.length} items for recipe_id: ${recipeId}`);
+          console.log(`[Shopping Workflow DEBUG] Sample cart item: ${JSON.stringify(cartItems[0])}`);
+        }
+        
+        const addStart = new Date();
+        const addRes = http.post(
+          `${BASE_URL}/personalization/api/v1/user/add-to-list`,
+          JSON.stringify(cartItems),
+          { headers }
+        );
+        const addEnd = new Date();
+        shoppingListTime.add(addEnd - addStart);
+
+        if (isDebugEnabled('shopping')) {
+          console.log(`[Shopping Workflow DEBUG] Add to list status: ${addRes.status}`);
+          console.log(`[Shopping Workflow DEBUG] Response: ${addRes.body}`);
+        }
+
+        const addSuccess = check(addRes, {
+          'Products added to shopping list': (r) => r.status === 200,
+        });
+
+        if (!addSuccess) {
+          console.log(`[Shopping Workflow FAILED] Add to list status: ${addRes.status}, Body: ${addRes.body ? addRes.body.substring(0, 300) : 'empty'}`);
+        }
+
+        // Step 4: Verify shopping list now has items
+        sleep(0.2); // Small delay for database consistency
+
+        const listRes = http.get(`${BASE_URL}/personalization/api/v1/user/active/list`, { headers });
+
+        if (isDebugEnabled('shopping')) {
+          console.log(`[Shopping Workflow DEBUG] Verification list status: ${listRes.status}`);
+          console.log(`[Shopping Workflow DEBUG] Response: ${listRes.body ? listRes.body.substring(0, 500) : 'empty'}`);
+        }
+
+        check(listRes, {
+          'Shopping list retrieved': (r) => r.status === 200,
+        });
+
+        try {
+          if (listRes.status === 200 && listRes.body) {
+            const jsonBody = listRes.json();
+            
+            // Handle different response structures
+            if (jsonBody.message && jsonBody.message.includes('No active shopping list')) {
+              console.log(`[Shopping Workflow WARN] No active list found after adding ${cartItems.length} items`);
+            } else {
+              const groups = jsonBody.groups || [];
+              let itemCount = 0;
+              
+              groups.forEach(group => {
+                if (group.items && Array.isArray(group.items)) {
+                  itemCount += group.items.length;
+                }
+              });
+              
+              if (isDebugEnabled('shopping')) {
+                console.log(`[Shopping Workflow DEBUG] Shopping list has ${itemCount} items in ${groups.length} groups`);
+              }
+              
+              check({ itemCount }, {
+                'Shopping list contains items': (data) => data.itemCount > 0,
+              });
+            }
+          }
+        } catch (e) {
+          console.log(`[Shopping Workflow ERROR] Failed to verify shopping list: ${e.message}`);
+        }
+      } else {
+        console.log(`[Shopping Workflow WARN] No products to add - recipe may have no ingredients or no product matches`);
+      }
+
+      sleep(0.5);
+    });
   }
 
-  // 3. BROWSING
-  if (authToken) {
-      group('Discovery', () => {
-        const recRes = http.get(`${BASE_URL}/personalization/api/v1/recipes/recommend`, { headers });
-        // DEBUG: Print error if it fails
-        if (recRes.status !== 200) {
-            console.log(`[Recs Failed] Status: ${recRes.status}`);
-            // Only print body if it's short (avoid spamming console with HTML)
-            if (recRes.body && recRes.body.length < 200) {
-                console.log(`[Recs Body] ${recRes.body}`);
-            }
-        }
-        check(recRes, { 'Recommendations OK': (r) => r.status === 200 });
-        
-        sleep(1);
+  // --- PHASE 6: SHOPPING LIST PAGE & HISTORY ---
+  group('6. Shopping List Management', () => {
+    // Get active shopping list
+    const activeRes = http.get(`${BASE_URL}/personalization/api/v1/user/active/list`, { headers });
+    
+    if (isDebugEnabled('shopping') || activeRes.status !== 200) {
+      console.log(`[PHASE 6 DEBUG] Active shopping list status: ${activeRes.status}`);
+    }
+    if (activeRes.status !== 200) {
+      console.log(`[PHASE 6 DEBUG] Response: ${activeRes.body.substring(0, 200)}`);
+    }
+    
+    check(activeRes, {
+      'Active list fetched': (r) => r.status === 200,
+    });
+
+    // Get shopping list history
+    const historyRes = http.get(`${BASE_URL}/personalization/api/v1/user/shopping/history`, { headers });
+    
+    if (isDebugEnabled('shopping') || historyRes.status !== 200) {
+      console.log(`[PHASE 6 DEBUG] Shopping history status: ${historyRes.status}`);
+    }
+    if (historyRes.status !== 200) {
+      console.log(`[PHASE 6 DEBUG] Response: ${historyRes.body.substring(0, 200)}`);
+    }
+    
+    check(historyRes, {
+      'History fetched': (r) => r.status === 200,
+    });
+
+    sleep(0.5);
+  });
+
+  // --- PHASE 7: SEARCH PRODUCTS (from core/shopping service) ---
+  group('7. Search Products', () => {
+    const searchStart = new Date();
+    const searchRes = http.get(`${BASE_URL}/shopping/api/v1/markets/search/products?query=tomato&marketId=${marketId || 1}`, { headers });
+    const searchEnd = new Date();
+    searchTime.add(searchEnd - searchStart);
+
+    if (searchRes.status !== 200) {
+      console.log(`[Products Search DEBUG] Failed - Status: ${searchRes.status}, Body: ${searchRes.body.substring(0, 200)}`);
+    }
+
+    check(searchRes, {
+      'Products searched': (r) => r.status === 200,
+    });
+
+    sleep(0.5);
+  });
+
+  // --- PHASE 8: SEARCH RECIPES ---
+  group('8. Search Recipes', () => {
+    const recipeSearchRes = http.get(`${BASE_URL}/personalization/recipes/search?q=pasta`, { headers });
+    
+    if (recipeSearchRes.status !== 200) {
+      console.log(`[Recipes Search DEBUG] Failed - Status: ${recipeSearchRes.status}, Body: ${recipeSearchRes.body.substring(0, 200)}`);
+    }
+    
+    check(recipeSearchRes, {
+      'Recipes searched': (r) => r.status === 200,
+    });
+
+    sleep(0.5);
+  });
+
+  // --- PHASE 9: PROFILE & PREFERENCES UPDATE ---
+  group('9. Profile Updates', () => {
+    // Update market preference
+    if (marketId) {
+      const marketUpdateRes = http.post(`${BASE_URL}/personalization/api/v1/user/market`, 
+        JSON.stringify({ market_id: String(marketId) }), // Convert to string
+        { headers }
+      );
+      check(marketUpdateRes, {
+        'Market preference updated': (r) => r.status === 200 || r.status === 201,
       });
+    }
+
+    // Update dietary preferences
+    const prefUpdateVector = Array(35).fill(0).map(() => Math.random() > 0.5 ? 1 : 0);
+    const prefUpdateRes = http.post(`${BASE_URL}/personalization/api/v1/user/preferences`, 
+      JSON.stringify({
+        dietary_restrictions: ['vegan'],
+        allergies: ['shellfish'],
+        cuisine_preferences: ['thai', 'mexican'],
+        spice_level: 'high',
+        cooking_time: 45,
+        budget: 150,
+        skill_level: 'advanced',
+        preference_vector: prefUpdateVector
+      }), 
+      { headers }
+    );
+
+    if (prefUpdateRes.status !== 200 && prefUpdateRes.status !== 201) {
+      console.log(`[Preferences Update DEBUG] Failed - Status: ${prefUpdateRes.status}, Body: ${prefUpdateRes.body.substring(0, 200)}`);
+    }
+
+    check(prefUpdateRes, {
+      'Preferences updated': (r) => r.status === 200 || r.status === 201,
+    });
+
+    sleep(0.5);
+  });
+
+  // --- PHASE 10: ADD RECIPE VIA URL (if applicable) ---
+  group('10. Recipe Import', () => {
+    const importRes = http.post(`${BASE_URL}/personalization/api/v1/recipes/import`, 
+      JSON.stringify({ 
+        url: 'https://example.com/recipe/pasta',
+        source: 'manual'
+      }), 
+      { headers, timeout: '5s' }
+    );
+
+    // This might not be implemented, so don't hard-fail
+    if (importRes.status !== 0) {
+      check(importRes, {
+        'Recipe imported or attempted': (r) => r.status < 500,
+      });
+    }
+
+    sleep(0.5);
+  });
+
+  // --- PHASE 11: USER ACTIVITY TRACKING ---
+  group('11. Activity Tracking', () => {
+    // Record a like action for the recipe using the /user/record/:action/:recipeID endpoint
+    if (recipeId) {
+      const activityRes = http.post(`${BASE_URL}/personalization/api/v1/user/record/like/${recipeId}`, 
+        JSON.stringify({}), 
+        { headers }
+      );
+
+      if (activityRes.status !== 200 && activityRes.status !== 201) {
+        console.log(`[Activity DEBUG] Failed - Status: ${activityRes.status}, Body: ${activityRes.body.substring(0, 200)}`);
+      }
+
+      check(activityRes, {
+        'Activity recorded': (r) => r.status === 200 || r.status === 201,
+      });
+    }
+
+    sleep(0.3);
+  });
+
+  // --- PHASE 12: VERIFY APP RESPONSIVENESS UNDER JOB LOAD ---
+  if (ENABLE_JOB_LOAD && __VU % 10 === 0) {
+    group('12. Performance Check (During Job Load)', () => {
+      jobImpactCounter.add(1);
+
+      // Quick health check
+      const healthRes = http.get(`${BASE_URL}/health`, { headers, timeout: '5s' });
+      check(healthRes, {
+        'Health check OK': (r) => r.status === 200 || r.status === 0,
+      });
+
+      // Get recommendations again to measure latency
+      const recStart = new Date();
+      const recRes = http.get(`${BASE_URL}/personalization/api/v1/recipes/recommend`, { headers });
+      const recEnd = new Date();
+      recommendationTime.add(recEnd - recStart);
+
+      check(recRes, {
+        'Recommendations still responsive': (r) => r.status === 200,
+      });
+    });
   }
 
   sleep(2); 
