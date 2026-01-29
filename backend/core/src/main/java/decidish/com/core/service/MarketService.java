@@ -3,13 +3,14 @@ package decidish.com.core.service;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.data.jpa.domain.Specification;
 import org.springframework.util.StringUtils;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -19,7 +20,6 @@ import org.springframework.stereotype.Service;
 
 import decidish.com.core.api.rewe.client.ReweApiClient;
 import decidish.com.core.model.rewe.Market;
-import decidish.com.core.model.rewe.MarketSearchResponse;
 import decidish.com.core.model.rewe.MarketSummaryDto;
 import decidish.com.core.model.rewe.Product;
 import decidish.com.core.model.rewe.ProductDto;
@@ -395,6 +395,74 @@ public class MarketService {
                 log.error("Error updating Market with id {}: {}", market.getId(), e.getMessage());
             }
         }
+    }
+
+    @Transactional
+    public void cleanupDeprecatedData() {
+        LocalDateTime productCutoff = LocalDateTime.now().minusWeeks(TTL_WEEKS_PRODUCTS);
+        int deletedProducts = productRepository.deleteDeprecatedProducts(productCutoff);
+        log.info("Deleted {} deprecated products (lastUpdated before {}).", deletedProducts, productCutoff);
+
+        int deletedMarkets = cleanupClosedMarkets();
+        log.info("Deleted {} closed markets with no remaining search-term associations.", deletedMarkets);
+    }
+
+    @Transactional
+    protected int cleanupClosedMarkets() {
+        List<String> searchTerms = searchTermMarketRepository.findAllSearchTerms();
+        if (searchTerms.isEmpty()) {
+            log.info("No search terms found; skipping market cleanup.");
+            return 0;
+        }
+
+        for (String searchTerm : searchTerms) {
+            MarketPickupResponse apiResponse = apiClient.searchMarkets(searchTerm);
+            if (apiResponse == null || apiResponse.data() == null || apiResponse.data().servicePortfolio() == null
+                    || apiResponse.data().servicePortfolio().pickupMarkets() == null) {
+                log.warn("Market cleanup: API returned no data for search term '{}'; skipping.", searchTerm);
+                continue;
+            }
+
+            List<MarketPickupDto> apiMarkets = apiResponse.data().servicePortfolio().pickupMarkets();
+            if (apiMarkets.isEmpty()) {
+                searchTermMarketRepository.deleteAllBySearchTerm(searchTerm);
+                searchTermMarketRepository.flush();
+                log.info("Removed all associations for search term '{}' (no markets returned).", searchTerm);
+                continue;
+            }
+
+            Set<Long> apiMarketIds = new HashSet<>();
+            for (MarketPickupDto dto : apiMarkets) {
+                apiMarketIds.add(dto.wwIdent());
+            }
+
+            List<SearchTermMarket> existingAssociations =
+                    searchTermMarketRepository.findAllByIdSearchTerm(searchTerm);
+            List<SearchTermMarket> staleAssociations = existingAssociations.stream()
+                    .filter(stm -> stm.getMarket() == null || !apiMarketIds.contains(stm.getMarket().getId()))
+                    .toList();
+
+            if (!staleAssociations.isEmpty()) {
+                searchTermMarketRepository.deleteAll(staleAssociations);
+                searchTermMarketRepository.flush();
+                log.info("Removed {} stale associations for search term '{}'.",
+                        staleAssociations.size(), searchTerm);
+            }
+        }
+
+        searchTermMarketRepository.flush();
+
+        List<Market> marketsToDelete = marketRepository.findAllWithNoSearchTermAssociations();
+        if (marketsToDelete.isEmpty()) {
+            return 0;
+        }
+
+        List<Long> marketIdsToDelete = marketsToDelete.stream()
+            .map(Market::getId)
+            .toList();
+
+        int deleted = marketRepository.deleteAllByIds(marketIdsToDelete);
+        return deleted;
     }
 
     // ! Don't delete yet, multi-threading can be useful in the future, but causes issues now

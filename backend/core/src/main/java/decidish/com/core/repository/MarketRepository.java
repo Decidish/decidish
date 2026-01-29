@@ -3,11 +3,13 @@ package decidish.com.core.repository;
 import java.util.List;
 import java.util.Optional;
 
-import org.springframework.cache.annotation.Cacheable;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
+
+import jakarta.transaction.Transactional;
 
 import decidish.com.core.model.rewe.Market;
 
@@ -36,4 +38,12 @@ public interface MarketRepository extends JpaRepository<Market, Long> {
      */
     @Query("SELECT m FROM Market m JOIN SearchTermMarket stm ON m.id = stm.market.id WHERE stm.id.searchTerm = :term")
     Optional<List<Market>> getMarketsBySearchTerm(@Param("term") String term);
+
+    @Query("SELECT m FROM Market m WHERE NOT EXISTS (SELECT 1 FROM SearchTermMarket stm WHERE stm.market.id = m.id)")
+    List<Market> findAllWithNoSearchTermAssociations();
+
+    @Modifying
+    @Transactional
+    @Query("DELETE FROM Market m WHERE m.id IN :ids")
+    int deleteAllByIds(@Param("ids") List<Long> ids);
 }
