@@ -86,7 +86,14 @@ export default function ShoppingFlowModal({
 
   const currentIngredientGroup: IngredientGroup | undefined = useMemo(() => {
     if (!workingRecipe?.richIngredients) return undefined;
-    return workingRecipe.richIngredients[currentIngredientIndex];
+    const group = workingRecipe.richIngredients[currentIngredientIndex];
+    console.log('[ShoppingFlowModal] Current ingredient group changed:', {
+      ingredientId: group?.ingredientId,
+      ingredientName: group?.ingredientName,
+      optionCount: group?.options.length,
+      productIds: group?.options.map(opt => opt.product.id),
+    });
+    return group;
   }, [currentIngredientIndex, workingRecipe]);
 
   // Reset showAllProducts and product quantities when ingredient changes
@@ -96,8 +103,16 @@ export default function ShoppingFlowModal({
     if (currentIngredientGroup) {
       setProductQuantities((prev) => {
         const newQuantities = { ...prev };
+        const productIdsToDelete: number[] = [];
         currentIngredientGroup.options.forEach((opt) => {
+          productIdsToDelete.push(opt.product.id);
           delete newQuantities[opt.product.id];
+        });
+        console.log('[ShoppingFlowModal] Cleared quantities for ingredient:', {
+          ingredientId: currentIngredientGroup.ingredientId,
+          ingredientName: currentIngredientGroup.ingredientName,
+          clearedProductIds: productIdsToDelete,
+          remainingQuantities: newQuantities,
         });
         return newQuantities;
       });
@@ -273,7 +288,7 @@ export default function ShoppingFlowModal({
                   const quantity = productQuantities[product.id] || 0;
                   return (
                   <div
-                    key={`ingredient-${currentIngredientGroup.ingredientId}-product-${product.id}`}
+                    key={product.id}
                     className="w-full p-4 bg-white border-2 border-gray-200 rounded-xl hover:border-[#2F855A] transition-all"
                   >
                     <div className="flex items-center gap-4 mb-3">
