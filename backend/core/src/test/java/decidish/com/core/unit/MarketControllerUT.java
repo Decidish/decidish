@@ -1,6 +1,8 @@
 package decidish.com.core.unit;
 
+import decidish.com.core.model.rewe.Address;
 import decidish.com.core.model.rewe.Market;
+import decidish.com.core.model.rewe.MarketSummaryDto;
 import decidish.com.core.service.MarketService;
 import decidish.com.core.controller.MarketController;
 import org.junit.jupiter.api.DisplayName;
@@ -35,9 +37,9 @@ class MarketControllerUT {
     void testSearchMarkets() throws Exception {
         // Arrange
         String plz = "80809";
-        Market mockMarket = new Market();
-        mockMarket.setId(1L);
-        mockMarket.setName("REWE Test");
+        MarketSummaryDto mockMarket = new MarketSummaryDto(
+            1L, "REWE Test", new Address(), "1.2 km", "07:00 - 22:00", 4.5, null
+        );
 
         when(marketService.getMarkets(plz)).thenReturn(List.of(mockMarket));
 
