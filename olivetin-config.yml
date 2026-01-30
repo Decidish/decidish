@@ -1,0 +1,12 @@
+# olivetin-config.yaml
+
+# General settings
+listenAddress: "0.0.0.0:1337"
+logLevel: "INFO"
+
+actions:
+  - title: "Daily Backup"
+    shell: "echo 'Hello There'"
+    # This puts it in the UI *and* schedules it
+    execOnCron: 
+      - "* * * * *"
