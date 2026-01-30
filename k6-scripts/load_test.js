@@ -25,8 +25,48 @@ const isDebugEnabled = (category) => {
   return debugCategories.includes(category.toLowerCase());
 };
 
+// POSTAL CODES - Diverse German postal codes for distributed load testing
+// Covers major cities across different regions to test horizontal scalability
+const POSTAL_CODES = [
+  '10115', // Berlin Mitte
+  '10178', // Berlin Alexanderplatz
+  '20095', // Hamburg
+  '80331', // Munich
+  '60311', // Frankfurt
+  '50667', // Cologne
+  '70173', // Stuttgart
+  '40210', // Düsseldorf
+  '04109', // Leipzig
+  '01067', // Dresden
+  '30159', // Hannover
+  '90402', // Nuremberg
+  '28195', // Bremen
+  '76133', // Karlsruhe
+  '68159', // Mannheim
+];
+
+// SEARCH TERMS - German product/ingredient names from REWE database
+const PRODUCT_SEARCH_TERMS = [
+  'Tomaten', 'Kartoffeln', 'Zwiebeln', 'Knoblauch', 'Paprika',
+  'Hähnchen', 'Rindfleisch', 'Lachs', 'Garnelen', 'Käse',
+  'Milch', 'Butter', 'Eier', 'Sahne', 'Joghurt',
+  'Brot', 'Nudeln', 'Reis', 'Mehl', 'Zucker',
+  'Äpfel', 'Bananen', 'Orangen', 'Zitronen', 'Erdbeeren',
+  'Salat', 'Gurke', 'Brokkoli', 'Spinat', 'Champignons'
+];
+
+const RECIPE_SEARCH_TERMS = [
+  'Salat', 'Suppe', 'Curry', 'Hähnchen', 'Rindfleisch',
+  'Fisch', 'vegetarisch', 'vegan', 'Dessert', 'Kuchen',
+  'Brot', 'Frühstück', 'Abendessen', 'Mittagessen', 'Snack',
+  'Vorspeise', 'Hauptspeise', 'italienisch', 'asiatisch', 'mexikanisch',
+  'mediterran', 'Pasta', 'Kartoffelgratin', 'Bruschetta', 'Muffins'
+];
+
 console.log(`[CONFIG] Environment: ${ENVIRONMENT}, Base URL: ${BASE_URL}, Users: ${TOTAL_USERS}`);
 console.log(`[CONFIG] Job Load Testing: ${ENABLE_JOB_LOAD}, Duration: ${TEST_DURATION}`);
+console.log(`[CONFIG] Using ${POSTAL_CODES.length} different postal codes for load distribution`);
+console.log(`[CONFIG] Using ${PRODUCT_SEARCH_TERMS.length} German product search terms and ${RECIPE_SEARCH_TERMS.length} German recipe search terms`);
 if (DEBUG) console.log(`[CONFIG] Debug Mode: ${DEBUG}`);
 
 export const options = {
@@ -73,23 +113,31 @@ export function setup() {
   if (createdUsers.length === 0) throw new Error("No users created!");
   console.log(`[Setup] Ready with ${createdUsers.length} users.`);
   
-  // Check if database is seeded with markets
-  console.log("[Setup] Checking if database is seeded...");
-  const marketCheckRes = http.get(`${BASE_URL}/shopping/api/v1/markets?plz=10115`);
-  if (marketCheckRes.status !== 200) {
-    console.warn(`[Setup WARNING] Markets endpoint not available (${marketCheckRes.status}). Database may not be seeded yet.`);
-    console.warn("[Setup WARNING] Run cron jobs to seed markets and products before load testing.");
-  } else {
-    try {
-      const markets = marketCheckRes.json();
-      const marketCount = Array.isArray(markets) ? markets.length : (markets.markets ? markets.markets.length : 0);
-      console.log(`[Setup] Database check: Found ${marketCount} markets`);
-      if (marketCount === 0) {
-        console.warn("[Setup WARNING] No markets in database. Seed data before running full tests.");
+  // Check if database is seeded with markets across different postal codes
+  console.log("[Setup] Checking if database is seeded across multiple regions...");
+  const samplePostalCodes = [POSTAL_CODES[0], POSTAL_CODES[Math.floor(POSTAL_CODES.length / 2)], POSTAL_CODES[POSTAL_CODES.length - 1]];
+  let totalMarkets = 0;
+  
+  for (const plz of samplePostalCodes) {
+    const marketCheckRes = http.get(`${BASE_URL}/shopping/api/v1/markets?plz=${plz}`);
+    if (marketCheckRes.status === 200) {
+      try {
+        const markets = marketCheckRes.json();
+        const marketCount = Array.isArray(markets) ? markets.length : (markets.markets ? markets.markets.length : 0);
+        totalMarkets += marketCount;
+        console.log(`[Setup] Postal code ${plz}: Found ${marketCount} markets`);
+      } catch (e) {
+        console.warn(`[Setup WARNING] Could not parse markets response for ${plz}:`, e.message);
       }
-    } catch (e) {
-      console.warn("[Setup WARNING] Could not parse markets response:", e.message);
+    } else {
+      console.warn(`[Setup WARNING] Markets endpoint failed for ${plz} (${marketCheckRes.status})`);
     }
+  }
+  
+  if (totalMarkets === 0) {
+    console.warn("[Setup WARNING] No markets found in any region. Seed data before running full tests.");
+  } else {
+    console.log(`[Setup] Database check complete: ${totalMarkets} markets across ${samplePostalCodes.length} sample regions`);
   }
   
   // Optionally trigger background job for testing
@@ -125,6 +173,18 @@ function extractAuthToken(response) {
     return response.json('token');
   }
   return '';
+}
+
+function getRandomPostalCode() {
+  return POSTAL_CODES[Math.floor(Math.random() * POSTAL_CODES.length)];
+}
+
+function getRandomProductSearchTerm() {
+  return PRODUCT_SEARCH_TERMS[Math.floor(Math.random() * PRODUCT_SEARCH_TERMS.length)];
+}
+
+function getRandomRecipeSearchTerm() {
+  return RECIPE_SEARCH_TERMS[Math.floor(Math.random() * RECIPE_SEARCH_TERMS.length)];
 }
 
 // ============= MAIN USER FLOW =============
@@ -200,20 +260,22 @@ export default function (data) {
   // --- PHASE 3: MARKET SELECTION ---
   group('3. Market Selection', () => {
     // Markets are in the shopping/core service, requires plz (postal code) parameter
-    const marketRes = http.get(`${BASE_URL}/shopping/api/v1/markets?plz=10115`, { headers });
+    // Use random postal code to distribute load across different regions
+    const postalCode = getRandomPostalCode();
+    const marketRes = http.get(`${BASE_URL}/shopping/api/v1/markets?plz=${postalCode}`, { headers });
     
     const marketsFetched = check(marketRes, {
       'Markets fetched': (r) => r.status === 200,
     });
 
     if (!marketsFetched) {
-      console.log(`[Market DEBUG] Failed to fetch markets - Status: ${marketRes.status}`);
-      console.log(`[Market DEBUG] Response body: ${marketRes.body}`);
+      console.log(`[Market DEBUG] Market selection failed - Postal code: "${postalCode}", Status: ${marketRes.status}, Body: ${marketRes.body}`);
       errorRate.add(1);
     }
 
     try {
       if (isDebugEnabled('market') || isDebugEnabled('all')) {
+        console.log(`[Market DEBUG] Postal code: ${postalCode}`);
         console.log(`[Market DEBUG] Response status: ${marketRes.status}, Content-Type: ${marketRes.headers['Content-Type']}`);
         console.log(`[Market DEBUG] Response body (first 200 chars): ${marketRes.body ? marketRes.body.substring(0, 200) : 'empty'}`);
       }
@@ -535,13 +597,16 @@ export default function (data) {
 
   // --- PHASE 7: SEARCH PRODUCTS (from core/shopping service) ---
   group('7. Search Products', () => {
+    const productQuery = getRandomProductSearchTerm();
+    // "Äpfel" becomes "%C3%84pfel"
+    const encodedQuery = encodeURIComponent(productQuery);
     const searchStart = new Date();
-    const searchRes = http.get(`${BASE_URL}/shopping/api/v1/markets/search/products?query=tomato&marketId=${marketId || 1}`, { headers });
+    const searchRes = http.get(`${BASE_URL}/shopping/api/v1/markets/search/products?query=${encodedQuery}&marketId=${marketId || 1}`, { headers });
     const searchEnd = new Date();
     searchTime.add(searchEnd - searchStart);
 
     if (searchRes.status !== 200) {
-      console.log(`[Products Search DEBUG] Failed - Status: ${searchRes.status}, Body: ${searchRes.body.substring(0, 200)}`);
+      console.log(`[Products Search DEBUG] Failed for query '${productQuery}' - Status: ${searchRes.status}, Body: ${searchRes.body.substring(0, 200)}`);
     }
 
     check(searchRes, {
@@ -553,10 +618,12 @@ export default function (data) {
 
   // --- PHASE 8: SEARCH RECIPES ---
   group('8. Search Recipes', () => {
-    const recipeSearchRes = http.get(`${BASE_URL}/personalization/recipes/search?q=pasta`, { headers });
+    const recipeQuery = getRandomRecipeSearchTerm();
+    const encodedRecipeQuery = encodeURIComponent(recipeQuery);
+    const recipeSearchRes = http.get(`${BASE_URL}/personalization/recipes/search?q=${encodedRecipeQuery}`, { headers });
     
     if (recipeSearchRes.status !== 200) {
-      console.log(`[Recipes Search DEBUG] Failed - Status: ${recipeSearchRes.status}, Body: ${recipeSearchRes.body.substring(0, 200)}`);
+      console.log(`[Recipes Search DEBUG] Failed for query '${recipeQuery}' - Status: ${recipeSearchRes.status}, Body: ${recipeSearchRes.body.substring(0, 200)}`);
     }
     
     check(recipeSearchRes, {

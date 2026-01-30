@@ -64,21 +64,13 @@ public class MarketService {
         
         return MarketSummaryDto.fromEntity(market);
     }
-
-    /**
-     * READ PATH (Hot)
-     * 1. If Hit: Returns instantly.
-     * 2. If Miss: Runs the method body (DB Check -> API Fetch -> Save).
-     */
-    @Transactional
+    
+    // 1. REMOVE @Transactional from the main method
     public List<Market> getMarkets(String zipCode) {
 
-        // DB CHECK (Warm Path)
-        // Query based on the association table, not the physical address of the market
+        // --- STEP 1: Fast DB Read (Spring Data Repos are transactional by default, so this is safe) ---
         List<Market> dbMarkets = marketRepository.getMarketsBySearchTerm(zipCode).orElse(List.of());
-        // Check freshness
-
-        // Assuming if one is fresh, the search result is valid.
+        
         if (!dbMarkets.isEmpty() && isMarketFresh(dbMarkets.get(0))) {
             log.info("DB Hit (Fresh) for PLZ: {}", zipCode);
             return dbMarkets;
@@ -86,16 +78,16 @@ public class MarketService {
 
         log.info(dbMarkets.isEmpty() ? "No association found in DB" : "Data is not fresh");
 
-        // API FETCH (Cold Path)
+        // --- STEP 2: Slow Network Call (happens OUTSIDE of any transaction) ---
+        // Now, if this hangs for 10 seconds, NO DB connection is held!
         log.info("Fetching API...");
         MarketPickupResponse apiResponse = apiClient.searchMarkets(zipCode);
 
         if (apiResponse == null || apiResponse.data() == null) {
             log.info("api returned null");
-            return List.of();
+            return List.of(); // Or return stale dbMarkets if you prefer resilience
         }
         
-        // Null check for deeper structure
         var servicePortfolio = apiResponse.data().servicePortfolio();
         if (servicePortfolio == null) return List.of();
 
@@ -105,8 +97,19 @@ public class MarketService {
             return List.of();
         }
 
-        // MERGE LOGIC (Save/Update Markets)
-        List<Market> savedMarkets = mergeApiWithDb(apiMarkets); // This saves the markets themselves
+        // --- STEP 3: Fast DB Write (Wrap this part in a Transaction) ---
+        return saveMarketsAndAssociations(zipCode, apiMarkets);
+    }
+
+    /**
+     * Helper method to handle the WRITE part. 
+     * This keeps the transaction very short (milliseconds).
+     */
+    @Transactional // <--- We move the transaction here
+    public List<Market> saveMarketsAndAssociations(String zipCode, List<MarketPickupDto> apiMarkets) {
+        
+        // MERGE LOGIC
+        List<Market> savedMarkets = mergeApiWithDb(apiMarkets); 
 
         if (savedMarkets.isEmpty()) {
             log.info("MARKETS TO SAVE IS EMPTY");
@@ -114,8 +117,8 @@ public class MarketService {
         }
 
         // UPDATE ASSOCIATIONS
-        // Link the zipCode (e.g., 80995) to every market returned (e.g. 80993, 80995, 80996, etc.)
         saveSearchTermAssociations(zipCode, savedMarkets);
+        
         return savedMarkets;
     }
 
