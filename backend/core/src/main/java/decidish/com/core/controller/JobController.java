@@ -3,12 +3,14 @@ package decidish.com.core.controller;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import decidish.com.core.scheduler.Scheduler;
+import decidish.com.core.scheduler.WeeklySyncMetrics;
 import lombok.AllArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 @RestController
 @RequestMapping("/api/v1/jobs")
@@ -19,6 +21,10 @@ public class JobController {
     private static final Logger logger = LoggerFactory.getLogger(JobController.class);
     
     private final Scheduler scheduler;
+
+    private final WeeklySyncMetrics weeklySyncMetrics;
+    
+    private static final AtomicBoolean isSyncRunning = new AtomicBoolean(false);
 
     /**
      * Manually trigger the weekly sync job.
@@ -35,9 +41,12 @@ public class JobController {
             // Execute the scheduler task asynchronously to avoid blocking the HTTP response
             new Thread(() -> {
                 try {
+                    isSyncRunning.set(true);
                     scheduler.weeklySync();
                 } catch (Exception e) {
                     logger.error("Error during manual weekly sync execution: {}", e.getMessage(), e);
+                } finally {
+                    isSyncRunning.set(false);
                 }
             }).start();
             
@@ -45,7 +54,10 @@ public class JobController {
             response.put("message", "Weekly sync job has been triggered successfully");
             logger.info("Weekly sync job triggered successfully");
             
-            return ResponseEntity.ok(response);
+            return ResponseEntity.ok(Map.of(
+                "status", "started",
+                "message", "Weekly sync job has been triggered successfully"
+            ));
         } catch (Exception e) {
             logger.error("Failed to trigger weekly sync job: {}", e.getMessage(), e);
             response.put("status", "failed");
@@ -59,11 +71,12 @@ public class JobController {
      * Usage: GET /api/v1/jobs/status
      */
     @GetMapping("/status")
-    public ResponseEntity<Map<String, String>> getJobStatus() {
-        Map<String, String> response = new HashMap<>();
-        response.put("status", "operational");
-        response.put("message", "Job scheduler is running");
-        
+    public ResponseEntity<Map<String, Object>> getJobStatus() {
+        Map<String, Object> response = new HashMap<>();
+        boolean isRunning = isSyncRunning.get();
+        response.put("status", isRunning ? "running" : "idle");
+        response.put("message", "weekly sync job is currently " + (isRunning ? "running" : "not running"));
+        response.put("metrics", weeklySyncMetrics.snapshot());
         return ResponseEntity.ok(response);
     }
 }
