@@ -22,7 +22,6 @@ import decidish.com.core.model.rewe.Product;
 import decidish.com.core.repository.ProductRepository;
 import lombok.AllArgsConstructor;
 import java.util.List;
-import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/api/v1/markets")
@@ -47,12 +46,8 @@ public class MarketController {
             return ResponseEntity.badRequest().build();
         }
         
-        List<Market> markets = marketService.getMarkets(zipCode);
-
-        // Convert Entity -> DTO
-        List<MarketSummaryDto> dtos = markets.stream()
-            .map(MarketSummaryDto::fromEntity)
-            .collect(Collectors.toList());
+        // Service now returns DTOs directly (cached as DTOs to avoid lazy loading issues)
+        List<MarketSummaryDto> dtos = marketService.getMarkets(zipCode);
         return ResponseEntity.ok(dtos);
     }
 

@@ -197,7 +197,7 @@ public class RecipeService {
                         Map<Long, Product> freshApiMap = productRepository
                             .findByMarketIdAndReweIds(marketId, reweIds)
                             .stream()
-                            .collect(Collectors.toMap(Product::getReweId, p -> p));
+                            .collect(Collectors.toMap(Product::getReweId, p -> p, (a, b) -> a));
 
                         return new IngredientGroup(ingId, ingName, needed, 
                             newMappings.stream()
@@ -277,9 +277,9 @@ public class RecipeService {
 
         // 3. Pre-fetch Products by REWE ID
         // We need the actual entities because we are joining on a non-PK column
-        List<Long> reweIds = projections.stream().map(p -> p.getProductId()).distinct().toList();
-        Map<Long, Product> productMap = productRepository.findAllByReweIdIn(reweIds).stream()
-                .collect(Collectors.toMap(Product::getReweId, p -> p, (a, b) -> a));
+        // List<Long> reweIds = projections.stream().map(p -> p.getProductId()).distinct().toList();
+        // Map<Long, Product> productMap = productRepository.findAllByReweIdIn(reweIds).stream()
+        //         .collect(Collectors.toMap(Product::getReweId, p -> p, (a, b) -> a));
 
         // 4. Map Projections to Entities
         List<IngredientProduct> entities = projections.stream().map(p -> {
