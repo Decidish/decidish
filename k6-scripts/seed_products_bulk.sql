@@ -69,8 +69,8 @@ WHERE stm.search_term IN (
 SELECT COUNT(*) as target_market_count FROM target_markets;
 
 -- Step 3: Bulk insert products for all markets
--- Generate unique rewe_id based on market_id, term hash, and variant
--- Use DO NOTHING since there's no unique constraint on (market_id, rewe_id) alone
+-- Same product (term + variant) has SAME rewe_id across all markets
+-- Each market gets its own row with unique auto-generated id
 INSERT INTO products (
     rewe_id, name, market_id, price, grammage, last_updated, 
     is_organic, is_vegetarian, is_vegan, is_bulky_good, is_dairy_free, 
@@ -78,11 +78,11 @@ INSERT INTO products (
     is_new, is_lowest_price, is_tobacco
 )
 SELECT 
-    -- Unique rewe_id: hash of term + market_id offset + variant
-    (ABS(hashtext(pt.term)) % 100000) * 10 + (tm.market_id % 1000) + pt.variant_id as rewe_id,
+    -- SAME rewe_id for same product across ALL markets (term + variant only)
+    ABS(hashtext(pt.term || pt.suffix)) as rewe_id,
     pt.term || ' ' || pt.suffix || ' 500g' as name,
     tm.market_id,
-    199 + (ABS(hashtext(pt.term || tm.market_id::text)) % 800) as price, -- 1.99 to 9.99
+    199 + (ABS(hashtext(pt.term || tm.market_id::text)) % 800) as price, -- 1.99 to 9.99 (price may vary by market)
     '500g' as grammage,
     NOW() as last_updated,
     pt.is_organic,
@@ -102,7 +102,7 @@ CROSS JOIN target_markets tm
 WHERE NOT EXISTS (
     SELECT 1 FROM products p 
     WHERE p.market_id = tm.market_id 
-    AND p.rewe_id = (ABS(hashtext(pt.term)) % 100000) * 10 + (tm.market_id % 1000) + pt.variant_id
+    AND p.rewe_id = ABS(hashtext(pt.term || pt.suffix))
 );
 
 -- Step 4: Show results

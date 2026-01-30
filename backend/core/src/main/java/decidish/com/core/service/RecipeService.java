@@ -167,6 +167,9 @@ public class RecipeService {
                     return new IngredientGroup(ingId, ingName, needed, List.of());
                 }
                 
+                // Log that we're falling back to API (useful for monitoring)
+                log.info("API fallback triggered for ingredient '{}' (id: {}) - no local product mapping found", ingName, ingId);
+                
                 try {
                     String query = ingName.isBlank() ? origName : ingName;
 
