@@ -2,6 +2,7 @@ package decidish.com.core.configuration;
 
 import decidish.com.core.api.rewe.client.NormalizedReweApiClient;
 import decidish.com.core.api.rewe.client.ReweApiClient;
+import decidish.com.core.scheduler.WeeklySyncMetrics;
 import io.minio.GetObjectArgs;
 import io.minio.MinioClient;
 import org.slf4j.Logger;
@@ -25,9 +26,12 @@ import org.springframework.web.service.invoker.HttpServiceProxyFactory;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.net.CookieManager;
+import java.net.CookiePolicy;
 import java.net.http.HttpClient;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
+import java.util.concurrent.ThreadLocalRandom;
 import java.util.UUID;
 import java.util.zip.GZIPInputStream;
 
@@ -45,8 +49,8 @@ public class ApiClientConfig {
     @Value("${minio.cert.key:private_test.key}")
     private String keyFileName;
 
-     @Bean
-    public ReweApiClient reweApiClient(RestClient.Builder builder, MinioClient minioClient, SslBundles sslBundles) {
+    @Bean
+    public ReweApiClient reweApiClient(RestClient.Builder builder, MinioClient minioClient, SslBundles sslBundles, WeeklySyncMetrics weeklySyncMetrics) {
         SslBundle reweBundle;
 
         try {
@@ -73,12 +77,16 @@ public class ApiClientConfig {
             }
         }
 
+        CookieManager cookieManager = new CookieManager();
+        cookieManager.setCookiePolicy(CookiePolicy.ACCEPT_ALL);
+
         JdkClientHttpRequestFactory requestFactory = new JdkClientHttpRequestFactory(
-                HttpClient.newBuilder()
-                        .version(HttpClient.Version.HTTP_2)
-                        .connectTimeout(Duration.ofSeconds(10))
-                        .sslContext(reweBundle.createSslContext())
-                        .build()
+            HttpClient.newBuilder()
+                .version(HttpClient.Version.HTTP_2)
+                .connectTimeout(Duration.ofSeconds(10))
+                .sslContext(reweBundle.createSslContext())
+                .cookieHandler(cookieManager)
+                .build()
         );
 
         RestClient restClient = builder
@@ -89,8 +97,10 @@ public class ApiClientConfig {
                 .defaultHeader("Connection", "Keep-Alive")
                 .defaultHeader("Accept-Encoding", "gzip")
                 // .defaultHeader("Accept", "application/json")
+                // --- ADDED: Cron-Only Delay ---
+                .requestInterceptor(new CronDelayInterceptor(weeklySyncMetrics))
                 // --- ADDED: Rate Limit Retry Interceptor ---
-                .requestInterceptor(new RateLimitRetryInterceptor()) 
+                .requestInterceptor(new RateLimitRetryInterceptor(weeklySyncMetrics)) 
                 .requestInterceptor((request, body, execution) -> {
                     request.getHeaders().add("rdfa", UUID.randomUUID().toString());
                     request.getHeaders().add("Correlation-Id", UUID.randomUUID().toString());
@@ -123,6 +133,12 @@ public class ApiClientConfig {
     static class RateLimitRetryInterceptor implements ClientHttpRequestInterceptor {
         private static final int MAX_RETRIES = 5; // Increased from 3
         private static final long INITIAL_BACKOFF_MS = 3000; // Start with 3s wait
+        private static final long CRON_RATE_LIMIT_COOLDOWN_MS = 5 * 60 * 1000; // 5 minutes
+        private final WeeklySyncMetrics weeklySyncMetrics;
+
+        RateLimitRetryInterceptor(WeeklySyncMetrics weeklySyncMetrics) {
+            this.weeklySyncMetrics = weeklySyncMetrics;
+        }
 
         @Override
         public ClientHttpResponse intercept(HttpRequest request, byte[] body, ClientHttpRequestExecution execution) throws IOException {
@@ -132,9 +148,22 @@ public class ApiClientConfig {
                 ClientHttpResponse response = execution.execute(request, body);
                 
                 if (response.getStatusCode().value() == 429) {
+                    if (weeklySyncMetrics != null && weeklySyncMetrics.isRunning()) {
+                        weeklySyncMetrics.recordRateLimitHit();
+                    }
                     if (attempt == MAX_RETRIES) {
                         log.error("Rate Limit (429) exhausted after {} attempts.", MAX_RETRIES);
                         return response; // Give up and let the error propagate
+                    }
+
+                    if (weeklySyncMetrics != null && weeklySyncMetrics.isRunning()) {
+                        log.warn("Rate Limit (429) during weekly sync. Cooling down for {} ms before retry.", CRON_RATE_LIMIT_COOLDOWN_MS);
+                        try {
+                            Thread.sleep(CRON_RATE_LIMIT_COOLDOWN_MS);
+                        } catch (InterruptedException e) {
+                            Thread.currentThread().interrupt();
+                            throw new IOException("Interrupted during rate limit cooldown", e);
+                        }
                     }
                     
                     // Add Jitter: +/- 500ms to avoid static timing detection
@@ -162,6 +191,30 @@ public class ApiClientConfig {
         }
     }
 
+    static class CronDelayInterceptor implements ClientHttpRequestInterceptor {
+        private static final int MIN_DELAY_MS = 2000;
+        private static final int MAX_DELAY_MS = 5000;
+        private final WeeklySyncMetrics weeklySyncMetrics;
+
+        CronDelayInterceptor(WeeklySyncMetrics weeklySyncMetrics) {
+            this.weeklySyncMetrics = weeklySyncMetrics;
+        }
+
+        @Override
+        public ClientHttpResponse intercept(HttpRequest request, byte[] body, ClientHttpRequestExecution execution) throws IOException {
+            if (weeklySyncMetrics != null && weeklySyncMetrics.isRunning()) {
+                int delay = ThreadLocalRandom.current().nextInt(MIN_DELAY_MS, MAX_DELAY_MS + 1);
+                try {
+                    Thread.sleep(delay);
+                } catch (InterruptedException e) {
+                    Thread.currentThread().interrupt();
+                    throw new IOException("Interrupted during cron delay", e);
+                }
+            }
+            return execution.execute(request, body);
+        }
+    }
+
     static class GzipInterceptor implements ClientHttpRequestInterceptor {
         @Override
         public ClientHttpResponse intercept(HttpRequest request, byte[] body, ClientHttpRequestExecution execution) throws IOException {
@@ -184,10 +237,4 @@ public class ApiClientConfig {
         @Override public void close() { response.close(); }
     }
 
-    private byte[] fetchFromMinio(MinioClient client, String bucket, String name) throws Exception {
-        try (InputStream stream = client.getObject(
-                GetObjectArgs.builder().bucket(bucket).object(name).build())) {
-            return stream.readAllBytes();
-        }
-    }
 }

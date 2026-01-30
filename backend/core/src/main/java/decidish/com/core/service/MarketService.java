@@ -9,7 +9,6 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.data.jpa.domain.Specification;
 import org.springframework.util.StringUtils;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -19,7 +18,6 @@ import org.springframework.stereotype.Service;
 
 import decidish.com.core.api.rewe.client.ReweApiClient;
 import decidish.com.core.model.rewe.Market;
-import decidish.com.core.model.rewe.MarketSearchResponse;
 import decidish.com.core.model.rewe.MarketSummaryDto;
 import decidish.com.core.model.rewe.Product;
 import decidish.com.core.model.rewe.ProductDto;
@@ -27,6 +25,7 @@ import decidish.com.core.model.rewe.ProductSearchResponse;
 import decidish.com.core.model.rewe.SearchTermMarket;
 import decidish.com.core.model.rewe.SearchTermMarketId;
 import decidish.com.core.model.rewe.MarketPickupDto;
+import decidish.com.core.scheduler.WeeklySyncMetrics;
 import decidish.com.core.model.rewe.MarketPickupResponse;
 import decidish.com.core.repository.MarketRepository;
 import decidish.com.core.repository.ProductRepository;
@@ -57,23 +56,35 @@ public class MarketService {
     
     @Autowired
     private ProductRepository productRepository;
+
+    @Autowired
+    private WeeklySyncMetrics weeklySyncMetrics;
     
+    /**
+     * Get market by ID.
+     */
     public MarketSummaryDto getMarketById(Long id) {
+        log.debug("Fetching market ID: {} from DB", id);
         Market market = marketRepository.findById(id)
                 .orElseThrow(() -> new EntityNotFoundException("Market not found with id: " + id));
         
         return MarketSummaryDto.fromEntity(market);
     }
     
-    // 1. REMOVE @Transactional from the main method
-    public List<Market> getMarkets(String zipCode) {
-
+    /**
+     * Get markets by postal code.
+     * First checks DB, then external API as fallback.
+     * No @Transactional here - we manage transactions in smaller scopes to avoid holding connections.
+     */
+    public List<MarketSummaryDto> getMarkets(String zipCode) {
+        log.debug("Fetching markets for PLZ: {} from DB", zipCode);
+        
         // --- STEP 1: Fast DB Read (Spring Data Repos are transactional by default, so this is safe) ---
         List<Market> dbMarkets = marketRepository.getMarketsBySearchTerm(zipCode).orElse(List.of());
         
         if (!dbMarkets.isEmpty() && isMarketFresh(dbMarkets.get(0))) {
             log.info("DB Hit (Fresh) for PLZ: {}", zipCode);
-            return dbMarkets;
+            return dbMarkets.stream().map(MarketSummaryDto::fromEntity).toList();
         }
 
         log.info(dbMarkets.isEmpty() ? "No association found in DB" : "Data is not fresh");
@@ -98,14 +109,15 @@ public class MarketService {
         }
 
         // --- STEP 3: Fast DB Write (Wrap this part in a Transaction) ---
-        return saveMarketsAndAssociations(zipCode, apiMarkets);
+        List<Market> savedMarkets = saveMarketsAndAssociations(zipCode, apiMarkets);
+        return savedMarkets.stream().map(MarketSummaryDto::fromEntity).toList();
     }
 
     /**
      * Helper method to handle the WRITE part. 
      * This keeps the transaction very short (milliseconds).
      */
-    @Transactional // <--- We move the transaction here
+    @Transactional
     public List<Market> saveMarketsAndAssociations(String zipCode, List<MarketPickupDto> apiMarkets) {
         
         // MERGE LOGIC
@@ -219,21 +231,25 @@ public class MarketService {
         return spec;
     }
     
-    @Transactional
+    /**
+     * Search products with fallback to external API.
+     * IMPORTANT: No @Transactional here to avoid holding DB connection during API calls.
+     * Each DB operation is handled in its own short transaction.
+     */
     public Page<Product> searchProductsWithFallback(String query, String filter, Long marketId, Pageable pageable) {
         // Build Specification
         Specification<Product> spec = getProducts(query, filter, marketId);
 
-        // Try Local DB Search
+        // Try Local DB Search (this is auto-transactional via Spring Data)
         Page<Product> results = productRepository.findAll(spec, pageable);
 
         // Fallback: If page 0 is empty, fetch from External API
         if (results.isEmpty() && pageable.getPageNumber() == 0) {
-            System.out.println("Local DB empty. Fetching from External API for query: " + query);
+            log.info("Cache/DB MISS for product search. Fetching from External API for query: {}", query);
             String safeQuery = (query != null) ? query : "";
             
-            // Logic to fetch from external API and save to DB
-            getProductsQuerySave(marketId,safeQuery);
+            // Fetch from API (OUTSIDE transaction) and save (INSIDE short transaction)
+            fetchAndSaveProducts(marketId, safeQuery);
 
             // Search Local DB Again after update
             return productRepository.findAll(spec, pageable);
@@ -243,14 +259,71 @@ public class MarketService {
     }
 
     /**
+     * Fetch products from API (outside transaction) and save them (inside short transaction).
+     * This prevents holding a DB connection during the slow API call.
+     */
+    public void fetchAndSaveProducts(Long marketId, String query) {
+        // STEP 1: Get market info (short read transaction)
+        Market market = getMarket(marketId);
+        
+        // STEP 2: Fetch from external API (NO DB connection held here!)
+        log.info("Fetching products from API for market {} query '{}'...", marketId, query);
+        recordApiCall();
+        ProductSearchResponse response = apiClient.searchProducts(query, 1, DEFAULT_OBJECTS_PER_PAGE, market.getId());
+        recordProductPage(response);
+        
+        if (response == null || response.data() == null || response.data().products() == null) {
+            log.warn("API returned null/empty for market {} query '{}'", marketId, query);
+            return;
+        }
+        
+        List<ProductDto> apiProducts = response.data().products().products();
+        if (apiProducts == null || apiProducts.isEmpty()) {
+            return;
+        }
+        
+        // STEP 3: Save products (short write transaction)
+        saveProductsToMarket(marketId, apiProducts);
+    }
+    
+    /**
+     * Save products to market in a SHORT transaction to minimize connection holding time.
+     */
+    @Transactional
+    protected void saveProductsToMarket(Long marketId, List<ProductDto> apiProducts) {
+        Market market = marketRepository.findByIdWithProducts(marketId)
+                .orElseThrow(() -> new RuntimeException("Market not found: " + marketId));
+        
+        // Create Lookup Map for existing products
+        Map<Long, Product> existingMap = new HashMap<>();
+        for (Product p : market.getProducts()) {
+            existingMap.put(p.getReweId(), p);
+        }
+        
+        // Process API products
+        for (ProductDto apiProd : apiProducts) {
+            Long apiId = apiProd.productId();
+            if (existingMap.containsKey(apiId)) {
+                existingMap.get(apiId).updateFromDto(apiProd);
+            } else {
+                Product newProduct = Product.fromDto(apiProd);
+                market.addProduct(newProduct);
+                existingMap.put(apiId, newProduct);
+            }
+        }
+        
+        marketRepository.save(market);
+        log.debug("Saved {} products to market {}", apiProducts.size(), marketId);
+    }
+
+    /**
      * @brief Query a certain product for a given market. Only first page. One API
      *        call.
+     * Uses the new non-blocking pattern.
      */
-
-    @Transactional
     public Market getProductsQuerySave(Long marketId, String query) {
-        Market market = getMarket(marketId);
-        return getProductsAPISave(market, query, 1);
+        fetchAndSaveProducts(marketId, query);
+        return getMarket(marketId);
     }
 
     /**
@@ -292,6 +365,24 @@ public class MarketService {
                 lastUpdated.isAfter(LocalDateTime.now().minusWeeks(TTL_WEEKS_PRODUCTS));
     }
 
+    private boolean isWeeklySyncRunning() {
+        return weeklySyncMetrics != null && weeklySyncMetrics.isRunning();
+    }
+
+    private void recordApiCall() {
+        if (isWeeklySyncRunning()) {
+            weeklySyncMetrics.recordApiCall();
+        }
+    }
+
+    private void recordProductPage(ProductSearchResponse response) {
+        if (!isWeeklySyncRunning() || response == null || response.data() == null || response.data().products() == null) {
+            return;
+        }
+        List<ProductDto> products = response.data().products().products();
+        weeklySyncMetrics.recordProductPage(products == null ? 0 : products.size());
+    }
+
     /**
      * @brief Query a certain product for a given market. Set number of pages to
      *        fetch.
@@ -302,7 +393,9 @@ public class MarketService {
     private Market getProductsAPISave(Market market, String query, int numPages) {
         // 1. Fetch from API (first page to get pagination info)
         log.info("Fetching API...");
+        recordApiCall();
         ProductSearchResponse response = apiClient.searchProducts(query, 1, DEFAULT_OBJECTS_PER_PAGE, market.getId());
+        recordProductPage(response);
         if (response == null || response.data() == null)
             return market; // ? Change to void
 
@@ -319,7 +412,11 @@ public class MarketService {
         // 3. Process API items
         int i = 0;
         do {
-            for (ProductDto apiProd : response.data().products().products()) {
+            List<ProductDto> pageProducts = response.data().products().products();
+            if (pageProducts == null) {
+                break;
+            }
+            for (ProductDto apiProd : pageProducts) {
                 Long apiId = apiProd.productId();
 
                 if (existingMap.containsKey(apiId)) {
@@ -334,7 +431,12 @@ public class MarketService {
             ++i;
             if (i < numberPages) { // Still pages left
                 // log.info("Fetching from external API for ", reweId);
+                recordApiCall();
                 response = apiClient.searchProducts(query, i, DEFAULT_OBJECTS_PER_PAGE, market.getId());
+                recordProductPage(response);
+                if (response == null || response.data() == null || response.data().products() == null) {
+                    break;
+                }
                 // System.out.println("API Response: " + response);
             }
         } while (i < numberPages); // ? Maybe refactor this with just a for, numberPages = 1 ini and then update
@@ -384,6 +486,10 @@ public class MarketService {
             return;
         }
 
+        if (isWeeklySyncRunning()) {
+            weeklySyncMetrics.setMarketsTotal(markets.size());
+        }
+
         for (Market market : markets) {
             log.info("Updating products for Market ID: {}", market.getId());
 
@@ -394,8 +500,14 @@ public class MarketService {
                 long endTime = System.currentTimeMillis();
                 long duration = (endTime - startTime) / 1000;
                 log.info("Successfully updated Market ID: {} in {} seconds", market.getId(), duration);
+                if (isWeeklySyncRunning()) {
+                    weeklySyncMetrics.recordMarketSuccess();
+                }
             } catch (Exception e) {
                 log.error("Error updating Market with id {}: {}", market.getId(), e.getMessage());
+                if (isWeeklySyncRunning()) {
+                    weeklySyncMetrics.recordMarketFailure();
+                }
             }
         }
     }
