@@ -49,6 +49,16 @@ func (r *RecipeRepository) SearchRecipes(params SearchParams) (*SearchResult, er
 			FROM recipe_keywords rk
 			JOIN keywords k ON rk.keyword_id = k.id
 			GROUP BY rk.recipe_id
+		),
+		RecipeAllergens AS (
+			SELECT
+				ri.recipe_id,
+				STRING_AGG(DISTINCT a.name, ', ') AS all_allergens
+			FROM recipe_ingredients ri
+			JOIN ingredients_allergens ia ON ri.ingredient_id = ia.ingredient_id
+			JOIN allergens a ON ia.allergen_id = a.id
+			WHERE a.name != 'None'
+			GROUP BY ri.recipe_id
 		)
 		SELECT DISTINCT 
             re.id, 
@@ -62,11 +72,14 @@ func (r *RecipeRepository) SearchRecipes(params SearchParams) (*SearchResult, er
             COALESCE(re.rating, 0) as rating, 
             COALESCE(re.calories, '') as calories, 
             COALESCE(re.serving_size, '') as serving_size,
+			COALESCE(re.yields, '') as yields,
 			COALESCE(ri.all_ingredients, '') as ingredients,
-			COALESCE(rk.all_keywords, '') as keywords
+			COALESCE(rk.all_keywords, '') as keywords,
+			COALESCE(ra.all_allergens, '') as allergens
         FROM recipes re
 		LEFT JOIN RecipeIngredients ri ON re.id = ri.recipe_id
 		LEFT JOIN RecipeKeywords rk ON re.id = rk.recipe_id
+		LEFT JOIN RecipeAllergens ra ON re.id = ra.recipe_id
     `
 	countQuery := `SELECT COUNT(DISTINCT re.id) FROM recipes re`
 
@@ -189,12 +202,12 @@ func (r *RecipeRepository) SearchRecipes(params SearchParams) (*SearchResult, er
 	recipes := make([]Recipe, 0) // Initialize as empty slice, not nil
 	for rows.Next() {
 		var rec Recipe
-		var ingredientsStr, keywordsStr string
+		var ingredientsStr, keywordsStr, allergensStr string
 		err := rows.Scan(
 			&rec.ID, &rec.Title, &rec.Description, &rec.Instructions, &rec.Image,
 			&rec.CookTime, &rec.PrepTime, &rec.TotalTime, &rec.Ratings,
 			&rec.Nutrients.Calories, &rec.Nutrients.ServingSize,
-			&ingredientsStr, &keywordsStr,
+			&rec.Yields, &ingredientsStr, &keywordsStr, &allergensStr,
 		)
 		if err != nil {
 			return nil, err
@@ -212,6 +225,12 @@ func (r *RecipeRepository) SearchRecipes(params SearchParams) (*SearchResult, er
 			rec.KeyWords = strings.Split(keywordsStr, ", ")
 		} else {
 			rec.KeyWords = []string{}
+		}
+
+		if allergensStr != "" {
+			rec.Allergies = strings.Split(allergensStr, ", ")
+		} else {
+			rec.Allergies = []string{}
 		}
 
 		recipes = append(recipes, rec)

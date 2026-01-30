@@ -3,6 +3,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { userHistoryApi, UserHistoryRecord } from '@/api/user-history/userHistoryApi';
 import { authApi, AuthProfile } from '@/api/auth/authApi';
 import { userApi, UserPreferencesWithMarket } from '@/api/questionnaire/userApi';
+import MarketSelection from '@/pages/market-selection/page';
 import { MapContainer, TileLayer, Marker, Popup, useMap } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
 import L from 'leaflet';
@@ -28,7 +29,7 @@ function MapViewController({ center }: { center: [number, number] }) {
 }
 
 export default function Profile() {
-  const [activeTab, setActiveTab] = useState<'liked' | 'disliked' | 'stats'>('liked');
+  const [activeTab, setActiveTab] = useState<'liked'>('liked');
   const [history, setHistory] = useState<UserHistoryRecord[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -41,6 +42,8 @@ export default function Profile() {
   const [detailRecipe, setDetailRecipe] = useState<UIRecipe | null>(null);
   const [showDetailModal, setShowDetailModal] = useState(false);
   const [detailRecipeIsLiked, setDetailRecipeIsLiked] = useState(false);
+  const [showMapModal, setShowMapModal] = useState(false);
+  const [showMarketModal, setShowMarketModal] = useState(false);
 
   const [userData, setUserData] = useState({
     name: '',
@@ -190,7 +193,12 @@ export default function Profile() {
   };
 
   const handleChangeMarket = () => {
-    window.REACT_APP_NAVIGATE('/market-selection');
+    setShowMarketModal(true);
+  };
+
+  const handleMarketUpdate = (newMarketId: number) => {
+    setShowMarketModal(false);
+    window.location.reload();
   };
 
   const handleHistoryLike = async (entry: UserHistoryRecord) => {
@@ -315,10 +323,23 @@ export default function Profile() {
               </div>
               <button
                 onClick={handleChangeMarket}
-                className="px-4 py-2 bg-white text-[#2F855A] rounded-lg font-medium hover:bg-gray-50 transition-all border-2 border-[#2F855A]/20 cursor-pointer whitespace-nowrap flex items-center gap-2 text-sm self-start"
+                className="group flex items-center gap-3 bg-white/80 backdrop-blur-md border border-emerald-100 rounded-full pl-3 pr-4 py-2 shadow-sm hover:shadow-md hover:border-[#2F855A] transition-all cursor-pointer"
               >
-                <i className="ri-store-2-line"></i>
-                Change Market
+                {/* Icon Box */}
+                <div className="w-8 h-8 rounded-full bg-emerald-100 text-[#2F855A] flex items-center justify-center group-hover:bg-[#2F855A] group-hover:text-white transition-colors">
+                  <i className="ri-store-2-line"></i>
+                </div>
+                
+                {/* Text Info */}
+                <div className="text-left flex flex-col">
+                  <span className="text-[10px] uppercase font-bold text-gray-400 tracking-wider">Change Market</span>
+                  <span className="text-sm font-bold text-gray-800 leading-none group-hover:text-[#2F855A] transition-colors">
+                    {preferences?.market_name || 'Select Market'}
+                  </span>
+                </div>
+
+                {/* Change Arrow */}
+                <i className="ri-arrow-right-s-line text-gray-400 group-hover:translate-x-1 transition-transform"></i>
               </button>
             </div>
 
@@ -414,37 +435,17 @@ export default function Profile() {
               <div className="p-4 bg-gray-50 rounded-lg md:col-span-3">
                 <div className="text-sm text-gray-600 mb-2">Allergies</div>
                 {allergyBadges.length > 0 ? (
-                  <div className="flex flex-wrap gap-2">
-                    {allergyBadges.map((allergy, idx) => {
-                      const colors = [
-                        'bg-rose-100 text-rose-700',
-                        'bg-amber-100 text-amber-700',
-                        'bg-emerald-100 text-emerald-700',
-                        'bg-sky-100 text-sky-700',
-                        'bg-indigo-100 text-indigo-700',
-                        'bg-purple-100 text-purple-700',
-                      ];
-                      const emojiMap: Record<string, string> = {
-                        peanuts: '🥜',
-                        'tree nuts': '🥜',
-                        soy: '🌱',
-                        sesame: '🌿',
-                        fish: '🐟',
-                        shellfish: '🦞',
-                        milk: '🥛',
-                        eggs: '🥚',
-                        wheat: '🌾',
-                      };
-                      const normalized = allergy.toLowerCase();
-                      const emoji = emojiMap[normalized] || '⚠️';
-                      const color = colors[idx % colors.length];
-                      return (
-                        <span key={allergy + idx} className={`px-3 py-1 rounded-full text-sm font-medium inline-flex items-center gap-2 ${color}`}>
-                          <span>{emoji}</span>
+                  <div className="bg-amber-50 rounded-xl p-4">
+                    <div className="flex flex-wrap gap-2">
+                      {allergyBadges.map((allergy, idx) => (
+                        <span
+                          key={allergy + idx}
+                          className="px-3 py-1 bg-white/90 text-amber-700 rounded-full text-sm font-medium border border-amber-200"
+                        >
                           {allergy}
                         </span>
-                      );
-                    })}
+                      ))}
+                    </div>
                   </div>
                 ) : (
                   <div className="text-sm text-gray-500">None</div>
@@ -464,6 +465,24 @@ export default function Profile() {
           )}
         </div>
 
+        <div className="mb-4">
+          <button
+            onClick={() => window.REACT_APP_NAVIGATE('/my-recipes')}
+            className="w-full px-6 py-4 bg-gradient-to-r from-[#2F855A] to-emerald-600 text-white rounded-xl font-semibold hover:from-[#276749] hover:to-emerald-700 transition-all shadow-md hover:shadow-lg cursor-pointer flex items-center justify-between gap-3"
+          >
+            <span className="flex items-center gap-3">
+              <span className="w-9 h-9 rounded-full bg-white/20 flex items-center justify-center">
+                <i className="ri-book-open-line text-lg"></i>
+              </span>
+              <span className="text-left">
+                <span className="block text-xs uppercase tracking-wider text-white/80">Your collection</span>
+                <span className="block text-base">My Recipes</span>
+              </span>
+            </span>
+            <i className="ri-arrow-right-line text-xl"></i>
+          </button>
+        </div>
+
         {/* Tabs */}
         <div className="bg-white rounded-2xl shadow-lg overflow-hidden">
           <div className="border-b border-gray-200">
@@ -478,17 +497,6 @@ export default function Profile() {
               >
                 <i className="ri-heart-fill mr-2"></i>
                 Liked ({likedHistory.length})
-              </button>
-              <button
-                onClick={() => setActiveTab('disliked')}
-                className={`flex-1 px-6 py-4 font-medium transition-colors cursor-pointer ${
-                  activeTab === 'disliked'
-                    ? 'text-[#2F855A] border-b-2 border-[#2F855A] bg-[#2F855A]/5'
-                    : 'text-gray-600 hover:text-gray-900'
-                }`}
-              >
-                <i className="ri-close-circle-fill mr-2"></i>
-                Disliked ({dislikedHistory.length})
               </button>
             </div>
           </div>
@@ -557,13 +565,6 @@ export default function Profile() {
                       </div>
                       <div className="mt-auto pt-4 flex flex-col gap-2">
                         <button
-                          onClick={() => handleHistoryDislike(entry)}
-                          className="w-full px-3 py-2 bg-gray-100 text-gray-700 rounded-lg font-semibold hover:bg-gray-200 transition-all cursor-pointer flex items-center justify-center gap-2 text-sm"
-                        >
-                          <i className="ri-close-line text-lg"></i>
-                          <span>Dislike</span>
-                        </button>
-                        <button
                           onClick={() => handleOpenShoppingFlow(entry)}
                           className="w-full px-3 py-2 bg-gradient-to-r from-[#2F855A] to-emerald-600 text-white rounded-lg font-semibold hover:from-[#276749] hover:to-emerald-700 transition-all cursor-pointer flex items-center justify-center gap-2 text-sm"
                         >
@@ -578,66 +579,7 @@ export default function Profile() {
               </div>
             )}
 
-            {/* Disliked Recipes */}
-            {activeTab === 'disliked' && !loading && (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {dislikedHistory.map((entry) => {
-                  const recipe = entry.recipe;
-                  return (
-                  <div key={entry.id} className="bg-white rounded-xl border border-gray-200 overflow-hidden hover:shadow-lg transition-all group flex flex-col">
-                    <div className="relative h-48 overflow-hidden cursor-pointer" onClick={() => handleOpenRecipeDetail(entry)}>
-                      {recipe?.image ? (
-                        <img
-                          src={recipe.image}
-                          alt={recipe.title}
-                          className="w-full h-full object-cover object-top group-hover:scale-105 transition-transform duration-300"
-                        />
-                      ) : (
-                        <div className="w-full h-full flex items-center justify-center bg-gray-100 text-gray-500 text-sm">
-                          No image
-                        </div>
-                      )}
-                      <div className="absolute top-3 right-3 w-10 h-10 bg-white rounded-full flex items-center justify-center shadow-md">
-                        <i className="ri-close-circle-fill text-xl text-gray-500"></i>
-                      </div>
-                    </div>
-                    <div className="p-4 flex flex-col flex-grow">
-                      <h3 className="font-semibold text-gray-900 mb-2 cursor-pointer hover:text-[#2F855A] transition-colors" onClick={() => handleOpenRecipeDetail(entry)}>{recipe?.title || `Recipe #${entry.recipe.id}`}</h3>
-                      <div className="flex items-center gap-4 text-sm text-gray-600">
-                        <span className="flex items-center gap-1">
-                          <i className="ri-time-line"></i>
-                          {recipe?.total_time ? `${recipe.total_time} min` : '—'}
-                        </span>
-                        <span className="flex items-center gap-1">
-                          <i className="ri-fire-line"></i>
-                          {recipe?.nutrients?.calories || '—'}
-                        </span>
-                      </div>
-                      <div className="mt-3 pt-3 border-t border-gray-100">
-                        <span className="text-sm text-gray-600">{recipe?.category || '—'}</span>
-                      </div>
-                      <div className="mt-auto pt-4 flex flex-col gap-2">
-                        <button
-                          onClick={() => handleHistoryLike(entry)}
-                          className="w-full px-3 py-2 bg-gradient-to-r from-[#2F855A] to-emerald-600 text-white rounded-lg font-semibold hover:from-[#276749] hover:to-emerald-700 transition-all cursor-pointer flex items-center justify-center gap-2 text-sm"
-                        >
-                          <i className="ri-heart-line text-lg"></i>
-                          <span>Like</span>
-                        </button>
-                        <button
-                          onClick={() => handleOpenShoppingFlow(entry)}
-                          className="w-full px-3 py-2 bg-gradient-to-r from-amber-500 to-orange-500 text-white rounded-lg font-semibold hover:from-amber-600 hover:to-orange-600 transition-all cursor-pointer flex items-center justify-center gap-2 text-sm"
-                        >
-                          <i className="ri-shopping-cart-2-line text-lg"></i>
-                          <span>Add to Shopping List</span>
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-                  );
-                })}
-              </div>
-            )}
+
           </div>
         </div>
       </div>
@@ -663,6 +605,23 @@ export default function Profile() {
         }
       }}
     />
+
+    {/* Market Selection Modal */}
+    {showMarketModal && (
+      <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 overflow-hidden">
+        <div className="relative w-full max-w-2xl h-[90vh] bg-white rounded-2xl shadow-2xl flex flex-col">
+          <button
+            onClick={() => setShowMarketModal(false)}
+            className="absolute top-4 right-4 z-10 text-gray-400 hover:text-gray-600 cursor-pointer"
+          >
+            <i className="ri-close-line text-2xl"></i>
+          </button>
+          <div className="flex-1 overflow-y-auto">
+            <MarketSelection onComplete={handleMarketUpdate} />
+          </div>
+        </div>
+      </div>
+    )}
     </>
   );
 }

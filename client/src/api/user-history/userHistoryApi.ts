@@ -31,10 +31,22 @@ export const userHistoryApi = {
   getUserHistory: async (): Promise<UserHistoryRecord[]> => {
     try {
       const response = await apiClient.get<UserHistoryRecordResponse[]>('/personalization/api/v1/user/history');
-      return response.data.map((record) => ({
-        ...record,
-        recipe: { ...record.recipe, richIngredients: null },
-      }));
+      if (!response.data) {
+        return [];
+      }
+      return response.data.map((record) => {
+        const rawAllergies = (record.recipe as any)?.allergies;
+        const normalizedAllergies = Array.isArray(rawAllergies)
+          ? rawAllergies
+          : typeof rawAllergies === 'string'
+            ? rawAllergies.split(/[,;]+/).map((a: string) => a.trim()).filter(Boolean)
+            : [];
+
+        return {
+          ...record,
+          recipe: { ...record.recipe, allergies: normalizedAllergies, richIngredients: null },
+        };
+      });
     } catch (error) {
       console.error("Failed to fetch user history:", error);
       throw error;
@@ -45,7 +57,7 @@ export const userHistoryApi = {
   getLikedRecipes: async (): Promise<number[]> => {
     try {
       const response = await apiClient.get<number[]>('/personalization/api/v1/user/liked-recipes');
-      return response.data;
+      return response.data || [];
     } catch (error) {
       console.error("Failed to fetch liked recipes:", error);
       throw error;
@@ -56,7 +68,7 @@ export const userHistoryApi = {
   getDislikedRecipes: async (): Promise<number[]> => {
     try {
       const response = await apiClient.get<number[]>('/personalization/api/v1/user/disliked-recipes');
-      return response.data;
+      return response.data || [];
     } catch (error) {
       console.error("Failed to fetch disliked recipes:", error);
       throw error;

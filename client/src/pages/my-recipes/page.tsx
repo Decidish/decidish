@@ -1,240 +1,205 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
+import { ShoppingItem, ShoppingList, shoppingListApi } from '@/api/shopping-list/shoppingCartApi';
+import { UIRecipe } from '@/types/recipe';
+import RecipeDetailModal from '@/components/recipe/RecipeDetailModal';
+import { productsApi, ShoppingListResponse } from '@/api/recipe-swiper/productsApi';
+import { userApi } from '@/api/search-product/userApi';
+import { userHistoryApi } from '@/api/user-history/userHistoryApi';
+import { recipeApi } from '@/api/search/recipeApi';
+import { recipesApi } from '@/api/recipe-swiper/recipesApi';
 
-// Mock data for user's saved/liked recipes
-export const savedRecipesMock = [
-  {
-    id: 1,
-    name: "Mediterranean Quinoa Bowl",
-    image: "https://readdy.ai/api/search-image?query=Photorealistic%20Mediterranean%20quinoa%20bowl%20with%20fresh%20vegetables%2C%20feta%20cheese%2C%20olives%2C%20and%20herbs%2C%20vibrant%20colors%2C%20appetizing%20presentation%2C%20professional%20food%20photography%2C%20soft%20natural%20lighting%2C%20white%20ceramic%20bowl%2C%20wooden%20table%20background%2C%20high%20detail%2C%20centered%20composition&width=800&height=600&seq=recipe1&orientation=landscape",
-    calories: 420,
-    totalTime: 25,
-    difficulty: "Easy",
-    servings: 2,
-    description: "A nutritious and colorful bowl packed with protein-rich quinoa, fresh Mediterranean vegetables, creamy feta cheese, and a tangy lemon dressing.",
-    prepTime: 10,
-    cookTime: 15,
-    tags: ["Vegetarian", "Healthy", "Mediterranean"],
-    dateAdded: "2024-01-15",
-    instructions: [
-      "Rinse quinoa thoroughly under cold water and cook according to package instructions, about 15 minutes.",
-      "While quinoa cooks, dice cucumber, tomatoes, and red onion into small pieces.",
-      "Crumble feta cheese and slice Kalamata olives.",
-      "In a small bowl, whisk together olive oil, lemon juice, minced garlic, salt, and pepper for the dressing.",
-      "Once quinoa is cooked and slightly cooled, combine with vegetables in a large bowl.",
-      "Drizzle with dressing and toss gently to combine.",
-      "Top with feta cheese, olives, and fresh herbs before serving."
-    ],
-    nutritionFacts: {
-      protein: "18g",
-      carbs: "52g",
-      fat: "16g",
-      fiber: "8g",
-      sugar: "12g",
-      sodium: "580mg"
-    },
-    ingredients: [
-      { name: "Quinoa", amount: "200g" },
-      { name: "Cherry Tomatoes", amount: "150g" },
-      { name: "Cucumber", amount: "1 piece" },
-      { name: "Feta Cheese", amount: "100g" },
-      { name: "Kalamata Olives", amount: "50g" },
-      { name: "Red Onion", amount: "1/2 piece" },
-      { name: "Olive Oil", amount: "3 tbsp" },
-      { name: "Lemon Juice", amount: "2 tbsp" },
-      { name: "Garlic", amount: "2 cloves" },
-      { name: "Fresh Herbs", amount: "2 tbsp" }
-    ]
-  },
-  {
-    id: 2,
-    name: "Creamy Chicken Alfredo Pasta",
-    image: "https://readdy.ai/api/search-image?query=Photorealistic%20creamy%20chicken%20alfredo%20pasta%20with%20grilled%20chicken%20strips%2C%20parmesan%20cheese%2C%20fresh%20parsley%2C%20white%20creamy%20sauce%2C%20professional%20food%20photography%2C%20soft%20natural%20lighting%2C%20white%20plate%2C%20elegant%20presentation%2C%20high%20detail%2C%20centered%20composition&width=800&height=600&seq=recipe2&orientation=landscape",
-    calories: 680,
-    totalTime: 30,
-    difficulty: "Medium",
-    servings: 4,
-    description: "Rich and creamy pasta dish with tender grilled chicken, parmesan cheese, and a velvety alfredo sauce that will satisfy your comfort food cravings.",
-    prepTime: 15,
-    cookTime: 15,
-    tags: ["Italian", "Comfort Food", "Pasta"],
-    dateAdded: "2024-01-12",
-    instructions: [
-      "Bring a large pot of salted water to boil and cook fettuccine according to package directions.",
-      "Season chicken breasts with salt, pepper, and Italian herbs. Grill or pan-fry until fully cooked, about 6-7 minutes per side.",
-      "In a large skillet, melt butter over medium heat. Add minced garlic and sauté for 1 minute.",
-      "Pour in heavy cream and bring to a gentle simmer. Cook for 3-4 minutes, stirring occasionally.",
-      "Reduce heat to low and gradually whisk in grated parmesan cheese until smooth and creamy.",
-      "Slice the cooked chicken into strips.",
-      "Drain pasta and add to the alfredo sauce. Toss to coat evenly.",
-      "Top with sliced chicken, extra parmesan, and fresh parsley before serving."
-    ],
-    nutritionFacts: {
-      protein: "42g",
-      carbs: "58g",
-      fat: "32g",
-      fiber: "3g",
-      sugar: "6g",
-      sodium: "980mg"
-    },
-    ingredients: [
-      { name: "Fettuccine Pasta", amount: "400g" },
-      { name: "Chicken Breast", amount: "500g" },
-      { name: "Heavy Cream", amount: "300ml" },
-      { name: "Parmesan Cheese", amount: "100g" },
-      { name: "Garlic", amount: "3 cloves" },
-      { name: "Butter", amount: "2 tbsp" },
-      { name: "Italian Herbs", amount: "1 tsp" },
-      { name: "Salt", amount: "to taste" },
-      { name: "Black Pepper", amount: "to taste" },
-      { name: "Fresh Parsley", amount: "2 tbsp" }
-    ]
-  },
-  {
-    id: 3,
-    name: "Spicy Thai Basil Stir-Fry",
-    image: "https://readdy.ai/api/search-image?query=Photorealistic%20spicy%20Thai%20basil%20stir-fry%20with%20colorful%20vegetables%2C%20fresh%20basil%20leaves%2C%20chili%20peppers%2C%20Asian%20cuisine%2C%20wok%20cooking%2C%20vibrant%20colors%2C%20professional%20food%20photography%2C%20soft%20natural%20lighting%2C%20white%20plate%2C%20high%20detail%2C%20centered%20composition&width=800&height=600&seq=recipe3&orientation=landscape",
-    calories: 380,
-    totalTime: 20,
-    difficulty: "Easy",
-    servings: 3,
-    description: "A quick and flavorful Thai-inspired stir-fry with aromatic basil, crisp vegetables, and a perfect balance of sweet, salty, and spicy flavors.",
-    prepTime: 10,
-    cookTime: 10,
-    tags: ["Asian", "Spicy", "Quick Meal"],
-    dateAdded: "2024-01-10",
-    instructions: [
-      "Prepare all vegetables by slicing bell peppers, onions, and cutting broccoli into florets.",
-      "In a small bowl, mix soy sauce, oyster sauce, fish sauce, sugar, and a splash of water for the sauce.",
-      "Heat oil in a large wok or skillet over high heat until smoking.",
-      "Add minced garlic and sliced chili peppers, stir-fry for 30 seconds until fragrant.",
-      "Add the protein of choice (chicken, tofu, or shrimp) and cook until nearly done.",
-      "Toss in all vegetables and stir-fry for 3-4 minutes until crisp-tender.",
-      "Pour in the prepared sauce and toss everything together for 1-2 minutes.",
-      "Turn off heat, add fresh Thai basil leaves, and toss until wilted.",
-      "Serve immediately over steamed jasmine rice."
-    ],
-    nutritionFacts: {
-      protein: "22g",
-      carbs: "28g",
-      fat: "18g",
-      fiber: "6g",
-      sugar: "14g",
-      sodium: "1200mg"
-    },
-    ingredients: [
-      { name: "Bell Peppers", amount: "2 pieces" },
-      { name: "Thai Basil", amount: "1 bunch" },
-      { name: "Soy Sauce", amount: "3 tbsp" },
-      { name: "Oyster Sauce", amount: "2 tbsp" },
-      { name: "Chili Peppers", amount: "3 pieces" },
-      { name: "Garlic", amount: "4 cloves" },
-      { name: "Onion", amount: "1 piece" },
-      { name: "Broccoli", amount: "200g" },
-      { name: "Fish Sauce", amount: "1 tbsp" },
-      { name: "Sugar", amount: "1 tsp" },
-      { name: "Vegetable Oil", amount: "2 tbsp" }
-    ]
-  },
-  {
-    id: 4,
-    name: "Classic Caesar Salad",
-    image: "https://readdy.ai/api/search-image?query=Photorealistic%20classic%20Caesar%20salad%20with%20crisp%20romaine%20lettuce%2C%20golden%20croutons%2C%20parmesan%20cheese%20shavings%2C%20creamy%20dressing%2C%20elegant%20presentation%2C%20professional%20food%20photography%2C%20soft%20natural%20lighting%2C%20white%20plate%2C%20high%20detail%2C%20centered%20composition&width=800&height=600&seq=recipe4&orientation=landscape",
-    calories: 320,
-    totalTime: 15,
-    difficulty: "Easy",
-    servings: 4,
-    description: "A timeless classic with crisp romaine lettuce, homemade croutons, fresh parmesan, and a rich, creamy Caesar dressing.",
-    prepTime: 15,
-    cookTime: 0,
-    tags: ["Salad", "Classic", "Vegetarian"],
-    dateAdded: "2024-01-08",
-    instructions: [
-      "Wash and dry romaine lettuce thoroughly, then chop into bite-sized pieces.",
-      "For the dressing, mash anchovies and garlic into a paste in a large bowl.",
-      "Whisk in lemon juice, Dijon mustard, and Worcestershire sauce.",
-      "Slowly drizzle in olive oil while whisking to create an emulsion.",
-      "Add grated parmesan cheese and black pepper to the dressing.",
-      "Toss lettuce with the dressing until evenly coated.",
-      "Top with homemade croutons and additional parmesan shavings.",
-      "Serve immediately while lettuce is still crisp."
-    ],
-    nutritionFacts: {
-      protein: "8g",
-      carbs: "12g",
-      fat: "28g",
-      fiber: "4g",
-      sugar: "6g",
-      sodium: "620mg"
-    },
-    ingredients: [
-      { name: "Romaine Lettuce", amount: "2 heads" },
-      { name: "Parmesan Cheese", amount: "100g" },
-      { name: "Anchovies", amount: "4 fillets" },
-      { name: "Garlic", amount: "2 cloves" },
-      { name: "Lemon Juice", amount: "3 tbsp" },
-      { name: "Dijon Mustard", amount: "1 tsp" },
-      { name: "Worcestershire Sauce", amount: "1 tsp" },
-      { name: "Olive Oil", amount: "1/2 cup" },
-      { name: "Bread Cubes", amount: "2 cups" },
-      { name: "Black Pepper", amount: "to taste" }
-    ]
-  }
-];
-
-interface Recipe {
-  id: number;
+interface RecipeFromList {
+  id: string;
   name: string;
-  image: string;
-  calories: number;
-  totalTime: number;
-  difficulty: string;
-  servings: number;
-  description: string;
-  prepTime: number;
-  cookTime: number;
-  tags: string[];
+  image: string | null;
   dateAdded: string;
-  instructions: string[];
-  nutritionFacts: {
-    protein: string;
-    carbs: string;
-    fat: string;
-    fiber: string;
-    sugar: string;
-    sodium: string;
-  };
-  ingredients: Array<{
-    name: string;
-    amount: string;
-  }>;
+  items: ShoppingItem[];
+  totalItems: number;
+  totalPrice: number; // cents
 }
 
 export default function MyRecipesPage() {
-  const [selectedRecipe, setSelectedRecipe] = useState<Recipe | null>(null);
+  const [selectedRecipe, setSelectedRecipe] = useState<UIRecipe | null>(null);
+  const [expandedImage, setExpandedImage] = useState<string | null>(null);
+  const [recipes, setRecipes] = useState<UIRecipe[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [sortBy, setSortBy] = useState<'newest' | 'oldest' | 'name'>('newest');
   const [searchQuery, setSearchQuery] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(6);
+  const [marketId, setMarketId] = useState<number | null>(null);
+  const [showRecipeDetailModal, setShowRecipeDetailModal] = useState(false);
+  const [showSuccessToast, setShowSuccessToast] = useState(false);
+  const [successMessage, setSuccessMessage] = useState('');
+
+  useEffect(() => {
+    const fetchRecipesAndMarket = async () => {
+      setLoading(true);
+      setError(null);
+      try {
+        // Fetch user's market
+        try {
+          const marketIdFromUser = await userApi.getUserMarketId();
+          if (marketIdFromUser) setMarketId(marketIdFromUser);
+        } catch (err) {
+          console.warn('Failed to fetch market ID', err);
+        }
+
+        // Fetch active shopping list to get recipes
+        const listData: ShoppingList = await shoppingListApi.getActiveShoppingList();
+        console.log('Shopping list data:', listData);
+
+        if (!listData?.groups || listData.groups.length === 0) {
+          setRecipes([]);
+          return;
+        }
+
+        // Fetch user history recipes to enrich missing fields (allergies/yields)
+        let historyRecipeByTitle = new Map<string, UIRecipe>();
+        try {
+          const historyRecords = await userHistoryApi.getUserHistory();
+          historyRecipeByTitle = new Map(
+            historyRecords
+              .map((record) => record.recipe)
+              .filter((recipe) => recipe?.title)
+              .map((recipe) => [recipe.title.toLowerCase(), recipe])
+          );
+        } catch (err) {
+          console.warn('Failed to fetch user history for recipe enrichment', err);
+        }
+
+        const enrichRecipeFromHistory = (recipe: UIRecipe): UIRecipe => {
+          const historyRecipe = historyRecipeByTitle.get(recipe.title.toLowerCase());
+          if (!historyRecipe) return recipe;
+
+          const hasAllergies = Array.isArray(recipe.allergies) && recipe.allergies.length > 0;
+          const hasYields = typeof recipe.yields === 'string' && recipe.yields.trim().length > 0;
+
+          return {
+            ...recipe,
+            allergies: hasAllergies ? recipe.allergies : (historyRecipe.allergies || []),
+            yields: hasYields ? recipe.yields : historyRecipe.yields,
+            nutrients: {
+              calories: recipe.nutrients?.calories || historyRecipe.nutrients?.calories || '0',
+              servingSize: recipe.nutrients?.servingSize || historyRecipe.nutrients?.servingSize || recipe.yields || historyRecipe.yields || '4',
+            },
+          };
+        };
+
+        // Fetch all recommended recipes to get full details
+        let allRecipes: UIRecipe[] = [];
+        try {
+          const recommendations = await recipesApi.getRecommendations();
+          console.log('Raw recommendations from API:', recommendations);
+          allRecipes = recommendations.map((r) => ({
+            ...r,
+            richIngredients: null,
+          })) as UIRecipe[];
+          console.log('Mapped recipes with all fields:', allRecipes);
+        } catch (err) {
+          console.warn('Failed to fetch recommendations, will use search API:', err);
+        }
+
+        // Now match shopping list recipes with full recipe data
+        const matchedRecipes: UIRecipe[] = listData.groups
+          .map((group) => {
+            // Try to find a matching recipe from recommendations by title similarity
+            const matchedRecipe = allRecipes.find(
+              (r) =>
+                r.title.toLowerCase() === group.recipeName.toLowerCase() ||
+                r.title.toLowerCase().includes(group.recipeName.toLowerCase()) ||
+                group.recipeName.toLowerCase().includes(r.title.toLowerCase())
+            );
+
+            if (matchedRecipe) {
+              return enrichRecipeFromHistory(matchedRecipe);
+            }
+
+            // Fallback: search for the recipe
+            return null;
+          })
+          .filter((r) => r !== null) as UIRecipe[];
+
+        // If we didn't find all recipes, try searching for the ones we missed
+        const foundTitles = new Set(matchedRecipes.map((r) => r.title.toLowerCase()));
+        const missedGroups = listData.groups.filter(
+          (g) => !foundTitles.has(g.recipeName.toLowerCase())
+        );
+
+        for (const group of missedGroups) {
+          try {
+            const searchResult = await recipeApi.searchRecipes({
+              query: group.recipeName,
+              categories: [],
+              keywords: [],
+              maxTime: 'all',
+              maxCalories: 'all',
+              page: 1,
+            });
+
+            if (searchResult.recipes && searchResult.recipes.length > 0) {
+              const recipe = searchResult.recipes[0];
+              const uiRecipe: UIRecipe = {
+                id: recipe.id,
+                title: recipe.title,
+                description: recipe.description,
+                image: recipe.image,
+                total_time: recipe.total_time,
+                prep_time: recipe.prep_time,
+                cook_time: recipe.cook_time,
+                yields: recipe.nutrients?.servingSize || recipe.yields || '4',
+                ratings: recipe.ratings,
+                nutrients: {
+                  calories: recipe.nutrients?.calories || recipe.calories || '0',
+                  servingSize: recipe.nutrients?.servingSize || recipe.yields || '4',
+                },
+                ingredients: recipe.ingredients || [],
+                allergies: recipe.allergies || [],
+                instructions: recipe.instructions || '',
+                category: recipe.cuisine || '',
+                keywords: recipe.keywords || [],
+                richIngredients: null,
+              };
+              matchedRecipes.push(enrichRecipeFromHistory(uiRecipe));
+            }
+          } catch (err) {
+            console.error(`Failed to search for recipe "${group.recipeName}":`, err);
+          }
+        }
+
+        console.log('Matched recipes:', matchedRecipes);
+        setRecipes(matchedRecipes);
+      } catch (err: any) {
+        console.error('Failed to load shopping list recipes', err);
+        if (err?.response?.status === 401) {
+          window.REACT_APP_NAVIGATE('/auth');
+        } else {
+          setError('Unable to load recipes from your shopping list.');
+        }
+        setRecipes([]);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchRecipesAndMarket();
+  }, []);
 
   // Filter recipes based on search query
   const normalizedQuery = searchQuery.trim().toLowerCase();
-  const filteredRecipes = savedRecipesMock.filter(recipe =>
-    recipe.name.toLowerCase().includes(normalizedQuery) ||
-    recipe.description.toLowerCase().includes(normalizedQuery) ||
-    recipe.tags.some(tag => tag.toLowerCase().includes(normalizedQuery)) ||
-    recipe.ingredients.some(ingredient =>
-      ingredient.name.toLowerCase().includes(normalizedQuery)
-    )
+  const filteredRecipes = recipes.filter(recipe =>
+    recipe.title.toLowerCase().includes(normalizedQuery)
   );
 
   const sortedRecipes = [...filteredRecipes].sort((a, b) => {
     switch (sortBy) {
       case 'newest':
-        return new Date(b.dateAdded).getTime() - new Date(a.dateAdded).getTime();
+        return 0; // Shopping list recipes don't have date info in new format
       case 'oldest':
-        return new Date(a.dateAdded).getTime() - new Date(b.dateAdded).getTime();
+        return 0;
       case 'name':
-        return a.name.localeCompare(b.name);
+        return a.title.localeCompare(b.title);
       default:
         return 0;
     }
@@ -254,289 +219,51 @@ export default function MyRecipesPage() {
     }
   };
 
-  const handleItemsPerPageChange = (items: number) => {
-    setItemsPerPage(items);
-    setCurrentPage(1); // Reset to first page when changing items per page
-  };
-
   const handleSearchChange = (query: string) => {
     setSearchQuery(query);
     setCurrentPage(1); // Reset to first page when searching
   };
 
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric'
-    });
-  };
+  const handleRecipeClick = async (recipe: UIRecipe) => {
+    setSelectedRecipe(recipe);
+    setShowRecipeDetailModal(true);
 
-  const renderPaginationButtons = () => {
-    const buttons = [];
-    const maxVisibleButtons = 5;
-    let startPage = Math.max(1, currentPage - Math.floor(maxVisibleButtons / 2));
-    let endPage = Math.min(totalPages, startPage + maxVisibleButtons - 1);
-
-    if (endPage - startPage < maxVisibleButtons - 1) {
-      startPage = Math.max(1, endPage - maxVisibleButtons + 1);
-    }
-
-    // Previous button
-    buttons.push(
-      <button
-        key="prev"
-        onClick={() => handlePageChange(currentPage - 1)}
-        disabled={currentPage === 1}
-        className="w-10 h-10 flex items-center justify-center rounded-lg border-2 border-gray-200 hover:border-emerald-500 hover:bg-emerald-50 transition-all disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:border-gray-200 disabled:hover:bg-transparent cursor-pointer"
-      >
-        <i className="ri-arrow-left-s-line text-xl text-gray-700"></i>
-      </button>
-    );
-
-    // First page
-    if (startPage > 1) {
-      buttons.push(
-        <button
-          key={1}
-          onClick={() => handlePageChange(1)}
-          className="w-10 h-10 flex items-center justify-center rounded-lg border-2 border-gray-200 hover:border-emerald-500 hover:bg-emerald-50 transition-all font-medium text-gray-700 cursor-pointer"
-        >
-          1
-        </button>
-      );
-      if (startPage > 2) {
-        buttons.push(
-          <span key="dots1" className="w-10 h-10 flex items-center justify-center text-gray-400">
-            ...
-          </span>
-        );
+    if (!recipe.richIngredients && marketId) {
+      try {
+        const listResponse: ShoppingListResponse = await productsApi.generateShoppingList(marketId, [recipe.id]);
+        const updatedRecipe = { ...recipe, richIngredients: listResponse.items };
+        setSelectedRecipe(updatedRecipe);
+        setRecipes(prev => prev.map(r => (r.id === recipe.id ? updatedRecipe : r)));
+      } catch (err) {
+        console.error('Error loading products', err);
       }
     }
-
-    // Page numbers
-    for (let i = startPage; i <= endPage; i++) {
-      buttons.push(
-        <button
-          key={i}
-          onClick={() => handlePageChange(i)}
-          className={`w-10 h-10 flex items-center justify-center rounded-lg border-2 transition-all font-medium cursor-pointer ${
-            currentPage === i
-              ? 'bg-emerald-600 border-emerald-600 text-white'
-              : 'border-gray-200 text-gray-700 hover:border-emerald-500 hover:bg-emerald-50'
-          }`}
-        >
-          {i}
-        </button>
-      );
-    }
-
-    // Last page
-    if (endPage < totalPages) {
-      if (endPage < totalPages - 1) {
-        buttons.push(
-          <span key="dots2" className="w-10 h-10 flex items-center justify-center text-gray-400">
-            ...
-          </span>
-        );
-      }
-      buttons.push(
-        <button
-          key={totalPages}
-          onClick={() => handlePageChange(totalPages)}
-          className="w-10 h-10 flex items-center justify-center rounded-lg border-2 border-gray-200 hover:border-emerald-500 hover:bg-emerald-50 transition-all font-medium text-gray-700 cursor-pointer"
-        >
-          {totalPages}
-        </button>
-      );
-    }
-
-    // Next button
-    buttons.push(
-      <button
-        key="next"
-        onClick={() => handlePageChange(currentPage + 1)}
-        disabled={currentPage === totalPages}
-        className="w-10 h-10 flex items-center justify-center rounded-lg border-2 border-gray-200 hover:border-emerald-500 hover:bg-emerald-50 transition-all disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:border-gray-200 disabled:hover:bg-transparent cursor-pointer"
-      >
-        <i className="ri-arrow-right-s-line text-xl text-gray-700"></i>
-      </button>
-    );
-
-    return buttons;
   };
 
-  if (selectedRecipe) {
+  const showSuccessNotification = (recipeName: string) => {
+    setSuccessMessage(`${recipeName} added to your shopping list! 🎉`);
+    setShowSuccessToast(true);
+    setTimeout(() => {
+      setShowSuccessToast(false);
+    }, 3000);
+  };  // Image expansion modal
+  if (expandedImage) {
     return (
-      <div className="min-h-screen bg-gray-50">
-        {/* Recipe Detail Header */}
-        <div className="bg-white shadow-sm">
-          <div className="max-w-4xl mx-auto px-4 py-6">
-            <button
-              onClick={() => setSelectedRecipe(null)}
-              className="flex items-center gap-2 text-gray-600 hover:text-gray-900 transition-colors mb-4 cursor-pointer"
-            >
-              <i className="ri-arrow-left-line text-xl"></i>
-              <span className="font-medium">Back to My Recipes</span>
-            </button>
-
-            <div className="grid md:grid-cols-2 gap-8">
-              <div>
-                <img
-                  src={selectedRecipe.image}
-                  alt={selectedRecipe.name}
-                  className="w-full h-80 object-cover rounded-lg"
-                />
-              </div>
-
-              <div>
-                <h1 className="text-3xl font-bold text-gray-900 mb-3">
-                  {selectedRecipe.name}
-                </h1>
-                <p className="text-gray-600 mb-4">
-                  {selectedRecipe.description}
-                </p>
-
-                <div className="flex flex-wrap gap-2 mb-4">
-                  {selectedRecipe.tags.map((tag, index) => (
-                    <span
-                      key={index}
-                      className="px-3 py-1 bg-emerald-100 text-emerald-700 rounded-full text-sm font-medium"
-                    >
-                      {tag}
-                    </span>
-                  ))}
-                </div>
-
-                <div className="grid grid-cols-2 gap-4 mb-6">
-                  <div className="bg-gray-50 rounded-lg p-4">
-                    <div className="flex items-center gap-2 mb-2">
-                      <i className="ri-time-line text-emerald-600"></i>
-                      <span className="font-medium text-gray-700">Total Time</span>
-                    </div>
-                    <span className="text-2xl font-bold text-gray-900">
-                      {selectedRecipe.totalTime} min
-                    </span>
-                  </div>
-
-                  <div className="bg-gray-50 rounded-lg p-4">
-                    <div className="flex items-center gap-2 mb-2">
-                      <i className="ri-group-line text-emerald-600"></i>
-                      <span className="font-medium text-gray-700">Servings</span>
-                    </div>
-                    <span className="text-2xl font-bold text-gray-900">
-                      {selectedRecipe.servings}
-                    </span>
-                  </div>
-
-                  <div className="bg-gray-50 rounded-lg p-4">
-                    <div className="flex items-center gap-2 mb-2">
-                      <i className="ri-fire-line text-emerald-600"></i>
-                      <span className="font-medium text-gray-700">Calories</span>
-                    </div>
-                    <span className="text-2xl font-bold text-gray-900">
-                      {selectedRecipe.calories}
-                    </span>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Recipe Content */}
-        <div className="max-w-4xl mx-auto px-4 py-8">
-          <div className="grid md:grid-cols-3 gap-8">
-            {/* Ingredients */}
-            <div className="md:col-span-1">
-              <div className="bg-white rounded-lg shadow-sm p-6 sticky top-24">
-                <h2 className="text-xl font-bold text-gray-900 mb-4 flex items-center gap-2">
-                  <i className="ri-shopping-basket-line text-emerald-600"></i>
-                  Ingredients
-                </h2>
-                <ul className="space-y-3">
-                  {selectedRecipe.ingredients.map((ingredient, index) => (
-                    <li key={index} className="flex justify-between items-center">
-                      <span className="text-gray-700">{ingredient.name}</span>
-                      <span className="font-medium text-gray-900">
-                        {ingredient.amount}
-                      </span>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            </div>
-
-            {/* Instructions & Nutrition */}
-            <div className="md:col-span-2 space-y-8">
-              {/* Instructions */}
-              <div className="bg-white rounded-lg shadow-sm p-6">
-                <h2 className="text-xl font-bold text-gray-900 mb-4 flex items-center gap-2">
-                  <i className="ri-list-ordered text-emerald-600"></i>
-                  Instructions
-                </h2>
-                <div className="space-y-4">
-                  {selectedRecipe.instructions.map((step, index) => (
-                    <div key={index} className="flex gap-4">
-                      <div className="flex-shrink-0">
-                        <span className="w-8 h-8 bg-emerald-100 text-emerald-700 rounded-full flex items-center justify-center font-semibold text-sm">
-                          {index + 1}
-                        </span>
-                      </div>
-                      <p className="text-gray-700 leading-relaxed">
-                        {step}
-                      </p>
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              {/* Nutrition Facts */}
-              <div className="bg-white rounded-lg shadow-sm p-6">
-                <h2 className="text-xl font-bold text-gray-900 mb-4 flex items-center gap-2">
-                  <i className="ri-heart-pulse-line text-emerald-600"></i>
-                  Nutrition Facts
-                </h2>
-                <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
-                  {Object.entries(selectedRecipe.nutritionFacts).map(([key, value]) => (
-                    <div key={key} className="text-center p-3 bg-gray-50 rounded-lg">
-                      <span className="text-sm text-gray-600 capitalize block mb-1">
-                        {key}
-                      </span>
-                      <span className="font-bold text-gray-900">
-                        {value}
-                      </span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              {/* Cooking Times */}
-              <div className="bg-white rounded-lg shadow-sm p-6">
-                <h2 className="text-xl font-bold text-gray-900 mb-4 flex items-center gap-2">
-                  <i className="ri-timer-line text-emerald-600"></i>
-                  Cooking Times
-                </h2>
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="text-center p-4 bg-blue-50 rounded-lg">
-                    <i className="ri-knife-line text-2xl text-blue-600 mb-2 block"></i>
-                    <span className="text-sm text-blue-600 block mb-1">Prep Time</span>
-                    <span className="font-bold text-blue-800">
-                      {selectedRecipe.prepTime} min
-                    </span>
-                  </div>
-                  <div className="text-center p-4 bg-orange-50 rounded-lg">
-                    <i className="ri-fire-line text-2xl text-orange-600 mb-2 block"></i>
-                    <span className="text-sm text-orange-600 block mb-1">Cook Time</span>
-                    <span className="font-bold text-orange-800">
-                      {selectedRecipe.cookTime} min
-                    </span>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
+      <div 
+        className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 z-50 cursor-pointer"
+        onClick={() => setExpandedImage(null)}
+      >
+        <button
+          onClick={() => setExpandedImage(null)}
+          className="absolute top-4 right-4 w-10 h-10 flex items-center justify-center rounded-full bg-white/20 backdrop-blur-sm hover:bg-white/30 transition-colors cursor-pointer"
+        >
+          <i className="ri-close-line text-2xl text-white"></i>
+        </button>
+        <img
+          src={expandedImage}
+          alt="Expanded recipe"
+          className="max-w-full max-h-[90vh] object-contain rounded-2xl"
+        />
       </div>
     );
   }
@@ -552,7 +279,7 @@ export default function MyRecipesPage() {
                 My Recipes
               </h1>
               <p className="text-gray-600">
-                Your collection of saved recipes
+                Recipes in your current shopping list
               </p>
             </div>
 
@@ -582,7 +309,7 @@ export default function MyRecipesPage() {
             </div>
             <input
               type="text"
-              placeholder="Search recipes, ingredients, or tags..."
+              placeholder="Search recipes or shopping list items..."
               value={searchQuery}
               onChange={(e) => handleSearchChange(e.target.value)}
               className="w-full pl-10 pr-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
@@ -597,124 +324,77 @@ export default function MyRecipesPage() {
             )}
           </div>
 
-          {/* Pagination Controls */}
-          {totalRecipes > 0 && (
-            <div className="flex items-center justify-between mb-4">
-              <div className="flex items-center gap-4">
-                <span className="text-sm text-gray-600">
-                  Showing {Math.min(startIndex + 1, totalRecipes)}-{Math.min(endIndex, totalRecipes)} of {totalRecipes} recipes
-                </span>
-                <div className="flex items-center gap-2">
-                  <span className="text-sm text-gray-600">Items per page:</span>
-                  <select
-                    value={itemsPerPage}
-                    onChange={(e) => handleItemsPerPageChange(Number(e.target.value))}
-                    className="px-3 py-1 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 cursor-pointer text-sm"
-                  >
-                    <option value={6}>6</option>
-                    <option value={12}>12</option>
-                    <option value={24}>24</option>
-                    <option value={48}>48</option>
-                  </select>
-                </div>
-              </div>
-
-              {totalPages > 1 && (
-                <div className="flex items-center gap-1">
-                  {renderPaginationButtons()}
-                </div>
-              )}
-            </div>
-          )}
         </div>
       </div>
 
       {/* Recipes Grid */}
       <div className="max-w-6xl mx-auto px-4 py-8">
-        {currentRecipes.length === 0 ? (
+        {loading && (
+          <div className="text-center py-16 text-gray-500">Loading recipes...</div>
+        )}
+        {error && !loading && (
+          <div className="text-center py-16 text-red-600">{error}</div>
+        )}
+        {!loading && !error && currentRecipes.length === 0 ? (
           <div className="text-center py-16">
             <i className="ri-search-line text-6xl text-gray-300 mb-4 block"></i>
             <h3 className="text-xl font-medium text-gray-500 mb-2">
-              {searchQuery ? 'No recipes found' : 'No recipes saved yet'}
+              {searchQuery ? 'No recipes found' : 'No recipes in your shopping list yet'}
             </h3>
             <p className="text-gray-400">
               {searchQuery 
                 ? `Try searching for something else or clear your search` 
-                : 'Start liking recipes to build your collection'
+                : 'Add recipes to your shopping list to see them here'
               }
             </p>
           </div>
-        ) : (
+        ) : !loading && !error ? (
           <>
-            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 mb-8">
               {currentRecipes.map((recipe) => (
                 <div
                   key={recipe.id}
-                  className="bg-white rounded-lg shadow-sm overflow-hidden hover:shadow-md transition-shadow cursor-pointer"
-                  onClick={() => setSelectedRecipe(recipe)}
+                  onClick={() => handleRecipeClick(recipe)}
+                  className="bg-white rounded-2xl shadow-sm hover:shadow-xl transition-all duration-300 overflow-hidden cursor-pointer group border border-gray-100"
                 >
-                  <div className="relative">
+                  <div className="relative h-48 overflow-hidden">
                     <img
                       src={recipe.image}
-                      alt={recipe.name}
-                      className="w-full h-48 object-cover"
+                      alt={recipe.title}
+                      className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
                     />
-                    <div className="absolute top-3 right-3">
-                      <span className="bg-white/90 backdrop-blur-sm px-2 py-1 rounded-full text-xs font-medium text-gray-700">
-                        {recipe.calories} cal
-                      </span>
+                    <div className="absolute top-3 right-3 bg-white/90 backdrop-blur-sm px-2 py-1 rounded-lg text-xs font-bold text-gray-900 shadow-sm flex items-center gap-1">
+                      <i className="ri-star-fill text-amber-400"></i>
+                      {recipe.ratings ? recipe.ratings.toFixed(1) : 'New'}
                     </div>
                   </div>
-
-                  <div className="p-4">
-                    <h3 className="font-semibold text-gray-900 mb-2 line-clamp-2">
-                      {recipe.name}
+                  
+                  <div className="p-5">
+                    <h3 className="font-bold text-gray-900 text-lg mb-2 line-clamp-1 group-hover:text-[#2F855A] transition-colors">
+                      {recipe.title}
                     </h3>
                     
-                    <p className="text-sm text-gray-600 mb-3 line-clamp-2">
-                      {recipe.description}
-                    </p>
-
-                    <div className="flex items-center justify-between text-xs text-gray-500 mb-3">
-                      <div className="flex items-center gap-4">
-                        <span className="flex items-center gap-1">
-                          <i className="ri-time-line"></i>
-                          {recipe.totalTime}m
-                        </span>
-                        <span className="flex items-center gap-1">
-                          <i className="ri-group-line"></i>
-                          {recipe.servings}
-                        </span>
-                        <span className="flex items-center gap-1">
-                          <i className="ri-flashlight-line"></i>
-                          {recipe.difficulty}
-                        </span>
-                      </div>
+                    <div className="flex items-center gap-4 text-sm text-gray-500 mb-4">
+                      <span className="flex items-center gap-1">
+                        <i className="ri-time-line"></i>
+                        {recipe.total_time}m
+                      </span>
+                      <span className="flex items-center gap-1">
+                        <i className="ri-fire-line"></i>
+                        {recipe.nutrients.calories}
+                      </span>
+                      <span className="flex items-center gap-1">
+                        <i className="ri-restaurant-line"></i>
+                        {recipe.yields}
+                      </span>
                     </div>
 
-                    <div className="flex flex-wrap gap-1 mb-3">
-                      {recipe.tags.slice(0, 2).map((tag, index) => (
-                        <span
-                          key={index}
-                          className="px-2 py-1 bg-emerald-50 text-emerald-600 rounded text-xs"
-                        >
+                    <div className="flex flex-wrap gap-2">
+                      {recipe.keywords?.slice(0, 3).map((tag, i) => (
+                        <span key={i} className="px-2 py-1 bg-gray-100 text-gray-600 text-xs rounded-md font-medium">
                           {tag}
                         </span>
                       ))}
-                      {recipe.tags.length > 2 && (
-                        <span className="px-2 py-1 bg-gray-50 text-gray-500 rounded text-xs">
-                          +{recipe.tags.length - 2}
-                        </span>
-                      )}
-                    </div>
-
-                    <div className="flex items-center justify-between">
-                      <span className="text-xs text-gray-400">
-                        Saved {formatDate(recipe.dateAdded)}
-                      </span>
-                      <button className="text-emerald-600 hover:text-emerald-700 transition-colors">
-                        <i className="ri-arrow-right-line"></i>
-                      </button>
                     </div>
                   </div>
                 </div>
@@ -723,13 +403,49 @@ export default function MyRecipesPage() {
 
             {/* Bottom Pagination */}
             {totalPages > 1 && (
-              <div className="flex items-center justify-center gap-1">
-                {renderPaginationButtons()}
+              <div className="flex justify-center items-center gap-2">
+                <button
+                  onClick={() => handlePageChange(currentPage - 1)}
+                  disabled={currentPage === 1}
+                  className="w-10 h-10 flex items-center justify-center rounded-lg border-2 border-gray-200 hover:border-[#2F855A] hover:bg-emerald-50 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  <i className="ri-arrow-left-s-line text-xl"></i>
+                </button>
+                <span className="font-bold text-gray-700">Page {currentPage}</span>
+                <button
+                  onClick={() => handlePageChange(currentPage + 1)}
+                  disabled={currentPage === totalPages}
+                  className="w-10 h-10 flex items-center justify-center rounded-lg border-2 border-gray-200 hover:border-[#2F855A] hover:bg-emerald-50 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  <i className="ri-arrow-right-s-line text-xl"></i>
+                </button>
               </div>
             )}
           </>
-        )}
+        ) : null}
       </div>
+
+      {/* Recipe Detail Modal */}
+      <RecipeDetailModal
+        recipe={selectedRecipe}
+        open={showRecipeDetailModal}
+        onClose={() => {
+          setShowRecipeDetailModal(false);
+          setSelectedRecipe(null);
+        }}
+        showAddToShoppingButton={false}
+      />
+
+      {/* Success Toast */}
+      {showSuccessToast && (
+        <div className="fixed top-6 left-1/2 -translate-x-1/2 z-50 animate-slide-down bg-white shadow-xl rounded-2xl p-4 border-2 border-[#2F855A] flex items-center gap-3">
+          <div className="w-10 h-10 bg-[#2F855A] rounded-full flex items-center justify-center text-white"><i className="ri-check-line text-xl"></i></div>
+          <div>
+            <p className="font-bold text-gray-900">{successMessage}</p>
+            <p className="text-xs text-gray-500">View your list in the shopping tab</p>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

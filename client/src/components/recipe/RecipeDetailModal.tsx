@@ -137,22 +137,24 @@ export default function RecipeDetailModal({
           )}
 
           {/* Instructions */}
-          <div className="mb-6">
-            <h3 className="text-xl font-bold text-gray-900 mb-4 flex items-center gap-2">
-              <i className="ri-list-ordered text-[#2F855A]"></i>
-              Instructions
-            </h3>
-            <div className="space-y-4">
-              {recipe.instructions?.split("\n").map((instruction, index) => (
-                <div key={index} className="flex gap-4">
-                  <div className="w-8 h-8 flex items-center justify-center bg-[#2F855A] text-white rounded-full font-bold text-sm flex-shrink-0">
-                    {index + 1}
+          {recipe.instructions && recipe.instructions.trim() ? (
+            <div className="mb-6">
+              <h3 className="text-xl font-bold text-gray-900 mb-4 flex items-center gap-2">
+                <i className="ri-list-ordered text-[#2F855A]"></i>
+                Instructions
+              </h3>
+              <div className="space-y-4">
+                {recipe.instructions.split("\n").filter(line => line.trim()).map((instruction, index) => (
+                  <div key={index} className="flex gap-4">
+                    <div className="w-8 h-8 flex items-center justify-center bg-[#2F855A] text-white rounded-full font-bold text-sm flex-shrink-0">
+                      {index + 1}
+                    </div>
+                    <p className="flex-1 text-base text-gray-700 leading-relaxed pt-1">{instruction}</p>
                   </div>
-                  <p className="flex-1 text-base text-gray-700 leading-relaxed pt-1">{instruction}</p>
-                </div>
-              ))}
+                ))}
+              </div>
             </div>
-          </div>
+          ) : null}
 
           {/* Action Buttons */}
           <div className="flex gap-3 pt-4 border-t border-gray-200">
