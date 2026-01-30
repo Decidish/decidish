@@ -19,9 +19,13 @@ public class Scheduler {
 
     private RecipeService recipeService;
 
+    private WeeklySyncMetrics weeklySyncMetrics;
+
     // Managed externally via JobController
     // @Scheduled(cron = "${cron.weekly-sync}") 
     public void weeklySync() {
+
+        weeklySyncMetrics.startRun();
 
         // sync products for all markets
         logger.info("Weekly sync tasks started.");
@@ -77,7 +81,8 @@ public class Scheduler {
         logger.info("Updating matching pairs for ingredients and products...");
         try {
             long fmStartTime = System.currentTimeMillis();
-            recipeService.fuzzyMatchingPreProcessing();
+            var mappings = recipeService.fuzzyMatchingPreProcessing();
+            weeklySyncMetrics.recordFuzzyMappings(mappings == null ? 0 : mappings.size());
             long fmEndTime = System.currentTimeMillis();
             long fmDuration = fmEndTime - fmStartTime;
 
@@ -88,5 +93,7 @@ public class Scheduler {
         } catch (Exception e) {
             logger.error("Error occurred while updating matching pairs: {}", e.getMessage());
         }
+        weeklySyncMetrics.finishRun();
+        logger.info("Weekly sync tasks completed. Summary: {}", weeklySyncMetrics.snapshot());
     }
 }
