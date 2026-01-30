@@ -655,7 +655,7 @@ export default function (data) {
       // Quick health check
       const healthRes = http.get(`${BASE_URL}/health`, { headers, timeout: '5s' });
       check(healthRes, {
-        'Health check OK': (r) => r.status === 200 || r.status === 0,
+        'Health check OK': (r) => r.status === 200,
       });
 
       // Get recommendations again to measure latency
