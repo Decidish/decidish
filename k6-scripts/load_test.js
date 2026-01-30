@@ -25,6 +25,10 @@ const isDebugEnabled = (category) => {
   return debugCategories.includes(category.toLowerCase());
 };
 
+// FALLBACK MARKET ID - Use a known valid market ID when selection fails
+// Query: SELECT id FROM markets ORDER BY id LIMIT 1;
+const FALLBACK_MARKET_ID = 5;
+
 // POSTAL CODES - Diverse German postal codes for distributed load testing
 // Covers major cities across different regions to test horizontal scalability
 const POSTAL_CODES = [
@@ -269,7 +273,8 @@ export default function (data) {
     });
 
     if (!marketsFetched) {
-      console.log(`[Market DEBUG] Market selection failed - Postal code: "${postalCode}", Status: ${marketRes.status}, Body: ${marketRes.body}`);
+      const bodyPreview = marketRes.body ? marketRes.body.substring(0, 200) : 'empty/timeout';
+      console.log(`[Market DEBUG] Market selection failed - Postal code: "${postalCode}", Status: ${marketRes.status}, Body: ${bodyPreview}`);
       errorRate.add(1);
     }
 
@@ -601,12 +606,13 @@ export default function (data) {
     // "Äpfel" becomes "%C3%84pfel"
     const encodedQuery = encodeURIComponent(productQuery);
     const searchStart = new Date();
-    const searchRes = http.get(`${BASE_URL}/shopping/api/v1/markets/search/products?query=${encodedQuery}&marketId=${marketId || 1}`, { headers });
+    const searchRes = http.get(`${BASE_URL}/shopping/api/v1/markets/search/products?query=${encodedQuery}&marketId=${marketId || FALLBACK_MARKET_ID}`, { headers });
     const searchEnd = new Date();
     searchTime.add(searchEnd - searchStart);
 
     if (searchRes.status !== 200) {
-      console.log(`[Products Search DEBUG] Failed for query '${productQuery}' - Status: ${searchRes.status}, Body: ${searchRes.body.substring(0, 200)}`);
+      const bodyPreview = searchRes.body ? searchRes.body.substring(0, 200) : 'empty/timeout';
+      console.log(`[Products Search DEBUG] Failed for query '${productQuery}' - Status: ${searchRes.status}, Body: ${bodyPreview}`);
     }
 
     check(searchRes, {
@@ -623,7 +629,8 @@ export default function (data) {
     const recipeSearchRes = http.get(`${BASE_URL}/personalization/recipes/search?q=${encodedRecipeQuery}`, { headers });
     
     if (recipeSearchRes.status !== 200) {
-      console.log(`[Recipes Search DEBUG] Failed for query '${recipeQuery}' - Status: ${recipeSearchRes.status}, Body: ${recipeSearchRes.body.substring(0, 200)}`);
+      const bodyPreview = recipeSearchRes.body ? recipeSearchRes.body.substring(0, 200) : 'empty/timeout';
+      console.log(`[Recipes Search DEBUG] Failed for query '${recipeQuery}' - Status: ${recipeSearchRes.status}, Body: ${bodyPreview}`);
     }
     
     check(recipeSearchRes, {
