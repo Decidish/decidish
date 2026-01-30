@@ -1,0 +1,663 @@
+{
+  "annotations": {
+    "list": [
+      {
+        "builtIn": 1,
+        "datasource": "-- Grafana --",
+        "enable": true,
+        "hide": true,
+        "iconColor": "rgba(0, 211, 255, 1)",
+        "name": "Annotations & Alerts",
+        "type": "dashboard"
+      }
+    ]
+  },
+  "editable": true,
+  "gnetId": null,
+  "graphTooltip": 1,
+  "id": null,
+  "links": [],
+  "panels": [
+    {
+      "collapsed": false,
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 0 },
+      "id": 100,
+      "panels": [],
+      "title": "📊 OVERVIEW - Key Performance Indicators",
+      "type": "row"
+    },
+    {
+      "datasource": "Prometheus",
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "thresholds" },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "green", "value": null },
+              { "color": "yellow", "value": 100 },
+              { "color": "orange", "value": 300 },
+              { "color": "red", "value": 500 }
+            ]
+          },
+          "unit": "none"
+        }
+      },
+      "gridPos": { "h": 6, "w": 4, "x": 0, "y": 1 },
+      "id": 20,
+      "options": {
+        "orientation": "auto",
+        "reduceOptions": { "calcs": ["lastNotNull"] },
+        "showThresholdLabels": false,
+        "showThresholdMarkers": true,
+        "text": { "titleSize": 14, "valueSize": 28 }
+      },
+      "targets": [{ "expr": "max(k6_vus)", "refId": "A" }],
+      "title": "🎯 Virtual Users",
+      "type": "gauge"
+    },
+    {
+      "datasource": "Prometheus",
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "thresholds" },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "red", "value": null },
+              { "color": "orange", "value": 95 },
+              { "color": "yellow", "value": 98 },
+              { "color": "green", "value": 99 }
+            ]
+          },
+          "unit": "percent"
+        }
+      },
+      "gridPos": { "h": 6, "w": 4, "x": 4, "y": 1 },
+      "id": 21,
+      "options": {
+        "orientation": "auto",
+        "reduceOptions": { "calcs": ["lastNotNull"] },
+        "showThresholdLabels": false,
+        "showThresholdMarkers": true
+      },
+      "targets": [{
+        "expr": "(1 - (sum(rate(k6_http_reqs_total{expected_response=\"false\"}[1m])) OR vector(0)) / (sum(rate(k6_http_reqs_total[1m])) OR vector(1))) * 100",
+        "refId": "A"
+      }],
+      "title": "✅ Success Rate",
+      "type": "gauge"
+    },
+    {
+      "datasource": "Prometheus",
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "thresholds" },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "green", "value": null },
+              { "color": "yellow", "value": 1000 },
+              { "color": "orange", "value": 2000 },
+              { "color": "red", "value": 3000 }
+            ]
+          },
+          "unit": "ms"
+        }
+      },
+      "gridPos": { "h": 6, "w": 4, "x": 8, "y": 1 },
+      "id": 22,
+      "options": {
+        "orientation": "auto",
+        "reduceOptions": { "calcs": ["lastNotNull"] }
+      },
+      "targets": [{
+        "expr": "histogram_quantile(0.95, sum(rate(k6_http_req_duration_seconds[1m]))) * 1000",
+        "refId": "A"
+      }],
+      "title": "⚡ p95 Latency",
+      "type": "gauge"
+    },
+    {
+      "datasource": "Prometheus",
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "thresholds" },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "blue", "value": null },
+              { "color": "green", "value": 50 },
+              { "color": "yellow", "value": 200 }
+            ]
+          },
+          "unit": "reqps"
+        }
+      },
+      "gridPos": { "h": 6, "w": 4, "x": 12, "y": 1 },
+      "id": 23,
+      "options": {
+        "orientation": "auto",
+        "reduceOptions": { "calcs": ["lastNotNull"] }
+      },
+      "targets": [{ "expr": "sum(rate(k6_http_reqs_total[1m]))", "refId": "A" }],
+      "title": "🚀 Throughput",
+      "type": "gauge"
+    },
+    {
+      "datasource": "Prometheus",
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "thresholds" },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "green", "value": null },
+              { "color": "yellow", "value": 0.01 },
+              { "color": "red", "value": 0.05 }
+            ]
+          },
+          "unit": "percentunit"
+        }
+      },
+      "gridPos": { "h": 6, "w": 4, "x": 16, "y": 1 },
+      "id": 24,
+      "options": {
+        "orientation": "auto",
+        "reduceOptions": { "calcs": ["lastNotNull"] }
+      },
+      "targets": [{ "expr": "avg(k6_error_rate) OR avg(k6_errors_rate) OR vector(0)", "refId": "A" }],
+      "title": "❌ Error Rate",
+      "type": "gauge"
+    },
+    {
+      "datasource": "Prometheus",
+      "fieldConfig": {
+        "defaults": {
+          "mappings": [],
+          "thresholds": { "mode": "absolute", "steps": [{ "color": "purple", "value": null }] },
+          "unit": "short"
+        }
+      },
+      "gridPos": { "h": 6, "w": 4, "x": 20, "y": 1 },
+      "id": 25,
+      "options": {
+        "colorMode": "value",
+        "graphMode": "area",
+        "justifyMode": "center",
+        "orientation": "auto",
+        "reduceOptions": { "calcs": ["sum"] }
+      },
+      "targets": [{ "expr": "sum(increase(k6_http_reqs_total[5m]))", "refId": "A" }],
+      "title": "📦 Total Requests",
+      "type": "stat"
+    },
+    {
+      "collapsed": false,
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 7 },
+      "id": 101,
+      "panels": [],
+      "title": "📈 HORIZONTAL SCALABILITY - Users vs Performance",
+      "type": "row"
+    },
+    {
+      "datasource": "Prometheus",
+      "description": "Shows how throughput scales with user load. Linear scaling = horizontally scalable.",
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "palette-classic" },
+          "custom": {
+            "drawStyle": "line",
+            "fillOpacity": 30,
+            "gradientMode": "opacity",
+            "lineInterpolation": "smooth",
+            "lineWidth": 3,
+            "showPoints": "never",
+            "spanNulls": false
+          },
+          "unit": "none"
+        },
+        "overrides": [
+          {
+            "matcher": { "id": "byName", "options": "Virtual Users" },
+            "properties": [{ "id": "color", "value": { "fixedColor": "blue", "mode": "fixed" } }]
+          },
+          {
+            "matcher": { "id": "byName", "options": "Requests/sec" },
+            "properties": [
+              { "id": "color", "value": { "fixedColor": "green", "mode": "fixed" } },
+              { "id": "custom.axisPlacement", "value": "right" }
+            ]
+          }
+        ]
+      },
+      "gridPos": { "h": 10, "w": 12, "x": 0, "y": 8 },
+      "id": 3,
+      "options": {
+        "legend": { "calcs": ["mean", "max", "last"], "displayMode": "table", "placement": "bottom" }
+      },
+      "targets": [
+        { "expr": "max(k6_vus)", "legendFormat": "Virtual Users", "refId": "A" },
+        { "expr": "sum(rate(k6_http_reqs_total[1m]))", "legendFormat": "Requests/sec", "refId": "B" }
+      ],
+      "title": "🔄 Load vs Throughput (Scalability)",
+      "type": "timeseries"
+    },
+    {
+      "datasource": "Prometheus",
+      "description": "Watch for latency increases as load grows - indicates bottleneck.",
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "palette-classic" },
+          "custom": {
+            "drawStyle": "line",
+            "fillOpacity": 20,
+            "lineInterpolation": "smooth",
+            "lineWidth": 2,
+            "showPoints": "never",
+            "thresholdsStyle": { "mode": "line" }
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "green", "value": null },
+              { "color": "red", "value": 3000 }
+            ]
+          },
+          "unit": "ms"
+        },
+        "overrides": [
+          {
+            "matcher": { "id": "byName", "options": "Virtual Users" },
+            "properties": [
+              { "id": "unit", "value": "none" },
+              { "id": "custom.axisPlacement", "value": "right" },
+              { "id": "color", "value": { "fixedColor": "blue", "mode": "fixed" } }
+            ]
+          }
+        ]
+      },
+      "gridPos": { "h": 10, "w": 12, "x": 12, "y": 8 },
+      "id": 4,
+      "options": {
+        "legend": { "calcs": ["mean", "max"], "displayMode": "table", "placement": "bottom" }
+      },
+      "targets": [
+        { "expr": "max(k6_vus)", "legendFormat": "Virtual Users", "refId": "VU" },
+        { "expr": "histogram_quantile(0.50, sum(rate(k6_http_req_duration_seconds[1m]))) * 1000", "legendFormat": "p50 Latency", "refId": "A" },
+        { "expr": "histogram_quantile(0.95, sum(rate(k6_http_req_duration_seconds[1m]))) * 1000", "legendFormat": "p95 Latency", "refId": "B" },
+        { "expr": "histogram_quantile(0.99, sum(rate(k6_http_req_duration_seconds[1m]))) * 1000", "legendFormat": "p99 Latency", "refId": "C" }
+      ],
+      "title": "📊 Load vs Latency (Bottleneck Detection)",
+      "type": "timeseries"
+    },
+    {
+      "collapsed": false,
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 18 },
+      "id": 102,
+      "panels": [],
+      "title": "🔍 SERVICE BOTTLENECK ANALYSIS - Per-Service Latency",
+      "type": "row"
+    },
+    {
+      "datasource": "Prometheus",
+      "description": "Compare latency across services to identify bottlenecks.",
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "palette-classic" },
+          "custom": {
+            "drawStyle": "line",
+            "fillOpacity": 20,
+            "lineInterpolation": "smooth",
+            "lineWidth": 2,
+            "showPoints": "never"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "green", "value": null },
+              { "color": "yellow", "value": 500 },
+              { "color": "red", "value": 1000 }
+            ]
+          },
+          "unit": "ms"
+        },
+        "overrides": [
+          { "matcher": { "id": "byName", "options": "Auth Service" }, "properties": [{ "id": "color", "value": { "fixedColor": "blue", "mode": "fixed" } }] },
+          { "matcher": { "id": "byName", "options": "Core/Shopping Service" }, "properties": [{ "id": "color", "value": { "fixedColor": "green", "mode": "fixed" } }] },
+          { "matcher": { "id": "byName", "options": "Personalization Service" }, "properties": [{ "id": "color", "value": { "fixedColor": "orange", "mode": "fixed" } }] }
+        ]
+      },
+      "gridPos": { "h": 10, "w": 12, "x": 0, "y": 19 },
+      "id": 5,
+      "options": {
+        "legend": { "calcs": ["mean", "max", "last"], "displayMode": "table", "placement": "bottom" }
+      },
+      "targets": [
+        { "expr": "histogram_quantile(0.95, k6_auth_service_latency_seconds) * 1000", "legendFormat": "Auth Service", "refId": "A" },
+        { "expr": "histogram_quantile(0.95, k6_shopping_list_generate_latency_seconds) * 1000", "legendFormat": "Core/Shopping Service", "refId": "B" },
+        { "expr": "histogram_quantile(0.95, k6_personalization_service_latency_seconds) * 1000", "legendFormat": "Personalization Service", "refId": "C" }
+      ],
+      "title": "🏢 Per-Service Latency (p95)",
+      "type": "timeseries"
+    },
+    {
+      "datasource": "Prometheus",
+      "description": "Identify which endpoints are slowest.",
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "palette-classic" },
+          "custom": {
+            "drawStyle": "line",
+            "fillOpacity": 20,
+            "lineInterpolation": "smooth",
+            "lineWidth": 2,
+            "showPoints": "never"
+          },
+          "unit": "ms"
+        }
+      },
+      "gridPos": { "h": 10, "w": 12, "x": 12, "y": 19 },
+      "id": 6,
+      "options": {
+        "legend": { "calcs": ["mean", "max", "last"], "displayMode": "table", "placement": "bottom" }
+      },
+      "targets": [
+        { "expr": "histogram_quantile(0.95, k6_recommendation_latency_seconds) * 1000", "legendFormat": "Recommendations", "refId": "A" },
+        { "expr": "histogram_quantile(0.95, k6_shopping_list_generate_latency_seconds) * 1000", "legendFormat": "Shopping List Generate", "refId": "B" },
+        { "expr": "histogram_quantile(0.95, k6_shopping_list_add_latency_seconds) * 1000", "legendFormat": "Shopping List Add", "refId": "C" },
+        { "expr": "histogram_quantile(0.95, k6_product_search_latency_seconds) * 1000", "legendFormat": "Product Search", "refId": "D" },
+        { "expr": "histogram_quantile(0.95, k6_recipe_search_latency_seconds) * 1000", "legendFormat": "Recipe Search", "refId": "E" },
+        { "expr": "histogram_quantile(0.95, k6_market_fetch_latency_seconds) * 1000", "legendFormat": "Market Fetch", "refId": "F" }
+      ],
+      "title": "🎯 Per-Endpoint Latency (p95)",
+      "type": "timeseries"
+    },
+    {
+      "collapsed": false,
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 29 },
+      "id": 103,
+      "panels": [],
+      "title": "👥 USER FLOW METRICS - Completion Rates",
+      "type": "row"
+    },
+    {
+      "datasource": "Prometheus",
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "palette-classic" },
+          "custom": {
+            "drawStyle": "bars",
+            "fillOpacity": 80,
+            "lineWidth": 0,
+            "showPoints": "never"
+          },
+          "unit": "short"
+        }
+      },
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 30 },
+      "id": 7,
+      "options": {
+        "legend": { "displayMode": "table", "placement": "right" }
+      },
+      "targets": [
+        { "expr": "sum(increase(k6_signup_flow_complete_total[1m]))", "legendFormat": "Signups", "refId": "A" },
+        { "expr": "sum(increase(k6_login_flow_complete_total[1m]))", "legendFormat": "Logins", "refId": "B" },
+        { "expr": "sum(increase(k6_swipe_flow_complete_total[1m]))", "legendFormat": "Swipe Sessions", "refId": "C" },
+        { "expr": "sum(increase(k6_shopping_flow_complete_total[1m]))", "legendFormat": "Shopping Lists", "refId": "D" }
+      ],
+      "title": "📊 User Flow Completions (per minute)",
+      "type": "timeseries"
+    },
+    {
+      "datasource": "Prometheus",
+      "fieldConfig": {
+        "defaults": {
+          "mappings": [],
+          "thresholds": { "mode": "absolute", "steps": [{ "color": "green", "value": null }] },
+          "unit": "short"
+        }
+      },
+      "gridPos": { "h": 8, "w": 3, "x": 12, "y": 30 },
+      "id": 8,
+      "options": {
+        "colorMode": "value",
+        "graphMode": "area",
+        "orientation": "auto",
+        "reduceOptions": { "calcs": ["sum"] }
+      },
+      "targets": [{ "expr": "sum(increase(k6_signup_flow_complete_total[5m]))", "refId": "A" }],
+      "title": "📝 Signups",
+      "type": "stat"
+    },
+    {
+      "datasource": "Prometheus",
+      "fieldConfig": {
+        "defaults": {
+          "mappings": [],
+          "thresholds": { "mode": "absolute", "steps": [{ "color": "blue", "value": null }] },
+          "unit": "short"
+        }
+      },
+      "gridPos": { "h": 8, "w": 3, "x": 15, "y": 30 },
+      "id": 9,
+      "options": {
+        "colorMode": "value",
+        "graphMode": "area",
+        "orientation": "auto",
+        "reduceOptions": { "calcs": ["sum"] }
+      },
+      "targets": [{ "expr": "sum(increase(k6_login_flow_complete_total[5m]))", "refId": "A" }],
+      "title": "🔐 Logins",
+      "type": "stat"
+    },
+    {
+      "datasource": "Prometheus",
+      "fieldConfig": {
+        "defaults": {
+          "mappings": [],
+          "thresholds": { "mode": "absolute", "steps": [{ "color": "orange", "value": null }] },
+          "unit": "short"
+        }
+      },
+      "gridPos": { "h": 8, "w": 3, "x": 18, "y": 30 },
+      "id": 10,
+      "options": {
+        "colorMode": "value",
+        "graphMode": "area",
+        "orientation": "auto",
+        "reduceOptions": { "calcs": ["sum"] }
+      },
+      "targets": [{ "expr": "sum(increase(k6_swipe_flow_complete_total[5m]))", "refId": "A" }],
+      "title": "👆 Swipes",
+      "type": "stat"
+    },
+    {
+      "datasource": "Prometheus",
+      "fieldConfig": {
+        "defaults": {
+          "mappings": [],
+          "thresholds": { "mode": "absolute", "steps": [{ "color": "purple", "value": null }] },
+          "unit": "short"
+        }
+      },
+      "gridPos": { "h": 8, "w": 3, "x": 21, "y": 30 },
+      "id": 11,
+      "options": {
+        "colorMode": "value",
+        "graphMode": "area",
+        "orientation": "auto",
+        "reduceOptions": { "calcs": ["sum"] }
+      },
+      "targets": [{ "expr": "sum(increase(k6_shopping_flow_complete_total[5m]))", "refId": "A" }],
+      "title": "🛒 Shopping Lists",
+      "type": "stat"
+    },
+    {
+      "collapsed": false,
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 38 },
+      "id": 104,
+      "panels": [],
+      "title": "⚠️ ERROR ANALYSIS",
+      "type": "row"
+    },
+    {
+      "datasource": "Prometheus",
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "palette-classic" },
+          "custom": {
+            "drawStyle": "line",
+            "fillOpacity": 30,
+            "lineInterpolation": "smooth",
+            "lineWidth": 2
+          },
+          "unit": "percentunit"
+        }
+      },
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 39 },
+      "id": 12,
+      "options": {
+        "legend": { "calcs": ["mean", "max"], "displayMode": "table", "placement": "bottom" }
+      },
+      "targets": [
+        { "expr": "sum(rate(k6_http_reqs_total{expected_response=\"false\"}[1m])) / sum(rate(k6_http_reqs_total[1m]))", "legendFormat": "HTTP Error Rate", "refId": "A" },
+        { "expr": "avg(k6_error_rate) OR avg(k6_errors_rate)", "legendFormat": "Custom Error Rate", "refId": "B" }
+      ],
+      "title": "❌ Error Rate Over Time",
+      "type": "timeseries"
+    },
+    {
+      "datasource": "Prometheus",
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "palette-classic" },
+          "custom": {
+            "drawStyle": "bars",
+            "fillOpacity": 80
+          },
+          "unit": "short"
+        }
+      },
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 39 },
+      "id": 13,
+      "options": {
+        "legend": { "displayMode": "table", "placement": "right" }
+      },
+      "targets": [
+        { "expr": "sum(increase(k6_failed_requests_total[5m])) OR sum(increase(k6_http_reqs_total{expected_response=\"false\"}[5m]))", "legendFormat": "Failed Requests", "refId": "A" }
+      ],
+      "title": "🔴 Failed Requests (Total)",
+      "type": "timeseries"
+    },
+    {
+      "collapsed": false,
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 47 },
+      "id": 105,
+      "panels": [],
+      "title": "📊 CAPACITY ESTIMATION",
+      "type": "row"
+    },
+    {
+      "datasource": "Prometheus",
+      "description": "Efficiency = RPS / VUs. Higher is better. Shows capacity per user.",
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "thresholds" },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "red", "value": null },
+              { "color": "yellow", "value": 1 },
+              { "color": "green", "value": 2 }
+            ]
+          },
+          "unit": "reqps"
+        }
+      },
+      "gridPos": { "h": 8, "w": 8, "x": 0, "y": 48 },
+      "id": 14,
+      "options": {
+        "orientation": "auto",
+        "reduceOptions": { "calcs": ["mean"] }
+      },
+      "targets": [{
+        "expr": "sum(rate(k6_http_reqs_total[1m])) / max(k6_vus)",
+        "refId": "A"
+      }],
+      "title": "⚡ Requests per VU (Efficiency)",
+      "type": "gauge"
+    },
+    {
+      "datasource": "Prometheus",
+      "description": "Estimated max users if linear scaling holds. Based on current RPS/VU ratio.",
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "thresholds" },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "red", "value": null },
+              { "color": "yellow", "value": 50000 },
+              { "color": "green", "value": 100000 }
+            ]
+          },
+          "unit": "short"
+        }
+      },
+      "gridPos": { "h": 8, "w": 8, "x": 8, "y": 48 },
+      "id": 15,
+      "options": {
+        "orientation": "auto",
+        "reduceOptions": { "calcs": ["lastNotNull"] }
+      },
+      "targets": [{
+        "expr": "(sum(rate(k6_http_reqs_total[1m])) / max(k6_vus)) * 1000 / histogram_quantile(0.95, sum(rate(k6_http_req_duration_seconds[1m]))) * 1000",
+        "refId": "A"
+      }],
+      "title": "🎯 Est. Max Concurrent Users",
+      "type": "gauge"
+    },
+    {
+      "datasource": "Prometheus",
+      "description": "Average response time - key SLA metric",
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "thresholds" },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "green", "value": null },
+              { "color": "yellow", "value": 500 },
+              { "color": "red", "value": 1000 }
+            ]
+          },
+          "unit": "ms"
+        }
+      },
+      "gridPos": { "h": 8, "w": 8, "x": 16, "y": 48 },
+      "id": 16,
+      "options": {
+        "orientation": "auto",
+        "reduceOptions": { "calcs": ["mean"] }
+      },
+      "targets": [{
+        "expr": "histogram_quantile(0.50, sum(rate(k6_http_req_duration_seconds[1m]))) * 1000",
+        "refId": "A"
+      }],
+      "title": "⏱️ Avg Response Time (p50)",
+      "type": "gauge"
+    }
+  ],
+  "refresh": "5s",
+  "schemaVersion": 30,
+  "style": "dark",
+  "tags": ["decidish", "k6", "load-testing", "scalability"],
+  "templating": { "list": [] },
+  "time": { "from": "now-15m", "to": "now" },
+  "timepicker": {},
+  "timezone": "",
+  "title": "Decidish Load Test - Scalability Dashboard",
+  "uid": "decidish-scalability",
+  "version": 1
+}

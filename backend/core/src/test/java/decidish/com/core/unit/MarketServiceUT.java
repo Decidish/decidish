@@ -20,8 +20,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.ArgumentMatchers.anyLong;
@@ -96,10 +95,11 @@ class MarketServiceUT {
 				.thenReturn(Optional.of(List.of(freshMarket)));
 
 		// Act
-		List<Market> result = marketService.getMarkets(PLZ);
+		List<MarketSummaryDto> result = marketService.getMarkets(PLZ);
 
 		// Assert
 		assertEquals(1, result.size());
+		assertEquals(OLD_ID, result.get(0).id());
 
 		// Key Verifications:
 		verify(apiClient, never()).searchMarkets(any()); // API should NOT be called
@@ -140,7 +140,7 @@ class MarketServiceUT {
 
 		// --- ACT ---
 		System.out.println("Calling getMarkets...");
-		List<Market> results = marketService.getMarkets(PLZ);
+		List<MarketSummaryDto> results = marketService.getMarkets(PLZ);
 
 		// --- ASSERT ---
 		System.out.println("Results: " + results.size());
@@ -150,8 +150,8 @@ class MarketServiceUT {
 		assertEquals("Updated Market GmbH", staleMarket.getName());
 
 		// Verify New Market was created correctly
-		Market newResult = results.stream().filter(m -> m.getId().equals(NEW_ID)).findFirst().get();
-		assertEquals("New Market GmbH", newResult.getName());
+		MarketSummaryDto newResult = results.stream().filter(m -> m.id().equals(NEW_ID)).findFirst().get();
+		assertEquals("New Market GmbH", newResult.name());
 
 		// Verify Interactions
 		verify(marketRepository).saveAll(anyList()); // Verify batch save was called
@@ -179,10 +179,10 @@ class MarketServiceUT {
 						new MarketPickupData(new MarketPickupPortfolio(Collections.emptyList()))));
 
 		// Act
-		List<Market> result = marketService.getMarkets(PLZ);
+		List<MarketSummaryDto> result = marketService.getMarkets(PLZ);
 
 		// Assert
-		assertEquals(0, result.size());
+		assertTrue(result.isEmpty());
 
 		// Verify Flow
 		verify(apiClient, times(1)).searchMarkets(any());

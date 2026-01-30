@@ -53,7 +53,7 @@ class MarketServiceIT {
 	void testSearchMarkets_Live() {
 		// --- STEP 1: EXECUTE LIVE FETCH ---
 		System.out.println("Calling Real REWE API (This may take a few seconds)...");
-		List<Market> markets = marketService.getMarkets(PLZ);
+		List<MarketSummaryDto> markets = marketService.getMarkets(PLZ);
 
 		// --- STEP 2: VERIFY PERSISTENCE ---
 		assertNotNull(markets);
@@ -63,20 +63,20 @@ class MarketServiceIT {
 		assertFalse(markets.isEmpty(),
 				"Real API should return (for this zipcode some have pickup = true) markets (unless searching for '*') returns nothing on Web API");
 
-		Market firstMarket = markets.get(0);
+		MarketSummaryDto firstMarket = markets.get(0);
 		System.out.println(
-				"   Sample: " + firstMarket.getName() + " - " + firstMarket.getAddress().getZipCode()
+				"   Sample: " + firstMarket.name() + " - " + firstMarket.address().getZipCode()
 						+ "cents");
 
 		// assertEquals(firstMarket.getAddress().getZipCode(), PLZ);
-		assertNotNull(firstMarket.getId(), "Product must have an external ID");
-		assertNotNull(firstMarket.getName(), "Product must have a name");
+		assertNotNull(firstMarket.id(), "Product must have an external ID");
+		assertNotNull(firstMarket.name(), "Product must have a name");
 
 		// --- STEP 4: VERIFY IDEMPOTENCY (Update Logic) ---
 		System.out.println("Running 2nd Fetch (Should update, not duplicate)...");
 
 		// Call it again
-		List<Market> reUpdatedMarket = marketService.getMarkets(PLZ);
+		List<MarketSummaryDto> reUpdatedMarket = marketService.getMarkets(PLZ);
 
 		// Assertions
 		assertEquals(markets.size(), reUpdatedMarket.size(),
@@ -211,7 +211,7 @@ class MarketServiceIT {
 				"Setup failed: Zombie link should exist before test runs");
 
 		// Act
-		List<Market> results = marketService.getMarkets(PLZ);
+		List<MarketSummaryDto> results = marketService.getMarkets(PLZ);
 
 		// ASSERT: Verify Zombie is Gone
 
@@ -222,12 +222,12 @@ class MarketServiceIT {
 				"FAILURE: The obsolete 'Zombie' market is still linked to the search term after refresh!");
 
 		// Check 2: The results should contain real markets, not the zombie
-		boolean resultContainsZombie = results.stream().anyMatch(m -> m.getId().equals(zombieId));
+		boolean resultContainsZombie = results.stream().anyMatch(m -> m.id().equals(zombieId));
 		assertFalse(resultContainsZombie, "Service returned the zombie market inside the result list");
 
 		// Check 3: New associations should exist
 		assertFalse(results.isEmpty(), "Real API should return markets");
-		Long firstRealMarketId = results.get(0).getId();
+		Long firstRealMarketId = results.get(0).id();
 		assertTrue(searchTermMarketRepository.existsById(new SearchTermMarketId(PLZ, firstRealMarketId)),
 				"New real market should be linked to the search term");
 

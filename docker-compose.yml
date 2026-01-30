@@ -237,6 +237,7 @@ services:
       - ./datasources.yml:/etc/grafana/provisioning/datasources/datasources.yml
       - ./grafana-provisioning-dashboards.yaml:/etc/grafana/provisioning/dashboards/dashboards.yaml
       - ./grafana-dashboard-decidish-v2.json:/etc/grafana/provisioning/dashboards/grafana-dashboard-decidish.json
+      - ./grafana-dashboard-scalability.json:/etc/grafana/provisioning/dashboards/grafana-dashboard-scalability.json
     networks:
       - app-network
   
