@@ -191,6 +191,21 @@ services:
   # ----------------------------------------------------------------
   # Monitoring
   # ----------------------------------------------------------------
+  k6:
+    image: grafana/k6:latest
+    ports:
+      - "6565:6565"
+    volumes:
+      - ./k6-scripts:/scripts
+    environment:
+      - K6_PROMETHEUS_RW_SERVER_URL=http://prometheus:9090/api/v1/write
+      - K6_PROMETHEUS_RW_TREND_AS_NATIVE_HISTOGRAM=true
+    entrypoint: ["tail", "-f", "/dev/null"] 
+    depends_on:
+      - nginx
+      - prometheus
+    networks:     
+      - app-network
 
   prometheus:
     image: prom/prometheus:latest
@@ -202,6 +217,7 @@ services:
       - prometheus_data:/prometheus
     command:
       - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--web.enable-remote-write-receiver'
     networks:
       - app-network
 
@@ -217,6 +233,8 @@ services:
         condition: service_started
     volumes:
       - ./datasources.yml:/etc/grafana/provisioning/datasources/datasources.yml
+      - ./grafana-provisioning-dashboards.yaml:/etc/grafana/provisioning/dashboards/dashboards.yaml
+      - ./grafana-dashboard-decidish-v2.json:/etc/grafana/provisioning/dashboards/grafana-dashboard-decidish.json
     networks:
       - app-network
   

@@ -1,6 +1,6 @@
 spring:
   datasource:
-    url: jdbc:postgresql://localhost:5433/decidish
+    url: jdbc:postgresql://postgres:5432/decidish
     username: user
     password: 1234
   jpa:
@@ -17,3 +17,13 @@ spring:
 cron:
   weekly-sync: "0 0 3 ? * SUN"  # Every Sunday at 3 AM
   quick-sync: "*/30 * * * * *"  # Every 30 seconds (for testing)
+  
+# Enable Prometheus metrics endpoint
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,prometheus  
+  metrics:
+    tags:
+      application: ${spring.application.name}

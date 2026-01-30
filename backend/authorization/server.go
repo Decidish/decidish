@@ -11,6 +11,7 @@ import (
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 	"github.com/joho/godotenv"
+	ginprometheus "github.com/zsais/go-gin-prometheus"
 )
 
 func main() {
@@ -20,6 +21,9 @@ func main() {
 	}
 
 	r := gin.Default()
+	
+	p := ginprometheus.NewPrometheus("gin")
+    p.Use(r)
 
 	appConfig := config.ApplicationConfig{}
 
