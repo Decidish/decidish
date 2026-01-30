@@ -96,7 +96,7 @@ func GetShoppingLists(db *sql.DB, userId string, completed bool) ([]ShoppingList
         SELECT 
             sl.id, sl.created_at,
             sli.id, sli.quantity, sli.checked,
-            p.name, p.image_url, p.price,
+            p.name, COALESCE(p.image_url, '') as image_url, p.price,
             COALESCE(r.title, 'Misc Items') as recipe_name
         FROM shopping_lists sl
         JOIN shopping_list_items sli ON sl.id = sli.shopping_list_id

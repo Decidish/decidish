@@ -27,20 +27,16 @@ Before running load tests, ensure:
    docker compose up -d
    ```
 
-2. **Database is seeded** with markets and products:
+2. **Database is seeded** with markets and products for load testing:
    ```bash
-   # Quick automated seeding (recommended)
+   # Seed database with data matching load test queries (avoids external API calls)
+   ./k6-scripts/seed_load_test_data.sh
+   
+   # Or use the quick automated seeding
    ./k6-scripts/seed_database.sh
    
-   # Or manually check if markets exist (requires postal code)
-   curl http://localhost/shopping/api/v1/markets?plz=10115
-   
-   # If empty, trigger import job
-   curl -X POST http://localhost/personalization/recipes/rewe \
-     -H "Content-Type: application/json" \
-     -d '{}'
-   
-   # Monitor progress at http://localhost:3012 (Cronicle)
+   # Verify markets exist for a postal code
+   curl http://localhost/shopping/api/v1/markets?plz=80331
    ```
 
 3. **Services are healthy**:
