@@ -5,6 +5,8 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Random;
+import java.util.concurrent.ThreadLocalRandom;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
@@ -384,6 +386,19 @@ public class MarketService {
     }
 
     /**
+     * Sleep for a random duration between 0.8 and 1.5 seconds to avoid rate limiting.
+     */
+    private void randomDelay() {
+        try {
+            long delayMs = ThreadLocalRandom.current().nextLong(800, 1501); // 800ms to 1500ms
+            Thread.sleep(delayMs);
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            log.warn("Random delay interrupted", e);
+        }
+    }
+
+    /**
      * @brief Query a certain product for a given market. Set number of pages to
      *        fetch.
      */
@@ -431,6 +446,7 @@ public class MarketService {
             ++i;
             if (i < numberPages) { // Still pages left
                 // log.info("Fetching from external API for ", reweId);
+                randomDelay(); // Avoid rate limiting from REWE API
                 recordApiCall();
                 response = apiClient.searchProducts(query, i, DEFAULT_OBJECTS_PER_PAGE, market.getId());
                 recordProductPage(response);
