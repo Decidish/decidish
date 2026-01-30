@@ -105,6 +105,8 @@ services:
       - MINIO_ACCESS_KEY=${MINIO_ACCESS_KEY}
       - MINIO_SECRET_KEY=${MINIO_SECRET_KEY}
       - JAVA_OPTS=-Djava.net.preferIPv4Stack=true
+      # Disable REWE API fallback for load testing (set to true to re-enable)
+      - SHOPPING_API_FALLBACK_ENABLED=${SHOPPING_API_FALLBACK_ENABLED:-true}
     depends_on:
       migrator:
         condition: service_completed_successfully

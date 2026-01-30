@@ -3,6 +3,7 @@ package decidish.com.core.service;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.support.TransactionTemplate;
 
@@ -60,6 +61,10 @@ public class RecipeService {
 
     // private static final ExecutorService apiExecutor = Executors.newFixedThreadPool(API_THREADS);
     private Executor apiExecutor = Executors.newFixedThreadPool(API_THREADS);
+
+    // Feature flag to disable API fallback for load testing
+    @Value("${shopping.api-fallback-enabled:true}")
+    private boolean apiFallbackEnabled;
 
     // @Autowired
     // private MarketService marketService;
@@ -156,7 +161,12 @@ public class RecipeService {
                     }
                 }
 
-                // 4b. API Fallback
+                // 4b. API Fallback (can be disabled for load testing)
+                if (!apiFallbackEnabled) {
+                    log.debug("API fallback disabled for ingredient: {}", ingName);
+                    return new IngredientGroup(ingId, ingName, needed, List.of());
+                }
+                
                 try {
                     String query = ingName.isBlank() ? origName : ingName;
 

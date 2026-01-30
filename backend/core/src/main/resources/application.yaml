@@ -52,6 +52,10 @@ logging:
 cron:
   weekly-sync: "0 0 3 ? * SUN"  # Every Sunday at 3 AM
   quick-sync: "*/30 * * * * *"  # Every 30 seconds (for testing)
+
+# Feature flags for load testing
+shopping:
+  api-fallback-enabled: ${SHOPPING_API_FALLBACK_ENABLED:true}  # Set to false for load testing
   
 # Enable Prometheus metrics endpoint
 management:
