@@ -12,6 +12,7 @@ import jakarta.transaction.Transactional;
 
 import java.util.List;
 import java.util.Optional;
+import java.time.LocalDateTime;
 
 @Repository
 public interface ProductRepository extends JpaRepository<Product, Long>, JpaSpecificationExecutor<Product> {
@@ -33,4 +34,9 @@ public interface ProductRepository extends JpaRepository<Product, Long>, JpaSpec
     @Transactional
     @Query("DELETE FROM Product p WHERE p.market.id = :marketId")
     void deleteByMarketId(@Param("marketId") Long marketId);
+
+    @Modifying
+    @Transactional
+    @Query("DELETE FROM Product p WHERE p.lastUpdated IS NULL OR p.lastUpdated < :cutoff")
+    int deleteDeprecatedProducts(@Param("cutoff") LocalDateTime cutoff);
 }

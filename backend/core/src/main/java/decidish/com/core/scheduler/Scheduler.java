@@ -26,6 +26,18 @@ public class Scheduler {
         // sync products for all markets
         logger.info("Weekly sync tasks started.");
 
+        refreshProductsForMarkets();
+        cleanupDeprecatedData();
+        refreshMatchingPairs();
+
+        logger.info("Weekly sync tasks completed.");
+    }
+
+    public void cleanupDeprecatedDataOnly() {
+        cleanupDeprecatedData();
+    }
+
+    private void refreshProductsForMarkets() {
         logger.info("Updating products for all markets...");
         try {
             long startTime = System.currentTimeMillis();
@@ -42,8 +54,25 @@ public class Scheduler {
         } catch (Exception e) {
             logger.error("Error occurred while updating products for all markets: {}", e.getMessage());
         }
-        
+    }
 
+    private void cleanupDeprecatedData() {
+        logger.info("Cleaning up deprecated data...");
+        try {
+            long cleanupStart = System.currentTimeMillis();
+            marketService.cleanupDeprecatedData();
+            long cleanupEnd = System.currentTimeMillis();
+            long cleanupDuration = cleanupEnd - cleanupStart;
+            long cleanupMinutes = cleanupDuration / 60000;
+            long cleanupSeconds = (cleanupDuration % 60000) / 1000;
+            logger.info("Deprecated data cleanup completed in {} minutes and {} seconds.",
+                    cleanupMinutes, cleanupSeconds);
+        } catch (Exception e) {
+            logger.error("Error occurred while cleaning up deprecated data: {}", e.getMessage());
+        }
+    }
+
+    private void refreshMatchingPairs() {
         // fuzzy matching preprocessing after product update
         logger.info("Updating matching pairs for ingredients and products...");
         try {
@@ -59,7 +88,5 @@ public class Scheduler {
         } catch (Exception e) {
             logger.error("Error occurred while updating matching pairs: {}", e.getMessage());
         }
-
-        logger.info("Weekly sync tasks completed.");
     }
 }

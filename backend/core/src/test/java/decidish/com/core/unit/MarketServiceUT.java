@@ -3,6 +3,7 @@ package decidish.com.core.unit;
 import decidish.com.core.api.rewe.client.ReweApiClient;
 import decidish.com.core.model.rewe.*;
 import decidish.com.core.repository.MarketRepository;
+import decidish.com.core.repository.ProductRepository;
 import decidish.com.core.repository.SearchTermMarketRepository;
 import decidish.com.core.service.MarketService;
 import org.junit.jupiter.api.BeforeEach;
@@ -13,6 +14,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.InOrder;
+import org.mockito.ArgumentCaptor;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.time.LocalDateTime;
@@ -22,6 +24,7 @@ import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.ArgumentMatchers.anyLong;
@@ -39,6 +42,9 @@ class MarketServiceUT {
 
 	@Mock
 	private SearchTermMarketRepository searchTermMarketRepository;
+
+	@Mock
+	private ProductRepository productRepository;
 
 	@Mock
 	private ReweApiClient apiClient;
@@ -303,6 +309,74 @@ class MarketServiceUT {
 		InOrder inOrder = inOrder(searchTermMarketRepository);
 		inOrder.verify(searchTermMarketRepository).deleteAllBySearchTerm(PLZ);
 		inOrder.verify(searchTermMarketRepository).saveAll(anyList());
+	}
+
+	@Test
+	@DisplayName("cleanupDeprecatedData: Should delete old products and closed markets")
+	void testCleanupDeprecatedData_DeletesOldProductsAndClosedMarkets() {
+		// Arrange
+		when(productRepository.deleteDeprecatedProducts(any())).thenReturn(2);
+		when(searchTermMarketRepository.findAllSearchTerms()).thenReturn(List.of(PLZ));
+
+		MarketPickupDto apiDto = new MarketPickupDto(NEW_ID, "Live Market", "Live Market GmbH", false, "/map", 10.0,
+				10.0, PLZ, "Street", "München", "PICKUP");
+		MarketPickupResponse response = new MarketPickupResponse(
+				new MarketPickupData(new MarketPickupPortfolio(List.of(apiDto))));
+		when(apiClient.searchMarkets(PLZ)).thenReturn(response);
+
+		Market validMarket = new Market();
+		validMarket.setId(NEW_ID);
+		Market staleMarket = new Market();
+		staleMarket.setId(OLD_ID);
+
+		SearchTermMarket validLink = new SearchTermMarket(new SearchTermMarketId(PLZ, NEW_ID), validMarket,
+				LocalDateTime.now());
+		SearchTermMarket staleLink = new SearchTermMarket(new SearchTermMarketId(PLZ, OLD_ID), staleMarket,
+				LocalDateTime.now());
+
+		when(searchTermMarketRepository.findAllByIdSearchTerm(PLZ))
+				.thenReturn(List.of(validLink, staleLink));
+
+		when(marketRepository.findAllWithNoSearchTermAssociations())
+				.thenReturn(List.of(staleMarket));
+
+		// Act
+		marketService.cleanupDeprecatedData();
+
+		// Assert
+		verify(productRepository).deleteDeprecatedProducts(any());
+
+		@SuppressWarnings("unchecked")
+		ArgumentCaptor<List<SearchTermMarket>> staleCaptor = (ArgumentCaptor<List<SearchTermMarket>>) (ArgumentCaptor<?>) ArgumentCaptor.forClass(List.class);
+		verify(searchTermMarketRepository).deleteAll(staleCaptor.capture());
+		assertEquals(1, staleCaptor.getValue().size());
+		assertTrue(staleCaptor.getValue().get(0).getId().getMarketId().equals(OLD_ID));
+
+		verify(marketRepository).deleteAllByIds(List.of(OLD_ID));
+	}
+
+	@Test
+	@DisplayName("cleanupDeprecatedData: Should remove associations when API returns no markets")
+	void testCleanupDeprecatedData_RemovesAssociationsWhenApiEmpty() {
+		// Arrange
+		when(productRepository.deleteDeprecatedProducts(any())).thenReturn(0);
+		when(searchTermMarketRepository.findAllSearchTerms()).thenReturn(List.of(PLZ));
+
+		MarketPickupResponse response = new MarketPickupResponse(
+				new MarketPickupData(new MarketPickupPortfolio(List.of())));
+		when(apiClient.searchMarkets(PLZ)).thenReturn(response);
+
+		Market orphanMarket = new Market();
+		orphanMarket.setId(OLD_ID);
+		when(marketRepository.findAllWithNoSearchTermAssociations())
+				.thenReturn(List.of(orphanMarket));
+
+		// Act
+		marketService.cleanupDeprecatedData();
+
+		// Assert
+		verify(searchTermMarketRepository).deleteAllBySearchTerm(PLZ);
+		verify(marketRepository).deleteAllByIds(List.of(OLD_ID));
 	}
 
 }
