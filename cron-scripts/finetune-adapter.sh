@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Configuration
-URL="http://localhost:8000/finetune_user_adapter"
+URL="http://mlpipeline:8000/finetune_user_adapter"
 MAX_RETRIES=5
 INITIAL_WAIT=30 # Seconds
 NAME="Finetune Job"

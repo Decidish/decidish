@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Configuration
-URL="http://personalization-server:8080/cleanup"
+URL="http://personalization-server:8082/cleanup"
 MAX_RETRIES=2
 INITIAL_WAIT=30 # Seconds
 NAME="Weekly Cleanup Job"
