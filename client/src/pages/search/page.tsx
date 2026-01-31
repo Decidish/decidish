@@ -24,7 +24,6 @@ export default function Search() {
   const [isKeywordOpen, setIsKeywordOpen] = useState(false);
 
   const [maxTime, setMaxTime] = useState('all');
-  const [maxCalories, setMaxCalories] = useState('all');
 
   const [searchResults, setSearchResults] = useState<UIRecipe[]>([]);
   const [isSearching, setIsSearching] = useState(false);
@@ -46,7 +45,6 @@ export default function Search() {
   const [historyRecipeByTitle, setHistoryRecipeByTitle] = useState<Map<string, UIRecipe>>(new Map());
 
   const timeOptions = ['All', '15 min', '30 min', '45 min', '60 min', '60+ min'];
-  const calorieOptions = ['All', '100', '200', '300', '400', '500', '750', '1000', '1500'];
 
   const categoryRef = useRef<HTMLDivElement | null>(null);
   const keywordRef = useRef<HTMLDivElement | null>(null);
@@ -139,14 +137,14 @@ export default function Search() {
 
   // Auto-search when typing or changing filters (debounced)
   useEffect(() => {
-    if (!hasSearched && !searchQuery && selectedCategories.length === 0 && selectedKeywords.length === 0 && maxTime === 'all' && maxCalories === 'all') {
+    if (!hasSearched && !searchQuery && selectedCategories.length === 0 && selectedKeywords.length === 0 && maxTime === 'all') {
       return;
     }
     const handle = setTimeout(() => {
       void handleSearch(1);
     }, 250);
     return () => clearTimeout(handle);
-  }, [searchQuery, selectedCategories.join(','), selectedKeywords.join(','), maxTime, maxCalories]);
+  }, [searchQuery, selectedCategories.join(','), selectedKeywords.join(','), maxTime]);
 
   // Separate effect for pagination changes
   useEffect(() => {
@@ -167,7 +165,6 @@ export default function Search() {
         categories: selectedCategories,
         keywords: selectedKeywords,
         maxTime: maxTime,
-        maxCalories: maxCalories,
         page: page,
       });
 
@@ -285,7 +282,7 @@ export default function Search() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-emerald-50 via-green-50 to-teal-50">
       {/* Header & Search Bar */}
-      <div className="bg-white shadow-sm sticky top-0 z-40 overflow-visible">
+      <div className="bg-white shadow-sm overflow-visible">
         <div className="max-w-7xl mx-auto px-4 py-4 overflow-visible">
           <div className="flex items-center gap-3 sm:gap-4 mb-4">
             <div className="relative flex-1">
@@ -443,7 +440,7 @@ export default function Search() {
             </div>
 
             {/* Time Filter */}
-            <div className="relative group min-w-[160px]">
+            <div className="relative group w-full xs:w-auto xs:min-w-[140px] sm:min-w-[160px]">
               <select
                 value={maxTime}
                 onChange={(e) => setMaxTime(e.target.value)}
@@ -452,18 +449,6 @@ export default function Search() {
                 {timeOptions.map(t => <option key={t} value={t === 'All' ? 'all' : t.replace(' min', '')}>{t}</option>)}
               </select>
               <i className="ri-time-line absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 pointer-events-none"></i>
-            </div>
-
-            {/* Max Calories Filter */}
-            <div className="relative group min-w-[180px]">
-              <select
-                value={maxCalories}
-                onChange={(e) => setMaxCalories(e.target.value)}
-                className="appearance-none pl-4 pr-10 py-2 bg-gray-100 rounded-full text-sm font-semibold text-gray-700 border-none focus:ring-2 focus:ring-[#2F855A] cursor-pointer hover:bg-gray-200 transition-colors w-full"
-              >
-                {calorieOptions.map(c => <option key={c} value={c === 'All' ? 'all' : c}>{c === 'All' ? 'All kcal' : `${c} kcal max`}</option>)}
-              </select>
-              <i className="ri-fire-line absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 pointer-events-none"></i>
             </div>
           </div>
         </div>

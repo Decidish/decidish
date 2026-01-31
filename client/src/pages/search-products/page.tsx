@@ -24,13 +24,11 @@ export default function SearchProducts() {
   const [totalResults, setTotalResults] = useState(0);
   const ITEMS_PER_PAGE = 8;
 
-  // Modals & Cart
+  // Modals
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const [showProductModal, setShowProductModal] = useState(false);
   const [showSuccessToast, setShowSuccessToast] = useState(false);
   const [successMessage, setSuccessMessage] = useState('');
-  const [cart, setCart] = useState<{product: Product, quantity: number}[]>([]);
-  const [showCart, setShowCart] = useState(false);
   
   // Market State
   const [marketId, setMarketId] = useState<number | null>(null);
@@ -146,23 +144,10 @@ export default function SearchProducts() {
     };
     await shoppingListApi.addItemsToShoppingList([singleCartItem]);
     
-    setCart(prev => {
-      const existing = prev.find(item => item.product.id === product.id);
-      if (existing) {
-        return prev.map(item => 
-          item.product.id === product.id ? { ...item, quantity: item.quantity + 1 } : item
-        );
-      }
-      return [...prev, { product, quantity: 1 }];
-    });
-    setSuccessMessage('Added to cart successfully');
+    setSuccessMessage('Added to shopping list');
     setShowSuccessToast(true);
     if(showProductModal) setShowProductModal(false);
     setTimeout(() => setShowSuccessToast(false), 2500);
-  };
-
-  const removeFromCart = (productId: number) => {
-    setCart(prev => prev.filter(item => item.product.id !== productId));
   };
   
   const handlePageChange = (page: number) => {
@@ -227,21 +212,6 @@ export default function SearchProducts() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-emerald-50 via-green-50 to-teal-50">
-      
-      {/* Floating Cart Trigger */}
-      <button 
-        onClick={() => setShowCart(true)}
-        className="fixed bottom-4 right-4 sm:bottom-8 sm:right-8 z-40 bg-gradient-to-r from-[#2F855A] to-emerald-600 text-white w-14 h-14 sm:w-16 sm:h-16 rounded-full shadow-2xl hover:scale-105 transition-transform flex items-center justify-center cursor-pointer border-4 border-emerald-50"
-      >
-        <div className="relative">
-          <i className="ri-shopping-cart-2-line text-2xl"></i>
-          {cart.length > 0 && (
-            <span className="absolute -top-3 -right-3 bg-red-500 text-white text-xs font-bold w-6 h-6 rounded-full flex items-center justify-center border-2 border-white shadow-sm">
-              {cart.reduce((a, b) => a + b.quantity, 0)}
-            </span>
-          )}
-        </div>
-      </button>
 
       {/* Main Content */}
       <div className="max-w-7xl mx-auto px-4 py-8 relative">
@@ -515,34 +485,6 @@ export default function SearchProducts() {
                   Add to List
                 </button>
               </div>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Cart Drawer */}
-      {showCart && (
-        <div className="fixed inset-0 z-50 flex justify-end">
-          <div className="absolute inset-0 bg-black/20 backdrop-blur-sm" onClick={() => setShowCart(false)}></div>
-          <div className="relative w-full max-w-sm bg-white h-full shadow-2xl flex flex-col">
-            <div className="p-4 border-b border-gray-100 flex items-center justify-between">
-              <h2 className="font-bold text-gray-900">Current List ({cart.length})</h2>
-              <button onClick={() => setShowCart(false)}><i className="ri-close-line text-xl"></i></button>
-            </div>
-            <div className="flex-1 overflow-y-auto p-4 space-y-3">
-              {cart.map((item, idx) => (
-                <div key={idx} className="flex gap-3 items-center text-sm">
-                   <div className="w-8 h-8 rounded bg-gray-100 flex items-center justify-center font-bold text-gray-500">{item.quantity}x</div>
-                   <div className="flex-1 font-medium">{item.product.name}</div>
-                   <div className="text-gray-500">{formatPrice(item.product.price * item.quantity)}€</div>
-                </div>
-              ))}
-            </div>
-            <div className="p-4 border-t border-gray-100 bg-gray-50">
-               <div className="flex justify-between font-bold text-lg">
-                 <span>Total</span>
-                 <span>{formatPrice(cart.reduce((sum, item) => sum + (item.product.price * item.quantity), 0))}€</span>
-               </div>
             </div>
           </div>
         </div>

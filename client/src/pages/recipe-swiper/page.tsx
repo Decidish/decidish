@@ -318,16 +318,16 @@ export default function RecipeSwiper() {
                     <p className="text-xs sm:text-sm text-gray-600 mb-3 sm:mb-4 line-clamp-2">{currentRecipeData.description}</p>
 
                     {/* Stats */}
-                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-3 mb-4 sm:mb-6">
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-3 mb-3 sm:mb-4">
                       <div className="bg-emerald-50 rounded-lg p-2 sm:p-3 text-center">
-                        <i className="ri-fire-line text-lg sm:text-xl text-[#2F855A] mb-0.5 sm:mb-1"></i>
-                        <div className="text-xs sm:text-sm font-semibold text-gray-900">{currentRecipeData.nutrients.calories}</div>
-                        <div className="text-[10px] sm:text-xs text-gray-600">Calories</div>
+                        <i className="ri-time-line text-lg sm:text-xl text-[#2F855A] mb-0.5 sm:mb-1"></i>
+                        <div className="text-xs sm:text-sm font-semibold text-gray-900">{currentRecipeData.prep_time || 10}m</div>
+                        <div className="text-[10px] sm:text-xs text-gray-600">Prep</div>
                       </div>
                       <div className="bg-teal-50 rounded-lg p-2 sm:p-3 text-center">
-                        <i className="ri-time-line text-lg sm:text-xl text-teal-600 mb-0.5 sm:mb-1"></i>
-                        <div className="text-xs sm:text-sm font-semibold text-gray-900">{currentRecipeData.total_time}m</div>
-                        <div className="text-[10px] sm:text-xs text-gray-600">Time</div>
+                        <i className="ri-fire-line text-lg sm:text-xl text-teal-600 mb-0.5 sm:mb-1"></i>
+                        <div className="text-xs sm:text-sm font-semibold text-gray-900">{currentRecipeData.cook_time || currentRecipeData.total_time - (currentRecipeData.prep_time || 10)}m</div>
+                        <div className="text-[10px] sm:text-xs text-gray-600">Cook</div>
                       </div>
                       <div className="bg-green-50 rounded-lg p-2 sm:p-3 text-center">
                         <i className="ri-restaurant-line text-lg sm:text-xl text-green-600 mb-0.5 sm:mb-1"></i>
@@ -335,12 +335,36 @@ export default function RecipeSwiper() {
                         <div className="text-[10px] sm:text-xs text-gray-600">Servings</div>
                       </div>
                       <div className="bg-amber-50 rounded-lg p-2 sm:p-3 text-center">
-                        <i className="ri-star-line text-lg sm:text-xl text-amber-600 mb-0.5 sm:mb-1"></i>
-                        {/* <div className="text-xs sm:text-sm font-semibold text-gray-900">{currentRecipeData.difficulty}</div> */}
-                        <div className="text-xs sm:text-sm font-semibold text-gray-900">{"Medium"}</div>
-                        <div className="text-[10px] sm:text-xs text-gray-600">Level</div>
+                        <i className="ri-flashlight-line text-lg sm:text-xl text-amber-600 mb-0.5 sm:mb-1"></i>
+                        <div className="text-xs sm:text-sm font-semibold text-gray-900">{currentRecipeData.nutrients.calories}</div>
+                        <div className="text-[10px] sm:text-xs text-gray-600">Calories</div>
                       </div>
                     </div>
+
+                    {/* Allergens */}
+                    {currentRecipeData.allergies && currentRecipeData.allergies.length > 0 && (
+                      <div className="mb-3 sm:mb-4">
+                        <div className="flex items-center gap-1.5 mb-2">
+                          <i className="ri-alert-line text-amber-600 text-sm"></i>
+                          <span className="text-xs font-semibold text-gray-700">Allergens</span>
+                        </div>
+                        <div className="flex flex-wrap gap-1.5">
+                          {currentRecipeData.allergies.slice(0, 5).map((allergy, index) => (
+                            <span
+                              key={index}
+                              className="px-2 py-0.5 bg-amber-50 text-amber-700 rounded-full text-xs font-medium border border-amber-200"
+                            >
+                              {allergy}
+                            </span>
+                          ))}
+                          {currentRecipeData.allergies.length > 5 && (
+                            <span className="px-2 py-0.5 bg-gray-100 text-gray-600 rounded-full text-xs font-medium">
+                              +{currentRecipeData.allergies.length - 5} more
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    )}
 
                     {/* Action Buttons */}
                     <div className="flex flex-col sm:flex-row gap-2 sm:gap-3">
