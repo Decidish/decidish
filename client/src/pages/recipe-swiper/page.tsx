@@ -22,44 +22,99 @@ export default function RecipeSwiper() {
   const [shoppingFlowRecipe, setShoppingFlowRecipe] = useState<UIRecipe | null>(null);
 
   // Swipe gesture state
-  const [touchStart, setTouchStart] = useState<number | null>(null);
-  const [touchEnd, setTouchEnd] = useState<number | null>(null);
-  const [swipeOffset, setSwipeOffset] = useState(0);
-  const cardRef = useRef<HTMLDivElement>(null);
-
-  // Minimum swipe distance to trigger action (in pixels)
-  const minSwipeDistance = 100;
+  const [swipeX, setSwipeX] = useState(0);
+  const [isAnimating, setIsAnimating] = useState(false);
+  const [touchStart, setTouchStart] = useState(0);
+  const disableSwipeRef = useRef(false);
+  const mouseDownRef = useRef(false);
+  const swipingRef = useRef(false);
 
   const handleTouchStart = (e: React.TouchEvent) => {
-    setTouchEnd(null);
-    setTouchStart(e.targetTouches[0].clientX);
+    e.stopPropagation();
+    const target = e.target as HTMLElement;
+    const isInteractive = target.closest('button');
+    disableSwipeRef.current = !!isInteractive;
+    if (disableSwipeRef.current) return;
+    setTouchStart(e.touches[0].clientX);
+  };
+
+  const finalizeSwipe = async () => {
+    const threshold = 50;
+    if (Math.abs(swipeX) < threshold) {
+      setSwipeX(0);
+      swipingRef.current = false;
+      return;
+    }
+
+    setIsAnimating(true);
+
+    if (swipeX > threshold) {
+      await handleLikeOnly();
+    } else if (swipeX < -threshold) {
+      await handleDislike();
+    }
+
+    setTimeout(() => {
+      setSwipeX(0);
+      setIsAnimating(false);
+      swipingRef.current = false;
+    }, 300);
   };
 
   const handleTouchMove = (e: React.TouchEvent) => {
-    setTouchEnd(e.targetTouches[0].clientX);
-    if (touchStart !== null) {
-      setSwipeOffset(e.targetTouches[0].clientX - touchStart);
-    }
+    if (disableSwipeRef.current) return;
+    e.stopPropagation();
+    const currentX = e.touches[0].clientX;
+    const diff = currentX - touchStart;
+    if (Math.abs(diff) > 10) swipingRef.current = true;
+    setSwipeX(diff);
   };
 
-  const handleTouchEnd = () => {
-    if (!touchStart || !touchEnd) {
-      setSwipeOffset(0);
+  const handleTouchEnd = async (e: React.TouchEvent) => {
+    e.stopPropagation();
+    if (disableSwipeRef.current) {
+      disableSwipeRef.current = false;
+      setSwipeX(0);
       return;
     }
-    const distance = touchStart - touchEnd;
-    const isLeftSwipe = distance > minSwipeDistance;
-    const isRightSwipe = distance < -minSwipeDistance;
-    
-    if (isLeftSwipe) {
-      handleDislike();
-    } else if (isRightSwipe) {
-      handleLikeOnly();
+    await finalizeSwipe();
+  };
+
+  const handleMouseDown = (e: React.MouseEvent) => {
+    const target = e.target as HTMLElement;
+    const isInteractive = target.closest('button');
+    disableSwipeRef.current = !!isInteractive;
+    if (disableSwipeRef.current) return;
+    mouseDownRef.current = true;
+    setTouchStart(e.clientX);
+  };
+
+  const handleMouseMove = (e: React.MouseEvent) => {
+    if (!mouseDownRef.current || disableSwipeRef.current) return;
+    e.preventDefault();
+    const diff = e.clientX - touchStart;
+    if (Math.abs(diff) > 10) swipingRef.current = true;
+    setSwipeX(diff);
+  };
+
+  const handleMouseUp = async () => {
+    if (!mouseDownRef.current) return;
+    mouseDownRef.current = false;
+    if (disableSwipeRef.current) {
+      disableSwipeRef.current = false;
+      setSwipeX(0);
+      swipingRef.current = false;
+      return;
     }
-    
-    setSwipeOffset(0);
-    setTouchStart(null);
-    setTouchEnd(null);
+    await finalizeSwipe();
+  };
+
+  const handleRecipeImageClick = () => {
+    if (swipingRef.current) {
+      swipingRef.current = false;
+      return;
+    }
+    setShowRecipeDetailModal(true);
   };
 
   // FETCH RECIPES FROM BACKEND
@@ -212,10 +267,6 @@ export default function RecipeSwiper() {
     advanceToNextRecipe();
   };
 
-  const handleRecipeImageClick = () => {
-    setShowRecipeDetailModal(true);
-  };
-
   const currentRecipeData = recipes[currentIndex];
 
   // Loading State
@@ -330,43 +381,49 @@ export default function RecipeSwiper() {
           {/* Recipe Card */}
           {currentRecipeData && (
               <div 
-                ref={cardRef}
-                className="relative touch-pan-y"
+                data-swipe-card
+                className="relative transition-opacity select-none"
                 onTouchStart={handleTouchStart}
                 onTouchMove={handleTouchMove}
                 onTouchEnd={handleTouchEnd}
+                onMouseDown={handleMouseDown}
+                onMouseMove={handleMouseMove}
+                onMouseUp={handleMouseUp}
+                onMouseLeave={handleMouseUp}
                 style={{
-                  transform: `translateX(${swipeOffset}px) rotate(${swipeOffset * 0.02}deg)`,
-                  transition: swipeOffset === 0 ? 'transform 0.3s ease-out' : 'none',
+                  transform: `translateX(${swipeX}px) rotate(${swipeX * 0.05}deg)`,
+                  opacity: 1 - Math.abs(swipeX) / 500,
+                  transition: isAnimating ? 'all 0.3s ease-out' : 'none',
+                  touchAction: 'pan-y',
                 }}
               >
-                {/* Swipe indicators */}
-                {swipeOffset !== 0 && (
-                  <>
-                    <div 
-                      className="absolute top-8 left-4 z-10 bg-red-500 text-white px-4 py-2 rounded-xl font-bold text-lg border-4 border-red-600"
-                      style={{ opacity: Math.min(Math.abs(swipeOffset) / 100, 1) * (swipeOffset < 0 ? 1 : 0) }}
-                    >
-                      SKIP
+                {/* Swipe Indicators */}
+                {swipeX > 30 && (
+                  <div className="absolute top-4 left-4 z-10 pointer-events-none">
+                    <div className="bg-gradient-to-r from-green-400 to-emerald-500 text-white w-14 h-14 rounded-full shadow-xl animate-pulse flex items-center justify-center">
+                      <i className="ri-heart-fill text-3xl"></i>
                     </div>
-                    <div 
-                      className="absolute top-8 right-4 z-10 bg-green-500 text-white px-4 py-2 rounded-xl font-bold text-lg border-4 border-green-600"
-                      style={{ opacity: Math.min(Math.abs(swipeOffset) / 100, 1) * (swipeOffset > 0 ? 1 : 0) }}
-                    >
-                      LIKE
+                  </div>
+                )}
+                {swipeX < -30 && (
+                  <div className="absolute top-4 right-4 z-10 pointer-events-none">
+                    <div className="bg-gradient-to-r from-gray-400 to-gray-600 text-white w-14 h-14 rounded-full shadow-xl animate-pulse flex items-center justify-center">
+                      <i className="ri-thumb-down-fill text-3xl"></i>
                     </div>
-                  </>
+                  </div>
                 )}
                 <div className="bg-white rounded-3xl shadow-xl overflow-hidden">
                   {/* Recipe Image */}
                   <div
                       className="relative w-full h-64 sm:h-96 cursor-pointer group"
-                      onClick={handleRecipeImageClick}
+                      onClick={(e) => { e.stopPropagation(); handleRecipeImageClick(); }}
                   >
                     <img
                         src={currentRecipeData.image}
                         alt={currentRecipeData.title}
-                        className="w-full h-full object-cover object-top group-hover:scale-105 transition-transform duration-300"
+                        className="w-full h-full object-cover object-top group-hover:scale-105 transition-transform duration-300 select-none"
+                        draggable={false}
+                        onDragStart={(e) => e.preventDefault()}
                     />
                     <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-all duration-300 flex items-center justify-center">
                       <div className="w-16 h-16 bg-white/90 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300 shadow-lg">
@@ -411,26 +468,26 @@ export default function RecipeSwiper() {
                     )}
 
                     {/* Stats */}
-                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-3 mb-3 sm:mb-4">
-                      <div className="bg-emerald-50 rounded-lg p-2 sm:p-3 text-center">
-                        <i className="ri-time-line text-lg sm:text-xl text-[#2F855A] mb-0.5 sm:mb-1"></i>
-                        <div className="text-xs sm:text-sm font-semibold text-gray-900">{currentRecipeData.prep_time || 10}m</div>
-                        <div className="text-[10px] sm:text-xs text-gray-600">Prep</div>
+                    <div className="grid grid-cols-4 gap-1.5 sm:gap-3 mb-3 sm:mb-4">
+                      <div className="bg-emerald-50 rounded-lg p-1.5 sm:p-3 text-center">
+                        <i className="ri-time-line text-base sm:text-xl text-[#2F855A]"></i>
+                        <div className="text-[10px] sm:text-sm font-semibold text-gray-900">{currentRecipeData.prep_time || 10}m</div>
+                        <div className="text-[8px] sm:text-xs text-gray-600">Prep</div>
                       </div>
-                      <div className="bg-teal-50 rounded-lg p-2 sm:p-3 text-center">
-                        <i className="ri-fire-line text-lg sm:text-xl text-teal-600 mb-0.5 sm:mb-1"></i>
-                        <div className="text-xs sm:text-sm font-semibold text-gray-900">{currentRecipeData.cook_time || currentRecipeData.total_time - (currentRecipeData.prep_time || 10)}m</div>
-                        <div className="text-[10px] sm:text-xs text-gray-600">Cook</div>
+                      <div className="bg-teal-50 rounded-lg p-1.5 sm:p-3 text-center">
+                        <i className="ri-fire-line text-base sm:text-xl text-teal-600"></i>
+                        <div className="text-[10px] sm:text-sm font-semibold text-gray-900">{currentRecipeData.cook_time || currentRecipeData.total_time - (currentRecipeData.prep_time || 10)}m</div>
+                        <div className="text-[8px] sm:text-xs text-gray-600">Cook</div>
                       </div>
-                      <div className="bg-green-50 rounded-lg p-2 sm:p-3 text-center">
-                        <i className="ri-restaurant-line text-lg sm:text-xl text-green-600 mb-0.5 sm:mb-1"></i>
-                        <div className="text-xs sm:text-sm font-semibold text-gray-900">{currentRecipeData.yields}</div>
-                        <div className="text-[10px] sm:text-xs text-gray-600">Servings</div>
+                      <div className="bg-green-50 rounded-lg p-1.5 sm:p-3 text-center">
+                        <i className="ri-restaurant-line text-base sm:text-xl text-green-600"></i>
+                        <div className="text-[10px] sm:text-sm font-semibold text-gray-900">{currentRecipeData.yields}</div>
+                        <div className="text-[8px] sm:text-xs text-gray-600">Servings</div>
                       </div>
-                      <div className="bg-amber-50 rounded-lg p-2 sm:p-3 text-center">
-                        <i className="ri-flashlight-line text-lg sm:text-xl text-amber-600 mb-0.5 sm:mb-1"></i>
-                        <div className="text-xs sm:text-sm font-semibold text-gray-900">{currentRecipeData.nutrients.calories}</div>
-                        <div className="text-[10px] sm:text-xs text-gray-600">Calories</div>
+                      <div className="bg-amber-50 rounded-lg p-1.5 sm:p-3 text-center">
+                        <i className="ri-flashlight-line text-base sm:text-xl text-amber-600"></i>
+                        <div className="text-[10px] sm:text-sm font-semibold text-gray-900">{currentRecipeData.nutrients.calories}</div>
+                        <div className="text-[8px] sm:text-xs text-gray-600">kcal</div>
                       </div>
                     </div>
 
@@ -438,14 +495,14 @@ export default function RecipeSwiper() {
                     <div className="flex flex-col sm:flex-row gap-2 sm:gap-3">
                       <button
                         onClick={handleDislike}
-                        className="flex-1 py-3 sm:py-4 bg-gray-100 text-gray-700 rounded-xl font-semibold hover:bg-gray-200 transition-all flex items-center justify-center gap-2 cursor-pointer whitespace-nowrap text-sm sm:text-base"
+                        className="hidden sm:flex flex-1 py-3 sm:py-4 bg-gray-100 text-gray-700 rounded-xl font-semibold hover:bg-gray-200 transition-all items-center justify-center gap-2 cursor-pointer whitespace-nowrap text-sm sm:text-base"
                       >
                         <i className="ri-close-line text-xl sm:text-2xl"></i>
                         <span>Skip</span>
                       </button>
                       <button
                         onClick={handleLikeOnly}
-                        className="flex-1 py-3 sm:py-4 bg-gradient-to-r from-[#2F855A] to-emerald-600 text-white rounded-xl font-semibold hover:from-[#276749] hover:to-emerald-700 transition-all flex items-center justify-center gap-2 shadow-lg cursor-pointer whitespace-nowrap text-sm sm:text-base"
+                        className="hidden sm:flex flex-1 py-3 sm:py-4 bg-gradient-to-r from-[#2F855A] to-emerald-600 text-white rounded-xl font-semibold hover:from-[#276749] hover:to-emerald-700 transition-all items-center justify-center gap-2 shadow-lg cursor-pointer whitespace-nowrap text-sm sm:text-base"
                       >
                         <i className="ri-heart-line text-xl sm:text-2xl"></i>
                         <span>Like</span>
