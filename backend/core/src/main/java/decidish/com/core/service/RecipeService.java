@@ -37,14 +37,14 @@ public class RecipeService {
     
     // Configuration constants
 
-    // Too low => less accurate, faster -> 0.0 means (almost) everything matches so we don't call the rewe API
-    // Too high => more accurate, slower -> 1.0 means nothing matches so we always call the rewe API
-    // Between 0.0 and 1.0
-    private static final Double FUZZY_MATCHING_THRESHOLD = 0.6;
+    // Trigram similarity threshold for Tier 4 fallback matching
+    // Lower threshold = more matches (goal: minimize API fallback)
+    // This is only for the final trigram fallback tier
+    private static final Double FUZZY_MATCHING_THRESHOLD = 0.3;
 
-    // Max number of fuzzy matches to retrieve from DB per ingredient
-    // Keep it higher in case best matches are not available in market
-    private static final Integer FUZZY_MATCHING_LIMIT = 10;
+    // Max number of matches to store per ingredient
+    // Higher = more product options, but more storage
+    private static final Integer FUZZY_MATCHING_LIMIT = 15;
 
     // Confidence score settings for API-fetched products
     // API response are assigned confidence scores starting from API_CONFIDENCE and decreasing by DESC_INCREMENT until FLOOR_CONFIDENCE 
@@ -92,6 +92,11 @@ public class RecipeService {
 
     public void setApiExecutor(Executor apiExecutor) {
         this.apiExecutor = apiExecutor;
+    }
+
+    // For testing: allow setting apiFallbackEnabled
+    public void setApiFallbackEnabled(boolean enabled) {
+        this.apiFallbackEnabled = enabled;
     }
 
     /**
@@ -277,12 +282,19 @@ public class RecipeService {
     //  * @return List of all generated IngredientProduct mappings.
     //  */
     public List<IngredientProduct> fuzzyMatchingPreProcessing() {
-        // 1. Get Projections
+        // 0. Refresh the unique_products materialized view (must be done after product sync)
+        log.info("Refreshing unique_products materialized view...");
+        ingredientProductRepository.refreshUniqueProductsView();
+        log.info("Materialized view refreshed.");
+
+        // 1. Get Projections using multi-tier matching
+        log.info("Running multi-tier ingredient-product matching...");
         List<IngredientMatchProjection> projections = ingredientProductRepository.findGenericMatches(   
             ingredientProductRepository.findAllIngredientsIds(),
             FUZZY_MATCHING_THRESHOLD,
             FUZZY_MATCHING_LIMIT
         );
+        log.info("Found {} ingredient-product matches.", projections.size());
 
         // 2. Clear table
         ingredientProductRepository.deleteAllInBatch();
