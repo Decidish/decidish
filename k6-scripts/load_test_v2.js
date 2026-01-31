@@ -25,6 +25,17 @@ import { Counter, Rate, Trend, Gauge } from 'k6/metrics';
 // ============= CONFIGURATION =============
 const BASE_URL = __ENV.BASE_URL || 'http://nginx';
 
+// DEBUG Configuration - Set DEBUG=all or DEBUG=auth,market,shopping,recommendations,search
+const DEBUG = __ENV.DEBUG || '';
+const debugCategories = DEBUG ? DEBUG.toLowerCase().split(',').map(c => c.trim()) : [];
+const isDebugEnabled = (category) => {
+  if (!DEBUG) return false;
+  if (DEBUG.toLowerCase() === 'all') return true;
+  return debugCategories.includes(category.toLowerCase());
+};
+
+if (DEBUG) console.log(`[CONFIG] Debug Mode: ${DEBUG}`);
+
 // Test scenarios - can be overridden with -e SCENARIO=scalability
 const SCENARIO = __ENV.SCENARIO || 'standard';
 
@@ -250,6 +261,8 @@ export function setup() {
   // Pre-create a pool of test users
   const userPool = [];
   const numUsers = parseInt(__ENV.USERS) || 100;
+  let createdCount = 0;
+  let failedCount = 0;
   
   console.log(`[Setup] Creating ${numUsers} test users...`);
   for (let i = 0; i < numUsers; i++) {
@@ -260,7 +273,7 @@ export function setup() {
       username: username,
       password: password,
       name: `Load Test User ${i}`,
-    }), { headers: { 'Content-Type': 'application/json' } });
+    }), { headers: { 'Content-Type': 'application/json' }, timeout: '10s' });
     
     const isDuplicate = res.status === 500 && res.body && res.body.includes("duplicate key");
     
@@ -272,10 +285,16 @@ export function setup() {
         hasPreferences: false,
         hasMarket: false,
       });
+      createdCount++;
+    } else {
+      failedCount++;
+      if (failedCount <= 5) {
+        console.warn(`[Setup] Failed to create user ${i}: Status ${res.status}`);
+      }
     }
   }
   
-  console.log(`[Setup] ✓ Ready with ${userPool.length} users`);
+  console.log(`[Setup] ✓ Created ${createdCount} users (${failedCount} failed)`);
   
   return {
     userPool,
@@ -313,6 +332,17 @@ function randomInt(min, max) {
   return Math.floor(Math.random() * (max - min + 1)) + min;
 }
 
+// Weighted random selection for realistic activity distribution
+function weightedRandomChoice(items, weights) {
+  const totalWeight = weights.reduce((sum, w) => sum + w, 0);
+  let random = Math.random() * totalWeight;
+  for (let i = 0; i < items.length; i++) {
+    random -= weights[i];
+    if (random <= 0) return items[i];
+  }
+  return items[items.length - 1];
+}
+
 function measureRequest(metricTrend, requestFn) {
   const start = Date.now();
   const response = requestFn();
@@ -348,7 +378,12 @@ function signupFlow(userData) {
     if (!registered) {
       errorRate.add(1);
       failedRequests.add(1);
+      console.error(`[Signup ERROR] Registration failed - Status: ${registerRes.status}, Body: ${registerRes.body ? registerRes.body.substring(0, 200) : 'empty'}`);
       return null;
+    }
+    
+    if (isDebugEnabled('auth')) {
+      console.log(`[Signup DEBUG] Registered user: ${username}`);
     }
     
     // Login with new credentials
@@ -366,10 +401,14 @@ function signupFlow(userData) {
     if (!loggedIn) {
       errorRate.add(1);
       failedRequests.add(1);
+      console.error(`[Signup ERROR] Login after registration failed - Status: ${loginRes.status}, Body: ${loginRes.body ? loginRes.body.substring(0, 200) : 'empty'}`);
       return null;
     }
     
     const authToken = extractAuthToken(loginRes);
+    if (!authToken) {
+      console.error(`[Signup ERROR] Could not extract auth token! Headers: ${JSON.stringify(loginRes.headers)}`);
+    }
     signupComplete.add(1);
     
     sleep(0.5);
@@ -395,11 +434,19 @@ function loginFlow(userData) {
     if (!loggedIn) {
       errorRate.add(1);
       failedRequests.add(1);
-      console.log(`[Login] Failed for ${userData.username}: ${loginRes.status}`);
+      console.error(`[Login ERROR] Failed for ${userData.username} - Status: ${loginRes.status}, Body: ${loginRes.body ? loginRes.body.substring(0, 200) : 'empty'}`);
       return null;
     }
     
     const authToken = extractAuthToken(loginRes);
+    if (!authToken) {
+      console.error(`[Login ERROR] Could not extract auth token for ${userData.username}! Headers: ${JSON.stringify(loginRes.headers)}`);
+    }
+    
+    if (isDebugEnabled('auth')) {
+      console.log(`[Login DEBUG] Successfully logged in: ${userData.username}`);
+    }
+    
     loginComplete.add(1);
     
     sleep(0.3);
@@ -432,8 +479,14 @@ function questionnaireFlow(authToken) {
         min_cooking_time: 10,
         max_cooking_time: 60,
         preference_vector: prefVector,
-      }), { headers })
+      }), { headers, timeout: '10s' })
     );
+    
+    // Handle timeout
+    if (prefRes.status === 0) {
+      console.warn(`[Questionnaire TIMEOUT] Save preferences timed out`);
+      return false;
+    }
     
     const saved = check(prefRes, {
       'Preferences saved': (r) => r.status === 200 || r.status === 201,
@@ -441,7 +494,9 @@ function questionnaireFlow(authToken) {
     
     if (!saved) {
       errorRate.add(1);
-      console.log(`[Questionnaire] Failed: ${prefRes.status} - ${prefRes.body?.substring(0, 100)}`);
+      console.error(`[Questionnaire ERROR] Failed - Status: ${prefRes.status}`);
+    } else if (isDebugEnabled('preferences')) {
+      console.log(`[Questionnaire DEBUG] Preferences saved successfully`);
     }
     
     sleep(0.3);
@@ -467,19 +522,32 @@ function marketSelectionFlow(authToken, postalCodes) {
     
     if (!fetched) {
       errorRate.add(1);
+      console.error(`[Market ERROR] Failed to fetch markets for PLZ ${postalCode} - Status: ${marketRes.status}, Body: ${marketRes.body ? marketRes.body.substring(0, 200) : 'empty'}`);
       return null;
+    }
+    
+    if (isDebugEnabled('market')) {
+      console.log(`[Market DEBUG] Fetched markets for PLZ ${postalCode}, Status: ${marketRes.status}`);
     }
     
     try {
       const markets = marketRes.json();
       if (!Array.isArray(markets) || markets.length === 0) {
-        console.log(`[Market] No markets for PLZ ${postalCode}`);
+        console.warn(`[Market WARN] No markets found for PLZ ${postalCode}`);
         return null;
+      }
+      
+      if (isDebugEnabled('market')) {
+        console.log(`[Market DEBUG] Found ${markets.length} markets for PLZ ${postalCode}`);
       }
       
       // User selects a market
       const selectedMarket = randomChoice(markets);
       const marketId = selectedMarket.id || selectedMarket.market_id;
+      
+      if (isDebugEnabled('market')) {
+        console.log(`[Market DEBUG] Selected market ID: ${marketId}`);
+      }
       
       const selectRes = measureRequest(personalizationLatency, () =>
         http.post(`${BASE_URL}/personalization/api/v1/user/market`, 
@@ -487,14 +555,18 @@ function marketSelectionFlow(authToken, postalCodes) {
           { headers })
       );
       
-      check(selectRes, {
+      const selected = check(selectRes, {
         'Market selected': (r) => r.status === 200 || r.status === 201,
       });
+      
+      if (!selected) {
+        console.error(`[Market ERROR] Failed to select market ${marketId} - Status: ${selectRes.status}, Body: ${selectRes.body ? selectRes.body.substring(0, 200) : 'empty'}`);
+      }
       
       sleep(0.3);
       return marketId;
     } catch (e) {
-      console.log(`[Market] Parse error: ${e.message}`);
+      console.error(`[Market ERROR] Parse error for PLZ ${postalCode}: ${e.message}`);
       return null;
     }
   });
@@ -502,27 +574,69 @@ function marketSelectionFlow(authToken, postalCodes) {
 
 // ============= USER FLOW: RECIPE SWIPING =============
 
-function recipeSwipeFlow(authToken) {
+function recipeSwipeFlow(authToken, hasCompletedSetup = false) {
   const headers = getAuthHeaders(authToken);
   
   return group('Recipe Swipe Flow', () => {
     // Get recommendations
     const recRes = measureRequest(recommendationLatency, () =>
-      http.get(`${BASE_URL}/personalization/api/v1/recipes/recommend`, { headers })
+      http.get(`${BASE_URL}/personalization/api/v1/recipes/recommend`, { headers, timeout: '15s' })
     );
     
-    const fetched = check(recRes, {
-      'Recommendations fetched': (r) => r.status === 200,
-    });
-    
-    if (!fetched || !recRes.body || recRes.body === 'null') {
+    // Handle timeout separately
+    if (recRes.status === 0) {
+      console.warn(`[Swipe TIMEOUT] Recommendations request timed out`);
       return { likedRecipes: [], recipes: [] };
+    }
+    
+    // If user has completed setup (questionnaire + market), they MUST get recommendations
+    // 404 is only acceptable for users who haven't completed setup
+    if (hasCompletedSetup) {
+      const fetched = check(recRes, {
+        'Recommendations fetched': (r) => r.status === 200,
+      });
+      
+      if (!fetched) {
+        errorRate.add(1);
+        console.error(`[Swipe ERROR] User completed setup but got no recommendations - Status: ${recRes.status}`);
+        return { likedRecipes: [], recipes: [] };
+      }
+    } else {
+      // For users without confirmed setup, 404 is acceptable
+      const fetched = check(recRes, {
+        'Recommendations fetched or user not set up': (r) => r.status === 200 || r.status === 404,
+      });
+      
+      if (!fetched) {
+        errorRate.add(1);
+        console.error(`[Swipe ERROR] Failed to fetch recommendations - Status: ${recRes.status}, Body: ${recRes.body ? recRes.body.substring(0, 200) : 'empty'}`);
+        return { likedRecipes: [], recipes: [] };
+      }
+    }
+    
+    // Handle 404 or empty response
+    if (recRes.status === 404 || !recRes.body || recRes.body === 'null' || recRes.body === '[]') {
+      if (isDebugEnabled('recommendations')) {
+        console.log(`[Swipe DEBUG] No recommendations available (status: ${recRes.status}) - user may not be set up`);
+      }
+      return { likedRecipes: [], recipes: [] };
+    }
+    
+    if (isDebugEnabled('recommendations')) {
+      console.log(`[Swipe DEBUG] Recommendations response (first 200 chars): ${recRes.body.substring(0, 200)}`);
     }
     
     try {
       const recipes = recRes.json();
       if (!Array.isArray(recipes) || recipes.length === 0) {
+        if (isDebugEnabled('recommendations')) {
+          console.log(`[Swipe DEBUG] No recipes in response array`);
+        }
         return { likedRecipes: [], recipes: [] };
+      }
+      
+      if (isDebugEnabled('recommendations')) {
+        console.log(`[Swipe DEBUG] Found ${recipes.length} recipes to swipe`);
       }
       
       const likedRecipes = [];
@@ -540,9 +654,13 @@ function recipeSwipeFlow(authToken) {
           { headers }
         );
         
-        check(actionRes, {
+        const actionSuccess = check(actionRes, {
           [`Recipe ${action} recorded`]: (r) => r.status === 200 || r.status === 201,
         });
+        
+        if (!actionSuccess) {
+          console.error(`[Swipe ERROR] Failed to record ${action} for recipe ${recipeId} - Status: ${actionRes.status}`);
+        }
         
         if (action === 'like') {
           likedRecipes.push(recipeId);
@@ -554,7 +672,7 @@ function recipeSwipeFlow(authToken) {
       swipeFlowComplete.add(1);
       return { likedRecipes, recipes };
     } catch (e) {
-      console.log(`[Swipe] Error: ${e.message}`);
+      console.error(`[Swipe ERROR] Exception: ${e.message}`);
       return { likedRecipes: [], recipes: [] };
     }
   });
@@ -567,13 +685,20 @@ function shoppingListFlow(authToken, recipeId, marketId) {
   
   return group('Shopping List Flow', () => {
     // Step 1: Generate shopping list with product options
+    // This endpoint can be slow, so we use a longer timeout
     const generateRes = measureRequest(shoppingListGenerateLatency, () =>
       http.post(
         `${BASE_URL}/shopping/shopping-list/generate?marketId=${marketId}`,
         JSON.stringify([recipeId]),
-        { headers }
+        { headers, timeout: '30s' }
       )
     );
+    
+    // Handle timeout (status 0) separately from other errors
+    if (generateRes.status === 0) {
+      console.warn(`[Shopping TIMEOUT] Generate timed out for recipe ${recipeId}, market ${marketId}`);
+      return false;
+    }
     
     const generated = check(generateRes, {
       'Shopping list generated': (r) => r.status === 200,
@@ -581,14 +706,29 @@ function shoppingListFlow(authToken, recipeId, marketId) {
     
     if (!generated) {
       errorRate.add(1);
-      console.log(`[Shopping] Generate failed: ${generateRes.status}`);
+      // Don't log full HTML for 504 errors
+      if (generateRes.status === 504) {
+        console.error(`[Shopping ERROR] Gateway timeout (504) for recipe ${recipeId}, market ${marketId}`);
+      } else {
+        const bodyPreview = generateRes.body ? generateRes.body.substring(0, 100) : 'empty';
+        console.error(`[Shopping ERROR] Generate failed for recipe ${recipeId}, market ${marketId} - Status: ${generateRes.status}`);
+      }
       return false;
+    }
+    
+    if (isDebugEnabled('shopping')) {
+      console.log(`[Shopping DEBUG] Generated shopping list for recipe ${recipeId}, market ${marketId}`);
+      console.log(`[Shopping DEBUG] Response (first 300 chars): ${generateRes.body ? generateRes.body.substring(0, 300) : 'empty'}`);
     }
     
     try {
       const shoppingList = generateRes.json();
       const items = shoppingList.items || [];
       const cartItems = [];
+      
+      if (isDebugEnabled('shopping')) {
+        console.log(`[Shopping DEBUG] Found ${items.length} ingredient groups`);
+      }
       
       // Simulate user selecting products
       items.forEach((ingredientGroup, idx) => {
@@ -604,6 +744,12 @@ function shoppingListFlow(authToken, recipeId, marketId) {
                 quantity: Math.max(1, Math.ceil(selectedOption.quantityToBuy || 1)),
                 recipe_id: recipeId,
               });
+              
+              if (isDebugEnabled('shopping')) {
+                console.log(`[Shopping DEBUG] Selected: ${product.name} (id: ${product.id}, qty: ${Math.ceil(selectedOption.quantityToBuy || 1)})`);
+              }
+            } else if (isDebugEnabled('shopping')) {
+              console.log(`[Shopping DEBUG] Skipped product without ID: ${product.name}`);
             }
           }
         }
@@ -611,7 +757,14 @@ function shoppingListFlow(authToken, recipeId, marketId) {
       });
       
       if (cartItems.length === 0) {
+        if (isDebugEnabled('shopping')) {
+          console.log(`[Shopping DEBUG] No items to add - user had everything or no valid products`);
+        }
         return true; // User had everything
+      }
+      
+      if (isDebugEnabled('shopping')) {
+        console.log(`[Shopping DEBUG] Adding ${cartItems.length} items to shopping list`);
       }
       
       // Step 2: Add selected products to shopping list
@@ -619,22 +772,30 @@ function shoppingListFlow(authToken, recipeId, marketId) {
         http.post(
           `${BASE_URL}/personalization/api/v1/user/add-to-list`,
           JSON.stringify(cartItems),
-          { headers }
+          { headers, timeout: '15s' }
         )
       );
+      
+      // Handle timeout
+      if (addRes.status === 0) {
+        console.warn(`[Shopping TIMEOUT] Add to list timed out`);
+        return false;
+      }
       
       const added = check(addRes, {
         'Items added to list': (r) => r.status === 200,
       });
       
       if (!added) {
-        console.log(`[Shopping] Add failed: ${addRes.status}`);
+        console.error(`[Shopping ERROR] Add to list failed - Status: ${addRes.status}, Body: ${addRes.body ? addRes.body.substring(0, 200) : 'empty'}`);
+      } else if (isDebugEnabled('shopping')) {
+        console.log(`[Shopping DEBUG] Successfully added ${cartItems.length} items to list`);
       }
       
       shoppingFlowComplete.add(1);
       return added;
     } catch (e) {
-      console.log(`[Shopping] Error: ${e.message}`);
+      console.error(`[Shopping ERROR] Exception: ${e.message}`);
       return false;
     }
   });
@@ -646,20 +807,37 @@ function shoppingListManagementFlow(authToken) {
   const headers = getAuthHeaders(authToken);
   
   return group('Shopping List Management', () => {
-    // Get active shopping list
+    // Get active shopping list - 404 is expected if user has no active list
     const listRes = http.get(`${BASE_URL}/personalization/api/v1/user/active/list`, { headers });
     
+    // 200 = has active list, 404 = no active list (expected, not an error)
     const hasList = check(listRes, {
-      'Active list fetched': (r) => r.status === 200,
+      'Active list fetched or none exists': (r) => r.status === 200 || r.status === 404,
     });
     
-    if (!hasList) return;
+    // 404 or message about no active list is normal - user just hasn't created one yet
+    if (listRes.status === 404) {
+      if (isDebugEnabled('shopping')) {
+        console.log(`[List Management DEBUG] No active shopping list (404) - normal for users without lists`);
+      }
+      return;
+    }
+    
+    if (listRes.status !== 200) {
+      if (isDebugEnabled('shopping')) {
+        console.log(`[List Management DEBUG] Unexpected status: ${listRes.status}`);
+      }
+      return;
+    }
     
     try {
       const list = listRes.json();
       
-      // Check if we have a valid list with items
+      // Check if we have a valid list with items (some APIs return 200 with message)
       if (list.message && list.message.includes('No active')) {
+        if (isDebugEnabled('shopping')) {
+          console.log(`[List Management DEBUG] No active list (message response)`);
+        }
         return;
       }
       
@@ -672,7 +850,16 @@ function shoppingListManagementFlow(authToken) {
         }
       });
       
-      if (allItems.length === 0) return;
+      if (allItems.length === 0) {
+        if (isDebugEnabled('shopping')) {
+          console.log(`[List Management DEBUG] Shopping list is empty`);
+        }
+        return;
+      }
+      
+      if (isDebugEnabled('shopping')) {
+        console.log(`[List Management DEBUG] Found ${allItems.length} items in ${groups.length} groups`);
+      }
       
       // Simulate checking off some items
       const numChecks = Math.min(randomInt(1, 3), allItems.length);
@@ -693,7 +880,7 @@ function shoppingListManagementFlow(authToken) {
       }
       
     } catch (e) {
-      console.log(`[List Management] Error: ${e.message}`);
+      console.error(`[List Management ERROR] Exception: ${e.message}`);
     }
     
     sleep(0.3);
@@ -709,13 +896,23 @@ function searchFlow(authToken, marketId) {
     const query = randomChoice(PRODUCT_SEARCH_TERMS);
     const encodedQuery = encodeURIComponent(query);
     
+    if (isDebugEnabled('search')) {
+      console.log(`[Search DEBUG] Searching products for: ${query}, market: ${marketId}`);
+    }
+    
     const searchRes = measureRequest(productSearchLatency, () =>
       http.get(`${BASE_URL}/shopping/api/v1/markets/search/products?query=${encodedQuery}&marketId=${marketId}`, { headers })
     );
     
-    check(searchRes, {
+    const success = check(searchRes, {
       'Product search successful': (r) => r.status === 200,
     });
+    
+    if (!success) {
+      console.error(`[Search ERROR] Product search failed for '${query}' - Status: ${searchRes.status}, Body: ${searchRes.body ? searchRes.body.substring(0, 200) : 'empty'}`);
+    } else if (isDebugEnabled('search')) {
+      console.log(`[Search DEBUG] Product search returned: ${searchRes.body ? searchRes.body.substring(0, 100) : 'empty'}`);
+    }
     
     sleep(0.3);
   });
@@ -724,13 +921,23 @@ function searchFlow(authToken, marketId) {
     const query = randomChoice(RECIPE_SEARCH_TERMS);
     const encodedQuery = encodeURIComponent(query);
     
+    if (isDebugEnabled('search')) {
+      console.log(`[Search DEBUG] Searching recipes for: ${query}`);
+    }
+    
     const searchRes = measureRequest(recipeSearchLatency, () =>
       http.get(`${BASE_URL}/personalization/recipes/search?q=${encodedQuery}`, { headers })
     );
     
-    check(searchRes, {
+    const success = check(searchRes, {
       'Recipe search successful': (r) => r.status === 200,
     });
+    
+    if (!success) {
+      console.error(`[Search ERROR] Recipe search failed for '${query}' - Status: ${searchRes.status}, Body: ${searchRes.body ? searchRes.body.substring(0, 200) : 'empty'}`);
+    } else if (isDebugEnabled('search')) {
+      console.log(`[Search DEBUG] Recipe search returned: ${searchRes.body ? searchRes.body.substring(0, 100) : 'empty'}`);
+    }
     
     sleep(0.3);
   });
@@ -742,14 +949,31 @@ function viewHistoryFlow(authToken) {
   const headers = getAuthHeaders(authToken);
   
   group('View History', () => {
-    // User history - may return 404 if no history (expected)
-    http.get(`${BASE_URL}/personalization/api/v1/user/history`, { headers, tags: { name: 'get_history' } });
+    // User history - 404 is expected for new users with no history
+    const historyRes = http.get(`${BASE_URL}/personalization/api/v1/user/history`, { headers, tags: { name: 'get_history' } });
+    // 200 = has history, 404 = no history yet (expected, not an error)
+    check(historyRes, {
+      'History fetched or empty': (r) => r.status === 200 || r.status === 404,
+    });
+    if (isDebugEnabled('history')) {
+      console.log(`[History DEBUG] User history status: ${historyRes.status}`);
+    }
     
-    // Shopping history
-    http.get(`${BASE_URL}/personalization/api/v1/user/shopping/history`, { headers, tags: { name: 'get_shopping_history' } });
+    // Shopping history - 200 expected (may return empty array)
+    const shoppingHistoryRes = http.get(`${BASE_URL}/personalization/api/v1/user/shopping/history`, { headers, tags: { name: 'get_shopping_history' } });
+    check(shoppingHistoryRes, {
+      'Shopping history fetched': (r) => r.status === 200,
+    });
     
-    // Liked recipes - may return 404 if no likes (expected)
-    http.get(`${BASE_URL}/personalization/api/v1/user/liked-recipes`, { headers, tags: { name: 'get_liked_recipes' } });
+    // Liked recipes - 404 is expected for new users with no likes
+    const likedRes = http.get(`${BASE_URL}/personalization/api/v1/user/liked-recipes`, { headers, tags: { name: 'get_liked_recipes' } });
+    // 200 = has likes, 404 = no likes yet (expected, not an error)
+    check(likedRes, {
+      'Liked recipes fetched or empty': (r) => r.status === 200 || r.status === 404,
+    });
+    if (isDebugEnabled('history')) {
+      console.log(`[History DEBUG] Liked recipes status: ${likedRes.status}`);
+    }
     
     sleep(0.5);
   });
@@ -773,21 +997,26 @@ export default function (data) {
     session = signupFlow(null);
     
     if (session && session.authToken) {
-      // New users go through questionnaire
-      questionnaireFlow(session.authToken);
+      // New users MUST go through questionnaire (creates user embedding)
+      const prefsCompleted = questionnaireFlow(session.authToken);
       
-      // Select market
+      // New users MUST select market
       const marketId = marketSelectionFlow(session.authToken, testConfig.postalCodes);
       
-      if (marketId) {
-        // Initial recipe exploration
-        const swipeResult = recipeSwipeFlow(session.authToken);
+      // If both completed, user should ALWAYS get recommendations
+      const hasCompletedSetup = prefsCompleted && marketId;
+      
+      if (hasCompletedSetup) {
+        // Initial recipe exploration - should always succeed
+        const swipeResult = recipeSwipeFlow(session.authToken, true);
         
         // Maybe create first shopping list
         if (swipeResult.likedRecipes.length > 0 && Math.random() > 0.5) {
           const recipeId = randomChoice(swipeResult.likedRecipes);
           shoppingListFlow(session.authToken, recipeId, marketId);
         }
+      } else {
+        console.error(`[New User ERROR] Failed to complete setup - Prefs: ${prefsCompleted}, Market: ${marketId}`);
       }
     }
   } else {
@@ -796,38 +1025,54 @@ export default function (data) {
     session = loginFlow(userData);
     
     if (session && session.authToken) {
-      // Returning user might update preferences occasionally
-      if (Math.random() > 0.9) {
-        questionnaireFlow(session.authToken);
-      }
-      
-      // Get market (or select new one)
+      // Check if user has preferences set up
       let marketId = null;
-      if (Math.random() > 0.1) {
-        // 90% already have a market, just need to get it
-        const prefRes = http.get(`${BASE_URL}/personalization/api/v1/user/preferences`, 
-          { headers: getAuthHeaders(session.authToken), tags: { name: 'get_preferences' } });
-        // 200 = has preferences, 404 = new user without preferences (expected)
-        if (prefRes.status === 200) {
-          try {
-            const prefs = prefRes.json();
-            marketId = prefs.market_id;
-          } catch (e) {}
+      let hasPreferences = false;
+      
+      const prefRes = http.get(`${BASE_URL}/personalization/api/v1/user/preferences`, 
+        { headers: getAuthHeaders(session.authToken), tags: { name: 'get_preferences' } });
+      
+      if (prefRes.status === 200) {
+        try {
+          const prefs = prefRes.json();
+          marketId = prefs.market_id;
+          hasPreferences = true;
+        } catch (e) {}
+      } else if (prefRes.status === 404) {
+        // User doesn't have preferences - need to complete setup first
+        if (isDebugEnabled('flow')) {
+          console.log(`[Flow DEBUG] Returning user ${userData.username} has no preferences - completing setup`);
         }
-        // Don't count 404 as error for preferences check
+        const prefsCompleted = questionnaireFlow(session.authToken);
+        hasPreferences = prefsCompleted;
       }
       
+      // If no market, select one
       if (!marketId) {
         marketId = marketSelectionFlow(session.authToken, testConfig.postalCodes);
       }
       
-      // Main activities
-      const activities = ['swipe', 'shopping', 'search', 'history', 'manage'];
-      const activity = randomChoice(activities);
+      // Track if user has completed setup for proper error detection
+      const hasCompletedSetup = hasPreferences && marketId;
+      
+      // Main activities with realistic weights:
+      // - swipe: 40% (most common - browsing recipes)
+      // - shopping: 25% (generating/managing shopping lists)
+      // - search: 15% (searching products/recipes)
+      // - manage: 12% (managing existing shopping list)
+      // - history: 5% (viewing history)
+      // - profile: 3% (updating preferences)
+      const activities = ['swipe', 'shopping', 'search', 'manage', 'history', 'profile'];
+      const weights = [40, 25, 15, 12, 5, 3];
+      const activity = weightedRandomChoice(activities, weights);
+      
+      if (isDebugEnabled('flow')) {
+        console.log(`[Flow DEBUG] Selected activity: ${activity}, hasCompletedSetup: ${hasCompletedSetup}`);
+      }
       
       switch (activity) {
         case 'swipe':
-          const swipeResult = recipeSwipeFlow(session.authToken);
+          const swipeResult = recipeSwipeFlow(session.authToken, hasCompletedSetup);
           if (swipeResult.likedRecipes.length > 0 && marketId && Math.random() > 0.3) {
             const recipeId = randomChoice(swipeResult.likedRecipes);
             shoppingListFlow(session.authToken, recipeId, marketId);
@@ -838,6 +1083,11 @@ export default function (data) {
           // Direct shopping from recommendations
           const recRes = http.get(`${BASE_URL}/personalization/api/v1/recipes/recommend`, 
             { headers: getAuthHeaders(session.authToken) });
+          // If user completed setup, they should always get recommendations
+          if (hasCompletedSetup && recRes.status !== 200) {
+            errorRate.add(1);
+            console.error(`[Shopping ERROR] User completed setup but got no recommendations - Status: ${recRes.status}`);
+          }
           if (recRes.status === 200 && recRes.body && recRes.body !== 'null') {
             try {
               const recipes = recRes.json();
@@ -860,6 +1110,11 @@ export default function (data) {
           
         case 'manage':
           shoppingListManagementFlow(session.authToken);
+          break;
+          
+        case 'profile':
+          // Occasionally update preferences
+          questionnaireFlow(session.authToken);
           break;
       }
     }

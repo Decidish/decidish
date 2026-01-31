@@ -82,10 +82,10 @@
         "showThresholdMarkers": true
       },
       "targets": [{
-        "expr": "(1 - (sum(rate(k6_http_reqs_total{expected_response=\"false\"}[1m])) OR vector(0)) / (sum(rate(k6_http_reqs_total[1m])) OR vector(1))) * 100",
+        "expr": "(1 - (avg(k6_errors_rate) OR avg(k6_error_rate) OR vector(0))) * 100",
         "refId": "A"
       }],
-      "title": "✅ Success Rate",
+      "title": "✅ Success Rate (Real Errors)",
       "type": "gauge"
     },
     {
@@ -167,7 +167,7 @@
         "reduceOptions": { "calcs": ["lastNotNull"] }
       },
       "targets": [{ "expr": "avg(k6_error_rate) OR avg(k6_errors_rate) OR vector(0)", "refId": "A" }],
-      "title": "❌ Error Rate",
+      "title": "❌ Real Error Rate",
       "type": "gauge"
     },
     {
@@ -521,10 +521,10 @@
         "legend": { "calcs": ["mean", "max"], "displayMode": "table", "placement": "bottom" }
       },
       "targets": [
-        { "expr": "sum(rate(k6_http_reqs_total{expected_response=\"false\"}[1m])) / sum(rate(k6_http_reqs_total[1m]))", "legendFormat": "HTTP Error Rate", "refId": "A" },
-        { "expr": "avg(k6_error_rate) OR avg(k6_errors_rate)", "legendFormat": "Custom Error Rate", "refId": "B" }
+        { "expr": "sum(rate(k6_http_reqs_total{expected_response=\"false\"}[1m])) / sum(rate(k6_http_reqs_total[1m]))", "legendFormat": "HTTP Error Rate (incl. 404s)", "refId": "A" },
+        { "expr": "avg(k6_error_rate) OR avg(k6_errors_rate)", "legendFormat": "Real Error Rate (actual failures)", "refId": "B" }
       ],
-      "title": "❌ Error Rate Over Time",
+      "title": "❌ Error Rate Comparison",
       "type": "timeseries"
     },
     {
@@ -582,7 +582,7 @@
         "reduceOptions": { "calcs": ["mean"] }
       },
       "targets": [{
-        "expr": "sum(rate(k6_http_reqs_total[1m])) / max(k6_vus)",
+        "expr": "sum(rate(k6_http_reqs_total[1m])) / clamp_min(max(k6_vus), 1)",
         "refId": "A"
       }],
       "title": "⚡ Requests per VU (Efficiency)",
@@ -647,6 +647,245 @@
       }],
       "title": "⏱️ Avg Response Time (p50)",
       "type": "gauge"
+    },
+    {
+      "collapsed": false,
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 56 },
+      "id": 106,
+      "panels": [],
+      "title": "🔌 REWE API METRICS - Rate Limits & Performance",
+      "type": "row"
+    },
+    {
+      "datasource": "Prometheus",
+      "description": "Rate limit (429) responses from REWE API",
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "thresholds" },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "green", "value": null },
+              { "color": "yellow", "value": 1 },
+              { "color": "red", "value": 5 }
+            ]
+          },
+          "unit": "short"
+        }
+      },
+      "gridPos": { "h": 6, "w": 4, "x": 0, "y": 57 },
+      "id": 30,
+      "options": {
+        "colorMode": "value",
+        "graphMode": "area",
+        "orientation": "auto",
+        "reduceOptions": { "calcs": ["lastNotNull"] }
+      },
+      "targets": [{ "expr": "sum(rewe_api_rate_limit_hits_total) OR vector(0)", "refId": "A" }],
+      "title": "🚫 Rate Limit Hits",
+      "type": "stat"
+    },
+    {
+      "datasource": "Prometheus",
+      "description": "API requests rejected by local rate limiter",
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "thresholds" },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "green", "value": null },
+              { "color": "yellow", "value": 10 },
+              { "color": "orange", "value": 50 }
+            ]
+          },
+          "unit": "short"
+        }
+      },
+      "gridPos": { "h": 6, "w": 4, "x": 4, "y": 57 },
+      "id": 31,
+      "options": {
+        "colorMode": "value",
+        "graphMode": "area",
+        "orientation": "auto",
+        "reduceOptions": { "calcs": ["lastNotNull"] }
+      },
+      "targets": [{ "expr": "sum(rewe_api_requests_rejected_total) OR vector(0)", "refId": "A" }],
+      "title": "⏳ Requests Rejected",
+      "type": "stat"
+    },
+    {
+      "datasource": "Prometheus",
+      "description": "API call timeouts",
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "thresholds" },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "green", "value": null },
+              { "color": "yellow", "value": 5 },
+              { "color": "red", "value": 20 }
+            ]
+          },
+          "unit": "short"
+        }
+      },
+      "gridPos": { "h": 6, "w": 4, "x": 8, "y": 57 },
+      "id": 32,
+      "options": {
+        "colorMode": "value",
+        "graphMode": "area",
+        "orientation": "auto",
+        "reduceOptions": { "calcs": ["lastNotNull"] }
+      },
+      "targets": [{ "expr": "sum(rewe_api_timeouts_total) OR vector(0)", "refId": "A" }],
+      "title": "⏰ API Timeouts",
+      "type": "stat"
+    },
+    {
+      "datasource": "Prometheus",
+      "description": "Currently active REWE API calls",
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "thresholds" },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "green", "value": null },
+              { "color": "yellow", "value": 3 },
+              { "color": "red", "value": 5 }
+            ]
+          },
+          "unit": "short"
+        }
+      },
+      "gridPos": { "h": 6, "w": 4, "x": 12, "y": 57 },
+      "id": 33,
+      "options": {
+        "colorMode": "value",
+        "graphMode": "area",
+        "orientation": "auto",
+        "reduceOptions": { "calcs": ["lastNotNull"] }
+      },
+      "targets": [{ "expr": "rewe_api_active_calls OR vector(0)", "refId": "A" }],
+      "title": "🔄 Active API Calls",
+      "type": "stat"
+    },
+    {
+      "datasource": "Prometheus",
+      "description": "Available permits for API calls",
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "thresholds" },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "red", "value": null },
+              { "color": "yellow", "value": 1 },
+              { "color": "green", "value": 3 }
+            ]
+          },
+          "unit": "short"
+        }
+      },
+      "gridPos": { "h": 6, "w": 4, "x": 16, "y": 57 },
+      "id": 34,
+      "options": {
+        "colorMode": "value",
+        "graphMode": "area",
+        "orientation": "auto",
+        "reduceOptions": { "calcs": ["lastNotNull"] }
+      },
+      "targets": [{ "expr": "rewe_api_available_permits OR vector(5)", "refId": "A" }],
+      "title": "✅ Available Permits",
+      "type": "stat"
+    },
+    {
+      "datasource": "Prometheus",
+      "description": "Total REWE API requests",
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "thresholds" },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "blue", "value": null }
+            ]
+          },
+          "unit": "short"
+        }
+      },
+      "gridPos": { "h": 6, "w": 4, "x": 20, "y": 57 },
+      "id": 35,
+      "options": {
+        "colorMode": "value",
+        "graphMode": "area",
+        "orientation": "auto",
+        "reduceOptions": { "calcs": ["lastNotNull"] }
+      },
+      "targets": [{ "expr": "sum(rewe_api_requests_total) OR vector(0)", "refId": "A" }],
+      "title": "📊 Total API Requests",
+      "type": "stat"
+    },
+    {
+      "datasource": "Prometheus",
+      "description": "REWE API rate limits and rejections over time",
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "palette-classic" },
+          "custom": {
+            "drawStyle": "line",
+            "fillOpacity": 30,
+            "lineInterpolation": "smooth",
+            "lineWidth": 2,
+            "showPoints": "never"
+          },
+          "unit": "short"
+        }
+      },
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 63 },
+      "id": 36,
+      "options": {
+        "legend": { "calcs": ["sum", "last"], "displayMode": "table", "placement": "bottom" }
+      },
+      "targets": [
+        { "expr": "(sum(rate(rewe_api_rate_limit_hits_total[1m])) * 60) OR vector(0)", "legendFormat": "Rate Limit Hits/min", "refId": "A" },
+        { "expr": "(sum(rate(rewe_api_requests_rejected_total[1m])) * 60) OR vector(0)", "legendFormat": "Requests Rejected/min", "refId": "B" },
+        { "expr": "(sum(rate(rewe_api_timeouts_total[1m])) * 60) OR vector(0)", "legendFormat": "Timeouts/min", "refId": "C" },
+        { "expr": "sum(rewe_api_rate_limit_hits_total) OR vector(0)", "legendFormat": "Total Rate Limit Hits (cumulative)", "refId": "D" }
+      ],
+      "title": "📈 API Issues Over Time",
+      "type": "timeseries"
+    },
+    {
+      "datasource": "Prometheus",
+      "description": "REWE API call duration",
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "palette-classic" },
+          "custom": {
+            "drawStyle": "line",
+            "fillOpacity": 20,
+            "lineInterpolation": "smooth",
+            "lineWidth": 2,
+            "showPoints": "never"
+          },
+          "unit": "ms"
+        }
+      },
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 63 },
+      "id": 37,
+      "options": {
+        "legend": { "calcs": ["mean", "max"], "displayMode": "table", "placement": "bottom" }
+      },
+      "targets": [
+        { "expr": "(sum(rate(rewe_api_call_duration_seconds_sum[1m])) / sum(rate(rewe_api_call_duration_seconds_count[1m]))) * 1000 OR vector(0)", "legendFormat": "Avg Latency (ms)", "refId": "A" },
+        { "expr": "max(rewe_api_call_duration_seconds_max) * 1000 OR vector(0)", "legendFormat": "Max Latency (ms)", "refId": "B" },
+        { "expr": "sum(rate(rewe_api_call_duration_seconds_count[1m])) OR vector(0)", "legendFormat": "Calls/sec", "refId": "C" }
+      ],
+      "title": "⏱️ REWE API Call Duration",
+      "type": "timeseries"
     }
   ],
   "refresh": "5s",

@@ -20,4 +20,4 @@ node_modules/
 **/urlset*.xml
 **/data/temp/
 *.json
-!grafana-dashboards*
+!grafana-dashboard*.json
