@@ -13,6 +13,34 @@ docker exec -it decidish-k6-1 k6 run --out experimental-prometheus-rw /scripts/l
 docker exec -it decidish-k6-1 k6 run --out experimental-prometheus-rw --vus 100 --duration 10m /scripts/load_test_v2.js
 ```
 
+## Debug Mode
+
+Enable debug logging to troubleshoot issues:
+
+```bash
+# Debug all categories
+docker exec -it decidish-k6-1 k6 run -e DEBUG=all --vus 1 --duration 30s /scripts/load_test_v2.js
+
+# Debug specific categories (comma-separated)
+docker exec -it decidish-k6-1 k6 run -e DEBUG=auth,shopping --vus 1 --duration 30s /scripts/load_test_v2.js
+
+# Debug with Prometheus output
+docker exec -it decidish-k6-1 k6 run --out experimental-prometheus-rw -e DEBUG=market,recommendations --vus 5 --duration 1m /scripts/load_test_v2.js
+```
+
+### Debug Categories
+| Category | Description |
+|----------|-------------|
+| `auth` | Login/Signup flows |
+| `preferences` | Questionnaire/preferences updates |
+| `market` | Market selection and fetching |
+| `recommendations` | Recipe recommendations/swiping |
+| `shopping` | Shopping list generation and management |
+| `search` | Product and recipe search |
+| `all` | Enable all debug categories |
+
+**Note**: Errors are always printed regardless of debug mode.
+
 ## Test Scenarios
 
 ### 1. Standard Test (Default)
@@ -125,8 +153,27 @@ Some endpoints return 404 for new users (not errors):
 - `GET /personalization/api/v1/user/preferences` - No preferences yet
 - `GET /personalization/api/v1/user/liked-recipes` - No liked recipes yet
 - `GET /personalization/api/v1/user/history` - No history yet
+- `GET /personalization/api/v1/user/active/list` - No active shopping list
+- `GET /personalization/api/v1/recipes/recommend` - No recommendations available
 
 These appear in `http_req_failed` but are expected behavior. The custom `error_rate` metric excludes these.
+
+**Why "90% Success Rate" but "0% Real Error Rate":**
+- HTTP success rate counts ALL non-2xx responses including expected 404s
+- Custom `error_rate` only counts **actual failures** (server errors, timeouts)
+- Use "Real Error Rate" in the dashboard to see actual problems
+
+## Activity Distribution
+
+Realistic user activity weights:
+| Activity | Weight | Description |
+|----------|--------|-------------|
+| Swipe Recipes | 40% | Browsing and swiping recipes (most common) |
+| Shopping | 25% | Generating/managing shopping lists |
+| Search | 15% | Searching products and recipes |
+| List Management | 12% | Managing existing shopping list items |
+| View History | 5% | Viewing user/shopping history |
+| Update Profile | 3% | Changing preferences (occasional) |
 
 ## Capacity Estimation
 
