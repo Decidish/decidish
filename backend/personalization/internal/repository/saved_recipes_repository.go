@@ -14,9 +14,27 @@ type SavedRecipe struct {
 	SavedAt time.Time `json:"saved_at"`
 }
 
+const MAX_SAVED_RECIPES = 99 // Maximum saved recipes per user
+
 // SaveRecipe saves a recipe for a user. If already saved, it updates the saved_at timestamp.
+// If the user exceeds MAX_SAVED_RECIPES, the oldest recipes are deleted first.
 func SaveRecipe(tx *sql.Tx, userId string, recipeId int) error {
+	// Delete oldest recipes if we're at the limit (to make room for the new one)
 	_, err := tx.Exec(`
+		DELETE FROM saved_recipes
+		WHERE id IN (
+			SELECT id FROM saved_recipes
+			WHERE user_id = $1 AND recipe_id != $2
+			ORDER BY saved_at ASC
+			LIMIT GREATEST(0, (SELECT COUNT(*) FROM saved_recipes WHERE user_id = $1) - $3 + 1)
+		)
+	`, userId, recipeId, MAX_SAVED_RECIPES)
+
+	if err != nil {
+		return fmt.Errorf("failed to cleanup old saved recipes: %w", err)
+	}
+
+	_, err = tx.Exec(`
 		INSERT INTO saved_recipes (user_id, recipe_id, saved_at)
 		VALUES ($1, $2, CURRENT_TIMESTAMP)
 		ON CONFLICT (user_id, recipe_id) 
@@ -31,6 +49,7 @@ func SaveRecipe(tx *sql.Tx, userId string, recipeId int) error {
 }
 
 // SaveRecipes saves multiple recipes for a user in a single operation
+// If the user exceeds MAX_SAVED_RECIPES, the oldest recipes are deleted first.
 func SaveRecipes(tx *sql.Tx, userId string, recipeIds []int) error {
 	if len(recipeIds) == 0 {
 		return nil
@@ -50,7 +69,33 @@ func SaveRecipes(tx *sql.Tx, userId string, recipeIds []int) error {
 		return nil
 	}
 
-	// Build VALUES clause
+	// Build placeholders for the recipe IDs to exclude from deletion
+	excludePlaceholders := make([]string, len(uniqueIds))
+	deleteArgs := make([]interface{}, 0, len(uniqueIds)+2)
+	deleteArgs = append(deleteArgs, userId)
+	for i, id := range uniqueIds {
+		excludePlaceholders[i] = fmt.Sprintf("$%d", i+2)
+		deleteArgs = append(deleteArgs, id)
+	}
+	deleteArgs = append(deleteArgs, MAX_SAVED_RECIPES-len(uniqueIds))
+
+	// Delete oldest recipes if we're at the limit (to make room for the new ones)
+	deleteQuery := fmt.Sprintf(`
+		DELETE FROM saved_recipes
+		WHERE id IN (
+			SELECT id FROM saved_recipes
+			WHERE user_id = $1 AND recipe_id NOT IN (%s)
+			ORDER BY saved_at ASC
+			LIMIT GREATEST(0, (SELECT COUNT(*) FROM saved_recipes WHERE user_id = $1) - $%d)
+		)
+	`, strings.Join(excludePlaceholders, ", "), len(uniqueIds)+2)
+
+	_, err := tx.Exec(deleteQuery, deleteArgs...)
+	if err != nil {
+		return fmt.Errorf("failed to cleanup old saved recipes: %w", err)
+	}
+
+	// Build VALUES clause for insert
 	valueStrings := make([]string, 0, len(uniqueIds))
 	valueArgs := make([]interface{}, 0, len(uniqueIds)+1)
 	valueArgs = append(valueArgs, userId)
@@ -67,7 +112,7 @@ func SaveRecipes(tx *sql.Tx, userId string, recipeIds []int) error {
 		DO UPDATE SET saved_at = CURRENT_TIMESTAMP
 	`, strings.Join(valueStrings, ", "))
 
-	_, err := tx.Exec(query, valueArgs...)
+	_, err = tx.Exec(query, valueArgs...)
 	if err != nil {
 		return fmt.Errorf("failed to save recipes: %w", err)
 	}
