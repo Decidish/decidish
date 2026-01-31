@@ -44,8 +44,6 @@ func GetAdminStats(db *sql.DB) (int, int, int, error) {
 	var users int // active users
 
 	// Postgres syntax: CURRENT_DATE gets the start of today (00:00:00)
-	// TODO: change query for users so we get the "active ones"
-	//? do this only when you have the data for this
 	query := `
         SELECT 
             (SELECT COUNT(*) FROM recipes) as total,
@@ -55,8 +53,7 @@ func GetAdminStats(db *sql.DB) (int, int, int, error) {
 				(SELECT COUNT(*) FROM import_logs WHERE created_at >= CURRENT_DATE) 
 			)
 			as today,
-			-- (SELECT COUNT(*) FROM users) as users
-			0 as users
+			(SELECT COUNT(DISTINCT user_id) FROM user_history WHERE action_timestamp >= NOW() - INTERVAL '1 month') as users
     `
 
 	err := db.QueryRow(query).Scan(&total, &today, &users)
