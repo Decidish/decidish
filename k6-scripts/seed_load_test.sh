@@ -8,7 +8,7 @@
 #
 # Options:
 #   --products-only    Only seed products (skip ingredient mappings)
-#   --mappings-only    Only seed ingredient mappings (skip products)
+#   --mappings-only    Run fuzzy matching via core-server API
 #   --reset            Clear existing seeded data before seeding
 #   --dry-run          Show what would be done without executing
 #   --help             Show this help message
@@ -17,6 +17,7 @@
 set -e
 
 POSTGRES_CONTAINER="dev_backend_postgres"
+CORE_SERVER_URL="${CORE_SERVER_URL:-http://localhost:8080}"
 DB_USER="user"
 DB_NAME="decidish"
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -102,12 +103,49 @@ fi
 
 # Copy and run the complete seeding script
 if [ "$MAPPINGS_ONLY" = false ] && [ "$PRODUCTS_ONLY" = false ]; then
-    echo -e "\n${YELLOW}Running complete seeding script...${NC}"
+    echo -e "\n${YELLOW}Running complete seeding (products + fuzzy matching)...${NC}"
     if [ "$DRY_RUN" = false ]; then
-        docker cp "$SCRIPT_DIR/seed_load_test_complete.sql" "$POSTGRES_CONTAINER:/tmp/"
-        docker exec "$POSTGRES_CONTAINER" psql -U "$DB_USER" -d "$DB_NAME" -f /tmp/seed_load_test_complete.sql
+        # Step 1: Seed products first
+        echo -e "${BLUE}Step 1/2: Seeding products...${NC}"
+        docker cp "$SCRIPT_DIR/seed_products_bulk.sql" "$POSTGRES_CONTAINER:/tmp/"
+        docker exec "$POSTGRES_CONTAINER" psql -U "$DB_USER" -d "$DB_NAME" -f /tmp/seed_products_bulk.sql
+        
+        # Step 2: Run fuzzy matching via core-server API
+        echo -e "\n${BLUE}Step 2/2: Running fuzzy matching via core-server API...${NC}"
+        
+        # Check if core-server is running
+        if ! curl -s "${CORE_SERVER_URL}/actuator/health" | grep -q "UP"; then
+            echo -e "${RED}Error: core-server is not running or not healthy at ${CORE_SERVER_URL}${NC}"
+            echo -e "${YELLOW}Start it with: docker compose up -d core-server${NC}"
+            exit 1
+        fi
+        
+        echo -e "${YELLOW}This may take 2-3 minutes for multi-tier matching...${NC}"
+        
+        START_TIME=$(date +%s)
+        RESPONSE=$(curl -s -X POST "${CORE_SERVER_URL}/shopping-list/match" \
+            -H "Content-Type: application/json" \
+            -w "\n%{http_code}")
+        END_TIME=$(date +%s)
+        
+        HTTP_CODE=$(echo "$RESPONSE" | tail -n1)
+        BODY=$(echo "$RESPONSE" | head -n-1)
+        
+        DURATION=$((END_TIME - START_TIME))
+        MINUTES=$((DURATION / 60))
+        SECONDS=$((DURATION % 60))
+        
+        if [ "$HTTP_CODE" = "200" ]; then
+            echo -e "${GREEN}✓ Fuzzy matching completed in ${MINUTES}m ${SECONDS}s${NC}"
+            echo -e "${GREEN}Response: ${BODY}${NC}"
+        else
+            echo -e "${RED}✗ Fuzzy matching failed (HTTP ${HTTP_CODE})${NC}"
+            echo -e "${RED}Response: ${BODY}${NC}"
+            exit 1
+        fi
     else
-        echo -e "${YELLOW}[DRY-RUN] Would run seed_load_test_complete.sql${NC}"
+        echo -e "${YELLOW}[DRY-RUN] Would run seed_products_bulk.sql${NC}"
+        echo -e "${YELLOW}[DRY-RUN] Would call POST ${CORE_SERVER_URL}/shopping-list/match${NC}"
     fi
 elif [ "$PRODUCTS_ONLY" = true ]; then
     echo -e "\n${YELLOW}Running products-only seeding...${NC}"
@@ -118,12 +156,41 @@ elif [ "$PRODUCTS_ONLY" = true ]; then
         echo -e "${YELLOW}[DRY-RUN] Would run seed_products_bulk.sql${NC}"
     fi
 elif [ "$MAPPINGS_ONLY" = true ]; then
-    echo -e "\n${YELLOW}Running mappings-only seeding...${NC}"
+    echo -e "\n${YELLOW}Running fuzzy matching via core-server API...${NC}"
     if [ "$DRY_RUN" = false ]; then
-        docker cp "$SCRIPT_DIR/seed_ingredient_mappings.sql" "$POSTGRES_CONTAINER:/tmp/"
-        docker exec "$POSTGRES_CONTAINER" psql -U "$DB_USER" -d "$DB_NAME" -f /tmp/seed_ingredient_mappings.sql
+        # Check if core-server is running
+        if ! curl -s "${CORE_SERVER_URL}/actuator/health" | grep -q "UP"; then
+            echo -e "${RED}Error: core-server is not running or not healthy at ${CORE_SERVER_URL}${NC}"
+            echo -e "${YELLOW}Start it with: docker compose up -d core-server${NC}"
+            exit 1
+        fi
+        
+        echo -e "${BLUE}Calling POST ${CORE_SERVER_URL}/shopping-list/match ...${NC}"
+        echo -e "${YELLOW}This may take 2-3 minutes for multi-tier matching...${NC}"
+        
+        START_TIME=$(date +%s)
+        RESPONSE=$(curl -s -X POST "${CORE_SERVER_URL}/shopping-list/match" \
+            -H "Content-Type: application/json" \
+            -w "\n%{http_code}")
+        END_TIME=$(date +%s)
+        
+        HTTP_CODE=$(echo "$RESPONSE" | tail -n1)
+        BODY=$(echo "$RESPONSE" | head -n-1)
+        
+        DURATION=$((END_TIME - START_TIME))
+        MINUTES=$((DURATION / 60))
+        SECONDS=$((DURATION % 60))
+        
+        if [ "$HTTP_CODE" = "200" ]; then
+            echo -e "${GREEN}✓ Fuzzy matching completed in ${MINUTES}m ${SECONDS}s${NC}"
+            echo -e "${GREEN}Response: ${BODY}${NC}"
+        else
+            echo -e "${RED}✗ Fuzzy matching failed (HTTP ${HTTP_CODE})${NC}"
+            echo -e "${RED}Response: ${BODY}${NC}"
+            exit 1
+        fi
     else
-        echo -e "${YELLOW}[DRY-RUN] Would run seed_ingredient_mappings.sql${NC}"
+        echo -e "${YELLOW}[DRY-RUN] Would call POST ${CORE_SERVER_URL}/shopping-list/match${NC}"
     fi
 fi
 
