@@ -72,36 +72,28 @@ export default function Landing() {
               </span>
             </div>
             
-            <h1 className="text-5xl md:text-7xl font-bold text-gray-900 mb-6 leading-tight">
+            <h1 className="text-4xl sm:text-5xl md:text-7xl font-bold text-gray-900 mb-4 sm:mb-6 leading-tight">
               Your Personal
               <span className="block bg-gradient-to-r from-[#2F855A] via-emerald-600 to-teal-600 bg-clip-text text-transparent">
                 Recipe Companion
               </span>
             </h1>
             
-            <p className="text-xl md:text-2xl text-gray-700 mb-12 max-w-2xl mx-auto leading-relaxed">
+            <p className="text-lg sm:text-xl md:text-2xl text-gray-700 mb-8 sm:mb-12 max-w-2xl mx-auto leading-relaxed">
               Discover personalized recipes tailored to your taste, dietary needs, and budget. Shop smart with automated ingredient lists from your local markets.
             </p>
 
-            <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
+            <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 justify-center items-center">
               <button
                 onClick={handleGetStarted}
-                className="px-8 py-4 bg-gradient-to-r from-[#2F855A] to-emerald-600 text-white rounded-xl font-semibold hover:from-[#276749] hover:to-emerald-700 transition-all shadow-lg hover:shadow-xl transform hover:scale-105 cursor-pointer whitespace-nowrap text-lg"
+                className="w-full sm:w-auto px-6 sm:px-8 py-3 sm:py-4 bg-gradient-to-r from-[#2F855A] to-emerald-600 text-white rounded-xl font-semibold hover:from-[#276749] hover:to-emerald-700 transition-all shadow-lg hover:shadow-xl transform hover:scale-105 cursor-pointer whitespace-nowrap text-base sm:text-lg"
               >
                 Get Started Free
-              </button>
-              <button
-                className="px-8 py-4 bg-white text-[#2F855A] rounded-xl font-semibold hover:bg-gray-50 transition-all border-2 border-[#2F855A]/20 cursor-pointer whitespace-nowrap text-lg"
-                onClick={() => {
-                  window.REACT_APP_NAVIGATE('/recipe-swiper');
-                }}
-              >
-                Swipe Recipes
               </button>
             </div>
 
             {/* Features Grid */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-20">
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 sm:gap-6 mt-12 sm:mt-20">
               <div className="bg-white/80 backdrop-blur-sm rounded-2xl p-6 border border-[#2F855A]/10 hover:shadow-lg transition-all">
                 <div className="w-12 h-12 bg-[#2F855A]/10 rounded-xl flex items-center justify-center mb-4 mx-auto">
                   <i className="ri-restaurant-line text-2xl text-[#2F855A]"></i>

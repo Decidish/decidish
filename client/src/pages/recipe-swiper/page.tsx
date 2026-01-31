@@ -292,7 +292,7 @@ export default function RecipeSwiper() {
                 <div className="bg-white rounded-3xl shadow-xl overflow-hidden">
                   {/* Recipe Image */}
                   <div
-                      className="relative w-full h-96 cursor-pointer group"
+                      className="relative w-full h-64 sm:h-96 cursor-pointer group"
                       onClick={handleRecipeImageClick}
                   >
                     <img
@@ -313,57 +313,57 @@ export default function RecipeSwiper() {
                   </div>
 
                   {/* Recipe Info */}
-                  <div className="p-6">
-                    <h3 className="text-2xl font-bold text-gray-900 mb-3">{currentRecipeData.title}</h3>
-                    <p className="text-sm text-gray-600 mb-4">{currentRecipeData.description}</p>
+                  <div className="p-4 sm:p-6">
+                    <h3 className="text-xl sm:text-2xl font-bold text-gray-900 mb-2 sm:mb-3">{currentRecipeData.title}</h3>
+                    <p className="text-xs sm:text-sm text-gray-600 mb-3 sm:mb-4 line-clamp-2">{currentRecipeData.description}</p>
 
                     {/* Stats */}
-                    <div className="grid grid-cols-4 gap-3 mb-6">
-                      <div className="bg-emerald-50 rounded-lg p-3 text-center">
-                        <i className="ri-fire-line text-xl text-[#2F855A] mb-1"></i>
-                        <div className="text-sm font-semibold text-gray-900">{currentRecipeData.nutrients.calories}</div>
-                        <div className="text-xs text-gray-600">Calories</div>
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-3 mb-4 sm:mb-6">
+                      <div className="bg-emerald-50 rounded-lg p-2 sm:p-3 text-center">
+                        <i className="ri-fire-line text-lg sm:text-xl text-[#2F855A] mb-0.5 sm:mb-1"></i>
+                        <div className="text-xs sm:text-sm font-semibold text-gray-900">{currentRecipeData.nutrients.calories}</div>
+                        <div className="text-[10px] sm:text-xs text-gray-600">Calories</div>
                       </div>
-                      <div className="bg-teal-50 rounded-lg p-3 text-center">
-                        <i className="ri-time-line text-xl text-teal-600 mb-1"></i>
-                        <div className="text-sm font-semibold text-gray-900">{currentRecipeData.total_time}m</div>
-                        <div className="text-xs text-gray-600">Time</div>
+                      <div className="bg-teal-50 rounded-lg p-2 sm:p-3 text-center">
+                        <i className="ri-time-line text-lg sm:text-xl text-teal-600 mb-0.5 sm:mb-1"></i>
+                        <div className="text-xs sm:text-sm font-semibold text-gray-900">{currentRecipeData.total_time}m</div>
+                        <div className="text-[10px] sm:text-xs text-gray-600">Time</div>
                       </div>
-                      <div className="bg-green-50 rounded-lg p-3 text-center">
-                        <i className="ri-restaurant-line text-xl text-green-600 mb-1"></i>
-                        <div className="text-sm font-semibold text-gray-900">{currentRecipeData.yields}</div>
-                        <div className="text-xs text-gray-600">Servings</div>
+                      <div className="bg-green-50 rounded-lg p-2 sm:p-3 text-center">
+                        <i className="ri-restaurant-line text-lg sm:text-xl text-green-600 mb-0.5 sm:mb-1"></i>
+                        <div className="text-xs sm:text-sm font-semibold text-gray-900">{currentRecipeData.yields}</div>
+                        <div className="text-[10px] sm:text-xs text-gray-600">Servings</div>
                       </div>
-                      <div className="bg-amber-50 rounded-lg p-3 text-center">
-                        <i className="ri-star-line text-xl text-amber-600 mb-1"></i>
-                        {/* <div className="text-sm font-semibold text-gray-900">{currentRecipeData.difficulty}</div> */}
-                        <div className="text-sm font-semibold text-gray-900">{"Medium"}</div>
-                        <div className="text-xs text-gray-600">Level</div>
+                      <div className="bg-amber-50 rounded-lg p-2 sm:p-3 text-center">
+                        <i className="ri-star-line text-lg sm:text-xl text-amber-600 mb-0.5 sm:mb-1"></i>
+                        {/* <div className="text-xs sm:text-sm font-semibold text-gray-900">{currentRecipeData.difficulty}</div> */}
+                        <div className="text-xs sm:text-sm font-semibold text-gray-900">{"Medium"}</div>
+                        <div className="text-[10px] sm:text-xs text-gray-600">Level</div>
                       </div>
                     </div>
 
                     {/* Action Buttons */}
-                    <div className="flex flex-col sm:flex-row gap-3">
+                    <div className="flex flex-col sm:flex-row gap-2 sm:gap-3">
                       <button
                         onClick={handleDislike}
-                        className="flex-1 py-4 bg-gray-100 text-gray-700 rounded-xl font-semibold hover:bg-gray-200 transition-all flex items-center justify-center gap-2 cursor-pointer whitespace-nowrap"
+                        className="flex-1 py-3 sm:py-4 bg-gray-100 text-gray-700 rounded-xl font-semibold hover:bg-gray-200 transition-all flex items-center justify-center gap-2 cursor-pointer whitespace-nowrap text-sm sm:text-base"
                       >
-                        <i className="ri-close-line text-2xl"></i>
+                        <i className="ri-close-line text-xl sm:text-2xl"></i>
                         <span>Skip</span>
                       </button>
                       <button
                         onClick={handleLikeOnly}
-                        className="flex-1 py-4 bg-gradient-to-r from-[#2F855A] to-emerald-600 text-white rounded-xl font-semibold hover:from-[#276749] hover:to-emerald-700 transition-all flex items-center justify-center gap-2 shadow-lg cursor-pointer whitespace-nowrap"
+                        className="flex-1 py-3 sm:py-4 bg-gradient-to-r from-[#2F855A] to-emerald-600 text-white rounded-xl font-semibold hover:from-[#276749] hover:to-emerald-700 transition-all flex items-center justify-center gap-2 shadow-lg cursor-pointer whitespace-nowrap text-sm sm:text-base"
                       >
-                        <i className="ri-heart-line text-2xl"></i>
+                        <i className="ri-heart-line text-xl sm:text-2xl"></i>
                         <span>Like</span>
                       </button>
                       <button
                         onClick={handleLike}
-                        className="flex-1 py-4 bg-gradient-to-r from-amber-500 to-orange-500 text-white rounded-xl font-semibold hover:from-amber-600 hover:to-orange-600 transition-all flex items-center justify-center gap-2 shadow-lg cursor-pointer whitespace-nowrap"
+                        className="flex-1 py-3 sm:py-4 bg-gradient-to-r from-amber-500 to-orange-500 text-white rounded-xl font-semibold hover:from-amber-600 hover:to-orange-600 transition-all flex items-center justify-center gap-2 shadow-lg cursor-pointer whitespace-nowrap text-sm sm:text-base"
                       >
-                        <i className="ri-shopping-cart-2-line text-2xl"></i>
-                        <span>Add to Shopping List</span>
+                        <i className="ri-shopping-cart-2-line text-xl sm:text-2xl"></i>
+                        <span className="hidden xs:inline">Add to</span> <span>Cart</span>
                       </button>
                     </div>
                   </div>

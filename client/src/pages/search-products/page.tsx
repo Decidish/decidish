@@ -176,12 +176,15 @@ export default function SearchProducts() {
 
   const renderPaginationButtons = () => {
     const buttons = [];
-    for (let i = 1; i <= totalPages; i++) {
+    const maxVisible = 3;
+    
+    // Always show first 3 pages (or less if totalPages < 3)
+    for (let i = 1; i <= Math.min(maxVisible, totalPages); i++) {
       buttons.push(
         <button
           key={i}
           onClick={() => handleSearch(i)}
-          className={`w-10 h-10 flex items-center justify-center rounded-lg transition-all font-medium cursor-pointer ${
+          className={`w-8 h-8 sm:w-10 sm:h-10 flex items-center justify-center rounded-lg transition-all font-medium cursor-pointer text-sm sm:text-base ${
             currentPage === i
               ? 'bg-[#2F855A] text-white shadow-md'
               : 'bg-white border border-gray-200 text-gray-700 hover:border-[#2F855A] hover:text-[#2F855A]'
@@ -191,6 +194,33 @@ export default function SearchProducts() {
         </button>
       );
     }
+    
+    // Show dots if there are more pages after the first 3
+    if (totalPages > maxVisible + 1) {
+      buttons.push(
+        <span key="dots" className="w-8 h-8 sm:w-10 sm:h-10 flex items-center justify-center text-gray-400 text-sm">
+          ...
+        </span>
+      );
+    }
+    
+    // Show last page if it's not already shown
+    if (totalPages > maxVisible) {
+      buttons.push(
+        <button
+          key={totalPages}
+          onClick={() => handleSearch(totalPages)}
+          className={`w-8 h-8 sm:w-10 sm:h-10 flex items-center justify-center rounded-lg transition-all font-medium cursor-pointer text-sm sm:text-base ${
+            currentPage === totalPages
+              ? 'bg-[#2F855A] text-white shadow-md'
+              : 'bg-white border border-gray-200 text-gray-700 hover:border-[#2F855A] hover:text-[#2F855A]'
+          }`}
+        >
+          {totalPages}
+        </button>
+      );
+    }
+    
     return buttons;
   };
   
@@ -201,7 +231,7 @@ export default function SearchProducts() {
       {/* Floating Cart Trigger */}
       <button 
         onClick={() => setShowCart(true)}
-        className="fixed bottom-8 right-8 z-40 bg-gradient-to-r from-[#2F855A] to-emerald-600 text-white w-16 h-16 rounded-full shadow-2xl hover:scale-105 transition-transform flex items-center justify-center cursor-pointer border-4 border-emerald-50"
+        className="fixed bottom-4 right-4 sm:bottom-8 sm:right-8 z-40 bg-gradient-to-r from-[#2F855A] to-emerald-600 text-white w-14 h-14 sm:w-16 sm:h-16 rounded-full shadow-2xl hover:scale-105 transition-transform flex items-center justify-center cursor-pointer border-4 border-emerald-50"
       >
         <div className="relative">
           <i className="ri-shopping-cart-2-line text-2xl"></i>
@@ -246,20 +276,20 @@ export default function SearchProducts() {
           </button>
         </div>
         {/* Search Header */}
-        <div className="text-center mb-8">
-          <h1 className="text-4xl font-bold text-gray-900 mb-3">
+        <div className="text-center mb-6 sm:mb-8">
+          <h1 className="text-2xl sm:text-4xl font-bold text-gray-900 mb-2 sm:mb-3">
             Search Products
           </h1>
-          <p className="text-lg text-gray-600">
+          <p className="text-sm sm:text-lg text-gray-600">
             Browse current inventory and find the best prices
           </p>
         </div>
 
         {/* Search Bar */}
-        <div className="bg-white rounded-2xl shadow-lg p-6 mb-8">
-          <div className="flex gap-3 mb-6">
+        <div className="bg-white rounded-2xl shadow-lg p-4 sm:p-6 mb-6 sm:mb-8">
+          <div className="flex flex-col sm:flex-row gap-3 mb-4 sm:mb-6">
             <div className="flex-1 relative">
-              <i className="ri-search-line absolute left-4 top-1/2 -translate-y-1/2 text-xl text-gray-400"></i>
+              <i className="ri-search-line absolute left-4 top-1/2 -translate-y-1/2 text-lg sm:text-xl text-gray-400"></i>
               <input
                 type="text"
                 disabled={isMarketLoading}
@@ -267,13 +297,13 @@ export default function SearchProducts() {
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 onKeyPress={handleKeyPress}
-                className="w-full pl-12 pr-4 py-3 border-2 border-gray-200 rounded-xl focus:border-[#2F855A] focus:outline-none text-base transition-colors"
+                className="w-full pl-10 sm:pl-12 pr-4 py-3 border-2 border-gray-200 rounded-xl focus:border-[#2F855A] focus:outline-none text-sm sm:text-base transition-colors"
               />
             </div>
             <button
               onClick={() => handleSearch(1)}
               disabled={isSearching}
-              className="px-8 py-3 bg-gradient-to-r from-[#2F855A] to-emerald-600 text-white rounded-xl font-semibold hover:from-[#276749] hover:to-emerald-700 transition-all shadow-md hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer whitespace-nowrap"
+              className="w-full sm:w-auto px-6 sm:px-8 py-3 bg-gradient-to-r from-[#2F855A] to-emerald-600 text-white rounded-xl font-semibold hover:from-[#276749] hover:to-emerald-700 transition-all shadow-md hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer whitespace-nowrap"
             >
               {isSearching ? (
                 <i className="ri-loader-4-line text-xl animate-spin"></i>
@@ -284,7 +314,7 @@ export default function SearchProducts() {
           </div>
 
           {/* Filters */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 Category & Dietary
@@ -393,11 +423,11 @@ export default function SearchProducts() {
 
         {/* Pagination */}
         {hasSearched && totalPages > 1 && (
-          <div className="flex justify-center gap-2 mb-10">
+          <div className="flex justify-center gap-1.5 sm:gap-2 mb-10">
             <button
               onClick={() => handlePageChange(currentPage - 1)}
               disabled={currentPage === 1}
-              className="w-10 h-10 flex items-center justify-center rounded-lg border border-gray-200 hover:bg-gray-50 disabled:opacity-50 cursor-pointer"
+              className="w-8 h-8 sm:w-10 sm:h-10 flex items-center justify-center rounded-lg border border-gray-200 hover:bg-gray-50 disabled:opacity-50 cursor-pointer"
             >
               <i className="ri-arrow-left-s-line"></i>
             </button>
@@ -405,7 +435,7 @@ export default function SearchProducts() {
             <button
               onClick={() => handlePageChange(currentPage + 1)}
               disabled={currentPage === totalPages}
-              className="w-10 h-10 flex items-center justify-center rounded-lg border border-gray-200 hover:bg-gray-50 disabled:opacity-50 cursor-pointer"
+              className="w-8 h-8 sm:w-10 sm:h-10 flex items-center justify-center rounded-lg border border-gray-200 hover:bg-gray-50 disabled:opacity-50 cursor-pointer"
             >
               <i className="ri-arrow-right-s-line"></i>
             </button>
@@ -415,12 +445,16 @@ export default function SearchProducts() {
 
       {/* --- Details Modal --- */}
       {showProductModal && selectedProduct && (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 z-50 animate-fade-in">
-          <div className="bg-white rounded-2xl shadow-xl max-w-2xl w-full overflow-hidden flex flex-col md:flex-row max-h-[90vh]">
-            <div className="md:w-5/12 bg-gray-100 relative min-h-[250px]">
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-end sm:items-center justify-center sm:p-4 z-50 animate-fade-in">
+          <div className="bg-white rounded-t-2xl sm:rounded-2xl shadow-xl w-full sm:max-w-2xl overflow-hidden flex flex-col max-h-[85vh] sm:max-h-[90vh]">
+            <div className="w-full sm:hidden aspect-video bg-gray-100 relative flex-shrink-0">
               <img src={selectedProduct.imageUrl} alt={selectedProduct.name} className="absolute inset-0 w-full h-full object-cover" />
             </div>
-            <div className="md:w-7/12 p-6 overflow-y-auto">
+            <div className="hidden sm:flex sm:flex-row flex-1 min-h-0">
+              <div className="md:w-5/12 bg-gray-100 relative min-h-[250px]">
+                <img src={selectedProduct.imageUrl} alt={selectedProduct.name} className="absolute inset-0 w-full h-full object-cover" />
+              </div>
+              <div className="md:w-7/12 p-6 overflow-y-auto">
               <div className="flex justify-end items-start mb-4">
                 <button onClick={() => setShowProductModal(false)} className="text-gray-400 hover:text-gray-600">
                   <i className="ri-close-line text-2xl"></i>
@@ -450,6 +484,37 @@ export default function SearchProducts() {
                 Add to List
               </button>
             </div>
+              </div>
+            </div>
+            {/* Mobile content section */}
+            <div className="sm:hidden p-4 overflow-y-auto flex-1">
+              <div className="flex justify-between items-start mb-3">
+                <h2 className="text-lg font-bold text-gray-900 flex-1 pr-4 line-clamp-2">{selectedProduct.name}</h2>
+                <button onClick={() => setShowProductModal(false)} className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-gray-100 flex-shrink-0">
+                  <i className="ri-close-line text-xl text-gray-600"></i>
+                </button>
+              </div>
+              <div className="text-gray-500 text-sm mb-3">{selectedProduct.grammage}</div>
+
+              <div className="flex flex-wrap gap-1.5 mb-4">
+                 {selectedProduct.attributes?.isOrganic && <span className="px-2 py-0.5 bg-green-100 text-green-700 text-xs rounded-md font-medium">Organic</span>}
+                 {selectedProduct.attributes?.isVegan && <span className="px-2 py-0.5 bg-emerald-100 text-emerald-700 text-xs rounded-md font-medium">Vegan</span>}
+                 {selectedProduct.attributes?.isGlutenFree && <span className="px-2 py-0.5 bg-amber-100 text-amber-700 text-xs rounded-md font-medium">Gluten Free</span>}
+                 {selectedProduct.attributes?.isDairyFree && <span className="px-2 py-0.5 bg-blue-100 text-blue-700 text-xs rounded-md font-medium">Lactose Free</span>}
+                 {selectedProduct.attributes?.isRegional && <span className="px-2 py-0.5 bg-purple-100 text-purple-700 text-xs rounded-md font-medium">Regional</span>}
+              </div>
+              
+              <div className="flex items-center justify-between pt-3 border-t border-gray-100">
+                <div className="text-2xl font-bold text-[#2F855A]">
+                  {formatPrice(selectedProduct.price)}€
+                </div>
+                <button
+                  onClick={() => addToCart(selectedProduct)}
+                  className="px-6 py-2.5 bg-[#2F855A] hover:bg-[#276749] text-white rounded-lg font-semibold transition-colors text-sm"
+                >
+                  Add to List
+                </button>
+              </div>
             </div>
           </div>
         </div>
@@ -499,13 +564,13 @@ export default function SearchProducts() {
       )}
       {/*Market Modal */}
       {showMarketModal && (
-        <div className="fixed inset-0 z-[60] bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 animate-fade-in">
-          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-4xl max-h-[90vh] overflow-hidden flex flex-col relative">
+        <div className="fixed inset-0 z-[60] bg-black/60 backdrop-blur-sm flex items-end sm:items-center justify-center sm:p-4 animate-fade-in">
+          <div className="bg-white rounded-t-2xl sm:rounded-2xl shadow-2xl w-full sm:max-w-4xl max-h-[90vh] overflow-hidden flex flex-col relative">
 
             {/* Close Button */}
             <button
               onClick={() => setShowMarketModal(false)}
-              className="absolute top-4 right-4 z-10 w-8 h-8 bg-white/80 rounded-full flex items-center justify-center hover:bg-red-50 hover:text-red-500 transition-colors"
+              className="absolute top-3 right-3 sm:top-4 sm:right-4 z-10 w-8 h-8 bg-white/80 rounded-full flex items-center justify-center hover:bg-red-50 hover:text-red-500 transition-colors"
             >
               <i className="ri-close-line text-xl"></i>
             </button>

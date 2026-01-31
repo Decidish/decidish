@@ -303,39 +303,39 @@ export default function AdminPage() {
 
       <div className="max-w-6xl mx-auto px-4 py-8">
         {/* Stats Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
-          <div className="bg-white rounded-2xl shadow-sm p-6">
-            <div className="flex items-center gap-4">
-              <div className="w-14 h-14 flex items-center justify-center bg-emerald-50 rounded-xl">
-                <i className="ri-restaurant-2-line text-2xl text-[#2F855A]"></i>
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4 mb-6 sm:mb-8">
+          <div className="bg-white rounded-2xl shadow-sm p-4 sm:p-6">
+            <div className="flex items-center gap-3 sm:gap-4">
+              <div className="w-12 h-12 sm:w-14 sm:h-14 flex items-center justify-center bg-emerald-50 rounded-xl">
+                <i className="ri-restaurant-2-line text-xl sm:text-2xl text-[#2F855A]"></i>
               </div>
               <div>
-                <div className="text-3xl font-bold text-gray-900">{stats.total}</div>
-                <p className="text-sm text-gray-600">Total Recipes</p>
+                <div className="text-2xl sm:text-3xl font-bold text-gray-900">{stats.total}</div>
+                <p className="text-xs sm:text-sm text-gray-600">Total Recipes</p>
               </div>
             </div>
           </div>
 
-          <div className="bg-white rounded-2xl shadow-sm p-6">
-            <div className="flex items-center gap-4">
-              <div className="w-14 h-14 flex items-center justify-center bg-teal-50 rounded-xl">
-                <i className="ri-upload-cloud-line text-2xl text-teal-600"></i>
+          <div className="bg-white rounded-2xl shadow-sm p-4 sm:p-6">
+            <div className="flex items-center gap-3 sm:gap-4">
+              <div className="w-12 h-12 sm:w-14 sm:h-14 flex items-center justify-center bg-teal-50 rounded-xl">
+                <i className="ri-upload-cloud-line text-xl sm:text-2xl text-teal-600"></i>
               </div>
               <div>
-                <div className="text-3xl font-bold text-gray-900">{stats.today}</div>
-                <p className="text-sm text-gray-600">Imported Today</p>
+                <div className="text-2xl sm:text-3xl font-bold text-gray-900">{stats.today}</div>
+                <p className="text-xs sm:text-sm text-gray-600">Imported Today</p>
               </div>
             </div>
           </div>
 
-          <div className="bg-white rounded-2xl shadow-sm p-6">
-            <div className="flex items-center gap-4">
-              <div className="w-14 h-14 flex items-center justify-center bg-amber-50 rounded-xl">
-                <i className="ri-user-heart-line text-2xl text-amber-600"></i>
+          <div className="bg-white rounded-2xl shadow-sm p-4 sm:p-6">
+            <div className="flex items-center gap-3 sm:gap-4">
+              <div className="w-12 h-12 sm:w-14 sm:h-14 flex items-center justify-center bg-amber-50 rounded-xl">
+                <i className="ri-user-heart-line text-xl sm:text-2xl text-amber-600"></i>
               </div>
               <div>
-                <div className="text-3xl font-bold text-gray-900">{stats.users}</div>
-                <p className="text-sm text-gray-600">Active Users</p>
+                <div className="text-2xl sm:text-3xl font-bold text-gray-900">{stats.users}</div>
+                <p className="text-xs sm:text-sm text-gray-600">Active Users</p>
               </div>
             </div>
           </div>
@@ -347,35 +347,35 @@ export default function AdminPage() {
             <div className="flex">
               <button
                 onClick={() => setActiveTab('url')}
-                className={`flex-1 px-6 py-4 text-sm font-semibold transition-colors cursor-pointer whitespace-nowrap flex items-center justify-center gap-2 ${
+                className={`flex-1 px-3 sm:px-6 py-3 sm:py-4 text-xs sm:text-sm font-semibold transition-colors cursor-pointer whitespace-nowrap flex items-center justify-center gap-1 sm:gap-2 ${
                   activeTab === 'url'
                     ? 'text-[#2F855A] border-b-2 border-[#2F855A] bg-emerald-50'
                     : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
                 }`}
               >
-                <i className="ri-link text-lg"></i>
-                Import from URL
+                <i className="ri-link text-base sm:text-lg"></i>
+                <span className="hidden xs:inline">Import from</span> URL
               </button>
               <button
                 onClick={() => setActiveTab('rewe')}
-                className={`flex-1 px-6 py-4 text-sm font-semibold transition-colors cursor-pointer whitespace-nowrap flex items-center justify-center gap-2 ${
+                className={`flex-1 px-3 sm:px-6 py-3 sm:py-4 text-xs sm:text-sm font-semibold transition-colors cursor-pointer whitespace-nowrap flex items-center justify-center gap-1 sm:gap-2 ${
                   activeTab === 'rewe'
                     ? 'text-[#2F855A] border-b-2 border-[#2F855A] bg-emerald-50'
                     : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
                 }`}
               >
-                <i className="ri-shopping-cart-line text-lg"></i>
-                Import from Rewe
+                <i className="ri-shopping-cart-line text-base sm:text-lg"></i>
+                <span className="hidden xs:inline">Import from</span> Rewe
               </button>
             </div>
           </div>
 
           {/* URL Import Tab */}
           {activeTab === 'url' && (
-            <div className="p-8">
+            <div className="p-4 sm:p-8">
               <div>
-                <h3 className="text-lg font-bold text-gray-900 mb-2">Import Recipe from URL</h3>
-                <p className="text-sm text-gray-600 mb-6">
+                <h3 className="text-base sm:text-lg font-bold text-gray-900 mb-2">Import Recipe from URL</h3>
+                <p className="text-xs sm:text-sm text-gray-600 mb-4 sm:mb-6">
                   Enter a recipe URL from popular cooking websites. We'll automatically extract the recipe details.
                 </p>
 
@@ -570,45 +570,45 @@ export default function AdminPage() {
 
             <div className="divide-y divide-gray-200">
               {historyReweJobs.map((job) => (
-                <div key={job.id} className="p-6 hover:bg-gray-50 transition-colors">
-                  <div className="flex items-center justify-between mb-4">
-                    <div className="flex items-center gap-4 flex-1">
-                      <div className="w-12 h-12 flex items-center justify-center rounded-xl bg-emerald-50">
-                        <i className="ri-shopping-cart-line text-2xl text-[#2F855A]"></i>
+                <div key={job.id} className="p-4 sm:p-6 hover:bg-gray-50 transition-colors">
+                  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-4 mb-3 sm:mb-4">
+                    <div className="flex items-center gap-3 sm:gap-4 flex-1">
+                      <div className="w-10 h-10 sm:w-12 sm:h-12 flex items-center justify-center rounded-xl bg-emerald-50 flex-shrink-0">
+                        <i className="ri-shopping-cart-line text-xl sm:text-2xl text-[#2F855A]"></i>
                       </div>
                       <div className="flex-1 min-w-0">
-                        <h4 className="font-semibold text-gray-900 mb-1">Rewe Recipe Import</h4>
-                        <div className="flex items-center gap-3 text-xs text-gray-600">
+                        <h4 className="font-semibold text-gray-900 mb-1 text-sm sm:text-base">Rewe Recipe Import</h4>
+                        <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-3 text-[10px] sm:text-xs text-gray-600">
                           <span className="flex items-center gap-1">
                             <i className="ri-time-line"></i>
-                            Started: {new Date(job.startTime).toLocaleString()}
+                            {new Date(job.startTime).toLocaleString()}
                           </span>
                           {job.endTime && (
                             <span className="flex items-center gap-1">
                               <i className="ri-timer-line"></i>
-                              Duration: {formatDuration(job.startTime, job.endTime)}
+                              {formatDuration(job.startTime, job.endTime)}
                             </span>
                           )}
                         </div>
                       </div>
                     </div>
-                    <div className={`px-4 py-2 rounded-lg border text-sm font-semibold flex items-center gap-2 ${getJobStatusColor(job.status)}`}>
+                    <div className={`px-3 py-1.5 sm:px-4 sm:py-2 rounded-lg border text-xs sm:text-sm font-semibold flex items-center gap-1.5 sm:gap-2 self-start sm:self-auto ${getJobStatusColor(job.status)}`}>
                       <i className={getJobStatusIcon(job.status)}></i>
                       {job.status.charAt(0).toUpperCase() + job.status.slice(1)}
                     </div>
                   </div>
 
-                  <div className="flex items-center gap-4">
+                  <div className="flex items-center gap-3 sm:gap-4">
                     <div className="flex-1">
-                      <div className="w-full bg-gray-200 rounded-full h-2">
+                      <div className="w-full bg-gray-200 rounded-full h-1.5 sm:h-2">
                         <div
-                          className="bg-[#2F855A] h-2 rounded-full transition-all duration-500"
+                          className="bg-[#2F855A] h-1.5 sm:h-2 rounded-full transition-all duration-500"
                           style={{ width: `${job.progress}%` }}
                         ></div>
                       </div>
                     </div>
-                    <div className="text-sm font-semibold text-gray-900 whitespace-nowrap">
-                      {job.recipesImported} / {job.totalRecipes} recipes
+                    <div className="text-xs sm:text-sm font-semibold text-gray-900 whitespace-nowrap">
+                      {job.recipesImported}/{job.totalRecipes}
                     </div>
                   </div>
                 </div>

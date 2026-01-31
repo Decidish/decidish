@@ -163,28 +163,28 @@ export default function MyRecipesPage() {
     <div className="min-h-screen bg-gray-50">
       {/* Header */}
       <div className="bg-white shadow-sm">
-        <div className="max-w-6xl mx-auto px-4 py-8">
-          <div className="flex items-center justify-between mb-6">
+        <div className="max-w-6xl mx-auto px-4 py-6 sm:py-8">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
             <div>
-              <h1 className="text-3xl font-bold text-gray-900 mb-2">
+              <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-1 sm:mb-2">
                 My Saved Recipes
               </h1>
-              <p className="text-gray-600">
+              <p className="text-sm sm:text-base text-gray-600">
                 Recipes you've added to your shopping list
               </p>
             </div>
 
-            <div className="flex items-center gap-4">
-              <div className="bg-emerald-50 px-4 py-2 rounded-lg">
-                <span className="text-emerald-700 font-medium">
-                  {totalRecipes} Recipe{totalRecipes !== 1 ? 's' : ''} Total
+            <div className="flex items-center gap-3 sm:gap-4 flex-wrap">
+              <div className="bg-emerald-50 px-3 sm:px-4 py-2 rounded-lg">
+                <span className="text-emerald-700 font-medium text-sm sm:text-base">
+                  {totalRecipes} Recipe{totalRecipes !== 1 ? 's' : ''}
                 </span>
               </div>
 
               <select
                 value={sortBy}
                 onChange={(e) => setSortBy(e.target.value as 'newest' | 'oldest' | 'name')}
-                className="px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 cursor-pointer"
+                className="px-3 sm:px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 cursor-pointer text-sm sm:text-base"
               >
                 <option value="newest">Newest First</option>
                 <option value="oldest">Oldest First</option>
@@ -241,14 +241,14 @@ export default function MyRecipesPage() {
           </div>
         ) : !loading && !error ? (
           <>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 mb-8">
+            <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-6 mb-8">
               {currentRecipes.map((recipe) => (
                 <div
                   key={recipe.id}
                   onClick={() => handleRecipeClick(recipe)}
-                  className="bg-white rounded-2xl shadow-sm hover:shadow-xl transition-all duration-300 overflow-hidden cursor-pointer group border border-gray-100"
+                  className="bg-white rounded-xl sm:rounded-2xl shadow-sm hover:shadow-xl transition-all duration-300 overflow-hidden cursor-pointer group border border-gray-100"
                 >
-                  <div className="relative h-48 overflow-hidden">
+                  <div className="relative h-32 sm:h-48 overflow-hidden">
                     <img
                       src={recipe.image}
                       alt={recipe.title}
@@ -260,12 +260,12 @@ export default function MyRecipesPage() {
                     </div>
                   </div>
                   
-                  <div className="p-5">
-                    <h3 className="font-bold text-gray-900 text-lg mb-2 line-clamp-1 group-hover:text-[#2F855A] transition-colors">
+                  <div className="p-3 sm:p-5">
+                    <h3 className="font-bold text-gray-900 text-sm sm:text-lg mb-1 sm:mb-2 line-clamp-2 group-hover:text-[#2F855A] transition-colors">
                       {recipe.title}
                     </h3>
                     
-                    <div className="flex items-center gap-4 text-sm text-gray-500 mb-4">
+                    <div className="flex items-center gap-2 sm:gap-4 text-xs sm:text-sm text-gray-500 mb-2 sm:mb-4">
                       <span className="flex items-center gap-1">
                         <i className="ri-time-line"></i>
                         {recipe.total_time}m
@@ -274,13 +274,13 @@ export default function MyRecipesPage() {
                         <i className="ri-fire-line"></i>
                         {recipe.nutrients.calories}
                       </span>
-                      <span className="flex items-center gap-1">
+                      <span className="hidden sm:flex items-center gap-1">
                         <i className="ri-restaurant-line"></i>
                         {recipe.yields}
                       </span>
                     </div>
 
-                    <div className="flex flex-wrap gap-2">
+                    <div className="hidden sm:flex flex-wrap gap-2">
                       {recipe.keywords?.slice(0, 3).map((tag, i) => (
                         <span key={i} className="px-2 py-1 bg-gray-100 text-gray-600 text-xs rounded-md font-medium">
                           {tag}

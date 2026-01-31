@@ -290,8 +290,8 @@ export default function Profile() {
   return (
     <>
       <div className="min-h-screen bg-gradient-to-br from-emerald-50 via-green-50 to-teal-50">
-      <div className="max-w-7xl mx-auto px-6 py-8">
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 py-6 sm:py-8">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6 mb-6">
           {/* Row 1: Compact user box (position 1) */}
           <div className="bg-white rounded-2xl shadow-lg p-4 flex flex-col gap-2">
             <div>
@@ -401,20 +401,20 @@ export default function Profile() {
         </div>
 
         {/* Current Preferences */}
-        <div className="bg-white rounded-2xl shadow-lg p-6 mb-6">
-          <div className="flex justify-between items-center mb-4">
-            <h2 className="text-xl font-bold text-gray-900">Current Preferences</h2>
+        <div className="bg-white rounded-2xl shadow-lg p-4 sm:p-6 mb-6">
+          <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3 sm:gap-0 mb-4">
+            <h2 className="text-lg sm:text-xl font-bold text-gray-900">Current Preferences</h2>
             <button
               onClick={handleEditPreferences}
-              className="px-4 py-2 bg-[#2F855A] text-white rounded-lg font-medium hover:bg-[#276749] transition-all shadow-md cursor-pointer whitespace-nowrap flex items-center gap-2 text-sm"
+              className="w-full sm:w-auto px-4 py-2 bg-[#2F855A] text-white rounded-lg font-medium hover:bg-[#276749] transition-all shadow-md cursor-pointer whitespace-nowrap flex items-center justify-center gap-2 text-sm"
             >
               <i className="ri-settings-3-line"></i>
               Edit Preferences
             </button>
           </div>
           {preferences ? (
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div className="p-4 bg-gray-50 rounded-lg">
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3 sm:gap-4">
+              <div className="p-3 sm:p-4 bg-gray-50 rounded-lg">
                 <div className="text-sm text-gray-600 mb-1">Typical Cooking Time</div>
                 <div className="text-lg font-semibold text-gray-900">
                   {preferences.min_cooking_time && preferences.max_cooking_time
@@ -527,7 +527,7 @@ export default function Profile() {
 
             {/* Liked Recipes */}
             {activeTab === 'liked' && !loading && (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
                 {likedHistory.map((entry) => {
                   const recipe = entry.recipe;
                   return (

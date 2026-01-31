@@ -356,7 +356,7 @@ export default function Questionnaire() {
                   <i className="ri-alert-line text-red-500"></i>
                   Allergies & Intolerances
                 </h3>
-                <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
                   {['Peanuts', 'Tree Nuts', 'Milk', 'Eggs', 'Fish', 'Shellfish', 'Soy', 'Wheat', 'Sesame'].map(allergy => (
                     <button
                       key={allergy}
@@ -383,25 +383,25 @@ export default function Questionnaire() {
                   <i className="ri-timer-line text-[#2F855A]"></i>
                   Typical Cooking Time Available
                 </h3>
-                <div className="grid grid-cols-2 md:grid-cols-5 gap-2">
+                <div className="grid grid-cols-3 xs:grid-cols-5 gap-2">
                   {[
-                    { value: '0-15', label: '0-15 min' },
-                    { value: '15-30', label: '15-30 min' },
-                    { value: '30-45', label: '30-45 min' },
-                    { value: '45-60', label: '45-60 min' },
-                    { value: '60+', label: '60+ min' }
+                    { value: '0-15', label: '0-15' },
+                    { value: '15-30', label: '15-30' },
+                    { value: '30-45', label: '30-45' },
+                    { value: '45-60', label: '45-60' },
+                    { value: '60+', label: '60+' }
                   ].map(time => (
                     <button
                       key={time.value}
                       type="button"
                       onClick={() => setCookingTime(time.value)}
-                      className={`px-4 py-3 rounded-lg border-2 text-sm font-medium transition-all cursor-pointer ${
+                      className={`px-2 sm:px-4 py-2 sm:py-3 rounded-lg border-2 text-xs sm:text-sm font-medium transition-all cursor-pointer ${
                         cookingTime === time.value
                           ? 'border-[#2F855A] bg-[#2F855A]/5 text-[#2F855A]'
                           : 'border-gray-200 bg-white text-gray-700 hover:border-[#2F855A]/30'
                       }`}
                     >
-                      {time.label}
+                      {time.label}<span className="hidden sm:inline"> min</span>
                     </button>
                   ))}
                 </div>
