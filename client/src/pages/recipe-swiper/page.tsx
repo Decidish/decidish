@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { recipesApi, RecipeRecommendation } from '@/api/recipe-swiper/recipesApi';
 import { productsApi, ShoppingListResponse, IngredientGroup, Product } from '@/api/recipe-swiper/productsApi';
 import {CartItem, shoppingListApi} from "@/api/shopping-list/shoppingCartApi";
@@ -20,6 +20,47 @@ export default function RecipeSwiper() {
   const [marketId, setMarketId] = useState<number | null>(null);
   const [shoppingFlowOpen, setShoppingFlowOpen] = useState(false);
   const [shoppingFlowRecipe, setShoppingFlowRecipe] = useState<UIRecipe | null>(null);
+
+  // Swipe gesture state
+  const [touchStart, setTouchStart] = useState<number | null>(null);
+  const [touchEnd, setTouchEnd] = useState<number | null>(null);
+  const [swipeOffset, setSwipeOffset] = useState(0);
+  const cardRef = useRef<HTMLDivElement>(null);
+
+  // Minimum swipe distance to trigger action (in pixels)
+  const minSwipeDistance = 100;
+
+  const handleTouchStart = (e: React.TouchEvent) => {
+    setTouchEnd(null);
+    setTouchStart(e.targetTouches[0].clientX);
+  };
+
+  const handleTouchMove = (e: React.TouchEvent) => {
+    setTouchEnd(e.targetTouches[0].clientX);
+    if (touchStart !== null) {
+      setSwipeOffset(e.targetTouches[0].clientX - touchStart);
+    }
+  };
+
+  const handleTouchEnd = () => {
+    if (!touchStart || !touchEnd) {
+      setSwipeOffset(0);
+      return;
+    }
+    const distance = touchStart - touchEnd;
+    const isLeftSwipe = distance > minSwipeDistance;
+    const isRightSwipe = distance < -minSwipeDistance;
+    
+    if (isLeftSwipe) {
+      handleDislike();
+    } else if (isRightSwipe) {
+      handleLikeOnly();
+    }
+    
+    setSwipeOffset(0);
+    setTouchStart(null);
+    setTouchEnd(null);
+  };
 
   // FETCH RECIPES FROM BACKEND
   useEffect(() => {
@@ -288,7 +329,34 @@ export default function RecipeSwiper() {
 
           {/* Recipe Card */}
           {currentRecipeData && (
-              <div className="relative">
+              <div 
+                ref={cardRef}
+                className="relative touch-pan-y"
+                onTouchStart={handleTouchStart}
+                onTouchMove={handleTouchMove}
+                onTouchEnd={handleTouchEnd}
+                style={{
+                  transform: `translateX(${swipeOffset}px) rotate(${swipeOffset * 0.02}deg)`,
+                  transition: swipeOffset === 0 ? 'transform 0.3s ease-out' : 'none',
+                }}
+              >
+                {/* Swipe indicators */}
+                {swipeOffset !== 0 && (
+                  <>
+                    <div 
+                      className="absolute top-8 left-4 z-10 bg-red-500 text-white px-4 py-2 rounded-xl font-bold text-lg border-4 border-red-600"
+                      style={{ opacity: Math.min(Math.abs(swipeOffset) / 100, 1) * (swipeOffset < 0 ? 1 : 0) }}
+                    >
+                      SKIP
+                    </div>
+                    <div 
+                      className="absolute top-8 right-4 z-10 bg-green-500 text-white px-4 py-2 rounded-xl font-bold text-lg border-4 border-green-600"
+                      style={{ opacity: Math.min(Math.abs(swipeOffset) / 100, 1) * (swipeOffset > 0 ? 1 : 0) }}
+                    >
+                      LIKE
+                    </div>
+                  </>
+                )}
                 <div className="bg-white rounded-3xl shadow-xl overflow-hidden">
                   {/* Recipe Image */}
                   <div
@@ -317,30 +385,6 @@ export default function RecipeSwiper() {
                     <h3 className="text-xl sm:text-2xl font-bold text-gray-900 mb-2 sm:mb-3">{currentRecipeData.title}</h3>
                     <p className="text-xs sm:text-sm text-gray-600 mb-3 sm:mb-4 line-clamp-2">{currentRecipeData.description}</p>
 
-                    {/* Stats */}
-                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-3 mb-3 sm:mb-4">
-                      <div className="bg-emerald-50 rounded-lg p-2 sm:p-3 text-center">
-                        <i className="ri-time-line text-lg sm:text-xl text-[#2F855A] mb-0.5 sm:mb-1"></i>
-                        <div className="text-xs sm:text-sm font-semibold text-gray-900">{currentRecipeData.prep_time || 10}m</div>
-                        <div className="text-[10px] sm:text-xs text-gray-600">Prep</div>
-                      </div>
-                      <div className="bg-teal-50 rounded-lg p-2 sm:p-3 text-center">
-                        <i className="ri-fire-line text-lg sm:text-xl text-teal-600 mb-0.5 sm:mb-1"></i>
-                        <div className="text-xs sm:text-sm font-semibold text-gray-900">{currentRecipeData.cook_time || currentRecipeData.total_time - (currentRecipeData.prep_time || 10)}m</div>
-                        <div className="text-[10px] sm:text-xs text-gray-600">Cook</div>
-                      </div>
-                      <div className="bg-green-50 rounded-lg p-2 sm:p-3 text-center">
-                        <i className="ri-restaurant-line text-lg sm:text-xl text-green-600 mb-0.5 sm:mb-1"></i>
-                        <div className="text-xs sm:text-sm font-semibold text-gray-900">{currentRecipeData.yields}</div>
-                        <div className="text-[10px] sm:text-xs text-gray-600">Servings</div>
-                      </div>
-                      <div className="bg-amber-50 rounded-lg p-2 sm:p-3 text-center">
-                        <i className="ri-flashlight-line text-lg sm:text-xl text-amber-600 mb-0.5 sm:mb-1"></i>
-                        <div className="text-xs sm:text-sm font-semibold text-gray-900">{currentRecipeData.nutrients.calories}</div>
-                        <div className="text-[10px] sm:text-xs text-gray-600">Calories</div>
-                      </div>
-                    </div>
-
                     {/* Allergens */}
                     {currentRecipeData.allergies && currentRecipeData.allergies.length > 0 && (
                       <div className="mb-3 sm:mb-4">
@@ -365,6 +409,30 @@ export default function RecipeSwiper() {
                         </div>
                       </div>
                     )}
+
+                    {/* Stats */}
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-3 mb-3 sm:mb-4">
+                      <div className="bg-emerald-50 rounded-lg p-2 sm:p-3 text-center">
+                        <i className="ri-time-line text-lg sm:text-xl text-[#2F855A] mb-0.5 sm:mb-1"></i>
+                        <div className="text-xs sm:text-sm font-semibold text-gray-900">{currentRecipeData.prep_time || 10}m</div>
+                        <div className="text-[10px] sm:text-xs text-gray-600">Prep</div>
+                      </div>
+                      <div className="bg-teal-50 rounded-lg p-2 sm:p-3 text-center">
+                        <i className="ri-fire-line text-lg sm:text-xl text-teal-600 mb-0.5 sm:mb-1"></i>
+                        <div className="text-xs sm:text-sm font-semibold text-gray-900">{currentRecipeData.cook_time || currentRecipeData.total_time - (currentRecipeData.prep_time || 10)}m</div>
+                        <div className="text-[10px] sm:text-xs text-gray-600">Cook</div>
+                      </div>
+                      <div className="bg-green-50 rounded-lg p-2 sm:p-3 text-center">
+                        <i className="ri-restaurant-line text-lg sm:text-xl text-green-600 mb-0.5 sm:mb-1"></i>
+                        <div className="text-xs sm:text-sm font-semibold text-gray-900">{currentRecipeData.yields}</div>
+                        <div className="text-[10px] sm:text-xs text-gray-600">Servings</div>
+                      </div>
+                      <div className="bg-amber-50 rounded-lg p-2 sm:p-3 text-center">
+                        <i className="ri-flashlight-line text-lg sm:text-xl text-amber-600 mb-0.5 sm:mb-1"></i>
+                        <div className="text-xs sm:text-sm font-semibold text-gray-900">{currentRecipeData.nutrients.calories}</div>
+                        <div className="text-[10px] sm:text-xs text-gray-600">Calories</div>
+                      </div>
+                    </div>
 
                     {/* Action Buttons */}
                     <div className="flex flex-col sm:flex-row gap-2 sm:gap-3">
