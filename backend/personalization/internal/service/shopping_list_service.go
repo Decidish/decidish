@@ -67,6 +67,7 @@ func (service ShoppingListService) AddProductsToShoppingList(ctx *gin.Context) {
 	// Use batch insert for much better performance
 	err = repository.AddItemsToShoppingListBatch(tx, userId, items)
 	if err != nil {
+		log.Printf("[ERROR] AddItemsToShoppingListBatch failed for user %s: %v", userId, err)
 		ctx.JSON(http.StatusInternalServerError, err.Error())
 		return
 	}

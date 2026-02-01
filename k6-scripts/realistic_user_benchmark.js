@@ -128,6 +128,35 @@ const RECIPE_SEARCH_TERMS = [
   'Fisch', 'Vegan', 'Dessert', 'Frühstück', 'Mittagessen',
 ];
 
+// Common ingredients that users would expect to always find in a supermarket
+// These are used to distinguish "expected matches" from "rare/exotic ingredients"
+const COMMON_INGREDIENTS = [
+  // Dairy
+  'milch', 'butter', 'käse', 'sahne', 'joghurt', 'quark', 'schmand', 'crème fraîche',
+  // 'milk', 'cheese', 'cream', 'yogurt',
+  // Eggs
+  'eier', 'ei', 'eggs', 'egg',
+  // Bread & Grains
+  'brot', 'mehl', 'reis', 'nudeln', 'pasta', 'spaghetti', 'haferflocken',
+  // 'bread', 'flour', 'rice', 'noodles', 'oats',
+  // Basics
+  'salz', 'pfeffer', 'zucker', 'öl', 'olivenöl', 'sonnenblumenöl', 'essig',
+  // 'salt', 'pepper', 'sugar', 'oil', 'olive oil', 'vinegar',
+  // Common vegetables
+  'kartoffel', 'kartoffeln', 'zwiebel', 'zwiebeln', 'knoblauch', 'tomate', 'tomaten',
+  'karotte', 'karotten', 'gurke', 'paprika', 'zucchini', 'brokkoli', 'spinat',
+  // 'potato', 'onion', 'garlic', 'tomato', 'carrot', 'cucumber', 'pepper',
+  // Common fruits
+  'apfel', 'äpfel', 'banane', 'bananen', 'zitrone', 'zitronen', 'orange', 'orangen',
+  // 'apple', 'banana', 'lemon', 'orange',
+  // Common proteins
+  'hähnchen', 'huhn', 'rind', 'schwein', 'hackfleisch', 'schinken', 'wurst',
+  // 'chicken', 'beef', 'pork', 'ham',
+  // Condiments
+  'senf', 'ketchup', 'mayonnaise', 'sojasoße', 'sojasauce',
+  // 'mustard', 'soy sauce',
+];
+
 // ============= CUSTOM METRICS =============
 // Metric names are designed to match the Grafana dashboard expectations
 // k6 automatically prefixes these with 'k6_' in Prometheus output
@@ -192,6 +221,17 @@ const searchesPerformed = new Counter('searches_performed');              // Tot
 // ===== SHOPPING BEHAVIOR METRICS =====
 const shoppingListChecks = new Counter('shopping_list_checks');           // Shopping list view/checks
 const shoppingSessionsActive = new Gauge('shopping_sessions_active');     // Users currently in shopping mode
+
+// ===== INGREDIENT MATCHING METRICS =====
+// Track unmatched ingredients (no product options found)
+const ingredientConsulted = new Counter('ingredient_consulted');          // Total ingredients consulted by users
+const ingredientMatched = new Counter('ingredient_matched');              // Ingredients with product options
+const ingredientUnmatched = new Counter('ingredient_unmatched');          // Ingredients with no product options
+const ingredientMatchRate = new Rate('ingredient_match_rate');            // Percentage of matched ingredients
+
+// Track common vs uncommon ingredients for context
+const commonIngredientUnmatched = new Counter('common_ingredient_unmatched');    // Common ingredients without options
+const uncommonIngredientUnmatched = new Counter('uncommon_ingredient_unmatched'); // Uncommon ingredients without options
 
 // ===== SCALABILITY METRICS =====
 const requestsPerVU = new Gauge('requests_per_vu');                       // Efficiency metric for scalability
@@ -371,12 +411,23 @@ export function setup() {
   }
   
   // Pre-create test user pool
+  // Scale user pool based on scenario to handle up to 1000 VUs
+  // Rule: 5 users per VU to avoid token contention during parallel logins
   const userPool = [];
-  const numUsers = parseInt(__ENV.USERS) || 200;
+  const scenarioVUs = {
+    'standard': 100,
+    'scalability': 1000,
+    'max_capacity': 5000,
+    'soak': 200,
+    'spike': 1000,
+    'quick': 10,
+  };
+  const targetVUs = parseInt(__ENV.VUS) || scenarioVUs[SCENARIO] || 100;
+  const numUsers = parseInt(__ENV.USERS) || Math.max(targetVUs * 5, 500);
   let createdCount = 0;
   let existingCount = 0;
   
-  console.log(`[Setup] Creating ${numUsers} test users...`);
+  console.log(`[Setup] Creating ${numUsers} test users for ${targetVUs} target VUs...`);
   for (let i = 0; i < numUsers; i++) {
     const timestamp = Date.now();
     const username = `bench_realistic_${i}_${timestamp}@test.com`;
@@ -536,6 +587,44 @@ function generatePreferenceVector() {
 
 function isRateLimited(response) {
   return response.status === 429;
+}
+
+// Check if an ingredient name is considered "common" (expected to always have products)
+function isCommonIngredient(ingredientName) {
+  if (!ingredientName) return false;
+  const name = ingredientName.toLowerCase().trim();
+  return COMMON_INGREDIENTS.some(common => 
+    name.includes(common) || common.includes(name)
+  );
+}
+
+// Track ingredient matching statistics
+function trackIngredientMatching(ingredientGroup) {
+  const ingredientName = ingredientGroup.ingredientName || ingredientGroup.ingredient_name || '';
+  const hasOptions = ingredientGroup.options && ingredientGroup.options.length > 0;
+  
+  ingredientConsulted.add(1);
+  
+  if (hasOptions) {
+    ingredientMatched.add(1);
+    ingredientMatchRate.add(1);
+  } else {
+    ingredientUnmatched.add(1);
+    ingredientMatchRate.add(0);
+    
+    // Categorize as common or uncommon
+    if (isCommonIngredient(ingredientName)) {
+      commonIngredientUnmatched.add(1);
+      if (isDebugEnabled('ingredients')) {
+        console.warn(`[Ingredient WARN] Common ingredient without options: "${ingredientName}"`);
+      }
+    } else {
+      uncommonIngredientUnmatched.add(1);
+      if (isDebugEnabled('ingredients')) {
+        console.log(`[Ingredient DEBUG] Uncommon ingredient without options: "${ingredientName}"`);
+      }
+    }
+  }
 }
 
 // ============= USER FLOW: SIGNUP =============
@@ -892,7 +981,11 @@ function addRecipeToShoppingListFlow(authToken, recipeId, marketId) {
       const cartItems = [];
       
       // Step 2: User selects products for each ingredient
+      // Track ingredient matching statistics for all ingredients
       items.forEach((ingredientGroup, idx) => {
+        // Track ingredient matching for Grafana dashboard
+        trackIngredientMatching(ingredientGroup);
+        
         if (ingredientGroup.options && ingredientGroup.options.length > 0) {
           // Simulate user thinking about options
           sleep(thinkTime('selectProduct'));
@@ -1419,6 +1512,13 @@ export function teardown(data) {
   console.log(`  Products selected: ${productsSelectedTotal}`);
   console.log(`  Searches performed: ${searchesPerformed}`);
   console.log(`  Shopping list checks: ${shoppingListChecks}`);
+  console.log('');
+  console.log('🥕 INGREDIENT MATCHING METRICS:');
+  console.log(`  Total ingredients consulted: ${ingredientConsulted}`);
+  console.log(`  Ingredients with products (matched): ${ingredientMatched}`);
+  console.log(`  Ingredients without products (unmatched): ${ingredientUnmatched}`);
+  console.log(`  Common ingredients unmatched: ${commonIngredientUnmatched}`);
+  console.log(`  Uncommon ingredients unmatched: ${uncommonIngredientUnmatched}`);
   console.log('');
   console.log('⚠️  RATE LIMIT & ERROR METRICS:');
   console.log(`  Rate limit hits (429): ${rateLimitHits}`);

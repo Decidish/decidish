@@ -38,43 +38,57 @@ type CartItemInput struct {
 }
 
 // AddItemsToShoppingListBatch adds multiple items to shopping list in a single efficient batch operation
+// Uses atomic INSERT ON CONFLICT for race-condition-safe get-or-create of shopping list
 func AddItemsToShoppingListBatch(tx *sql.Tx, userId string, items []CartItemInput) error {
 	if len(items) == 0 {
 		return nil
 	}
 
-	// Step 1: Get or create the active shopping list
-	// First try to get existing active list
+	// Step 1: Deduplicate items by (productId, recipeId) - sum quantities for duplicates
+	// This is necessary because PostgreSQL ON CONFLICT cannot affect the same row twice in one INSERT
+	type itemKey struct {
+		productId int
+		recipeId  int
+	}
+	deduped := make(map[itemKey]int) // key -> total quantity
+	for _, item := range items {
+		key := itemKey{productId: item.ProductId, recipeId: item.RecipeId}
+		deduped[key] += item.Quantity
+	}
+
+	// Convert back to arrays
+	dedupedItems := make([]CartItemInput, 0, len(deduped))
+	for key, qty := range deduped {
+		dedupedItems = append(dedupedItems, CartItemInput{
+			ProductId: key.productId,
+			Quantity:  qty,
+			RecipeId:  key.recipeId,
+		})
+	}
+
+	// Step 2: Atomic get-or-create the active shopping list using INSERT ON CONFLICT
+	// This uses the partial unique index idx_shopping_lists_active_user (user_id WHERE completed = FALSE)
+	// to handle concurrent requests safely without race conditions
 	var listId int
 	err := tx.QueryRow(`
-		SELECT id FROM shopping_lists 
-		WHERE user_id = $1 AND completed = FALSE
-		LIMIT 1
+		INSERT INTO shopping_lists (user_id, completed)
+		VALUES ($1, FALSE)
+		ON CONFLICT (user_id) WHERE completed = FALSE
+		DO UPDATE SET user_id = EXCLUDED.user_id
+		RETURNING id
 	`, userId).Scan(&listId)
 
 	if err != nil {
-		if err == sql.ErrNoRows {
-			// No active list exists, create one
-			err = tx.QueryRow(`
-				INSERT INTO shopping_lists (user_id, completed)
-				VALUES ($1, FALSE)
-				RETURNING id
-			`, userId).Scan(&listId)
-			if err != nil {
-				return fmt.Errorf("failed to create new shopping list: %w", err)
-			}
-		} else {
-			return fmt.Errorf("failed to query active shopping list: %w", err)
-		}
+		return fmt.Errorf("failed to get or create shopping list: %w", err)
 	}
 
-	// Step 2: Batch insert all items using a single query with UNNEST
+	// Step 3: Batch insert all items using a single query with UNNEST
 	// This is much faster than individual inserts
-	productIds := make([]int, len(items))
-	quantities := make([]int, len(items))
-	recipeIds := make([]int, len(items))
+	productIds := make([]int, len(dedupedItems))
+	quantities := make([]int, len(dedupedItems))
+	recipeIds := make([]int, len(dedupedItems))
 
-	for i, item := range items {
+	for i, item := range dedupedItems {
 		productIds[i] = item.ProductId
 		quantities[i] = item.Quantity
 		recipeIds[i] = item.RecipeId

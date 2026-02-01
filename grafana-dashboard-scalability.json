@@ -857,6 +857,224 @@
       ],
       "title": "⏱️ REWE API Call Duration",
       "type": "timeseries"
+    },
+    {
+      "collapsed": false,
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 71 },
+      "id": 107,
+      "panels": [],
+      "title": "🥕 INGREDIENT MATCHING - Product Coverage Analysis",
+      "type": "row"
+    },
+    {
+      "datasource": "Prometheus",
+      "description": "Percentage of ingredients that have product options available",
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "thresholds" },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "red", "value": null },
+              { "color": "orange", "value": 0.7 },
+              { "color": "yellow", "value": 0.85 },
+              { "color": "green", "value": 0.95 }
+            ]
+          },
+          "unit": "percentunit"
+        }
+      },
+      "gridPos": { "h": 6, "w": 6, "x": 0, "y": 72 },
+      "id": 40,
+      "options": {
+        "orientation": "auto",
+        "reduceOptions": { "calcs": ["lastNotNull"] },
+        "showThresholdLabels": false,
+        "showThresholdMarkers": true
+      },
+      "targets": [{
+        "expr": "avg(k6_ingredient_match_rate) OR vector(0)",
+        "refId": "A"
+      }],
+      "title": "✅ Ingredient Match Rate",
+      "type": "gauge"
+    },
+    {
+      "datasource": "Prometheus",
+      "description": "Total number of ingredients users have viewed",
+      "fieldConfig": {
+        "defaults": {
+          "mappings": [],
+          "thresholds": { "mode": "absolute", "steps": [{ "color": "blue", "value": null }] },
+          "unit": "short"
+        }
+      },
+      "gridPos": { "h": 6, "w": 4, "x": 6, "y": 72 },
+      "id": 41,
+      "options": {
+        "colorMode": "value",
+        "graphMode": "area",
+        "orientation": "auto",
+        "reduceOptions": { "calcs": ["sum"] }
+      },
+      "targets": [{ "expr": "sum(increase(k6_ingredient_consulted_total[5m])) OR vector(0)", "refId": "A" }],
+      "title": "👁️ Ingredients Consulted",
+      "type": "stat"
+    },
+    {
+      "datasource": "Prometheus",
+      "description": "Ingredients with at least one product option",
+      "fieldConfig": {
+        "defaults": {
+          "mappings": [],
+          "thresholds": { "mode": "absolute", "steps": [{ "color": "green", "value": null }] },
+          "unit": "short"
+        }
+      },
+      "gridPos": { "h": 6, "w": 4, "x": 10, "y": 72 },
+      "id": 42,
+      "options": {
+        "colorMode": "value",
+        "graphMode": "area",
+        "orientation": "auto",
+        "reduceOptions": { "calcs": ["sum"] }
+      },
+      "targets": [{ "expr": "sum(increase(k6_ingredient_matched_total[5m])) OR vector(0)", "refId": "A" }],
+      "title": "✓ Matched",
+      "type": "stat"
+    },
+    {
+      "datasource": "Prometheus",
+      "description": "Ingredients with NO product options available",
+      "fieldConfig": {
+        "defaults": {
+          "mappings": [],
+          "thresholds": { "mode": "absolute", "steps": [
+            { "color": "green", "value": null },
+            { "color": "yellow", "value": 10 },
+            { "color": "red", "value": 50 }
+          ] },
+          "unit": "short"
+        }
+      },
+      "gridPos": { "h": 6, "w": 4, "x": 14, "y": 72 },
+      "id": 43,
+      "options": {
+        "colorMode": "value",
+        "graphMode": "area",
+        "orientation": "auto",
+        "reduceOptions": { "calcs": ["sum"] }
+      },
+      "targets": [{ "expr": "sum(increase(k6_ingredient_unmatched_total[5m])) OR vector(0)", "refId": "A" }],
+      "title": "✗ Unmatched",
+      "type": "stat"
+    },
+    {
+      "datasource": "Prometheus",
+      "description": "Common ingredients (milk, bread, etc.) that had no products - these are data quality issues",
+      "fieldConfig": {
+        "defaults": {
+          "mappings": [],
+          "thresholds": { "mode": "absolute", "steps": [
+            { "color": "green", "value": null },
+            { "color": "orange", "value": 1 },
+            { "color": "red", "value": 5 }
+          ] },
+          "unit": "short"
+        }
+      },
+      "gridPos": { "h": 6, "w": 3, "x": 18, "y": 72 },
+      "id": 44,
+      "options": {
+        "colorMode": "value",
+        "graphMode": "area",
+        "orientation": "auto",
+        "reduceOptions": { "calcs": ["sum"] }
+      },
+      "targets": [{ "expr": "sum(increase(k6_common_ingredient_unmatched_total[5m])) OR vector(0)", "refId": "A" }],
+      "title": "⚠️ Common Missing",
+      "type": "stat"
+    },
+    {
+      "datasource": "Prometheus",
+      "description": "Exotic/rare ingredients without products - expected behavior",
+      "fieldConfig": {
+        "defaults": {
+          "mappings": [],
+          "thresholds": { "mode": "absolute", "steps": [{ "color": "purple", "value": null }] },
+          "unit": "short"
+        }
+      },
+      "gridPos": { "h": 6, "w": 3, "x": 21, "y": 72 },
+      "id": 45,
+      "options": {
+        "colorMode": "value",
+        "graphMode": "area",
+        "orientation": "auto",
+        "reduceOptions": { "calcs": ["sum"] }
+      },
+      "targets": [{ "expr": "sum(increase(k6_uncommon_ingredient_unmatched_total[5m])) OR vector(0)", "refId": "A" }],
+      "title": "🌿 Exotic Missing",
+      "type": "stat"
+    },
+    {
+      "datasource": "Prometheus",
+      "description": "Ingredient match rate over time - shows product coverage trends",
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "palette-classic" },
+          "custom": {
+            "drawStyle": "line",
+            "fillOpacity": 30,
+            "lineInterpolation": "smooth",
+            "lineWidth": 2,
+            "showPoints": "never"
+          },
+          "unit": "percentunit"
+        },
+        "overrides": [
+          { "matcher": { "id": "byName", "options": "Match Rate" }, "properties": [{ "id": "color", "value": { "fixedColor": "green", "mode": "fixed" } }] }
+        ]
+      },
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 78 },
+      "id": 46,
+      "options": {
+        "legend": { "calcs": ["mean", "min", "max"], "displayMode": "table", "placement": "bottom" }
+      },
+      "targets": [
+        { "expr": "avg(k6_ingredient_match_rate) OR vector(0)", "legendFormat": "Match Rate", "refId": "A" }
+      ],
+      "title": "📈 Ingredient Match Rate Over Time",
+      "type": "timeseries"
+    },
+    {
+      "datasource": "Prometheus",
+      "description": "Comparison of matched vs unmatched ingredients by type",
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "palette-classic" },
+          "custom": {
+            "drawStyle": "line",
+            "fillOpacity": 30,
+            "lineInterpolation": "smooth",
+            "lineWidth": 2,
+            "showPoints": "never"
+          },
+          "unit": "short"
+        }
+      },
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 78 },
+      "id": 47,
+      "options": {
+        "legend": { "calcs": ["sum", "last"], "displayMode": "table", "placement": "bottom" }
+      },
+      "targets": [
+        { "expr": "sum(rate(k6_ingredient_matched_total[1m])) * 60 OR vector(0)", "legendFormat": "Matched/min", "refId": "A" },
+        { "expr": "sum(rate(k6_common_ingredient_unmatched_total[1m])) * 60 OR vector(0)", "legendFormat": "Common Unmatched/min", "refId": "B" },
+        { "expr": "sum(rate(k6_uncommon_ingredient_unmatched_total[1m])) * 60 OR vector(0)", "legendFormat": "Exotic Unmatched/min", "refId": "C" }
+      ],
+      "title": "📊 Ingredient Matching Breakdown",
+      "type": "timeseries"
     }
   ],
   "refresh": "5s",
