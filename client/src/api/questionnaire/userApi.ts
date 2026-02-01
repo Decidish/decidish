@@ -4,8 +4,6 @@ export interface UserPreferences {
   allergies: string[];
   min_cooking_time: number; 
   max_cooking_time: number; 
-  budget: number;
-  skill_level: string;
   preference_vector: number[]; 
 }
 

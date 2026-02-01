@@ -1,27 +1,15 @@
 import { useEffect, useState } from 'react';
-import { ShoppingItem, ShoppingList, shoppingListApi } from '@/api/shopping-list/shoppingCartApi';
 import { UIRecipe } from '@/types/recipe';
 import RecipeDetailModal from '@/components/recipe/RecipeDetailModal';
 import { productsApi, ShoppingListResponse } from '@/api/recipe-swiper/productsApi';
 import { userApi } from '@/api/search-product/userApi';
-import { userHistoryApi } from '@/api/user-history/userHistoryApi';
-import { recipeApi } from '@/api/search/recipeApi';
-import { recipesApi } from '@/api/recipe-swiper/recipesApi';
-
-interface RecipeFromList {
-  id: string;
-  name: string;
-  image: string | null;
-  dateAdded: string;
-  items: ShoppingItem[];
-  totalItems: number;
-  totalPrice: number; // cents
-}
+import { savedRecipesApi, SavedRecipeRecord } from '@/api/saved-recipes/savedRecipesApi';
 
 export default function MyRecipesPage() {
   const [selectedRecipe, setSelectedRecipe] = useState<UIRecipe | null>(null);
   const [expandedImage, setExpandedImage] = useState<string | null>(null);
   const [recipes, setRecipes] = useState<UIRecipe[]>([]);
+  const [recipeSavedDates, setRecipeSavedDates] = useState<Map<number, Date>>(new Map());
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [sortBy, setSortBy] = useState<'newest' | 'oldest' | 'name'>('newest');
@@ -34,7 +22,7 @@ export default function MyRecipesPage() {
   const [successMessage, setSuccessMessage] = useState('');
 
   useEffect(() => {
-    const fetchRecipesAndMarket = async () => {
+    const fetchSavedRecipes = async () => {
       setLoading(true);
       setError(null);
       try {
@@ -46,136 +34,33 @@ export default function MyRecipesPage() {
           console.warn('Failed to fetch market ID', err);
         }
 
-        // Fetch active shopping list to get recipes
-        const listData: ShoppingList = await shoppingListApi.getActiveShoppingList();
-        console.log('Shopping list data:', listData);
+        // Fetch saved recipes
+        const savedRecipes = await savedRecipesApi.getSavedRecipes();
+        console.log('Saved recipes:', savedRecipes);
 
-        if (!listData?.groups || listData.groups.length === 0) {
+        if (!savedRecipes || savedRecipes.length === 0) {
           setRecipes([]);
           return;
         }
 
-        // Fetch user history recipes to enrich missing fields (allergies/yields)
-        let historyRecipeByTitle = new Map<string, UIRecipe>();
-        try {
-          const historyRecords = await userHistoryApi.getUserHistory();
-          historyRecipeByTitle = new Map(
-            historyRecords
-              .map((record) => record.recipe)
-              .filter((recipe) => recipe?.title)
-              .map((recipe) => [recipe.title.toLowerCase(), recipe])
-          );
-        } catch (err) {
-          console.warn('Failed to fetch user history for recipe enrichment', err);
-        }
-
-        const enrichRecipeFromHistory = (recipe: UIRecipe): UIRecipe => {
-          const historyRecipe = historyRecipeByTitle.get(recipe.title.toLowerCase());
-          if (!historyRecipe) return recipe;
-
-          const hasAllergies = Array.isArray(recipe.allergies) && recipe.allergies.length > 0;
-          const hasYields = typeof recipe.yields === 'string' && recipe.yields.trim().length > 0;
-
+        // Map saved recipes to UIRecipe format and track saved dates
+        const dateMap = new Map<number, Date>();
+        const uiRecipes: UIRecipe[] = savedRecipes.map((record: SavedRecipeRecord) => {
+          dateMap.set(record.recipe.id, new Date(record.saved_at));
           return {
-            ...recipe,
-            allergies: hasAllergies ? recipe.allergies : (historyRecipe.allergies || []),
-            yields: hasYields ? recipe.yields : historyRecipe.yields,
-            nutrients: {
-              calories: recipe.nutrients?.calories || historyRecipe.nutrients?.calories || '0',
-              servingSize: recipe.nutrients?.servingSize || historyRecipe.nutrients?.servingSize || recipe.yields || historyRecipe.yields || '4',
-            },
-          };
-        };
-
-        // Fetch all recommended recipes to get full details
-        let allRecipes: UIRecipe[] = [];
-        try {
-          const recommendations = await recipesApi.getRecommendations();
-          console.log('Raw recommendations from API:', recommendations);
-          allRecipes = recommendations.map((r) => ({
-            ...r,
+            ...record.recipe,
             richIngredients: null,
-          })) as UIRecipe[];
-          console.log('Mapped recipes with all fields:', allRecipes);
-        } catch (err) {
-          console.warn('Failed to fetch recommendations, will use search API:', err);
-        }
+          };
+        });
 
-        // Now match shopping list recipes with full recipe data
-        const matchedRecipes: UIRecipe[] = listData.groups
-          .map((group) => {
-            // Try to find a matching recipe from recommendations by title similarity
-            const matchedRecipe = allRecipes.find(
-              (r) =>
-                r.title.toLowerCase() === group.recipeName.toLowerCase() ||
-                r.title.toLowerCase().includes(group.recipeName.toLowerCase()) ||
-                group.recipeName.toLowerCase().includes(r.title.toLowerCase())
-            );
-
-            if (matchedRecipe) {
-              return enrichRecipeFromHistory(matchedRecipe);
-            }
-
-            // Fallback: search for the recipe
-            return null;
-          })
-          .filter((r) => r !== null) as UIRecipe[];
-
-        // If we didn't find all recipes, try searching for the ones we missed
-        const foundTitles = new Set(matchedRecipes.map((r) => r.title.toLowerCase()));
-        const missedGroups = listData.groups.filter(
-          (g) => !foundTitles.has(g.recipeName.toLowerCase())
-        );
-
-        for (const group of missedGroups) {
-          try {
-            const searchResult = await recipeApi.searchRecipes({
-              query: group.recipeName,
-              categories: [],
-              keywords: [],
-              maxTime: 'all',
-              maxCalories: 'all',
-              page: 1,
-            });
-
-            if (searchResult.recipes && searchResult.recipes.length > 0) {
-              const recipe = searchResult.recipes[0];
-              const uiRecipe: UIRecipe = {
-                id: recipe.id,
-                title: recipe.title,
-                description: recipe.description,
-                image: recipe.image,
-                total_time: recipe.total_time,
-                prep_time: recipe.prep_time,
-                cook_time: recipe.cook_time,
-                yields: recipe.nutrients?.servingSize || recipe.yields || '4',
-                ratings: recipe.ratings,
-                nutrients: {
-                  calories: recipe.nutrients?.calories || recipe.calories || '0',
-                  servingSize: recipe.nutrients?.servingSize || recipe.yields || '4',
-                },
-                ingredients: recipe.ingredients || [],
-                allergies: recipe.allergies || [],
-                instructions: recipe.instructions || '',
-                category: recipe.cuisine || '',
-                keywords: recipe.keywords || [],
-                richIngredients: null,
-              };
-              matchedRecipes.push(enrichRecipeFromHistory(uiRecipe));
-            }
-          } catch (err) {
-            console.error(`Failed to search for recipe "${group.recipeName}":`, err);
-          }
-        }
-
-        console.log('Matched recipes:', matchedRecipes);
-        setRecipes(matchedRecipes);
+        setRecipeSavedDates(dateMap);
+        setRecipes(uiRecipes);
       } catch (err: any) {
-        console.error('Failed to load shopping list recipes', err);
+        console.error('Failed to load saved recipes', err);
         if (err?.response?.status === 401) {
           window.REACT_APP_NAVIGATE('/auth');
         } else {
-          setError('Unable to load recipes from your shopping list.');
+          setError('Unable to load your saved recipes.');
         }
         setRecipes([]);
       } finally {
@@ -183,7 +68,7 @@ export default function MyRecipesPage() {
       }
     };
 
-    fetchRecipesAndMarket();
+    fetchSavedRecipes();
   }, []);
 
   // Filter recipes based on search query
@@ -194,10 +79,16 @@ export default function MyRecipesPage() {
 
   const sortedRecipes = [...filteredRecipes].sort((a, b) => {
     switch (sortBy) {
-      case 'newest':
-        return 0; // Shopping list recipes don't have date info in new format
-      case 'oldest':
-        return 0;
+      case 'newest': {
+        const dateA = recipeSavedDates.get(a.id) || new Date(0);
+        const dateB = recipeSavedDates.get(b.id) || new Date(0);
+        return dateB.getTime() - dateA.getTime();
+      }
+      case 'oldest': {
+        const dateA = recipeSavedDates.get(a.id) || new Date(0);
+        const dateB = recipeSavedDates.get(b.id) || new Date(0);
+        return dateA.getTime() - dateB.getTime();
+      }
       case 'name':
         return a.title.localeCompare(b.title);
       default:
@@ -272,28 +163,28 @@ export default function MyRecipesPage() {
     <div className="min-h-screen bg-gray-50">
       {/* Header */}
       <div className="bg-white shadow-sm">
-        <div className="max-w-6xl mx-auto px-4 py-8">
-          <div className="flex items-center justify-between mb-6">
+        <div className="max-w-6xl mx-auto px-4 py-6 sm:py-8">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
             <div>
-              <h1 className="text-3xl font-bold text-gray-900 mb-2">
-                My Recipes
+              <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-1 sm:mb-2">
+                My Saved Recipes
               </h1>
-              <p className="text-gray-600">
-                Recipes in your current shopping list
+              <p className="text-sm sm:text-base text-gray-600">
+                Recipes you've added to your shopping list
               </p>
             </div>
 
-            <div className="flex items-center gap-4">
-              <div className="bg-emerald-50 px-4 py-2 rounded-lg">
-                <span className="text-emerald-700 font-medium">
-                  {totalRecipes} Recipe{totalRecipes !== 1 ? 's' : ''} Total
+            <div className="flex items-center gap-3 sm:gap-4 flex-wrap">
+              <div className="bg-emerald-50 px-3 sm:px-4 py-2 rounded-lg">
+                <span className="text-emerald-700 font-medium text-sm sm:text-base">
+                  {totalRecipes} Recipe{totalRecipes !== 1 ? 's' : ''}
                 </span>
               </div>
 
               <select
                 value={sortBy}
                 onChange={(e) => setSortBy(e.target.value as 'newest' | 'oldest' | 'name')}
-                className="px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 cursor-pointer"
+                className="px-3 sm:px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 cursor-pointer text-sm sm:text-base"
               >
                 <option value="newest">Newest First</option>
                 <option value="oldest">Oldest First</option>
@@ -309,7 +200,7 @@ export default function MyRecipesPage() {
             </div>
             <input
               type="text"
-              placeholder="Search recipes or shopping list items..."
+              placeholder="Search your saved recipes..."
               value={searchQuery}
               onChange={(e) => handleSearchChange(e.target.value)}
               className="w-full pl-10 pr-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
@@ -337,27 +228,27 @@ export default function MyRecipesPage() {
         )}
         {!loading && !error && currentRecipes.length === 0 ? (
           <div className="text-center py-16">
-            <i className="ri-search-line text-6xl text-gray-300 mb-4 block"></i>
+            <i className="ri-bookmark-line text-6xl text-gray-300 mb-4 block"></i>
             <h3 className="text-xl font-medium text-gray-500 mb-2">
-              {searchQuery ? 'No recipes found' : 'No recipes in your shopping list yet'}
+              {searchQuery ? 'No recipes found' : 'No saved recipes yet'}
             </h3>
             <p className="text-gray-400">
               {searchQuery 
                 ? `Try searching for something else or clear your search` 
-                : 'Add recipes to your shopping list to see them here'
+                : 'Recipes are automatically saved when you add them to your shopping list'
               }
             </p>
           </div>
         ) : !loading && !error ? (
           <>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 mb-8">
+            <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-6 mb-8">
               {currentRecipes.map((recipe) => (
                 <div
                   key={recipe.id}
                   onClick={() => handleRecipeClick(recipe)}
-                  className="bg-white rounded-2xl shadow-sm hover:shadow-xl transition-all duration-300 overflow-hidden cursor-pointer group border border-gray-100"
+                  className="bg-white rounded-xl sm:rounded-2xl shadow-sm hover:shadow-xl transition-all duration-300 overflow-hidden cursor-pointer group border border-gray-100"
                 >
-                  <div className="relative h-48 overflow-hidden">
+                  <div className="relative h-32 sm:h-48 overflow-hidden">
                     <img
                       src={recipe.image}
                       alt={recipe.title}
@@ -369,12 +260,12 @@ export default function MyRecipesPage() {
                     </div>
                   </div>
                   
-                  <div className="p-5">
-                    <h3 className="font-bold text-gray-900 text-lg mb-2 line-clamp-1 group-hover:text-[#2F855A] transition-colors">
+                  <div className="p-3 sm:p-5">
+                    <h3 className="font-bold text-gray-900 text-sm sm:text-lg mb-1 sm:mb-2 line-clamp-2 group-hover:text-[#2F855A] transition-colors">
                       {recipe.title}
                     </h3>
                     
-                    <div className="flex items-center gap-4 text-sm text-gray-500 mb-4">
+                    <div className="flex items-center gap-2 sm:gap-4 text-xs sm:text-sm text-gray-500 mb-2 sm:mb-4">
                       <span className="flex items-center gap-1">
                         <i className="ri-time-line"></i>
                         {recipe.total_time}m
@@ -383,13 +274,13 @@ export default function MyRecipesPage() {
                         <i className="ri-fire-line"></i>
                         {recipe.nutrients.calories}
                       </span>
-                      <span className="flex items-center gap-1">
+                      <span className="hidden sm:flex items-center gap-1">
                         <i className="ri-restaurant-line"></i>
                         {recipe.yields}
                       </span>
                     </div>
 
-                    <div className="flex flex-wrap gap-2">
+                    <div className="hidden sm:flex flex-wrap gap-2">
                       {recipe.keywords?.slice(0, 3).map((tag, i) => (
                         <span key={i} className="px-2 py-1 bg-gray-100 text-gray-600 text-xs rounded-md font-medium">
                           {tag}

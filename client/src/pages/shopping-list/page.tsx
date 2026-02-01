@@ -338,16 +338,16 @@ export default function ShoppingListPage() {
       {activeTab === 'current' && (
         <div className="max-w-4xl mx-auto px-4 py-6">
           {/* Progress Card */}
-          <div className="bg-white rounded-2xl shadow-sm p-6 mb-6">
-            <div className="flex items-center justify-between mb-4">
+          <div className="bg-white rounded-2xl shadow-sm p-4 sm:p-6 mb-4 sm:mb-6">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-0 mb-4">
               <div>
-                <h2 className="text-2xl font-bold text-gray-900">Shopping Progress</h2>
-                <p className="text-sm text-gray-600 mt-1">
+                <h2 className="text-xl sm:text-2xl font-bold text-gray-900">Shopping Progress</h2>
+                <p className="text-xs sm:text-sm text-gray-600 mt-1">
                   {checkedCount} of {totalCount} items collected
                 </p>
               </div>
-              <div className="text-right">
-                <div className="text-3xl font-bold text-[#2F855A]">{(totalPrice / 100).toFixed(2)}€</div>
+              <div className="text-left sm:text-right">
+                <div className="text-2xl sm:text-3xl font-bold text-[#2F855A]">{(totalPrice / 100).toFixed(2)}€</div>
                 <p className="text-xs text-gray-600">Total Cost</p>
               </div>
             </div>
@@ -474,7 +474,7 @@ export default function ShoppingListPage() {
                                 </button>
 
                                 {/* Product Image */}
-                                <div className="w-16 h-16 flex-shrink-0 bg-gray-100 rounded-lg overflow-hidden">
+                                <div className="w-12 h-12 sm:w-16 sm:h-16 flex-shrink-0 bg-gray-100 rounded-lg overflow-hidden">
                                   <img
                                     src={item.image}
                                     alt={item.name}
@@ -484,11 +484,11 @@ export default function ShoppingListPage() {
 
                                 {/* Product Info */}
                                 <div className="flex-1 min-w-0">
-                                  <h3 className={`font-semibold text-gray-900 mb-1 text-sm ${item.checked ? 'line-through' : ''}`}>
+                                  <h3 className={`font-semibold text-gray-900 mb-1 text-xs sm:text-sm line-clamp-2 ${item.checked ? 'line-through' : ''}`}>
                                     {item.name}
                                   </h3>
                                   <div className="flex items-center gap-2">
-                                    <span className="text-base font-bold text-[#2F855A]">
+                                    <span className="text-sm sm:text-base font-bold text-[#2F855A]">
                                       {((item.price / 100) * (productQuantities[item.id] || item.quantity || 1)).toFixed(2)}€
                                     </span>
                                   </div>
@@ -543,7 +543,7 @@ export default function ShoppingListPage() {
                               </button>
 
                               {/* Product Image */}
-                              <div className="w-20 h-20 flex-shrink-0 bg-gray-100 rounded-lg overflow-hidden">
+                              <div className="w-14 h-14 sm:w-20 sm:h-20 flex-shrink-0 bg-gray-100 rounded-lg overflow-hidden">
                                 <img
                                   src={item.image}
                                   alt={item.name}
@@ -553,11 +553,11 @@ export default function ShoppingListPage() {
 
                               {/* Product Info */}
                               <div className="flex-1 min-w-0">
-                                <h3 className={`font-semibold text-gray-900 mb-1 text-sm ${item.checked ? 'line-through' : ''}`}>
+                                <h3 className={`font-semibold text-gray-900 mb-1 text-xs sm:text-sm line-clamp-2 ${item.checked ? 'line-through' : ''}`}>
                                   {item.name}
                                 </h3>
-                                <div className="flex items-center gap-3">
-                                  <span className="text-base font-bold text-[#2F855A]">
+                                <div className="flex items-center gap-2 sm:gap-3">
+                                  <span className="text-sm sm:text-base font-bold text-[#2F855A]">
                                     {((item.price / 100) * (productQuantities[item.id] || item.quantity || 1)).toFixed(2)}€
                                   </span>
                                 </div>
@@ -779,18 +779,18 @@ export default function ShoppingListPage() {
                     {expandedHistoryGroups[group.recipeName] && (
                       <div className="p-4 space-y-3 bg-white border-t border-gray-200">
                         {group.items.map((item) => (
-                          <div key={item.id} className="flex items-center gap-3 pb-3 border-b border-gray-100 last:border-b-0">
-                            <div className="w-12 h-12 bg-gray-100 rounded-lg overflow-hidden flex-shrink-0">
+                          <div key={item.id} className="flex items-center gap-2 sm:gap-3 pb-3 border-b border-gray-100 last:border-b-0">
+                            <div className="w-10 h-10 sm:w-12 sm:h-12 bg-gray-100 rounded-lg overflow-hidden flex-shrink-0">
                               <img src={item.image} alt={item.name} className="w-full h-full object-cover" />
                             </div>
                             <div className="flex-1 min-w-0">
-                              <p className="font-medium text-gray-900 text-sm">
+                              <p className="font-medium text-gray-900 text-xs sm:text-sm line-clamp-2">
                                 {item.name}
                               </p>
-                              <p className="text-xs text-gray-500 mt-1">Qty: {item.quantity}</p>
+                              <p className="text-[10px] sm:text-xs text-gray-500 mt-0.5 sm:mt-1">Qty: {item.quantity}</p>
                             </div>
                             <div className="text-right flex-shrink-0">
-                              <p className="font-bold text-[#2F855A]">{((item.price / 100) * item.quantity).toFixed(2)}€</p>
+                              <p className="font-bold text-[#2F855A] text-sm sm:text-base">{((item.price / 100) * item.quantity).toFixed(2)}€</p>
                             </div>
                           </div>
                         ))}

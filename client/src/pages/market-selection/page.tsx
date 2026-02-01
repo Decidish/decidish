@@ -118,24 +118,24 @@ export default function MarketSelection({ onComplete }: MarketSelectionProps) {
   });
 
   return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-indigo-50 px-4 py-8">
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-indigo-50 px-4 py-4 sm:py-8">
         <div className="max-w-6xl mx-auto">
-          <div className="mb-8">
+          <div className="mb-6 sm:mb-8">
             <img
                 src="https://public.readdy.ai/ai/img_res/b0724f47-0896-45dd-92da-e15712b65265.png"
                 alt="Recipe Recommender Logo"
-                className="h-16 w-auto mx-auto mb-6"
+                className="h-12 sm:h-16 w-auto mx-auto mb-4 sm:mb-6"
             />
-            <h1 className="text-3xl font-bold text-gray-900 text-center mb-2">Select Your Local Market</h1>
+            <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 text-center mb-2">Select Your Local Market</h1>
             <p className="text-sm text-gray-600 text-center">Find the nearest store to shop for your ingredients</p>
           </div>
 
-        <div className="bg-white rounded-2xl shadow-lg p-8 mb-6">
-          <form onSubmit={handleSearch} className="mb-6">
+        <div className="bg-white rounded-2xl shadow-lg p-4 sm:p-8 mb-4 sm:mb-6">
+          <form onSubmit={handleSearch} className="mb-4 sm:mb-6">
             <label htmlFor="postalCode" className="block text-sm font-medium text-gray-700 mb-2">
               Enter Your Postal Code
             </label>
-            <div className="flex gap-3">
+            <div className="flex flex-col sm:flex-row gap-3">
               <input
                 type="text"
                 id="postalCode"
@@ -148,7 +148,7 @@ export default function MarketSelection({ onComplete }: MarketSelectionProps) {
               <button
                 type="submit"
                 disabled={isLoading}
-                className="px-6 py-3 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-lg font-medium hover:from-indigo-700 hover:to-purple-700 transition-colors shadow-md hover:shadow-lg cursor-pointer whitespace-nowrap disabled:opacity-50"
+                className="w-full sm:w-auto px-6 py-3 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-lg font-medium hover:from-indigo-700 hover:to-purple-700 transition-colors shadow-md hover:shadow-lg cursor-pointer whitespace-nowrap disabled:opacity-50"
               >
                 {isLoading ? 'Searching...' : 'Search'}
               </button>
@@ -166,7 +166,7 @@ export default function MarketSelection({ onComplete }: MarketSelectionProps) {
                   <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                     {/* Map Section */}
                     <div className="order-2 lg:order-1">
-                      <div className="w-full h-[500px] rounded-lg overflow-hidden border-2 border-gray-200 shadow-md">
+                      <div className="w-full h-[300px] sm:h-[500px] rounded-lg overflow-hidden border-2 border-gray-200 shadow-md">
                         <MapContainer
                             center={mapCenter}
                             zoom={13}
@@ -207,7 +207,7 @@ export default function MarketSelection({ onComplete }: MarketSelectionProps) {
 
                     {/* Markets List Section */}
                     <div className="order-1 lg:order-2">
-                      <div className="max-h-[500px] overflow-y-auto pr-2 space-y-4 custom-scrollbar">
+                      <div className="max-h-[250px] sm:max-h-[500px] overflow-y-auto pr-2 space-y-3 sm:space-y-4 custom-scrollbar">
                         {markets.map((market) => (
                             <div
                                 key={market.id}

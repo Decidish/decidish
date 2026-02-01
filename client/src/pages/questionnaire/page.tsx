@@ -84,8 +84,7 @@ export default function Questionnaire() {
 
   const [allergies, setAllergies] = useState<string[]>([]);
   const [cookingTime, setCookingTime] = useState('');
-  const [budget, setBudget] = useState<number | ''>('');
-  const [skillLevel, setSkillLevel] = useState('');
+
 
   const togglePreference = (key: keyof Preferences) => {
     setPreferences(prev => ({
@@ -172,8 +171,6 @@ export default function Questionnaire() {
     console.log('Preference Vector (35 dimensions):', preferenceVector);
     console.log('Allergies:', allergies);
     console.log('Cooking Time:', cookingTime);
-    console.log('Budget:', budget);
-    console.log('Skill Level:', skillLevel);
     
     // Convert "30-45" into min=30, max=45
     const { min, max } = parseCookingTime(cookingTime);
@@ -182,8 +179,6 @@ export default function Questionnaire() {
       allergies : allergies,
       min_cooking_time: min,
       max_cooking_time: max, 
-      budget : Number(budget),
-      skill_level: skillLevel,
       preference_vector: preferenceVector
     };
 
@@ -356,7 +351,7 @@ export default function Questionnaire() {
                   <i className="ri-alert-line text-red-500"></i>
                   Allergies & Intolerances
                 </h3>
-                <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
                   {['Peanuts', 'Tree Nuts', 'Milk', 'Eggs', 'Fish', 'Shellfish', 'Soy', 'Wheat', 'Sesame'].map(allergy => (
                     <button
                       key={allergy}
@@ -383,116 +378,31 @@ export default function Questionnaire() {
                   <i className="ri-timer-line text-[#2F855A]"></i>
                   Typical Cooking Time Available
                 </h3>
-                <div className="grid grid-cols-2 md:grid-cols-5 gap-2">
+                <div className="grid grid-cols-3 xs:grid-cols-5 gap-2">
                   {[
-                    { value: '0-15', label: '0-15 min' },
-                    { value: '15-30', label: '15-30 min' },
-                    { value: '30-45', label: '30-45 min' },
-                    { value: '45-60', label: '45-60 min' },
-                    { value: '60+', label: '60+ min' }
+                    { value: '0-15', label: '0-15' },
+                    { value: '15-30', label: '15-30' },
+                    { value: '30-45', label: '30-45' },
+                    { value: '45-60', label: '45-60' },
+                    { value: '60+', label: '60+' }
                   ].map(time => (
                     <button
                       key={time.value}
                       type="button"
                       onClick={() => setCookingTime(time.value)}
-                      className={`px-4 py-3 rounded-lg border-2 text-sm font-medium transition-all cursor-pointer ${
+                      className={`px-2 sm:px-4 py-2 sm:py-3 rounded-lg border-2 text-xs sm:text-sm font-medium transition-all cursor-pointer ${
                         cookingTime === time.value
                           ? 'border-[#2F855A] bg-[#2F855A]/5 text-[#2F855A]'
                           : 'border-gray-200 bg-white text-gray-700 hover:border-[#2F855A]/30'
                       }`}
                     >
-                      {time.label}
+                      {time.label}<span className="hidden sm:inline"> min</span>
                     </button>
                   ))}
                 </div>
               </div>
 
-              {/* Budget */}
-              <div>
-                <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
-                  <i className="ri-money-dollar-circle-line text-[#2F855A]"></i>
-                  Maximum Budget Per Meal (€)
-                </h3>
-                <div className="relative">
-                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                    <span className="text-gray-500 sm:text-sm">€</span>
-                  </div>
-                  <input
-                    type="number"
-                    name="budget"
-                    id="budget"
-                    min="0"
-                    className="block w-full pl-7 pr-12 py-3 sm:text-sm border-2 border-gray-200 rounded-lg focus:ring-[#2F855A] focus:border-[#2F855A]"
-                    placeholder="e.g., 20"
-                    value={budget}
-                    onChange={(e) => setBudget(Number(e.target.value))}
-                  />
-                </div>
-              </div>
-              {/* <div>
-                <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
-                  <i className="ri-money-dollar-circle-line text-[#2F855A]"></i>
-                  Budget Per Meal
-                </h3>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-                  {[
-                    { value: 'budget', label: 'Budget-Friendly', desc: 'Under $10' },
-                    { value: 'moderate', label: 'Moderate', desc: '$10-20' },
-                    { value: 'premium', label: 'Premium', desc: '$20+' }
-                  ].map(budgetOption => (
-                    <button
-                      key={budgetOption.value}
-                      type="button"
-                      onClick={() => setBudget(budgetOption.value)}
-                      className={`p-4 rounded-lg border-2 text-left transition-all cursor-pointer ${
-                        budget === budgetOption.value
-                          ? 'border-[#2F855A] bg-[#2F855A]/5'
-                          : 'border-gray-200 bg-white hover:border-[#2F855A]/30'
-                      }`}
-                    >
-                      <div className={`font-semibold text-sm mb-1 ${
-                        budget === budgetOption.value ? 'text-[#2F855A]' : 'text-gray-900'
-                      }`}>
-                        {budgetOption.label}
-                      </div>
-                      <div className="text-xs text-gray-600">{budgetOption.desc}</div>
-                    </button>
-                  ))}
-                </div>
-              </div> */}
 
-              {/* Skill Level */}
-              <div>
-                <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
-                  <i className="ri-star-line text-[#2F855A]"></i>
-                  Cooking Skill Level
-                </h3>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-                  {[
-                    { value: 'beginner', label: 'Beginner', desc: 'Simple recipes' },
-                    { value: 'intermediate', label: 'Intermediate', desc: 'Moderate complexity' },
-                    { value: 'advanced', label: 'Advanced', desc: 'Complex techniques' }
-                  ].map(skill => (
-                    <button
-                      key={skill.value}
-                      type="button"
-                      onClick={() => setSkillLevel(skill.value)}
-                      className={`p-4 rounded-lg border-2 text-left transition-all cursor-pointer ${
-                        skillLevel === skill.value
-                          ? 'border-[#2F855A] bg-[#2F855A]/5'
-                          : 'border-gray-200 bg-white hover:border-[#2F855A]/30'
-                      }`}
-                    >
-                      <div className={`font-semibold text-sm mb-1 ${
-                        skillLevel === skill.value ? 'text-[#2F855A]' : 'text-gray-900'
-                      }`}>
-                        {skill.label}
-                      </div>
-                      <div className="text-xs text-gray-600">{skill.desc}</div>
-                    </button>
-                  ))}
-                </div>
-              </div>
             </div>
           )}
         </div>

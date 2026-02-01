@@ -58,6 +58,16 @@ export default function Navigation() {
               <i className="ri-user-line text-xl text-gray-700"></i>
             </button>
 
+            {/* My Saved Recipes Button */}
+            <button
+              onClick={() => handleNavigate('/my-recipes')}
+              className="w-10 h-10 flex items-center justify-center rounded-full bg-gray-100 hover:bg-gray-200 transition-colors cursor-pointer"
+              title="My Saved Recipes"
+            >
+              <i className="ri-bookmark-line text-xl text-gray-700"></i>
+            </button>
+
+
             {/* Navigation Dropdown */}
             <div className="relative">
               <button
