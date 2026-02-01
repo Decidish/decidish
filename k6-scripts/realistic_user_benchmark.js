@@ -93,7 +93,7 @@ const MARKET_POSTAL_CODE = '80809';
 
 // User behavior configuration
 const NEW_USER_PERCENTAGE = 0.10; // 10% new users
-const MAX_RECIPES_PER_SESSION = 3; // Users typically add 1-3 recipes per session
+const MAX_RECIPES_PER_SESSION = 10; // Users typically add 1-3 recipes per session
 const MAX_RECIPES_PER_WEEK = 14; // Max recipes a user would add in a week
 
 // Realistic think times (in seconds)
