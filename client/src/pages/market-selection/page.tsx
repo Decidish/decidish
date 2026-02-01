@@ -40,19 +40,6 @@ export default function MarketSelection({ onComplete }: MarketSelectionProps) {
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  React.useEffect(() => {
-    async function checkUserMarket() {
-      const res = await userApi.getUserPreferences();
-
-    if (res?.market_id) {
-      window.REACT_APP_NAVIGATE('/recipe-swiper');
-      return;
-    }
-    }
-
-    checkUserMarket();
-  }, []);
-
   const handleSearch = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!postalCode.trim()) return;

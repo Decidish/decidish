@@ -17,11 +17,12 @@ type Job struct {
 }
 
 type ImportLog struct {
-	ID           int       `json:"id"`
-	Name         string    `json:"name"`   // The URL or Filename
-	Status       string    `json:"status"`
-	RecipeName   string    `json:"recipe_name"`
-	CreatedAt    time.Time `json:"created_at"`
+	ID         int       `json:"id"`
+	Name       string    `json:"name"` // The URL or Filename
+	Url        string    `json:"url"`  // The URL if applicable
+	Status     string    `json:"status"`
+	RecipeName string    `json:"recipe_name"`
+	CreatedAt  time.Time `json:"created_at"`
 }
 
 func CreateJob(tx *sql.Tx, name string, url *string, status string) (int, error) {
@@ -43,9 +44,9 @@ func GetJobByID(db *sql.DB, id int) (*Job, error) {
 
 	err := db.QueryRow(`
 		SELECT id, name, status, processed_items, total_items, error_message, created_at, updated_at 
-		FROM jobs WHERE id = $1`, 
+		FROM jobs WHERE id = $1`,
 		id).Scan(&job.ID, &job.Name, &job.Status, &job.ProcessedItems, &job.TotalItems, &errMsg, &job.CreatedAt, &job.UpdatedAt)
-	
+
 	if err != nil {
 		return nil, err
 	}
@@ -68,41 +69,41 @@ func GetReweJobs(db *sql.DB) ([]Job, error) {
 	var jobs []Job
 	for rows.Next() {
 		var j Job
-		// Handle NULL error_message 
-		var errMsg sql.NullString 
-		
+		// Handle NULL error_message
+		var errMsg sql.NullString
+
 		if err := rows.Scan(&j.ID, &j.Name, &j.Status, &j.ProcessedItems, &j.TotalItems, &errMsg, &j.CreatedAt, &j.UpdatedAt); err != nil {
 			return nil, err
 		}
 		if errMsg.Valid {
-            j.ErrorMessage = errMsg.String
-        }
+			j.ErrorMessage = errMsg.String
+		}
 		jobs = append(jobs, j)
 	}
 	return jobs, nil
 }
 
 func GetUrlImportHistory(db *sql.DB) ([]ImportLog, error) {
-    rows, err := db.Query(`
-        SELECT id, name, status, created_at 
+	rows, err := db.Query(`
+        SELECT id, name, url, status, created_at 
         FROM jobs 
         WHERE name = 'add_recipe'
         ORDER BY created_at DESC LIMIT 50`)
-    if err != nil {
-        return nil, err
-    }
-    defer rows.Close()
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
 
-    var logs []ImportLog
-    for rows.Next() {
-        var l ImportLog
-        if err := rows.Scan(&l.ID, &l.Name, &l.Status, &l.CreatedAt); err != nil {
-            return nil, err
-        }
+	var logs []ImportLog
+	for rows.Next() {
+		var l ImportLog
+		if err := rows.Scan(&l.ID, &l.Name, &l.Url, &l.Status, &l.CreatedAt); err != nil {
+			return nil, err
+		}
 		// TODO: Retrieve the recipe name from the jobs as well if it is of type add_recipe
-        logs = append(logs, l)
-    }
-    return logs, nil
+		logs = append(logs, l)
+	}
+	return logs, nil
 }
 
 func DeleteDeprecatedJobs(db *sql.DB, cutoff time.Time) (int64, error) {

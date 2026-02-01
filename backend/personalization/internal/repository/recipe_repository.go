@@ -37,7 +37,7 @@ func (r *RecipeRepository) SearchRecipes(params SearchParams) (*SearchResult, er
 		WITH RecipeIngredients AS (
 			SELECT 
 				ri.recipe_id,
-				STRING_AGG(COALESCE(ri.original, i.name), ', ') AS all_ingredients
+				STRING_AGG(COALESCE(ri.original, i.name), '\n') AS all_ingredients
 			FROM recipe_ingredients ri
 			JOIN ingredients i ON ri.ingredient_id = i.id
 			GROUP BY ri.recipe_id
@@ -45,7 +45,7 @@ func (r *RecipeRepository) SearchRecipes(params SearchParams) (*SearchResult, er
 		RecipeKeywords AS (
 			SELECT 
 				rk.recipe_id,
-				STRING_AGG(k.name, ', ') AS all_keywords
+				STRING_AGG(k.name, '\n') AS all_keywords
 			FROM recipe_keywords rk
 			JOIN keywords k ON rk.keyword_id = k.id
 			GROUP BY rk.recipe_id
@@ -53,7 +53,7 @@ func (r *RecipeRepository) SearchRecipes(params SearchParams) (*SearchResult, er
 		RecipeAllergens AS (
 			SELECT
 				ri.recipe_id,
-				STRING_AGG(DISTINCT a.name, ', ') AS all_allergens
+				STRING_AGG(DISTINCT a.name, '\n') AS all_allergens
 			FROM recipe_ingredients ri
 			JOIN ingredients_allergens ia ON ri.ingredient_id = ia.ingredient_id
 			JOIN allergens a ON ia.allergen_id = a.id
@@ -215,20 +215,20 @@ func (r *RecipeRepository) SearchRecipes(params SearchParams) (*SearchResult, er
 
 		// Parse ingredients string to slice
 		if ingredientsStr != "" {
-			rec.Ingredients = strings.Split(ingredientsStr, ", ")
+			rec.Ingredients = strings.Split(ingredientsStr, "\\n")
 		} else {
 			rec.Ingredients = []string{}
 		}
 
 		// Parse keywords string to slice
 		if keywordsStr != "" {
-			rec.KeyWords = strings.Split(keywordsStr, ", ")
+			rec.KeyWords = strings.Split(keywordsStr, "\\n")
 		} else {
 			rec.KeyWords = []string{}
 		}
 
 		if allergensStr != "" {
-			rec.Allergies = strings.Split(allergensStr, ", ")
+			rec.Allergies = strings.Split(allergensStr, "\\n")
 		} else {
 			rec.Allergies = []string{}
 		}
