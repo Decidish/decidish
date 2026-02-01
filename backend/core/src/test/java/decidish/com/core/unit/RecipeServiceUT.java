@@ -147,6 +147,8 @@ class RecipeServiceUT {
         @DisplayName("Empty Results: Should return empty list if no matches found")
         void testGenerateShoppingList_NoMatches() {
                 // Arrange
+                // Enable API fallback for this test
+                recipeService.setApiFallbackEnabled(true);
 
                 when(transactionTemplate.execute(any())).thenAnswer(invocation -> {
                         TransactionCallback<?> callback = invocation.getArgument(0);
@@ -199,6 +201,9 @@ class RecipeServiceUT {
         @Test
         void generateShoppingList_MissingLocalMatch_ShouldCallApi() {
                 // GIVEN
+                // Enable API fallback for this test
+                recipeService.setApiFallbackEnabled(true);
+
                 Integer recipeId = 1;
                 Long marketId = 100L;
                 Ingredient ing = new Ingredient();
@@ -377,6 +382,9 @@ class RecipeServiceUT {
                 List<Integer> ingredientIds = List.of(1, 2);
                 when(ingredientProductRepository.findAllIngredientsIds()).thenReturn(ingredientIds);
 
+                // Mock the materialized view refresh (required for new multi-tier matching)
+                doNothing().when(ingredientProductRepository).refreshUniqueProductsView();
+
                 // Mock Projections
                 IngredientMatchProjection p1 = mock(IngredientMatchProjection.class);
                 when(p1.getIngredientId()).thenReturn(1);
@@ -385,11 +393,6 @@ class RecipeServiceUT {
 
                 when(ingredientProductRepository.findGenericMatches(anyList(), anyDouble(), anyInt()))
                                 .thenReturn(List.of(p1));
-
-                // Mock Products
-                Product product = new Product();
-                product.setReweId(100L);
-                when(productRepository.findAllByReweIdIn(anyList())).thenReturn(List.of(product));
 
                 // Mock EntityManager
                 when(entityManager.getReference(eq(Ingredient.class), anyInt()))
@@ -404,6 +407,7 @@ class RecipeServiceUT {
                 assertNotNull(result);
                 assertEquals(1, result.size());
 
+                verify(ingredientProductRepository).refreshUniqueProductsView();
                 verify(ingredientProductRepository).deleteAllInBatch();
                 verify(ingredientProductRepository).saveAll(anyList());
         }
