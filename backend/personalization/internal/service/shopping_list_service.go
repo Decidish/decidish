@@ -54,10 +54,6 @@ func (service ShoppingListService) AddProductsToShoppingList(ctx *gin.Context) {
 
 	defer tx.Rollback()
 
-	// Collect unique recipe IDs to save
-	recipeIds := make([]int, 0)
-	seenRecipes := make(map[int]bool)
-
 	// Convert CartItems to repository format
 	items := make([]repository.CartItemInput, len(cartItems))
 	// Collect unique recipe IDs to save
