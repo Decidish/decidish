@@ -46,6 +46,11 @@ public class RecipeService {
     // Higher = more product options, but more storage
     private static final Integer FUZZY_MATCHING_LIMIT = 15;
 
+    // Minimum pre-match coverage required before allowing API fallback
+    // If coverage is above this threshold, API fallback is disabled to prevent rate limiting
+    // E.g., 0.80 means API fallback only happens if less than 80% of ingredients are pre-matched
+    private static final Double API_FALLBACK_COVERAGE_THRESHOLD = 0.70;
+
     // Confidence score settings for API-fetched products
     // API response are assigned confidence scores starting from API_CONFIDENCE and decreasing by DESC_INCREMENT until FLOOR_CONFIDENCE 
     // (e.g., 0.95, 0.94, 0.93, ... down to 0.80)
@@ -141,6 +146,29 @@ public class RecipeService {
         Map<Integer, List<IngredientProduct>> localMatchesMap = allExistingMappings.stream()
                 .collect(Collectors.groupingBy(ip -> ip.getIngredient().getId()));
 
+        // Calculate pre-match coverage to determine if API fallback should be allowed
+        // This prevents rate limiting when most ingredients are already matched
+        int totalIngredients = ingredientIds.size();
+        int matchedIngredients = (int) ingredientIds.stream()
+                .filter(id -> localMatchesMap.containsKey(id) && !localMatchesMap.get(id).isEmpty())
+                .count();
+        double coverageRate = totalIngredients > 0 ? (double) matchedIngredients / totalIngredients : 0.0;
+        
+        // Only allow API fallback if coverage is below threshold
+        final boolean allowApiFallback = apiFallbackEnabled && coverageRate < API_FALLBACK_COVERAGE_THRESHOLD;
+        
+        if (!allowApiFallback && apiFallbackEnabled) {
+            log.info("API fallback suppressed: {}/{} ingredients pre-matched ({}% >= {}% threshold)", 
+                matchedIngredients, totalIngredients, 
+                String.format("%.1f", coverageRate * 100), 
+                String.format("%.1f", API_FALLBACK_COVERAGE_THRESHOLD * 100));
+        } else if (allowApiFallback) {
+            log.info("API fallback allowed: {}/{} ingredients pre-matched ({}% < {}% threshold)", 
+                matchedIngredients, totalIngredients, 
+                String.format("%.1f", coverageRate * 100), 
+                String.format("%.1f", API_FALLBACK_COVERAGE_THRESHOLD * 100));
+        }
+
         // 4. Parallel Processing of Ingredients
         List<CompletableFuture<IngredientGroup>> futures = ingredientIds.stream()
             .map(ingId -> CompletableFuture.supplyAsync(() -> {
@@ -166,9 +194,9 @@ public class RecipeService {
                     }
                 }
 
-                // 4b. API Fallback (can be disabled for load testing)
-                if (!apiFallbackEnabled) {
-                    log.debug("API fallback disabled for ingredient: {}", ingName);
+                // 4b. API Fallback (only if enabled AND coverage is below threshold)
+                if (!allowApiFallback) {
+                    log.debug("API fallback skipped for ingredient '{}': disabled or coverage above threshold", ingName);
                     return new IngredientGroup(ingId, ingName, needed, List.of());
                 }
                 
