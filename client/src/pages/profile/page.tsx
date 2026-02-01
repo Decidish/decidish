@@ -44,6 +44,7 @@ export default function Profile() {
   const [detailRecipeIsLiked, setDetailRecipeIsLiked] = useState(false);
   const [showMapModal, setShowMapModal] = useState(false);
   const [showMarketModal, setShowMarketModal] = useState(false);
+  const [visibleRecipesCount, setVisibleRecipesCount] = useState(6);
 
   const [userData, setUserData] = useState({
     name: '',
@@ -413,7 +414,7 @@ export default function Profile() {
             </button>
           </div>
           {preferences ? (
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3 sm:gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
               <div className="p-3 sm:p-4 bg-gray-50 rounded-lg">
                 <div className="text-sm text-gray-600 mb-1">Typical Cooking Time</div>
                 <div className="text-lg font-semibold text-gray-900">
@@ -425,14 +426,6 @@ export default function Profile() {
                 </div>
               </div>
               <div className="p-4 bg-gray-50 rounded-lg">
-                <div className="text-sm text-gray-600 mb-1">Max. Budget per Meal</div>
-                <div className="text-lg font-semibold text-gray-900">€{preferences.budget}</div>
-              </div>
-              <div className="p-4 bg-gray-50 rounded-lg">
-                <div className="text-sm text-gray-600 mb-1">Skill Level</div>
-                <div className="text-lg font-semibold text-gray-900 capitalize">{preferences.skill_level}</div>
-              </div>
-              <div className="p-4 bg-gray-50 rounded-lg md:col-span-3">
                 <div className="text-sm text-gray-600 mb-2">Allergies</div>
                 {allergyBadges.length > 0 ? (
                   <div className="bg-amber-50 rounded-xl p-4">
@@ -527,8 +520,9 @@ export default function Profile() {
 
             {/* Liked Recipes */}
             {activeTab === 'liked' && !loading && (
+              <>
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
-                {likedHistory.map((entry) => {
+                {likedHistory.slice(0, visibleRecipesCount).map((entry) => {
                   const recipe = entry.recipe;
                   return (
                   <div key={entry.id} className="bg-white rounded-xl border border-gray-200 overflow-hidden hover:shadow-lg transition-all group flex flex-col">
@@ -577,6 +571,29 @@ export default function Profile() {
                   );
                 })}
               </div>
+              {likedHistory.length > 6 && (
+                <div className="mt-6 flex justify-center gap-3">
+                  {visibleRecipesCount < likedHistory.length && (
+                    <button
+                      onClick={() => setVisibleRecipesCount(prev => Math.min(prev + 6, likedHistory.length))}
+                      className="px-6 py-3 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg font-medium transition-all cursor-pointer flex items-center gap-2"
+                    >
+                      <i className="ri-arrow-down-line"></i>
+                      Show more ({likedHistory.length - visibleRecipesCount} remaining)
+                    </button>
+                  )}
+                  {visibleRecipesCount > 6 && (
+                    <button
+                      onClick={() => setVisibleRecipesCount(6)}
+                      className="px-6 py-3 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg font-medium transition-all cursor-pointer flex items-center gap-2"
+                    >
+                      <i className="ri-arrow-up-line"></i>
+                      Show less
+                    </button>
+                  )}
+                </div>
+              )}
+              </>
             )}
 
 
