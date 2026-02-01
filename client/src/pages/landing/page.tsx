@@ -1,5 +1,6 @@
 
 import { useEffect, useState } from 'react';
+import { authApi } from '@/api/auth/authApi';
 
 interface FoodItem {
   id: number;
@@ -37,8 +38,16 @@ export default function Landing() {
     setFoodItems(items);
   }, []);
 
-  const handleGetStarted = () => {
-    window.REACT_APP_NAVIGATE('/auth');
+  const handleGetStarted = async () => {
+    try {
+      // Check if user is already logged in
+      await authApi.getProfile();
+      // If successful, user is logged in - go to swiper
+      window.REACT_APP_NAVIGATE('/recipe-swiper');
+    } catch {
+      // Not logged in - go to auth page
+      window.REACT_APP_NAVIGATE('/auth');
+    }
   };
 
   return (
