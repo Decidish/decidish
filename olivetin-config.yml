@@ -1,0 +1,30 @@
+# olivetin-config.yaml
+
+# General settings
+listenAddress: "0.0.0.0:1337"
+logLevel: "INFO"
+
+actions:
+  - title: "Trigger Finetune"
+    shell: "bash /scripts/finetune-adapter.sh"
+    execOnCron: 
+      - "0 3 * * 0"
+    timeout: 3600
+  
+  - title: "Trigger Weekly Sync"
+    shell: "bash /scripts/core-weekly-sync.sh"
+    execOnCron: 
+      - "0 3 * * 0"
+    timeout: 3600
+  
+  - title: "Trigger Personalization Cleanup"
+    shell: "bash /scripts/personalization-clenup.sh"
+    execOnCron:
+      - "0 4 * * 0"
+    timeout: 3600
+  
+  - title: "Trigger Core Cleanup"
+    shell: "bash /scripts/core-cleanup.sh"
+    execOnCron:
+      - "0 5 * * 0"
+    timeout: 3600

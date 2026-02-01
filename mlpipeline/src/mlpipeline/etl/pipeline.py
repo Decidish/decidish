@@ -308,7 +308,7 @@ class Pipeline:
         Sets the job status to 'success' in the database.
         """
         with self.conn.cursor() as cursor:
-            cursor.execute("UPDATE jobs SET status = 'success', updated_at = NOW() WHERE id = %s;", (job_id,))
+            cursor.execute("UPDATE jobs SET status = 'success', updated_at = NOW(), processed_items = total_items WHERE id = %s;", (job_id,))
             self.conn.commit()
 
     ############################################################################

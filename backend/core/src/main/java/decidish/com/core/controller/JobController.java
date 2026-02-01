@@ -67,8 +67,9 @@ public class JobController {
     }
 
     /**
-     * Get the status of running jobs.
-     * Usage: GET /api/v1/jobs/status
+     * Manually trigger the cleanup job.
+     * This job deletes deprecated products and closed markets.
+     * Usage: POST /api/v1/jobs/cleanup
      */
     @GetMapping("/status")
     public ResponseEntity<Map<String, Object>> getJobStatus() {
@@ -78,5 +79,33 @@ public class JobController {
         response.put("message", "weekly sync job is currently " + (isRunning ? "running" : "not running"));
         response.put("metrics", weeklySyncMetrics.snapshot());
         return ResponseEntity.ok(response);
+    }
+    @PostMapping("/cleanup")
+    public ResponseEntity<Map<String, String>> triggerCleanup() {
+        logger.info("Manual trigger requested for cleanup job");
+
+        Map<String, String> response = new HashMap<>();
+
+        try {
+            // Execute the scheduler task asynchronously to avoid blocking the HTTP response
+            new Thread(() -> {
+                try {
+                    scheduler.cleanupDeprecatedDataOnly();
+                } catch (Exception e) {
+                    logger.error("Error during manual cleanup execution: {}", e.getMessage(), e);
+                }
+            }).start();
+
+            response.put("status", "started");
+            response.put("message", "Cleanup job has been triggered successfully");
+            logger.info("Cleanup job triggered successfully");
+
+            return ResponseEntity.ok(response);
+        } catch (Exception e) {
+            logger.error("Failed to trigger cleanup job: {}", e.getMessage(), e);
+            response.put("status", "failed");
+            response.put("message", "Failed to trigger cleanup job: " + e.getMessage());
+            return ResponseEntity.internalServerError().body(response);
+        }
     }
 }

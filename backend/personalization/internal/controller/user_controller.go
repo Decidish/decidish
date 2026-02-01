@@ -9,12 +9,14 @@ import (
 type UserController struct {
 	service.UserService
 	service.ShoppingListService
+	service.SavedRecipesService
 }
 
-func NewUserController(service service.UserService, shoppingService service.ShoppingListService) *UserController {
+func NewUserController(service service.UserService, shoppingService service.ShoppingListService, savedRecipesService service.SavedRecipesService) *UserController {
 	return &UserController{
 		UserService:         service,
 		ShoppingListService: shoppingService,
+		SavedRecipesService: savedRecipesService,
 	}
 }
 
@@ -32,4 +34,11 @@ func (controller UserController) AddMappings(r *gin.RouterGroup) {
 	r.GET("/user/shopping/history", controller.ShoppingListService.GetShoppingHistory)
 	r.POST("/user/record/:action/:recipeID", controller.UserService.RecordUserAction)
 	r.GET("/user/history", controller.UserService.GetUserHistory)
+
+	// Saved recipes routes
+	r.POST("/user/saved-recipes", controller.SavedRecipesService.SaveRecipe)
+	r.DELETE("/user/saved-recipes/:recipe_id", controller.SavedRecipesService.UnsaveRecipe)
+	r.GET("/user/saved-recipes", controller.SavedRecipesService.GetSavedRecipes)
+	r.GET("/user/saved-recipes/ids", controller.SavedRecipesService.GetSavedRecipeIds)
+	r.GET("/user/saved-recipes/:recipe_id/check", controller.SavedRecipesService.IsRecipeSaved)
 }

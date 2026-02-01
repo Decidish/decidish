@@ -21,6 +21,7 @@ func (controller *AuthorizationController) AddMappings(db *sql.DB, r *gin.Engine
 	controller.loginMapping(db, r)
 	controller.registerMapping(db, r)
 	controller.profileMapping(db, r)
+	controller.logoutMapping(r)
 }
 
 /**
@@ -144,6 +145,36 @@ func (controller *AuthorizationController) profileMapping(db *sql.DB, r *gin.Eng
 			"email":      username, // currently username acts as email
 			"name":       name,
 			"created_at": createdAt,
+		})
+	})
+}
+
+func (controller *AuthorizationController) logoutMapping(r *gin.Engine) {
+	r.POST("/logout", func(c *gin.Context) {
+		cookieDomain := ".decidish.win"
+		cookieSameSite := http.SameSiteLaxMode
+
+		if strings.Contains(c.Request.Host, "localhost") {
+			cookieDomain = ""
+			cookieSameSite = http.SameSiteNoneMode
+		}
+
+		// Clear the auth cookie by setting MaxAge to -1
+		cookie := http.Cookie{
+			Name:     "auth_token",
+			Value:    "",
+			Path:     "/",
+			Domain:   cookieDomain,
+			SameSite: cookieSameSite,
+			Secure:   true,
+			HttpOnly: true,
+			MaxAge:   -1,
+		}
+
+		http.SetCookie(c.Writer, &cookie)
+
+		c.JSON(http.StatusOK, gin.H{
+			"message": "Successfully logged out",
 		})
 	})
 }

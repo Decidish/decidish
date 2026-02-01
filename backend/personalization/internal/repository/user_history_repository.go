@@ -53,24 +53,24 @@ func AddUserHistory(tx *sql.Tx, userId string, recipeId int, action bool) (int, 
 
 	err := tx.QueryRow(query, userId, recipeId, action, THRESHOLD).Scan(&id)
 
-    if err != nil {
-        if err == sql.ErrNoRows {
-            // This occurs if the INSERT conflicted, and the DO UPDATE was skipped 
-            // because the action was identical. In this case, we retrieve the existing ID.
-            err = tx.QueryRow(`
+	if err != nil {
+		if err == sql.ErrNoRows {
+			// This occurs if the INSERT conflicted, and the DO UPDATE was skipped
+			// because the action was identical. In this case, we retrieve the existing ID.
+			err = tx.QueryRow(`
                 SELECT id FROM user_history 
                 WHERE user_id = $1 AND recipe_id = $2
             `, userId, recipeId).Scan(&id)
-            
-            if err != nil {
-                return 0, fmt.Errorf("failed to fetch existing user history id: %w", err)
-            }
-            return id, nil
-        }
-        return 0, err
-    }
 
-    return id, nil
+			if err != nil {
+				return 0, fmt.Errorf("failed to fetch existing user history id: %w", err)
+			}
+			return id, nil
+		}
+		return 0, err
+	}
+
+	return id, nil
 }
 
 func GetUserHistory(db *sql.DB, userId string) ([]UserHistory, error) {
@@ -93,6 +93,16 @@ func GetUserHistory(db *sql.DB, userId string) ([]UserHistory, error) {
 				ri.recipe_id,
 				STRING_AGG(ri.original, ', ') AS all_ingredients
 			FROM recipe_ingredients ri
+			GROUP BY ri.recipe_id
+		),
+		RecipeAllergens AS (
+			SELECT
+				ri.recipe_id,
+				STRING_AGG(DISTINCT a.name, ', ') AS all_allergens
+			FROM recipe_ingredients ri
+			JOIN ingredients_allergens ia ON ri.ingredient_id = ia.ingredient_id
+			JOIN allergens a ON ia.allergen_id = a.id
+			WHERE a.name != 'None'
 			GROUP BY ri.recipe_id
 		),
 		RecipeCategories AS (
@@ -122,11 +132,13 @@ func GetUserHistory(db *sql.DB, userId string) ([]UserHistory, error) {
 			COALESCE(re.instructions, ''),
 			COALESCE(rcd.all_categories, ''),
 			COALESCE(rkd.all_keywords, ''),
-			COALESCE(rid.all_ingredients, '')
+			COALESCE(rid.all_ingredients, ''),
+			COALESCE(ral.all_allergens, '')
 		FROM history h
 		JOIN recipes re ON h.recipe_id = re.id
 		LEFT JOIN RecipeKeywords rkd ON re.id = rkd.recipe_id
 		LEFT JOIN RecipeIngredients rid ON re.id = rid.recipe_id
+		LEFT JOIN RecipeAllergens ral ON re.id = ral.recipe_id
 		LEFT JOIN RecipeCategories rcd ON re.id = rcd.recipe_id
 		ORDER BY h.action_timestamp DESC
 	`, userId)
@@ -140,7 +152,7 @@ func GetUserHistory(db *sql.DB, userId string) ([]UserHistory, error) {
 	for rows.Next() {
 		var h UserHistory
 		var r Recipe
-		var keywordsStr, ingredientsStr, categoriesStr string
+		var keywordsStr, ingredientsStr, allergiesStr, categoriesStr string
 
 		if err := rows.Scan(
 			&h.ID,
@@ -162,15 +174,25 @@ func GetUserHistory(db *sql.DB, userId string) ([]UserHistory, error) {
 			&categoriesStr,
 			&keywordsStr,
 			&ingredientsStr,
+			&allergiesStr,
 		); err != nil {
 			return nil, err
 		}
 
 		if keywordsStr != "" {
 			r.KeyWords = strings.Split(keywordsStr, ", ")
+		} else {
+			r.KeyWords = []string{}
 		}
 		if ingredientsStr != "" {
 			r.Ingredients = strings.Split(ingredientsStr, ", ")
+		} else {
+			r.Ingredients = []string{}
+		}
+		if allergiesStr != "" {
+			r.Allergies = strings.Split(allergiesStr, ", ")
+		} else {
+			r.Allergies = []string{}
 		}
 		if categoriesStr != "" {
 			r.Category = categoriesStr
@@ -214,4 +236,15 @@ func getUserRecipes(db *sql.DB, userId string, like bool) ([]int, error) {
 	}
 
 	return recipeIds, rows.Err()
+}
+
+func DeleteDeprecatedUserHistory(db *sql.DB, cutoff time.Time) (int64, error) {
+	result, err := db.Exec(`
+		DELETE FROM user_history 
+		WHERE action_timestamp < $1`,
+		cutoff)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected()
 }

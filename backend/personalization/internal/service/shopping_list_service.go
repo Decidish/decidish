@@ -61,6 +61,24 @@ func (service ShoppingListService) AddProductsToShoppingList(ctx *gin.Context) {
 			ProductId: item.ProductId,
 			Quantity:  item.Quantity,
 			RecipeId:  item.RecipeId,
+    }
+	// Collect unique recipe IDs to save
+	recipeIds := make([]int, 0)
+	seenRecipes := make(map[int]bool)
+
+
+		// Track unique recipe IDs for auto-saving
+		if item.RecipeId > 0 && !seenRecipes[item.RecipeId] {
+			seenRecipes[item.RecipeId] = true
+			recipeIds = append(recipeIds, item.RecipeId)
+		}
+	}
+
+	// Auto-save recipes when adding to shopping list
+	if len(recipeIds) > 0 {
+		if err := repository.SaveRecipes(tx, userId, recipeIds); err != nil {
+			log.Printf("Warning: failed to auto-save recipes for user %s: %v", userId, err)
+			// Don't fail the whole operation if saving fails
 		}
 	}
 

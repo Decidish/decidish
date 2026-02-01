@@ -167,6 +167,24 @@ services:
       retries: 3
       start_period: 5s
 
+  olivetin:
+    image: ghcr.io/olivetin/olivetin:latest
+    # Mount the Docker socket so OliveTin can control Swarm
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - ./cron-scripts:/scripts:ro
+    configs:
+      - source: olivetin_config_v1
+        target: /config/config.yaml
+    ports:
+      - "8099:1337" # Host Port 8099 -> Container Port 1337
+    networks:
+      - app-network
+    deploy:
+      replicas: 1
+      restart_policy:
+        condition: any
+
   # ----------------------------------------------------------------
   # Reverse Proxy
   # ----------------------------------------------------------------
@@ -180,7 +198,8 @@ services:
     networks:
       - app-network
     deploy:
-      mode: global  # Runs one instance on every node (common for ingress)
+      mode: replicated  # Runs one instance on every node (common for ingress)
+      replicas: 1
       # OR use 'replicas: 1' if you only want it on one node
 
   # ----------------------------------------------------------------

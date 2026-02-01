@@ -53,7 +53,8 @@ func createRecommendRecipesMappings(r *gin.RouterGroup, db *sql.DB) {
 func createUserMappings(config config.ApplicationConfig, r *gin.RouterGroup, db *sql.DB) {
 	userService := service.NewUserService(config, db, client.NewClient())
 	shoppingService := service.NewShoppingListService(config, db)
-	userController := controller.NewUserController(*userService, *shoppingService)
+	savedRecipesService := service.NewSavedRecipesService(config, db)
+	userController := controller.NewUserController(*userService, *shoppingService, *savedRecipesService)
 
 	userController.AddMappings(r)
 }
@@ -64,5 +65,5 @@ func createRecipeMappings(config config.ApplicationConfig, r *gin.Engine, db *sq
 	jobController := controller.NewJobController(db)
 
 	recipeController.AddMappings(r)
-	jobController.AddMappings(r);
+	jobController.AddMappings(r)
 }

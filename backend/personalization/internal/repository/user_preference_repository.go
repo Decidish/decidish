@@ -161,22 +161,50 @@ func AddUserPreference(tx *sql.Tx, userId string, userInfo AdditionalInfo) error
 		user_id, 
 		min_cooking_time, 
         max_cooking_time,
-		allergies,
 	    budget, skill_level, preferences_vec)
-	VALUES ($1, $2, $3, $4, $5, $6, $7)
+	VALUES ($1, $2, $3, $4, $5, $6)
 	ON CONFLICT (user_id) DO UPDATE
 	SET min_cooking_time = EXCLUDED.min_cooking_time,
         max_cooking_time = EXCLUDED.max_cooking_time,
-	    allergies = EXCLUDED.allergies,
 	    budget = EXCLUDED.budget,
 	    skill_level = EXCLUDED.skill_level,
 	    preferences_vec = EXCLUDED.preferences_vec
 	`,
 		userId, userInfo.MinCookingTime, userInfo.MaxCookingTime,
-		strings.Join(userInfo.Allergies, ","),
 		userInfo.Budget,
 		userInfo.SkillLevel,
 		vectorString)
+
+	_, err = tx.Exec(`DELETE FROM user_allergens WHERE user_id = $1`, userId)
+	if err != nil {
+		return err
+	}
+
+	for allergen := range userInfo.Allergies {
+		// find allergen id from allergens table
+		var allergenId int
+		err = tx.QueryRow(`
+		SELECT id
+		FROM allergens
+		WHERE name = $1
+		LIMIT 1
+		`, userInfo.Allergies[allergen]).Scan(&allergenId)
+
+		if err != nil {
+			return err
+		}
+
+		_, err = tx.Exec(`
+		INSERT INTO user_allergens (user_id, allergen_id)
+		VALUES ($1, $2)
+		ON CONFLICT (user_id, allergen_id) DO NOTHING
+		`, userId, allergenId)
+
+		if err != nil {
+			return err
+		}
+	}
+	
 
 	if err != nil {
 		return err
@@ -206,24 +234,35 @@ func GetUserPreferences(db *sql.DB, userId string) (*UserPreferencesWithMarket, 
 	var prefsVecBytes []byte
 
 	err := db.QueryRow(`
+		WITH UserAllergies AS (
+		SELECT 
+			ua.user_id,
+			string_agg(a.name, ',') AS allergies
+		FROM user_allergens ua
+		JOIN allergens a ON ua.allergen_id = a.id
+		WHERE ua.user_id = $1
+		GROUP BY ua.user_id
+		)
+
 		SELECT 
 			up.min_cooking_time,
 			up.max_cooking_time,
-			up.allergies,
+			COALESCE(ual.allergies, '') AS allergies,
 			up.budget,
 			up.skill_level,
 			up.market_id,
 			up.preferences_vec,
-			m.name,
+			m.name AS market_name,
 			a.street,
 			a.city,
 			a.zip_code,
 			a.latitude,
 			a.longitude
 		FROM user_preferences up
-		LEFT JOIN markets m ON up.market_id::BIGINT = m.id
+		LEFT JOIN UserAllergies ual ON up.user_id = ual.user_id
+		LEFT JOIN markets m ON up.market_id::BIGINT = m.id 
 		LEFT JOIN addresses a ON m.address_id = a.id
-		WHERE up.user_id = $1
+		WHERE up.user_id = $1;
 	`, userId).Scan(
 		&prefs.MinCookingTime,
 		&prefs.MaxCookingTime,

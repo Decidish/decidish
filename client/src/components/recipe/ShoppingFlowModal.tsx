@@ -196,14 +196,14 @@ export default function ShoppingFlowModal({
       {/* Ingredient Selection Modal */}
       {showIngredientModal && (
         <div 
-          className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 z-50"
+          className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-end sm:items-center justify-center sm:p-4 z-50"
           onClick={handleCancel}
         >
           <div 
-            className="bg-white rounded-3xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto"
+            className="bg-white rounded-t-3xl sm:rounded-3xl shadow-2xl w-full sm:max-w-2xl max-h-[85vh] sm:max-h-[90vh] overflow-y-auto"
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="sticky top-0 bg-white border-b border-gray-200 p-6 rounded-t-3xl z-10">
+            <div className="sticky top-0 bg-white border-b border-gray-200 p-4 sm:p-6 rounded-t-3xl z-10">
               <div className="flex items-center justify-between mb-2">
                 <div className="flex items-center gap-2">
                   {!isEditing && currentIngredientIndex > 0 && (
@@ -218,12 +218,12 @@ export default function ShoppingFlowModal({
                       <i className="ri-arrow-left-line text-xl text-gray-700"></i>
                     </button>
                   )}
-                  <h3 className="text-xl font-bold text-gray-900">Select Product</h3>
+                  <h3 className="text-lg sm:text-xl font-bold text-gray-900">Select Product</h3>
                 </div>
-                <div className="flex items-center gap-3">
+                <div className="flex items-center gap-2 sm:gap-3">
                   {!isEditing && (
-                    <span className="text-sm text-gray-600">
-                      {currentIngredientIndex + 1} of {workingRecipe.richIngredients.length}
+                    <span className="text-xs sm:text-sm text-gray-600">
+                      {currentIngredientIndex + 1}/{workingRecipe.richIngredients.length}
                     </span>
                   )}
                   <button
@@ -243,15 +243,15 @@ export default function ShoppingFlowModal({
                   ></div>
                 </div>
               )}
-              <div className="bg-emerald-50 rounded-lg p-3 border border-emerald-200">
-                <h4 className="text-lg font-bold text-gray-900 mb-1">{currentIngredientGroup.ingredientName}</h4>
-                <p className="text-sm text-gray-600">
+              <div className="bg-emerald-50 rounded-lg p-2 sm:p-3 border border-emerald-200">
+                <h4 className="text-base sm:text-lg font-bold text-gray-900 mb-0.5 sm:mb-1 line-clamp-2">{currentIngredientGroup.ingredientName}</h4>
+                <p className="text-xs sm:text-sm text-gray-600">
                    Ingredient: <span className="font-semibold text-[#2F855A]">{currentIngredientGroup.ingredientName}</span>
                 </p>
               </div>
             </div>
 
-            <div className="p-6">
+            <div className="p-4 sm:p-6">
               {loadingProducts && (
                 <div className="mb-4 text-sm text-gray-600 flex items-center gap-2">
                   <i className="ri-loader-4-line animate-spin" aria-hidden="true"></i>
@@ -261,10 +261,10 @@ export default function ShoppingFlowModal({
 
               <button
                 onClick={() => handleSelectProduct(currentIngredientGroup.ingredientId, 'already-have')}
-                className="w-full mb-4 p-4 bg-gradient-to-r from-amber-500 to-orange-500 text-white rounded-xl hover:from-amber-600 hover:to-orange-600 transition-all cursor-pointer shadow-md flex items-center justify-center gap-2 whitespace-nowrap"
+                className="w-full mb-3 sm:mb-4 p-3 sm:p-4 bg-gradient-to-r from-amber-500 to-orange-500 text-white rounded-xl hover:from-amber-600 hover:to-orange-600 transition-all cursor-pointer shadow-md flex items-center justify-center gap-2"
               >
-                <i className="ri-checkbox-circle-line text-2xl"></i>
-                <span className="font-semibold">Already Have This Ingredient</span>
+                <i className="ri-checkbox-circle-line text-xl sm:text-2xl"></i>
+                <span className="font-semibold text-sm sm:text-base">Already Have This</span>
               </button>
 
               <div className="relative mb-4">
@@ -289,41 +289,40 @@ export default function ShoppingFlowModal({
                   return (
                   <div
                     key={product.id}
-                    className="w-full p-4 bg-white border-2 border-gray-200 rounded-xl hover:border-[#2F855A] transition-all"
+                    className="w-full p-3 sm:p-4 bg-white border-2 border-gray-200 rounded-xl hover:border-[#2F855A] transition-all"
                   >
-                    <div className="flex items-center gap-4 mb-3">
-                      <div className="w-20 h-20 flex-shrink-0 bg-gray-100 rounded-lg overflow-hidden">
+                    <div className="flex items-center gap-3 sm:gap-4 mb-3">
+                      <div className="w-16 h-16 sm:w-20 sm:h-20 flex-shrink-0 bg-gray-100 rounded-lg overflow-hidden">
                         <img src={product.imageUrl} alt={product.name} className="w-full h-full object-cover" />
                       </div>
                       <div className="flex-1 min-w-0">
-                        <div className="font-semibold text-gray-900 mb-1">{product.name}</div>
-                        <div className="text-sm text-gray-600 mb-2">REWE</div>
-                        <div className="flex items-center gap-3">
-                          <span className="text-sm font-medium text-gray-700">{product.grammage}</span>
-                          <span className="text-lg font-bold text-[#2F855A]">{(product.price / 100).toFixed(2)}€</span>
+                        <div className="font-semibold text-gray-900 mb-1 text-sm sm:text-base line-clamp-2">{product.name}</div>
+                        <div className="flex items-center gap-2 sm:gap-3 flex-wrap">
+                          <span className="text-xs sm:text-sm font-medium text-gray-700">{product.grammage}</span>
+                          <span className="text-base sm:text-lg font-bold text-[#2F855A]">{(product.price / 100).toFixed(2)}€</span>
                         </div>
                       </div>
                     </div>
 
                     {/* Quantity Selector */}
-                    <div className="flex items-center justify-between bg-gray-50 rounded-lg p-3 mb-3">
-                      <span className="text-sm font-medium text-gray-700">Quantity:</span>
-                      <div className="flex items-center gap-3">
+                    <div className="flex items-center justify-between bg-gray-50 rounded-lg p-2 sm:p-3 mb-3">
+                      <span className="text-xs sm:text-sm font-medium text-gray-700">Qty:</span>
+                      <div className="flex items-center gap-2 sm:gap-3">
                         <button
                           onClick={() => handleQuantityChange(product.id, -1)}
                           disabled={quantity === 0}
-                          className="w-10 h-10 flex items-center justify-center bg-white border-2 border-gray-300 rounded-lg hover:border-[#2F855A] hover:bg-emerald-50 transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                          className="w-9 h-9 sm:w-10 sm:h-10 flex items-center justify-center bg-white border-2 border-gray-300 rounded-lg hover:border-[#2F855A] hover:bg-emerald-50 transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
                         >
-                          <i className="ri-subtract-line text-xl text-gray-700"></i>
+                          <i className="ri-subtract-line text-lg sm:text-xl text-gray-700"></i>
                         </button>
-                        <span className="text-xl font-bold text-gray-900 min-w-[3rem] text-center">
+                        <span className="text-lg sm:text-xl font-bold text-gray-900 min-w-[2rem] sm:min-w-[3rem] text-center">
                           {quantity}
                         </span>
                         <button
                           onClick={() => handleQuantityChange(product.id, 1)}
-                          className="w-10 h-10 flex items-center justify-center bg-white border-2 border-gray-300 rounded-lg hover:border-[#2F855A] hover:bg-emerald-50 transition-all cursor-pointer"
+                          className="w-9 h-9 sm:w-10 sm:h-10 flex items-center justify-center bg-white border-2 border-gray-300 rounded-lg hover:border-[#2F855A] hover:bg-emerald-50 transition-all cursor-pointer"
                         >
-                          <i className="ri-add-line text-xl text-gray-700"></i>
+                          <i className="ri-add-line text-lg sm:text-xl text-gray-700"></i>
                         </button>
                       </div>
                     </div>
@@ -332,10 +331,10 @@ export default function ShoppingFlowModal({
                     <button
                       onClick={() => handleSelectProduct(currentIngredientGroup.ingredientId, product)}
                       disabled={quantity === 0}
-                      className="w-full py-3 bg-gradient-to-r from-[#2F855A] to-emerald-600 text-white rounded-lg font-semibold hover:from-[#276749] hover:to-emerald-700 transition-all cursor-pointer flex items-center justify-center gap-2 whitespace-nowrap disabled:opacity-50 disabled:cursor-not-allowed disabled:from-gray-400 disabled:to-gray-500"
+                      className="w-full py-2.5 sm:py-3 bg-gradient-to-r from-[#2F855A] to-emerald-600 text-white rounded-lg font-semibold hover:from-[#276749] hover:to-emerald-700 transition-all cursor-pointer flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed disabled:from-gray-400 disabled:to-gray-500 text-sm sm:text-base"
                     >
-                      <i className="ri-shopping-cart-line text-xl"></i>
-                      <span>{quantity === 0 ? 'Select Quantity' : `Add ${quantity} to Cart`}</span>
+                      <i className="ri-shopping-cart-line text-lg sm:text-xl"></i>
+                      <span>{quantity === 0 ? 'Select Qty' : `Add ${quantity}`}</span>
                     </button>
                   </div>
                   );
@@ -369,16 +368,16 @@ export default function ShoppingFlowModal({
       {/* Review Modal */}
       {showReviewModal && workingRecipe && (
         <div 
-          className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 z-50"
+          className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-end sm:items-center justify-center sm:p-4 z-50"
           onClick={handleCancel}
         >
           <div 
-            className="bg-white rounded-3xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto"
+            className="bg-white rounded-t-3xl sm:rounded-3xl shadow-2xl w-full sm:max-w-2xl max-h-[85vh] sm:max-h-[90vh] overflow-y-auto"
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="sticky top-0 bg-white border-b border-gray-200 p-6 rounded-t-3xl z-10">
+            <div className="sticky top-0 bg-white border-b border-gray-200 p-4 sm:p-6 rounded-t-3xl z-10">
               <div className="flex items-center justify-between mb-2">
-                <h3 className="text-xl font-bold text-gray-900">Review Your Selections</h3>
+                <h3 className="text-lg sm:text-xl font-bold text-gray-900">Review Selections</h3>
                 <button
                   onClick={handleCancel}
                   className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-gray-100 transition-colors cursor-pointer"
@@ -386,16 +385,16 @@ export default function ShoppingFlowModal({
                   <i className="ri-close-line text-xl text-gray-600"></i>
                 </button>
               </div>
-              <p className="text-sm text-gray-600">Review and edit your product selections before adding to cart</p>
+              <p className="text-xs sm:text-sm text-gray-600">Review and edit your product selections</p>
             </div>
 
-            <div className="p-6">
-              <div className="bg-gradient-to-r from-emerald-50 to-teal-50 rounded-xl p-4 mb-6 border border-emerald-200">
-                <h4 className="text-lg font-bold text-gray-900 mb-1">{workingRecipe.title}</h4>
-                <div className="flex items-center gap-4 text-sm text-gray-600">
+            <div className="p-4 sm:p-6">
+              <div className="bg-gradient-to-r from-emerald-50 to-teal-50 rounded-xl p-3 sm:p-4 mb-4 sm:mb-6 border border-emerald-200">
+                <h4 className="text-base sm:text-lg font-bold text-gray-900 mb-1 line-clamp-2">{workingRecipe.title}</h4>
+                <div className="flex items-center gap-3 sm:gap-4 text-xs sm:text-sm text-gray-600 flex-wrap">
                   <span className="flex items-center gap-1">
                     <i className="ri-restaurant-line"></i>
-                    {workingRecipe.yields} servings
+                    {workingRecipe.yields}
                   </span>
                   <span className="flex items-center gap-1">
                     <i className="ri-time-line"></i>
@@ -403,12 +402,12 @@ export default function ShoppingFlowModal({
                   </span>
                   <span className="flex items-center gap-1">
                     <i className="ri-fire-line"></i>
-                    {workingRecipe.nutrients.calories} cal
+                    {workingRecipe.nutrients.calories}
                   </span>
                 </div>
               </div>
 
-              <div className="space-y-3 mb-6">
+              <div className="space-y-3 mb-4 sm:mb-6">
                 {workingRecipe.richIngredients?.map((ingredient) => {
                   const selected = selectedProducts[ingredient.ingredientId];
                   const isAlreadyHave = selected === 'already-have';
@@ -417,21 +416,21 @@ export default function ShoppingFlowModal({
                   return (
                     <div
                       key={ingredient.ingredientId}
-                      className="bg-white border-2 border-gray-200 rounded-xl p-4 hover:border-emerald-200 transition-all"
+                      className="bg-white border-2 border-gray-200 rounded-xl p-3 sm:p-4 hover:border-emerald-200 transition-all"
                     >
-                      <div className="flex items-start justify-between mb-3">
-                        <div className="flex-1">
-                          <h5 className="font-semibold text-gray-900 mb-1">{ingredient.ingredientName}</h5>
+                      <div className="flex items-start justify-between mb-2 sm:mb-3 gap-2">
+                        <div className="flex-1 min-w-0">
+                          <h5 className="font-semibold text-gray-900 mb-0.5 sm:mb-1 text-sm sm:text-base line-clamp-2">{ingredient.ingredientName}</h5>
                           {!isAlreadyHave && product && (
-                            <p className="text-sm text-gray-600">Amount added: {productQuantities[product.id] || 1}</p>
+                            <p className="text-xs sm:text-sm text-gray-600">Qty: {productQuantities[product.id] || 1}</p>
                           )}
                         </div>
                         <button
                           onClick={() => handleEditProduct(ingredient.ingredientId)}
-                          className="px-3 py-1.5 bg-gray-100 text-gray-700 rounded-lg text-sm font-medium hover:bg-gray-200 transition-colors cursor-pointer whitespace-nowrap flex items-center gap-1"
+                          className="px-2 sm:px-3 py-1 sm:py-1.5 bg-gray-100 text-gray-700 rounded-lg text-xs sm:text-sm font-medium hover:bg-gray-200 transition-colors cursor-pointer whitespace-nowrap flex items-center gap-1 flex-shrink-0"
                         >
                           <i className="ri-edit-line"></i>
-                          Edit
+                          <span className="hidden sm:inline">Edit</span>
                         </button>
                       </div>
 
@@ -441,16 +440,15 @@ export default function ShoppingFlowModal({
                           <span className="text-sm font-medium text-amber-900">Already have this ingredient</span>
                         </div>
                       ) : product ? (
-                        <div className="flex items-center gap-3 bg-emerald-50 border border-emerald-200 rounded-lg p-3">
-                          <div className="w-16 h-16 flex-shrink-0 bg-white rounded-lg overflow-hidden">
+                        <div className="flex items-center gap-2 sm:gap-3 bg-emerald-50 border border-emerald-200 rounded-lg p-2 sm:p-3">
+                          <div className="w-12 h-12 sm:w-16 sm:h-16 flex-shrink-0 bg-white rounded-lg overflow-hidden">
                             <img src={product.imageUrl} alt={product.name} className="w-full h-full object-cover" />
                           </div>
                           <div className="flex-1 min-w-0">
-                            <div className="font-semibold text-gray-900 text-sm mb-0.5">{product.name}</div>
-                            <div className="text-xs text-gray-600 mb-1">REWE</div>
-                            <div className="flex items-center gap-2">
-                              <span className="text-sm font-medium text-gray-700">{product.grammage}</span>
-                              <span className="text-lg font-bold text-[#2F855A]">
+                            <div className="font-semibold text-gray-900 text-xs sm:text-sm mb-0.5 line-clamp-2">{product.name}</div>
+                            <div className="flex items-center gap-1 sm:gap-2 flex-wrap">
+                              <span className="text-xs text-gray-600">{product.grammage}</span>
+                              <span className="text-sm sm:text-base font-bold text-[#2F855A]">
                                 {((product.price * (productQuantities[product.id] || 1)) / 100).toFixed(2)}€
                               </span>
                             </div>
@@ -467,36 +465,36 @@ export default function ShoppingFlowModal({
                 })}
               </div>
 
-              <div className="bg-gradient-to-r from-[#2F855A] to-emerald-600 rounded-xl p-5 mb-6">
+              <div className="bg-gradient-to-r from-[#2F855A] to-emerald-600 rounded-xl p-4 sm:p-5 mb-4 sm:mb-6">
                 <div className="flex items-center justify-between text-white">
                   <div>
-                    <p className="text-sm opacity-90 mb-1">Total Cost</p>
-                    <p className="text-3xl font-bold">{(calculateReviewTotal() / 100).toFixed(2)}€</p>
+                    <p className="text-xs sm:text-sm opacity-90 mb-0.5 sm:mb-1">Total Cost</p>
+                    <p className="text-2xl sm:text-3xl font-bold">{(calculateReviewTotal() / 100).toFixed(2)}€</p>
                   </div>
-                  <div className="w-16 h-16 flex items-center justify-center bg-white/20 rounded-full">
-                    <i className="ri-shopping-cart-line text-3xl"></i>
+                  <div className="w-12 h-12 sm:w-16 sm:h-16 flex items-center justify-center bg-white/20 rounded-full">
+                    <i className="ri-shopping-cart-line text-2xl sm:text-3xl"></i>
                   </div>
                 </div>
-                <div className="mt-3 pt-3 border-t border-white/20">
-                  <p className="text-xs text-white/80">
+                <div className="mt-2 sm:mt-3 pt-2 sm:pt-3 border-t border-white/20">
+                  <p className="text-[10px] sm:text-xs text-white/80">
                     {workingRecipe.richIngredients?.filter((ing) => selectedProducts[ing.ingredientId] === 'already-have').length} items you already have
                   </p>
                 </div>
               </div>
 
-              <div className="flex gap-3">
+              <div className="flex gap-2 sm:gap-3">
                 <button
                   onClick={handleCancel}
-                  className="flex-1 py-4 bg-gray-100 text-gray-700 rounded-xl font-semibold hover:bg-gray-200 transition-all cursor-pointer whitespace-nowrap"
+                  className="flex-1 py-3 sm:py-4 bg-gray-100 text-gray-700 rounded-xl font-semibold hover:bg-gray-200 transition-all cursor-pointer text-sm sm:text-base"
                 >
                   Cancel
                 </button>
                 <button
                   onClick={handleConfirm}
-                  className="flex-1 py-4 bg-gradient-to-r from-[#2F855A] to-emerald-600 text-white rounded-xl font-semibold hover:from-[#276749] hover:to-emerald-700 transition-all shadow-lg cursor-pointer whitespace-nowrap flex items-center justify-center gap-2"
+                  className="flex-1 py-3 sm:py-4 bg-gradient-to-r from-[#2F855A] to-emerald-600 text-white rounded-xl font-semibold hover:from-[#276749] hover:to-emerald-700 transition-all shadow-lg cursor-pointer flex items-center justify-center gap-1 sm:gap-2 text-sm sm:text-base"
                 >
-                  <i className="ri-check-line text-xl"></i>
-                  <span>Add to Shopping List</span>
+                  <i className="ri-check-line text-lg sm:text-xl"></i>
+                  <span>Add to List</span>
                 </button>
               </div>
             </div>
