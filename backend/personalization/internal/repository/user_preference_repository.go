@@ -185,24 +185,35 @@ func GetUserPreferences(db *sql.DB, userId string) (*UserPreferencesWithMarket, 
 	var prefsVecBytes []byte
 
 	err := db.QueryRow(`
+		WITH UserAllergies AS (
+		SELECT 
+			ua.user_id,
+			string_agg(a.name, ',') AS allergies
+		FROM user_allergens ua
+		JOIN allergens a ON ua.allergen_id = a.id
+		WHERE ua.user_id = $1
+		GROUP BY ua.user_id
+		)
+
 		SELECT 
 			up.min_cooking_time,
 			up.max_cooking_time,
-			up.allergies,
+			COALESCE(ual.allergies, '') AS allergies,
 			up.budget,
 			up.skill_level,
 			up.market_id,
 			up.preferences_vec,
-			m.name,
+			m.name AS market_name,
 			a.street,
 			a.city,
 			a.zip_code,
 			a.latitude,
 			a.longitude
 		FROM user_preferences up
-		LEFT JOIN markets m ON up.market_id::BIGINT = m.id
+		LEFT JOIN UserAllergies ual ON up.user_id = ual.user_id
+		LEFT JOIN markets m ON up.market_id::BIGINT = m.id 
 		LEFT JOIN addresses a ON m.address_id = a.id
-		WHERE up.user_id = $1
+		WHERE up.user_id = $1;
 	`, userId).Scan(
 		&prefs.MinCookingTime,
 		&prefs.MaxCookingTime,
