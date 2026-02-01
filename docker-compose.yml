@@ -243,11 +243,14 @@ services:
     # Mount the Docker socket so OliveTin can control Swarm
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
+      - ./cron-scripts:/scripts:ro
     configs:
       - source: olivetin_config_v1
         target: /config/config.yaml
     ports:
       - "8099:1337" # Host Port 8099 -> Container Port 1337
+    networks:
+      - app-network
 
 
 # ----------------------------------------------------------------
