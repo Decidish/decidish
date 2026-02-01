@@ -76,11 +76,11 @@ func (repo RecommenderRepository) GetRecommendedRecipesForUser(tx *sql.Tx, userI
         SELECT 
             re.recipe_id, 
             (uv.embedding <=> re.embedding) as dist,
-            MIN(rc.category_id) as primary_category_id
+            MIN(rc.cuisine_id) as primary_cuisine_id
         FROM recipe_embeddings re
         CROSS JOIN user_vec uv
 		JOIN recipes r_meta ON re.recipe_id = r_meta.id
-        LEFT JOIN recipe_categories rc ON re.recipe_id = rc.recipe_id
+        LEFT JOIN recipe_cuisines rc ON re.recipe_id = rc.recipe_id
         WHERE NOT EXISTS (
             SELECT 1
             FROM user_history uh
@@ -107,9 +107,9 @@ func (repo RecommenderRepository) GetRecommendedRecipesForUser(tx *sql.Tx, userI
             SELECT 
                 c.recipe_id,
                 c.dist,
-                c.primary_category_id,
+                c.primary_cuisine_id,
                 ARRAY[c.recipe_id] as visited_ids,
-                ARRAY[c.primary_category_id] as visited_cats,
+                ARRAY[c.primary_cuisine_id] as visited_cats,
                 1 as depth
             FROM candidates c
             ORDER BY c.dist ASC
@@ -120,9 +120,9 @@ func (repo RecommenderRepository) GetRecommendedRecipesForUser(tx *sql.Tx, userI
             SELECT 
                 next_c.recipe_id,
                 next_c.dist,
-                next_c.primary_category_id,
+                next_c.primary_cuisine_id,
                 prev.visited_ids || next_c.recipe_id,
-                prev.visited_cats || next_c.primary_category_id,
+                prev.visited_cats || next_c.primary_cuisine_id,
                 prev.depth + 1
             FROM recommender_recursion prev
             CROSS JOIN LATERAL (
@@ -130,11 +130,9 @@ func (repo RecommenderRepository) GetRecommendedRecipesForUser(tx *sql.Tx, userI
                 FROM candidates c
                 WHERE NOT (c.recipe_id = ANY(prev.visited_ids))
                 ORDER BY 
-                    -- DYNAMIC PENALTY FORMULA:
-                    -- If we already picked a recipe from this category, multiply distance by 2.5
                     c.dist * (
                         CASE 
-                            WHEN c.primary_category_id = ANY(prev.visited_cats) THEN 2.5 
+                            WHEN c.primary_cuisine_id = ANY(prev.visited_cats) THEN 2.5 
                             ELSE 1.0 
                         END
                     ) ASC
