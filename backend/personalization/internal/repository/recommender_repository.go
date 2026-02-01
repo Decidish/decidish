@@ -49,8 +49,6 @@ func GetAdminStats(db *sql.DB) (int, int, int, error) {
             (SELECT COUNT(*) FROM recipes) as total,
 			(
 				(SELECT COALESCE(SUM(processed_items), 0) FROM jobs WHERE created_at >= CURRENT_DATE) 
-				+ 
-				(SELECT COUNT(*) FROM import_logs WHERE created_at >= CURRENT_DATE) 
 			)
 			as today,
 			(SELECT COUNT(DISTINCT user_id) FROM user_history WHERE action_timestamp >= NOW() - INTERVAL '1 month') as users

@@ -5,7 +5,7 @@ import L from 'leaflet';
 import { marketApi } from '@/api/market-selection/marketApi';
 import { Market } from '@/types/market';
 import * as React from "react";
-import { userApi } from '@/api/market-selection/saveMarketApi';
+import { userApi } from '@/api/questionnaire/userApi';
 // import { useNavigate } from 'react-router-dom';
 
 interface MarketSelectionProps {
@@ -39,6 +39,19 @@ export default function MarketSelection({ onComplete }: MarketSelectionProps) {
   const [isLoading, setIsLoading] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  React.useEffect(() => {
+    async function checkUserMarket() {
+      const res = await userApi.getUserPreferences();
+
+    if (res?.market_id) {
+      window.REACT_APP_NAVIGATE('/recipe-swiper');
+      return;
+    }
+    }
+
+    checkUserMarket();
+  }, []);
 
   const handleSearch = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -78,7 +91,7 @@ export default function MarketSelection({ onComplete }: MarketSelectionProps) {
       setIsSaving(true);
       try {
         console.log("Saving selected market");
-        await userApi.saveMarket(selectedMarket.id.toString());
+        await marketApi.saveMarket(selectedMarket.id.toString());
         localStorage.setItem('selectedMarketId', selectedMarket.id.toString());
         console.log("Selected market saved");
         if (onComplete) {

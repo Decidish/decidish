@@ -3,6 +3,7 @@
 CREATE TABLE IF NOT EXISTS jobs (
     id SERIAL PRIMARY KEY,
     name VARCHAR(255) NOT NULL,
+    url TEXT,
     status VARCHAR(50) NOT NULL,-- 'pending', 'processing', 'completed', 'failed'
     processed_items INT DEFAULT 0,
     total_items INT DEFAULT 0,
