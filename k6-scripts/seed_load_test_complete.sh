@@ -340,40 +340,25 @@ if [ "$RUN_MATCHING" = true ]; then
     echo -e "${BLUE}=========================================${NC}"
     
     if [ "$DRY_RUN" = true ]; then
-        echo -e "${YELLOW}[DRY-RUN] Would call POST ${CORE_SERVER_URL}/shopping-list/match${NC}"
+        echo -e "${YELLOW}[DRY-RUN] Would run SQL matching script${NC}"
     else
-        # Check if core-server is running
-        echo -e "Checking core-server health..."
-        if ! curl -s "${CORE_SERVER_URL}/actuator/health" 2>/dev/null | grep -q "UP"; then
-            echo -e "${RED}ERROR: core-server is not running or not healthy at ${CORE_SERVER_URL}${NC}"
-            echo -e "${YELLOW}Start it with: docker compose up -d core-server${NC}"
-            echo -e "${YELLOW}Or run this script with --skip-matching to skip this step${NC}"
-            exit 1
-        fi
-        echo -e "${GREEN}✓ Core-server is healthy${NC}"
-        
-        echo -e "${BLUE}Calling POST ${CORE_SERVER_URL}/shopping-list/match ...${NC}"
-        echo -e "${YELLOW}This may take 2-3 minutes for multi-tier matching...${NC}"
-        
-        START_TIME=$(date +%s)
-        RESPONSE=$(curl -s -X POST "${CORE_SERVER_URL}/shopping-list/match" \
-            -H "Content-Type: application/json" \
-            -w "\n%{http_code}")
-        END_TIME=$(date +%s)
-        
-        HTTP_CODE=$(echo "$RESPONSE" | tail -n1)
-        BODY=$(echo "$RESPONSE" | head -n-1)
-        
-        DURATION=$((END_TIME - START_TIME))
-        MINUTES=$((DURATION / 60))
-        SECONDS=$((DURATION % 60))
-        
-        if [ "$HTTP_CODE" = "200" ]; then
-            echo -e "${GREEN}✓ Fuzzy matching completed in ${MINUTES}m ${SECONDS}s${NC}"
-            echo -e "${GREEN}Response: ${BODY}${NC}"
+        # Run the matching-only SQL script
+        # This uses multi-tier matching directly in SQL (same algorithm as Java)
+        if [ -f "$SCRIPT_DIR/seed_ingredient_matching.sql" ]; then
+            echo -e "Running multi-tier matching via SQL (same algorithm as core-server)..."
+            echo -e "${YELLOW}This may take 2-5 minutes depending on data volume...${NC}"
+            
+            START_TIME=$(date +%s)
+            run_sql_file "$SCRIPT_DIR/seed_ingredient_matching.sql"
+            END_TIME=$(date +%s)
+            
+            DURATION=$((END_TIME - START_TIME))
+            MINUTES=$((DURATION / 60))
+            SECONDS=$((DURATION % 60))
+            
+            echo -e "${GREEN}✓ Multi-tier matching completed in ${MINUTES}m ${SECONDS}s${NC}"
         else
-            echo -e "${RED}✗ Fuzzy matching failed (HTTP ${HTTP_CODE})${NC}"
-            echo -e "${RED}Response: ${BODY}${NC}"
+            echo -e "${RED}ERROR: seed_ingredient_matching.sql not found in $SCRIPT_DIR${NC}"
             exit 1
         fi
     fi

@@ -246,76 +246,129 @@ ORDER BY market_count DESC
 LIMIT 10;
 
 -- =============================================================================
--- PHASE 2: CREATE INGREDIENT-PRODUCT MAPPINGS (~95% coverage)
+-- PHASE 2: CREATE INGREDIENT-PRODUCT MAPPINGS USING MULTI-TIER MATCHING
 -- =============================================================================
+-- This uses the SAME matching logic as IngredientProductRepository.findGenericMatches()
+-- to ensure consistency between seeding and runtime matching.
 \echo ''
-\echo 'PHASE 2: Creating ingredient-product mappings (95% coverage)...'
+\echo 'PHASE 2: Creating ingredient-product mappings using multi-tier matching...'
 
 -- Enable trigram extension
 CREATE EXTENSION IF NOT EXISTS pg_trgm;
 
--- Get rewe_ids that exist in ALL target markets (most reliable for mappings)
-CREATE TEMP TABLE universal_products AS
-SELECT rewe_id, MIN(name) as product_name
-FROM products
-WHERE market_id IN (SELECT market_id FROM target_markets)
-GROUP BY rewe_id
-HAVING COUNT(DISTINCT market_id) = (SELECT COUNT(*) FROM target_markets);
+-- CRITICAL: Refresh the unique_products materialized view to include newly seeded products
+\echo 'Refreshing unique_products materialized view...'
+REFRESH MATERIALIZED VIEW unique_products;
 
-\echo 'Universal products (available in all target markets):'
-SELECT COUNT(*) as universal_product_count FROM universal_products;
+\echo 'Products available for matching:'
+SELECT COUNT(*) as unique_product_count FROM unique_products;
 
--- Delete old mappings that don't reference universal products (cleanup)
--- This ensures our mappings will work across all markets
-DELETE FROM ingredient_product 
-WHERE product_id NOT IN (SELECT rewe_id FROM universal_products);
+-- Update ingredients normalized_name if not set
+UPDATE ingredients 
+SET normalized_name = lower(regexp_replace(name, '[^a-zäöüßA-ZÄÖÜ0-9 ]', '', 'g')),
+    name_tsv = to_tsvector('german', name)
+WHERE normalized_name IS NULL OR normalized_name = '';
 
-\echo 'Cleaned up old non-universal mappings'
-
--- Create mappings for ~95% of ingredients
--- Use row number to skip every ~20th ingredient (5%)
+-- Get all ingredients that need mapping
 CREATE TEMP TABLE ingredients_to_map AS
-SELECT id, name, row_number() OVER (ORDER BY id) as rn
+SELECT id, name, normalized_name
 FROM ingredients
-WHERE NOT EXISTS (
-    SELECT 1 FROM ingredient_product ip 
-    WHERE ip.ingredient_id = ingredients.id
-    AND ip.product_id IN (SELECT rewe_id FROM universal_products)
-);
+WHERE normalized_name IS NOT NULL AND normalized_name <> '';
 
-\echo 'Unmapped ingredients:'
-SELECT COUNT(*) as unmapped_count FROM ingredients_to_map;
+\echo 'Total ingredients to process:'
+SELECT COUNT(*) as ingredient_count FROM ingredients_to_map;
 
--- Map 95% of ingredients (skip those where rn % 20 = 0)
+-- Multi-tier matching (same logic as findGenericMatches in Java)
+-- Tier 1: Exact substring matches (confidence 0.95-1.0)
+-- Tier 2: Word containment matches (confidence 0.70-0.94)
+-- Tier 3: Full-text search matches (confidence 0.50-0.69)
+-- Tier 4: Trigram similarity fallback (confidence 0.30-0.49)
+
+\echo 'Running multi-tier matching (this may take a few minutes)...'
+
 INSERT INTO ingredient_product (ingredient_id, product_id, confidence)
-SELECT DISTINCT ON (itm.id, up.rewe_id)
-    itm.id as ingredient_id,
-    up.rewe_id as product_id,
-    GREATEST(0.6, LEAST(0.95, similarity(LOWER(itm.name), LOWER(up.product_name)))) as confidence
-FROM ingredients_to_map itm
-CROSS JOIN LATERAL (
-    SELECT rewe_id, product_name
-    FROM universal_products up
-    WHERE similarity(LOWER(itm.name), LOWER(up.product_name)) > 0.15
-       OR LOWER(up.product_name) LIKE '%' || LOWER(SUBSTRING(itm.name FROM 1 FOR 4)) || '%'
-    ORDER BY similarity(LOWER(itm.name), LOWER(up.product_name)) DESC
-    LIMIT 3
-) up
-WHERE itm.rn % 20 != 0  -- Skip ~5% of ingredients (every 20th)
+WITH 
+-- Tier 1: Exact substring matches (highest confidence)
+substring_matches AS (
+    SELECT 
+        i.id AS ingredient_id,
+        p.rewe_id,
+        0.95 + (0.05 * (length(i.normalized_name)::float / GREATEST(length(p.normalized_name), 1)::float)) AS confidence
+    FROM ingredients_to_map i
+    JOIN unique_products p ON p.normalized_name LIKE '%' || i.normalized_name || '%'
+    WHERE length(i.normalized_name) >= 3
+),
+
+-- Tier 2: Word containment matches
+word_matches AS (
+    SELECT 
+        i.id AS ingredient_id,
+        p.rewe_id,
+        0.70 + (0.24 * word_match_score(i.normalized_name, p.normalized_name)) AS confidence
+    FROM ingredients_to_map i
+    CROSS JOIN unique_products p
+    WHERE word_match_score(i.normalized_name, p.normalized_name) >= 0.5
+),
+
+-- Tier 3: Full-text search matches
+fts_matches AS (
+    SELECT 
+        i.id AS ingredient_id,
+        p.rewe_id,
+        0.50 + (0.19 * LEAST(ts_rank(p.name_tsv, plainto_tsquery('german', i.name)), 1.0)) AS confidence
+    FROM ingredients_to_map i
+    CROSS JOIN unique_products p
+    WHERE p.name_tsv @@ plainto_tsquery('german', i.name)
+),
+
+-- Tier 4: Trigram similarity fallback (threshold 0.2)
+trigram_matches AS (
+    SELECT 
+        i.id AS ingredient_id,
+        p.rewe_id,
+        0.30 + (0.19 * similarity(i.normalized_name, p.normalized_name)) AS confidence
+    FROM ingredients_to_map i
+    CROSS JOIN unique_products p
+    WHERE similarity(i.normalized_name, p.normalized_name) > 0.2
+),
+
+-- Combine all tiers and deduplicate (keep highest confidence per ingredient-product pair)
+all_matches AS (
+    SELECT ingredient_id, rewe_id, MAX(confidence) as confidence
+    FROM (
+        SELECT ingredient_id, rewe_id, confidence FROM substring_matches
+        UNION ALL
+        SELECT ingredient_id, rewe_id, confidence FROM word_matches
+        UNION ALL
+        SELECT ingredient_id, rewe_id, confidence FROM fts_matches
+        UNION ALL
+        SELECT ingredient_id, rewe_id, confidence FROM trigram_matches
+    ) combined
+    GROUP BY ingredient_id, rewe_id
+),
+
+-- Rank and limit to top 3 matches per ingredient
+ranked_matches AS (
+    SELECT 
+        ingredient_id,
+        rewe_id,
+        confidence,
+        ROW_NUMBER() OVER (
+            PARTITION BY ingredient_id 
+            ORDER BY confidence DESC
+        ) AS rn
+    FROM all_matches
+)
+
+SELECT 
+    ingredient_id,
+    rewe_id AS product_id,
+    confidence::real
+FROM ranked_matches
+WHERE rn <= 3
 ON CONFLICT (ingredient_id, product_id) DO UPDATE SET confidence = EXCLUDED.confidence;
 
--- For ingredients still without mappings (except the 5%), add generic fallback
-INSERT INTO ingredient_product (ingredient_id, product_id, confidence)
-SELECT 
-    itm.id as ingredient_id,
-    (SELECT rewe_id FROM universal_products ORDER BY rewe_id LIMIT 1 OFFSET (itm.id % 50)) as product_id,
-    0.5 as confidence
-FROM ingredients_to_map itm
-WHERE itm.rn % 20 != 0  -- Still skip the 5%
-AND NOT EXISTS (
-    SELECT 1 FROM ingredient_product ip WHERE ip.ingredient_id = itm.id
-)
-ON CONFLICT (ingredient_id, product_id) DO NOTHING;
+\echo 'Multi-tier matching complete!'
 
 -- =============================================================================
 -- PHASE 3: SUMMARY AND VERIFICATION
@@ -332,12 +385,12 @@ SELECT
 UNION ALL
 SELECT 'Mapped Ingredients', COUNT(DISTINCT ingredient_id)::text FROM ingredient_product
 UNION ALL
-SELECT 'Unmapped Ingredients (5% for API test)', 
+SELECT 'Unmapped Ingredients', 
     (SELECT COUNT(*) FROM ingredients WHERE id NOT IN (SELECT ingredient_id FROM ingredient_product))::text
 UNION ALL
 SELECT 'Total Products', COUNT(*)::text FROM products
 UNION ALL
-SELECT 'Universal Products (all markets)', COUNT(*)::text FROM universal_products
+SELECT 'Unique Products (for matching)', (SELECT COUNT(*) FROM unique_products)::text
 UNION ALL
 SELECT 'Total Mappings', COUNT(*)::text FROM ingredient_product;
 
@@ -346,38 +399,43 @@ SELECT 'Total Mappings', COUNT(*)::text FROM ingredient_product;
 SELECT 
     ROUND(
         (SELECT COUNT(DISTINCT ingredient_id) FROM ingredient_product)::numeric / 
-        (SELECT COUNT(*) FROM ingredients)::numeric * 100, 2
+        NULLIF((SELECT COUNT(*) FROM ingredients), 0)::numeric * 100, 2
     ) as mapped_percentage,
     ROUND(
         (SELECT COUNT(*) FROM ingredients WHERE id NOT IN (SELECT ingredient_id FROM ingredient_product))::numeric / 
-        (SELECT COUNT(*) FROM ingredients)::numeric * 100, 2
-    ) as unmapped_percentage_for_api_testing;
+        NULLIF((SELECT COUNT(*) FROM ingredients), 0)::numeric * 100, 2
+    ) as unmapped_percentage;
 
 \echo ''
-\echo 'Sample unmapped ingredients (these will trigger API calls):'
+\echo 'Matches by confidence tier:'
+SELECT 
+    CASE 
+        WHEN confidence >= 0.95 THEN 'Tier 1 (Substring 0.95-1.0)'
+        WHEN confidence >= 0.70 THEN 'Tier 2 (Word Match 0.70-0.94)'
+        WHEN confidence >= 0.50 THEN 'Tier 3 (Full-text 0.50-0.69)'
+        WHEN confidence >= 0.30 THEN 'Tier 4 (Trigram 0.30-0.49)'
+        ELSE 'Other (<0.30)'
+    END as tier,
+    COUNT(*) as match_count,
+    COUNT(DISTINCT ingredient_id) as ingredients_matched
+FROM ingredient_product
+GROUP BY 1
+ORDER BY 1;
+
+\echo ''
+\echo 'Sample unmapped ingredients (if any):'
 SELECT id, name 
 FROM ingredients 
 WHERE id NOT IN (SELECT ingredient_id FROM ingredient_product)
 ORDER BY RANDOM()
 LIMIT 10;
 
-\echo ''
-\echo 'Verifying mappings work across all markets:'
-SELECT 
-    COUNT(DISTINCT ip.ingredient_id) as ingredients_with_universal_mappings
-FROM ingredient_product ip
-WHERE ip.product_id IN (SELECT rewe_id FROM universal_products);
-
 -- Cleanup temp tables
 DROP TABLE IF EXISTS product_templates;
 DROP TABLE IF EXISTS target_markets;
-DROP TABLE IF EXISTS universal_products;
 DROP TABLE IF EXISTS ingredients_to_map;
 
 \echo ''
 \echo '=========================================='
 \echo 'Load Test Database Seeding Complete!'
-\echo '=========================================='
-\echo 'Next: Run load test with SHOPPING_API_FALLBACK_ENABLED=true'
-\echo '      to verify ~5% API fallback calls work without rate limiting'
 \echo '=========================================='
