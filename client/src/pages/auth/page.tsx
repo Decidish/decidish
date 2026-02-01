@@ -165,7 +165,7 @@ export default function Auth() {
             )}
 
             {isLogin && (
-              <div className="flex items-center justify-between text-sm">
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 sm:gap-0 text-sm">
                 <label className="flex items-center cursor-pointer">
                   <input type="checkbox" className="w-4 h-4 text-indigo-600 border-gray-300 rounded focus:ring-indigo-500" />
                   <span className="ml-2 text-gray-600">Remember me</span>

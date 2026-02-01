@@ -103,7 +103,7 @@ func GetShoppingLists(db *sql.DB, userId string, completed bool) ([]ShoppingList
         JOIN products p ON sli.product_id = p.id
         LEFT JOIN recipes r ON sli.recipe_id = r.id
         WHERE sl.user_id = $1 AND sl.completed = $2
-        ORDER BY sl.id, recipe_name
+        ORDER BY sl.id DESC, recipe_name
     `
 
 	rows, err := db.Query(query, userId, completed)

@@ -24,13 +24,13 @@ type ImportLog struct {
 	CreatedAt    time.Time `json:"created_at"`
 }
 
-func CreateJob(tx *sql.Tx, name string, status string) (int, error) {
+func CreateJob(tx *sql.Tx, name string, url *string, status string) (int, error) {
 	var id int
 	err := tx.QueryRow(`
-		INSERT INTO jobs (name, status, processed_items, total_items) 
-		VALUES ($1, $2, 0, 0) 
+		INSERT INTO jobs (name, url, status, processed_items, total_items) 
+		VALUES ($1, $2, $3, 0, 1) 
 		RETURNING id`,
-		name, status).Scan(&id)
+		name, url, status).Scan(&id)
 	if err != nil {
 		return -1, err
 	}
@@ -103,4 +103,15 @@ func GetUrlImportHistory(db *sql.DB) ([]ImportLog, error) {
         logs = append(logs, l)
     }
     return logs, nil
+}
+
+func DeleteDeprecatedJobs(db *sql.DB, cutoff time.Time) (int64, error) {
+	result, err := db.Exec(`
+		DELETE FROM jobs 
+		WHERE created_at < $1`,
+		cutoff)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected()
 }

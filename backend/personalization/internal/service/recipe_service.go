@@ -190,7 +190,7 @@ func (service RecipeService) AddRecipe(ctx *gin.Context) {
 
 	// fmt.Println("Received URL:", body.RecipeUrl)
 
-	jobId, err := repository.CreateJob(tx, "add_recipe", "pending")
+	jobId, err := repository.CreateJob(tx, "add_recipe", &body.RecipeUrl, "pending")
 	if err != nil {
 		ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
@@ -236,7 +236,7 @@ func (service RecipeService) AddReweRecipes(ctx *gin.Context) {
 		return
 	}
 
-	jobId, err := repository.CreateJob(tx, "add_rewe_recipes", "pending")
+	jobId, err := repository.CreateJob(tx, "add_rewe_recipes", nil, "pending")
 	if err != nil {
 		tx.Rollback()
 		ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})

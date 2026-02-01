@@ -43,6 +43,7 @@ class SchedulerUT {
         InOrder inOrder = inOrder(marketService, recipeService);
 
         inOrder.verify(marketService).updateProductsForEveryMarket();
+        inOrder.verify(marketService).cleanupDeprecatedData();
         inOrder.verify(recipeService).fuzzyMatchingPreProcessing();
         
         // Ensure no other unexpected interactions happened
@@ -69,5 +70,7 @@ class SchedulerUT {
 
         // Then: Ensure we attempted it
         verify(marketService).updateProductsForEveryMarket();
+        verify(marketService).cleanupDeprecatedData();
+        verify(recipeService).fuzzyMatchingPreProcessing();
     }
 }

@@ -12,12 +12,10 @@ node_modules/
 **/recipes.jsonl
 **/example_recipes_enriched.jsonl
 **/out
-**/logs
-**/sessions
-**/_temp
-**/_cleanup
-**/temp
 **/urlset*.xml
 **/data/temp/
 *.json
 !grafana-dashboard*.json
+!grafana-dashboards/*.json
+!grafana-dashboard-decidish-v2.json
+*.log

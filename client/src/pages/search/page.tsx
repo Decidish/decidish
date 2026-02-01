@@ -5,6 +5,7 @@ import { keywordsApi } from '../../api/search/keywordsApi';
 import { productsApi, ShoppingListResponse, Product } from '@/api/recipe-swiper/productsApi';
 import { CartItem, shoppingListApi } from '@/api/shopping-list/shoppingCartApi';
 import { userApi } from '@/api/search-product/userApi';
+import { userHistoryApi } from '@/api/user-history/userHistoryApi';
 import RecipeDetailModal from '@/components/recipe/RecipeDetailModal';
 import ShoppingFlowModal from '@/components/recipe/ShoppingFlowModal';
 import { UIRecipe, SelectedProducts } from '@/types/recipe';
@@ -23,7 +24,6 @@ export default function Search() {
   const [isKeywordOpen, setIsKeywordOpen] = useState(false);
 
   const [maxTime, setMaxTime] = useState('all');
-  const [maxCalories, setMaxCalories] = useState('all');
 
   const [searchResults, setSearchResults] = useState<UIRecipe[]>([]);
   const [isSearching, setIsSearching] = useState(false);
@@ -42,8 +42,9 @@ export default function Search() {
   const [showSuccessToast, setShowSuccessToast] = useState(false);
   const [successMessage, setSuccessMessage] = useState('');
 
+  const [historyRecipeByTitle, setHistoryRecipeByTitle] = useState<Map<string, UIRecipe>>(new Map());
+
   const timeOptions = ['All', '15 min', '30 min', '45 min', '60 min', '60+ min'];
-  const calorieOptions = ['All', '100', '200', '300', '400', '500', '750', '1000', '1500'];
 
   const categoryRef = useRef<HTMLDivElement | null>(null);
   const keywordRef = useRef<HTMLDivElement | null>(null);
@@ -59,6 +60,22 @@ export default function Search() {
       }
     };
     fetchMarket();
+
+    const fetchHistory = async () => {
+      try {
+        const historyRecords = await userHistoryApi.getUserHistory();
+        const map = new Map(
+          historyRecords
+            .map((record) => record.recipe)
+            .filter((recipe) => recipe?.title)
+            .map((recipe) => [recipe.title.toLowerCase(), recipe])
+        );
+        setHistoryRecipeByTitle(map);
+      } catch (err) {
+        console.warn('Failed to fetch user history for recipe enrichment', err);
+      }
+    };
+    fetchHistory();
 
     categoriesApi.listCategories(undefined, 30)
       .then(setSuggestedCategories)
@@ -120,14 +137,14 @@ export default function Search() {
 
   // Auto-search when typing or changing filters (debounced)
   useEffect(() => {
-    if (!hasSearched && !searchQuery && selectedCategories.length === 0 && selectedKeywords.length === 0 && maxTime === 'all' && maxCalories === 'all') {
+    if (!hasSearched && !searchQuery && selectedCategories.length === 0 && selectedKeywords.length === 0 && maxTime === 'all') {
       return;
     }
     const handle = setTimeout(() => {
       void handleSearch(1);
     }, 250);
     return () => clearTimeout(handle);
-  }, [searchQuery, selectedCategories.join(','), selectedKeywords.join(','), maxTime, maxCalories]);
+  }, [searchQuery, selectedCategories.join(','), selectedKeywords.join(','), maxTime]);
 
   // Separate effect for pagination changes
   useEffect(() => {
@@ -148,12 +165,27 @@ export default function Search() {
         categories: selectedCategories,
         keywords: selectedKeywords,
         maxTime: maxTime,
-        maxCalories: maxCalories,
         page: page,
       });
 
       const recipes = response.recipes || [];
-      const mappedRecipes: UIRecipe[] = recipes.map((r: any) => ({
+      const mappedRecipes: UIRecipe[] = recipes.map((r: any) => {
+        const rawAllergies = r?.allergies;
+        const normalizedAllergies = Array.isArray(rawAllergies)
+          ? rawAllergies
+          : typeof rawAllergies === 'string'
+            ? rawAllergies.split(/[,;]+/).map((a: string) => a.trim()).filter(Boolean)
+            : [];
+
+        const historyRecipe = historyRecipeByTitle.get((r.title || '').toLowerCase());
+        const enrichedAllergies = normalizedAllergies.length > 0
+          ? normalizedAllergies
+          : (historyRecipe?.allergies || []);
+        const enrichedYields = r.nutrients?.servingSize || r.yields || historyRecipe?.yields || '4';
+        const enrichedServingSize = r.nutrients?.servingSize || historyRecipe?.nutrients?.servingSize || r.yields || historyRecipe?.yields || '4';
+        const enrichedCalories = r.nutrients?.calories || r.calories || historyRecipe?.nutrients?.calories || '0';
+
+        return {
         id: r.id,
         title: r.title,
         description: r.description || '',
@@ -161,18 +193,20 @@ export default function Search() {
         cook_time: r.cook_time || 0,
         prep_time: r.prep_time || 0,
         total_time: r.total_time || 0,
-        yields: r.yields || '4',
-        ratings: r.ratings || r.rating || 0,
-        nutrients: {
-          calories: r.calories || r.nutrients?.calories || '0',
-          servingSize: r.yields || '4',
-        },
-        ingredients: r.ingredients || [],
-        instructions: r.instructions || '',
-        category: r.cuisine || 'International',
-        keywords: r.keywords || [],
-        richIngredients: null,
-      }));
+          yields: enrichedYields,
+          ratings: r.ratings || r.rating || 0,
+          nutrients: {
+            calories: enrichedCalories,
+            servingSize: enrichedServingSize,
+          },
+          ingredients: r.ingredients || [],
+          allergies: enrichedAllergies,
+          instructions: r.instructions || '',
+          category: r.cuisine || 'International',
+          keywords: r.keywords || [],
+          richIngredients: null,
+        };
+      });
 
       setTotalResults(response.total_count);
       setTotalPages(response.total_pages);
@@ -248,25 +282,25 @@ export default function Search() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-emerald-50 via-green-50 to-teal-50">
       {/* Header & Search Bar */}
-      <div className="bg-white shadow-sm sticky top-0 z-40 overflow-visible">
+      <div className="bg-white shadow-sm overflow-visible">
         <div className="max-w-7xl mx-auto px-4 py-4 overflow-visible">
-          <div className="flex items-center gap-4 mb-4">
+          <div className="flex items-center gap-3 sm:gap-4 mb-4">
             <div className="relative flex-1">
-              <i className="ri-search-line absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 text-xl"></i>
+              <i className="ri-search-line absolute left-3 sm:left-4 top-1/2 -translate-y-1/2 text-gray-400 text-lg sm:text-xl"></i>
               <input
                 type="text"
-                placeholder="Search by recipe name, ingredient, or tags..."
+                placeholder="Search recipes..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full pl-12 pr-4 py-3 bg-gray-100 border-none rounded-xl focus:ring-2 focus:ring-[#2F855A] focus:bg-white transition-all text-gray-900 placeholder-gray-500"
+                className="w-full pl-10 sm:pl-12 pr-4 py-2.5 sm:py-3 bg-gray-100 border-none rounded-xl focus:ring-2 focus:ring-[#2F855A] focus:bg-white transition-all text-sm sm:text-base text-gray-900 placeholder-gray-500"
               />
             </div>
           </div>
 
           {/* Filters */}
-          <div className="flex items-start gap-3 overflow-x-auto pb-2 scrollbar-hide flex-nowrap">
+          <div className="flex flex-wrap items-start gap-2 sm:gap-3 pb-2">
             {/* Categories Multi-Select */}
-            <div className="relative min-w-[180px]" ref={categoryRef}>
+            <div className="relative w-full xs:w-auto xs:min-w-[160px] sm:min-w-[180px]" ref={categoryRef}>
               <button
                 onClick={() => setIsCategoryOpen(prev => !prev)}
                 className="relative appearance-none pl-4 pr-10 py-2 bg-gray-100 rounded-full text-sm font-semibold text-gray-700 border-none focus:ring-2 focus:ring-[#2F855A] cursor-pointer hover:bg-gray-200 transition-colors w-full flex items-center gap-2"
@@ -336,7 +370,7 @@ export default function Search() {
             </div>
 
             {/* Keywords Multi-Select */}
-            <div className="relative min-w-[180px]" ref={keywordRef}>
+            <div className="relative w-full xs:w-auto xs:min-w-[160px] sm:min-w-[180px]" ref={keywordRef}>
               <button
                 onClick={() => setIsKeywordOpen(prev => !prev)}
                 className="relative appearance-none pl-4 pr-10 py-2 bg-gray-100 rounded-full text-sm font-semibold text-gray-700 border-none focus:ring-2 focus:ring-[#2F855A] cursor-pointer hover:bg-gray-200 transition-colors w-full flex items-center gap-2"
@@ -406,7 +440,7 @@ export default function Search() {
             </div>
 
             {/* Time Filter */}
-            <div className="relative group min-w-[160px]">
+            <div className="relative group w-full xs:w-auto xs:min-w-[140px] sm:min-w-[160px]">
               <select
                 value={maxTime}
                 onChange={(e) => setMaxTime(e.target.value)}
@@ -415,18 +449,6 @@ export default function Search() {
                 {timeOptions.map(t => <option key={t} value={t === 'All' ? 'all' : t.replace(' min', '')}>{t}</option>)}
               </select>
               <i className="ri-time-line absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 pointer-events-none"></i>
-            </div>
-
-            {/* Max Calories Filter */}
-            <div className="relative group min-w-[180px]">
-              <select
-                value={maxCalories}
-                onChange={(e) => setMaxCalories(e.target.value)}
-                className="appearance-none pl-4 pr-10 py-2 bg-gray-100 rounded-full text-sm font-semibold text-gray-700 border-none focus:ring-2 focus:ring-[#2F855A] cursor-pointer hover:bg-gray-200 transition-colors w-full"
-              >
-                {calorieOptions.map(c => <option key={c} value={c === 'All' ? 'all' : c}>{c === 'All' ? 'All kcal' : `${c} kcal max`}</option>)}
-              </select>
-              <i className="ri-fire-line absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 pointer-events-none"></i>
             </div>
           </div>
         </div>

@@ -241,16 +241,17 @@ services:
     networks:
       - app-network
   
-  cronicle:
-    image: soulteary/cronicle:latest
-    container_name: cronicle
-    ports:
-      - "3012:3012"
-    environment:
-      - TZ=UTC
+  olivetin:
+    image: ghcr.io/olivetin/olivetin:latest
+    # Mount the Docker socket so OliveTin can control Swarm
     volumes:
-      - ./chronicle/data:/opt/cronicle/data
-      - ./chronicle/logs:/opt/cronicle/logs
+      - /var/run/docker.sock:/var/run/docker.sock
+      - ./cron-scripts:/scripts:ro
+    configs:
+      - source: olivetin_config_v1
+        target: /config/config.yaml
+    ports:
+      - "8099:1337" # Host Port 8099 -> Container Port 1337
     networks:
       - app-network
 
@@ -262,6 +263,10 @@ volumes:
   db_backend_data:
   db_authorisation_data:
   prometheus_data:
+
+configs:
+  olivetin_config_v1:
+    file: ./olivetin-config.yml
 
 networks:
   app-network:
