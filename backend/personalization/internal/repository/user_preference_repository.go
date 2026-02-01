@@ -4,7 +4,6 @@ import (
 	"database/sql"
 	"encoding/json"
 	"fmt"
-	"strings"
 
 	"github.com/lib/pq"
 )
@@ -204,7 +203,6 @@ func AddUserPreference(tx *sql.Tx, userId string, userInfo AdditionalInfo) error
 			return err
 		}
 	}
-	
 
 	if err != nil {
 		return err
