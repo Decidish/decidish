@@ -122,6 +122,10 @@ export default function RecipeSwiper() {
     const fetchUserMarket = async () => {
       try {
         const marketId = await userApi.getUserMarketId();
+        if (!marketId) {
+          window.REACT_APP_NAVIGATE('/questionnaire');
+          return;
+        }
         setMarketId(marketId);
       } catch (error: any) {
         if (error?.response?.status == 404) {

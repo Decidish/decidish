@@ -156,7 +156,7 @@ func (service UserService) CreateUserPreferences(ctx *gin.Context) {
 	tx, err := service.DB.Begin()
 
 	if err != nil {
-		ctx.JSON(http.StatusInternalServerError, "could not start a transaction")
+		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "could not start a transaction"})
 		log.Panicln("could not start a transaction", err.Error())
 	}
 
@@ -165,7 +165,7 @@ func (service UserService) CreateUserPreferences(ctx *gin.Context) {
 	// Save to database
 	err = repository.AddUserPreference(tx, userId, userPreferences)
 	if err != nil {
-		ctx.JSON(http.StatusInternalServerError, err)
+		ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
 
@@ -194,7 +194,7 @@ func (service UserService) CreateUserPreferences(ctx *gin.Context) {
 	for _, user := range encodeResp.Users {
 		err := repository.AddOrUpdateEmbeddings(tx, user.UserId, user.UserEmbedding)
 		if err != nil {
-			ctx.JSON(http.StatusInternalServerError, err)
+			ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 			return
 		}
 	}
@@ -238,12 +238,12 @@ func (service UserService) RecordUserAction(ctx *gin.Context) {
 
 	id, err := repository.AddUserHistory(tx, userId, recipeID, action)
 	if err != nil {
-		ctx.JSON(http.StatusInternalServerError, err)
+		ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
 
 	if err = tx.Commit(); err != nil {
-		ctx.JSON(http.StatusInternalServerError, "could not commit transaction")
+		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "could not commit transaction"})
 		log.Panicln("could not commit transaction", err.Error())
 	}
 

@@ -80,7 +80,7 @@ func (repo RecommenderRepository) GetRecommendedRecipesForUser(tx *sql.Tx, userI
         FROM recipe_embeddings re
         CROSS JOIN user_vec uv
 		JOIN recipes r_meta ON re.recipe_id = r_meta.id
-        LEFT JOIN recipe_cuisines rc ON re.recipe_id = rc.recipe_id
+        LEFT JOIN recipe_cuisine rc ON re.recipe_id = rc.recipe_id
         WHERE NOT EXISTS (
             SELECT 1
             FROM user_history uh
