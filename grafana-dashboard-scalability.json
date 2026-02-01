@@ -112,7 +112,7 @@
         "reduceOptions": { "calcs": ["lastNotNull"] }
       },
       "targets": [{
-        "expr": "histogram_quantile(0.95, sum(rate(k6_http_req_duration_seconds[1m]))) * 1000",
+        "expr": "histogram_quantile(0.95, sum by (le) (rate(k6_http_req_duration_seconds[1m]))) * 1000",
         "refId": "A"
       }],
       "title": "⚡ p95 Latency",
@@ -284,9 +284,9 @@
       },
       "targets": [
         { "expr": "max(k6_vus)", "legendFormat": "Virtual Users", "refId": "VU" },
-        { "expr": "histogram_quantile(0.50, sum(rate(k6_http_req_duration_seconds[1m]))) * 1000", "legendFormat": "p50 Latency", "refId": "A" },
-        { "expr": "histogram_quantile(0.95, sum(rate(k6_http_req_duration_seconds[1m]))) * 1000", "legendFormat": "p95 Latency", "refId": "B" },
-        { "expr": "histogram_quantile(0.99, sum(rate(k6_http_req_duration_seconds[1m]))) * 1000", "legendFormat": "p99 Latency", "refId": "C" }
+        { "expr": "histogram_quantile(0.50, sum by (le) (rate(k6_http_req_duration_seconds[1m]))) * 1000", "legendFormat": "p50 Latency", "refId": "A" },
+        { "expr": "histogram_quantile(0.95, sum by (le) (rate(k6_http_req_duration_seconds[1m]))) * 1000", "legendFormat": "p95 Latency", "refId": "B" },
+        { "expr": "histogram_quantile(0.99, sum by (le) (rate(k6_http_req_duration_seconds[1m]))) * 1000", "legendFormat": "p99 Latency", "refId": "C" }
       ],
       "title": "📊 Load vs Latency (Bottleneck Detection)",
       "type": "timeseries"
@@ -334,9 +334,9 @@
         "legend": { "calcs": ["mean", "max", "last"], "displayMode": "table", "placement": "bottom" }
       },
       "targets": [
-        { "expr": "histogram_quantile(0.95, k6_auth_service_latency_seconds) * 1000", "legendFormat": "Auth Service", "refId": "A" },
-        { "expr": "histogram_quantile(0.95, k6_shopping_list_generate_latency_seconds) * 1000", "legendFormat": "Core/Shopping Service", "refId": "B" },
-        { "expr": "histogram_quantile(0.95, k6_personalization_service_latency_seconds) * 1000", "legendFormat": "Personalization Service", "refId": "C" }
+        { "expr": "histogram_quantile(0.95, sum by (le) (rate(k6_auth_service_latency_seconds[1m]))) * 1000", "legendFormat": "Auth Service", "refId": "A" },
+        { "expr": "histogram_quantile(0.95, sum by (le) (rate(k6_core_service_latency_seconds[1m]))) * 1000", "legendFormat": "Core/Shopping Service", "refId": "B" },
+        { "expr": "histogram_quantile(0.95, sum by (le) (rate(k6_personalization_service_latency_seconds[1m]))) * 1000", "legendFormat": "Personalization Service", "refId": "C" }
       ],
       "title": "🏢 Per-Service Latency (p95)",
       "type": "timeseries"
@@ -363,12 +363,12 @@
         "legend": { "calcs": ["mean", "max", "last"], "displayMode": "table", "placement": "bottom" }
       },
       "targets": [
-        { "expr": "histogram_quantile(0.95, k6_recommendation_latency_seconds) * 1000", "legendFormat": "Recommendations", "refId": "A" },
-        { "expr": "histogram_quantile(0.95, k6_shopping_list_generate_latency_seconds) * 1000", "legendFormat": "Shopping List Generate", "refId": "B" },
-        { "expr": "histogram_quantile(0.95, k6_shopping_list_add_latency_seconds) * 1000", "legendFormat": "Shopping List Add", "refId": "C" },
-        { "expr": "histogram_quantile(0.95, k6_product_search_latency_seconds) * 1000", "legendFormat": "Product Search", "refId": "D" },
-        { "expr": "histogram_quantile(0.95, k6_recipe_search_latency_seconds) * 1000", "legendFormat": "Recipe Search", "refId": "E" },
-        { "expr": "histogram_quantile(0.95, k6_market_fetch_latency_seconds) * 1000", "legendFormat": "Market Fetch", "refId": "F" }
+        { "expr": "histogram_quantile(0.95, sum by (le) (rate(k6_recommendation_latency_seconds[1m]))) * 1000", "legendFormat": "Recommendations", "refId": "A" },
+        { "expr": "histogram_quantile(0.95, sum by (le) (rate(k6_shopping_list_generate_latency_seconds[1m]))) * 1000", "legendFormat": "Shopping List Generate", "refId": "B" },
+        { "expr": "histogram_quantile(0.95, sum by (le) (rate(k6_shopping_list_add_latency_seconds[1m]))) * 1000", "legendFormat": "Shopping List Add", "refId": "C" },
+        { "expr": "histogram_quantile(0.95, sum by (le) (rate(k6_product_search_latency_seconds[1m]))) * 1000", "legendFormat": "Product Search", "refId": "D" },
+        { "expr": "histogram_quantile(0.95, sum by (le) (rate(k6_recipe_search_latency_seconds[1m]))) * 1000", "legendFormat": "Recipe Search", "refId": "E" },
+        { "expr": "histogram_quantile(0.95, sum by (le) (rate(k6_market_fetch_latency_seconds[1m]))) * 1000", "legendFormat": "Market Fetch", "refId": "F" }
       ],
       "title": "🎯 Per-Endpoint Latency (p95)",
       "type": "timeseries"
@@ -642,7 +642,7 @@
         "reduceOptions": { "calcs": ["mean"] }
       },
       "targets": [{
-        "expr": "histogram_quantile(0.50, sum(rate(k6_http_req_duration_seconds[1m]))) * 1000",
+        "expr": "histogram_quantile(0.50, sum by (le) (rate(k6_http_req_duration_seconds[1m]))) * 1000",
         "refId": "A"
       }],
       "title": "⏱️ Avg Response Time (p50)",
@@ -774,35 +774,6 @@
     },
     {
       "datasource": "Prometheus",
-      "description": "Available permits for API calls",
-      "fieldConfig": {
-        "defaults": {
-          "color": { "mode": "thresholds" },
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              { "color": "red", "value": null },
-              { "color": "yellow", "value": 1 },
-              { "color": "green", "value": 3 }
-            ]
-          },
-          "unit": "short"
-        }
-      },
-      "gridPos": { "h": 6, "w": 4, "x": 16, "y": 57 },
-      "id": 34,
-      "options": {
-        "colorMode": "value",
-        "graphMode": "area",
-        "orientation": "auto",
-        "reduceOptions": { "calcs": ["lastNotNull"] }
-      },
-      "targets": [{ "expr": "rewe_api_available_permits OR vector(5)", "refId": "A" }],
-      "title": "✅ Available Permits",
-      "type": "stat"
-    },
-    {
-      "datasource": "Prometheus",
       "description": "Total REWE API requests",
       "fieldConfig": {
         "defaults": {
@@ -816,7 +787,7 @@
           "unit": "short"
         }
       },
-      "gridPos": { "h": 6, "w": 4, "x": 20, "y": 57 },
+      "gridPos": { "h": 6, "w": 4, "x": 16, "y": 57 },
       "id": 35,
       "options": {
         "colorMode": "value",

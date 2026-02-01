@@ -5,6 +5,8 @@ import (
 	"encoding/json"
 	"fmt"
 	"strings"
+
+	"github.com/lib/pq"
 )
 
 type AdditionalInfo struct {
@@ -28,25 +30,36 @@ func GetUserMarketId(db *sql.DB, userId string) (int64, error) {
 	return marketId, nil
 }
 
-func AddItemToShoppingList(tx *sql.Tx, userId string, productId int, quantity int, recipeId int) error {
-	var listId int
+// CartItemInput represents a single item to add to shopping list
+type CartItemInput struct {
+	ProductId int
+	Quantity  int
+	RecipeId  int
+}
 
+// AddItemsToShoppingListBatch adds multiple items to shopping list in a single efficient batch operation
+func AddItemsToShoppingListBatch(tx *sql.Tx, userId string, items []CartItemInput) error {
+	if len(items) == 0 {
+		return nil
+	}
+
+	// Step 1: Get or create the active shopping list
+	// First try to get existing active list
+	var listId int
 	err := tx.QueryRow(`
-        SELECT id 
-        FROM shopping_lists 
-        WHERE user_id = $1 AND completed = FALSE
-        LIMIT 1
-        FOR UPDATE
-    `, userId).Scan(&listId)
+		SELECT id FROM shopping_lists 
+		WHERE user_id = $1 AND completed = FALSE
+		LIMIT 1
+	`, userId).Scan(&listId)
 
 	if err != nil {
 		if err == sql.ErrNoRows {
+			// No active list exists, create one
 			err = tx.QueryRow(`
-                INSERT INTO shopping_lists (user_id, completed)
-                VALUES ($1, FALSE)
-                RETURNING id
-            `, userId).Scan(&listId)
-
+				INSERT INTO shopping_lists (user_id, completed)
+				VALUES ($1, FALSE)
+				RETURNING id
+			`, userId).Scan(&listId)
 			if err != nil {
 				return fmt.Errorf("failed to create new shopping list: %w", err)
 			}
@@ -55,20 +68,41 @@ func AddItemToShoppingList(tx *sql.Tx, userId string, productId int, quantity in
 		}
 	}
 
+	// Step 2: Batch insert all items using a single query with UNNEST
+	// This is much faster than individual inserts
+	productIds := make([]int, len(items))
+	quantities := make([]int, len(items))
+	recipeIds := make([]int, len(items))
+
+	for i, item := range items {
+		productIds[i] = item.ProductId
+		quantities[i] = item.Quantity
+		recipeIds[i] = item.RecipeId
+	}
+
 	_, err = tx.Exec(`
-        INSERT INTO shopping_list_items (shopping_list_id, product_id, quantity, recipe_id)
-        VALUES ($1, $2, $3, $4)
-        ON CONFLICT (shopping_list_id, product_id, recipe_id) 
-        DO UPDATE SET 
-            quantity = shopping_list_items.quantity + EXCLUDED.quantity, 
-            checked = FALSE
-    `, listId, productId, quantity, recipeId)
+		INSERT INTO shopping_list_items (shopping_list_id, product_id, quantity, recipe_id)
+		SELECT $1, unnest($2::int[]), unnest($3::int[]), unnest($4::int[])
+		ON CONFLICT (shopping_list_id, product_id, recipe_id) 
+		DO UPDATE SET 
+			quantity = shopping_list_items.quantity + EXCLUDED.quantity, 
+			checked = FALSE
+	`, listId, pq.Array(productIds), pq.Array(quantities), pq.Array(recipeIds))
 
 	if err != nil {
-		return fmt.Errorf("failed to add item to list: %w", err)
+		return fmt.Errorf("failed to batch add items to list: %w", err)
 	}
 
 	return nil
+}
+
+// AddItemToShoppingList adds a single item to shopping list (kept for backwards compatibility)
+func AddItemToShoppingList(tx *sql.Tx, userId string, productId int, quantity int, recipeId int) error {
+	return AddItemsToShoppingListBatch(tx, userId, []CartItemInput{{
+		ProductId: productId,
+		Quantity:  quantity,
+		RecipeId:  recipeId,
+	}})
 }
 
 func UpdateMarketId(tx *sql.Tx, userId string, marketId string) error {

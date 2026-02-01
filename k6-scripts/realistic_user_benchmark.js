@@ -129,46 +129,73 @@ const RECIPE_SEARCH_TERMS = [
 ];
 
 // ============= CUSTOM METRICS =============
+// Metric names are designed to match the Grafana dashboard expectations
+// k6 automatically prefixes these with 'k6_' in Prometheus output
 
-// Error tracking
-const errorRate = new Rate('error_rate');
-const failedRequests = new Counter('failed_requests');
+// ===== ERROR TRACKING =====
+const errorRate = new Rate('error_rate');                    // Real error rate (excludes expected 404s)
+const errors = new Rate('errors');                           // Alias for compatibility
+const failedRequests = new Counter('failed_requests');       // Total failed request count
 
-// Rate limiting tracking (external API)
-const rateLimitHits = new Counter('rate_limit_hits');
-const rateLimitRate = new Rate('rate_limit_rate');
+// ===== RATE LIMITING TRACKING (EXTERNAL REWE API) =====
+// These track when OUR app returns errors due to REWE rate limiting
+const rateLimitHits = new Counter('rate_limit_hits');        // Count of 429 responses
+const rateLimitRate = new Rate('rate_limit_rate');           // Rate of 429 responses
+const gatewayTimeouts = new Counter('gateway_timeouts');     // 504 Gateway Timeout (often rate limit related)
+const gatewayErrors = new Counter('gateway_errors');         // 502 Bad Gateway
+const reweApiErrors = new Counter('rewe_api_errors');        // All REWE-related errors (429, 502, 504)
 
-// Per-service latency
-const authLatency = new Trend('auth_latency', true);
-const coreLatency = new Trend('core_latency', true);
-const personalizationLatency = new Trend('personalization_latency', true);
+// Track which endpoints trigger rate limits
+const shoppingListRateLimits = new Counter('shopping_list_rate_limits');  // Rate limits during shopping list generation
+const productSearchRateLimits = new Counter('product_search_rate_limits'); // Rate limits during product search
 
-// Critical endpoint latency
-const recommendationLatency = new Trend('recommendation_latency', true);
-const shoppingListGenerateLatency = new Trend('shopping_list_generate_latency', true);
-const shoppingListAddLatency = new Trend('shopping_list_add_latency', true);
-const productSearchLatency = new Trend('product_search_latency', true);
-const recipeSearchLatency = new Trend('recipe_search_latency', true);
-const marketFetchLatency = new Trend('market_fetch_latency', true);
-const ingredientSelectLatency = new Trend('ingredient_select_latency', true);
+// ===== PER-SERVICE LATENCY (for bottleneck detection) =====
+// These match the Grafana dashboard panel "Per-Service Latency (p95)"
+const authServiceLatency = new Trend('auth_service_latency', true);                     // Auth service (login, register)
+const coreServiceLatency = new Trend('core_service_latency', true);                     // Core/Shopping service (markets, products, shopping list)
+const personalizationServiceLatency = new Trend('personalization_service_latency', true); // Personalization service (preferences, recommendations)
 
-// User flow metrics
-const signupComplete = new Counter('signup_complete');
-const loginComplete = new Counter('login_complete');
-const questionnaireComplete = new Counter('questionnaire_complete');
-const recipeSwipeComplete = new Counter('recipe_swipe_complete');
-const shoppingListCreateComplete = new Counter('shopping_list_create_complete');
-const productSelectionComplete = new Counter('product_selection_complete');
+// ===== PER-ENDPOINT LATENCY (for detailed bottleneck analysis) =====
+// These match the Grafana dashboard panel "Per-Endpoint Latency (p95)"
+const recommendationLatency = new Trend('recommendation_latency', true);                 // GET /personalization/api/v1/recipes/recommend
+const shoppingListGenerateLatency = new Trend('shopping_list_generate_latency', true);   // POST /shopping/shopping-list/generate
+const shoppingListAddLatency = new Trend('shopping_list_add_latency', true);             // POST /personalization/api/v1/user/add-to-list
+const productSearchLatency = new Trend('product_search_latency', true);                  // GET /shopping/api/v1/markets/search/products
+const recipeSearchLatency = new Trend('recipe_search_latency', true);                    // GET /personalization/recipes/search
+const marketFetchLatency = new Trend('market_fetch_latency', true);                      // GET /shopping/api/v1/markets
 
-// Session metrics
-const activeUsers = new Gauge('active_users');
-const recipesAddedTotal = new Counter('recipes_added_total');
-const productsSelectedTotal = new Counter('products_selected_total');
-const searchesPerformed = new Counter('searches_performed');
+// Additional endpoint latencies for complete coverage
+const loginLatency = new Trend('login_latency', true);                                   // POST /auth/login
+const registerLatency = new Trend('register_latency', true);                             // POST /auth/register
+const preferencesLatency = new Trend('preferences_latency', true);                       // POST /personalization/api/v1/user/preferences
+const marketSelectLatency = new Trend('market_select_latency', true);                    // POST /personalization/api/v1/user/market
+const recipeSwipeLatency = new Trend('recipe_swipe_latency', true);                      // POST /personalization/api/v1/user/record/:action/:recipeId
+const shoppingListGetLatency = new Trend('shopping_list_get_latency', true);             // GET /personalization/api/v1/user/active/list
+const likedRecipesLatency = new Trend('liked_recipes_latency', true);                    // GET /personalization/api/v1/user/liked-recipes
+const shoppingHistoryLatency = new Trend('shopping_history_latency', true);              // GET /personalization/api/v1/user/shopping/history
+const getPreferencesLatency = new Trend('get_preferences_latency', true);                // GET /personalization/api/v1/user/preferences
 
-// Shopping behavior metrics
-const shoppingListChecks = new Counter('shopping_list_checks');
-const shoppingSessionsActive = new Gauge('shopping_sessions_active');
+// ===== USER FLOW COMPLETION METRICS =====
+// These match the Grafana dashboard "User Flow Completions" panel
+const signupFlowComplete = new Counter('signup_flow_complete');           // Full signup flow completed
+const loginFlowComplete = new Counter('login_flow_complete');             // Login flow completed  
+const swipeFlowComplete = new Counter('swipe_flow_complete');             // Recipe swipe session completed
+const shoppingFlowComplete = new Counter('shopping_flow_complete');       // Shopping list creation completed
+const questionnaireComplete = new Counter('questionnaire_complete');       // Questionnaire completed
+
+// ===== SESSION & ACTIVITY METRICS =====
+const activeUsers = new Gauge('active_users');                            // Currently active VUs
+const recipesAddedTotal = new Counter('recipes_added_total');             // Total recipes added to shopping lists
+const productsSelectedTotal = new Counter('products_selected_total');     // Total products selected
+const searchesPerformed = new Counter('searches_performed');              // Total search queries
+
+// ===== SHOPPING BEHAVIOR METRICS =====
+const shoppingListChecks = new Counter('shopping_list_checks');           // Shopping list view/checks
+const shoppingSessionsActive = new Gauge('shopping_sessions_active');     // Users currently in shopping mode
+
+// ===== SCALABILITY METRICS =====
+const requestsPerVU = new Gauge('requests_per_vu');                       // Efficiency metric for scalability
+const concurrentOperations = new Gauge('concurrent_operations');          // Track concurrent operations
 
 // ============= TEST SCENARIOS =============
 
@@ -438,22 +465,69 @@ function weightedRandomChoice(items, weights) {
   return items[items.length - 1];
 }
 
-function measureRequest(metricTrend, requestFn) {
+// Enhanced request measurement with comprehensive error and rate limit tracking
+function measureRequest(metricTrend, serviceMetric, requestFn, endpointName = '') {
   const start = Date.now();
   const response = requestFn();
   const duration = Date.now() - start;
+  
+  // Record latency for specific endpoint
   metricTrend.add(duration);
   
-  // Track rate limiting
+  // Record latency for service-level metric (for bottleneck detection)
+  if (serviceMetric) {
+    serviceMetric.add(duration);
+  }
+  
+  // Comprehensive error and rate limit tracking
   if (response.status === 429) {
+    // Rate limit from REWE API (passed through our backend)
     rateLimitHits.add(1);
     rateLimitRate.add(1);
-    console.warn(`[RATE LIMIT] Got 429 response`);
+    reweApiErrors.add(1);
+    
+    // Track which endpoint triggered the rate limit
+    if (endpointName.includes('shopping-list') || endpointName.includes('generate')) {
+      shoppingListRateLimits.add(1);
+    } else if (endpointName.includes('search')) {
+      productSearchRateLimits.add(1);
+    }
+    
+    console.warn(`[RATE LIMIT 429] ${endpointName || 'Unknown endpoint'} - Duration: ${duration}ms`);
+  } else if (response.status === 504) {
+    // Gateway timeout - often indicates REWE API is slow or rate limiting
+    gatewayTimeouts.add(1);
+    reweApiErrors.add(1);
+    rateLimitRate.add(0); // Not a direct rate limit
+    
+    if (endpointName.includes('shopping-list') || endpointName.includes('generate')) {
+      shoppingListRateLimits.add(1);
+    }
+    
+    console.warn(`[GATEWAY TIMEOUT 504] ${endpointName || 'Unknown endpoint'} - Duration: ${duration}ms`);
+  } else if (response.status === 502) {
+    // Bad gateway - backend service unavailable
+    gatewayErrors.add(1);
+    reweApiErrors.add(1);
+    rateLimitRate.add(0);
+    
+    console.warn(`[BAD GATEWAY 502] ${endpointName || 'Unknown endpoint'} - Duration: ${duration}ms`);
+  } else if (response.status === 503) {
+    // Service unavailable - could be rate limiting
+    reweApiErrors.add(1);
+    rateLimitRate.add(0);
+    
+    console.warn(`[SERVICE UNAVAILABLE 503] ${endpointName || 'Unknown endpoint'} - Duration: ${duration}ms`);
   } else {
     rateLimitRate.add(0);
   }
   
   return response;
+}
+
+// Simple measurement for endpoints that don't need service-level tracking
+function measureEndpoint(metricTrend, requestFn, endpointName = '') {
+  return measureRequest(metricTrend, null, requestFn, endpointName);
 }
 
 function generatePreferenceVector() {
@@ -472,12 +546,13 @@ function signupFlow() {
   
   return group('New User Signup', () => {
     // Register
-    const registerRes = measureRequest(authLatency, () =>
+    const registerRes = measureRequest(registerLatency, authServiceLatency, () =>
       http.post(`${BASE_URL}/auth/register`, JSON.stringify({
         username: username,
         password: password,
         name: `New User ${__VU}`,
-      }), { headers: { 'Content-Type': 'application/json' } })
+      }), { headers: { 'Content-Type': 'application/json' } }),
+      'auth/register'
     );
     
     const registered = check(registerRes, {
@@ -492,11 +567,12 @@ function signupFlow() {
     }
     
     // Login
-    const loginRes = measureRequest(authLatency, () =>
+    const loginRes = measureRequest(loginLatency, authServiceLatency, () =>
       http.post(`${BASE_URL}/auth/login`, JSON.stringify({
         username: username,
         password: password,
-      }), { headers: { 'Content-Type': 'application/json' } })
+      }), { headers: { 'Content-Type': 'application/json' } }),
+      'auth/login'
     );
     
     const loggedIn = check(loginRes, {
@@ -505,13 +581,14 @@ function signupFlow() {
     
     if (!loggedIn) {
       errorRate.add(1);
+      errors.add(1);
       failedRequests.add(1);
       console.error(`[Signup ERROR] Login failed: ${loginRes.status}`);
       return null;
     }
     
     const authToken = extractAuthToken(loginRes);
-    signupComplete.add(1);
+    signupFlowComplete.add(1);
     
     if (isDebugEnabled('auth')) {
       console.log(`[Signup DEBUG] New user created: ${username}`);
@@ -526,11 +603,12 @@ function signupFlow() {
 
 function loginFlow(userData) {
   return group('User Login', () => {
-    const loginRes = measureRequest(authLatency, () =>
+    const loginRes = measureRequest(loginLatency, authServiceLatency, () =>
       http.post(`${BASE_URL}/auth/login`, JSON.stringify({
         username: userData.username,
         password: userData.password,
-      }), { headers: { 'Content-Type': 'application/json' } })
+      }), { headers: { 'Content-Type': 'application/json' } }),
+      'auth/login'
     );
     
     const loggedIn = check(loginRes, {
@@ -539,13 +617,14 @@ function loginFlow(userData) {
     
     if (!loggedIn) {
       errorRate.add(1);
+      errors.add(1);
       failedRequests.add(1);
       console.error(`[Login ERROR] Failed: ${loginRes.status}`);
       return null;
     }
     
     const authToken = extractAuthToken(loginRes);
-    loginComplete.add(1);
+    loginFlowComplete.add(1);
     
     if (isDebugEnabled('auth')) {
       console.log(`[Login DEBUG] Logged in: ${userData.username}`);
@@ -570,7 +649,7 @@ function questionnaireFlow(authToken) {
     const dietary = Math.random() > 0.8 ? ['vegetarian'] : 
                     Math.random() > 0.9 ? ['vegan'] : [];
     
-    const prefRes = measureRequest(personalizationLatency, () =>
+    const prefRes = measureRequest(preferencesLatency, personalizationServiceLatency, () =>
       http.post(`${BASE_URL}/personalization/api/v1/user/preferences`, JSON.stringify({
         dietary_restrictions: dietary,
         allergies: allergies,
@@ -582,7 +661,8 @@ function questionnaireFlow(authToken) {
         min_cooking_time: 10,
         max_cooking_time: 60,
         preference_vector: prefVector,
-      }), { headers, timeout: '10s' })
+      }), { headers, timeout: '10s' }),
+      'personalization/preferences'
     );
     
     if (prefRes.status === 0) {
@@ -616,8 +696,9 @@ function marketSelectionFlow(authToken, markets) {
   
   return group('Select Market', () => {
     // Fetch markets
-    const marketRes = measureRequest(marketFetchLatency, () =>
-      http.get(`${BASE_URL}/shopping/api/v1/markets?plz=${MARKET_POSTAL_CODE}`, { headers })
+    const marketRes = measureRequest(marketFetchLatency, coreServiceLatency, () =>
+      http.get(`${BASE_URL}/shopping/api/v1/markets?plz=${MARKET_POSTAL_CODE}`, { headers }),
+      'shopping/markets'
     );
     
     const fetched = check(marketRes, {
@@ -652,10 +733,11 @@ function marketSelectionFlow(authToken, markets) {
       }
       
       // Save market selection
-      const selectRes = measureRequest(personalizationLatency, () =>
+      const selectRes = measureRequest(marketSelectLatency, personalizationServiceLatency, () =>
         http.post(`${BASE_URL}/personalization/api/v1/user/market`,
           JSON.stringify({ market_id: String(marketId) }),
-          { headers })
+          { headers }),
+        'personalization/market'
       );
       
       check(selectRes, {
@@ -679,8 +761,9 @@ function recipeSwipingFlow(authToken, numSwipes = null) {
   
   return group('Recipe Swiping', () => {
     // Get recommendations
-    const recRes = measureRequest(recommendationLatency, () =>
-      http.get(`${BASE_URL}/personalization/api/v1/recipes/recommend`, { headers, timeout: '15s' })
+    const recRes = measureRequest(recommendationLatency, personalizationServiceLatency, () =>
+      http.get(`${BASE_URL}/personalization/api/v1/recipes/recommend`, { headers, timeout: '15s' }),
+      'personalization/recommend'
     );
     
     if (recRes.status === 0) {
@@ -734,11 +817,14 @@ function recipeSwipingFlow(authToken, numSwipes = null) {
         sleep(thinkTime('decideSwipe'));
         const action = Math.random() > 0.35 ? 'like' : 'dislike';
         
+        const swipeStart = Date.now();
         const actionRes = http.post(
           `${BASE_URL}/personalization/api/v1/user/record/${action}/${recipeId}`,
           JSON.stringify({}),
           { headers }
         );
+        recipeSwipeLatency.add(Date.now() - swipeStart);
+        personalizationServiceLatency.add(Date.now() - swipeStart);
         
         check(actionRes, {
           [`Recipe ${action} recorded`]: (r) => r.status === 200 || r.status === 201,
@@ -749,7 +835,7 @@ function recipeSwipingFlow(authToken, numSwipes = null) {
         }
       }
       
-      recipeSwipeComplete.add(1);
+      swipeFlowComplete.add(1);
       return { likedRecipes, viewedRecipe };
     } catch (e) {
       console.error(`[Swipe ERROR] Exception: ${e.message}`);
@@ -764,13 +850,14 @@ function addRecipeToShoppingListFlow(authToken, recipeId, marketId) {
   const headers = getAuthHeaders(authToken);
   
   return group('Add Recipe to Shopping List', () => {
-    // Step 1: Generate shopping list with product options
-    const generateRes = measureRequest(shoppingListGenerateLatency, () =>
+    // Step 1: Generate shopping list with product options (THIS IS THE MAIN REWE API CALL)
+    const generateRes = measureRequest(shoppingListGenerateLatency, coreServiceLatency, () =>
       http.post(
         `${BASE_URL}/shopping/shopping-list/generate?marketId=${marketId}`,
         JSON.stringify([recipeId]),
         { headers, timeout: '30s' }
-      )
+      ),
+      'shopping/shopping-list/generate'
     );
     
     if (generateRes.status === 0) {
@@ -838,12 +925,13 @@ function addRecipeToShoppingListFlow(authToken, recipeId, marketId) {
       }
       
       // Step 3: Add to shopping list
-      const addRes = measureRequest(shoppingListAddLatency, () =>
+      const addRes = measureRequest(shoppingListAddLatency, personalizationServiceLatency, () =>
         http.post(
           `${BASE_URL}/personalization/api/v1/user/add-to-list`,
           JSON.stringify(cartItems),
           { headers, timeout: '15s' }
-        )
+        ),
+        'personalization/add-to-list'
       );
       
       if (addRes.status === 0) {
@@ -858,8 +946,7 @@ function addRecipeToShoppingListFlow(authToken, recipeId, marketId) {
       if (!added) {
         console.error(`[Shopping ERROR] Add failed: ${addRes.status}`);
       } else {
-        shoppingListCreateComplete.add(1);
-        productSelectionComplete.add(1);
+        shoppingFlowComplete.add(1);
         recipesAddedTotal.add(1);
         if (isDebugEnabled('shopping')) {
           console.log(`[Shopping DEBUG] Added ${cartItems.length} products`);
@@ -884,8 +971,9 @@ function checkShoppingListFlow(authToken) {
     shoppingListChecks.add(1);
     
     // Get active shopping list
-    const listRes = measureRequest(coreLatency, () =>
-      http.get(`${BASE_URL}/personalization/api/v1/user/active/list`, { headers })
+    const listRes = measureRequest(shoppingListGetLatency, personalizationServiceLatency, () =>
+      http.get(`${BASE_URL}/personalization/api/v1/user/active/list`, { headers }),
+      'personalization/active/list'
     );
     
     // 404 is normal if no list exists
@@ -965,7 +1053,10 @@ function viewMyRecipesFlow(authToken) {
   
   return group('View My Recipes', () => {
     // Get liked recipes
+    const start = Date.now();
     const likedRes = http.get(`${BASE_URL}/personalization/api/v1/user/liked-recipes`, { headers });
+    likedRecipesLatency.add(Date.now() - start);
+    personalizationServiceLatency.add(Date.now() - start);
     
     // 404 is normal for new users
     if (likedRes.status === 404) {
@@ -990,7 +1081,10 @@ function viewShoppingHistoryFlow(authToken) {
   const headers = getAuthHeaders(authToken);
   
   return group('View Shopping History', () => {
+    const start = Date.now();
     const historyRes = http.get(`${BASE_URL}/personalization/api/v1/user/shopping/history`, { headers });
+    shoppingHistoryLatency.add(Date.now() - start);
+    personalizationServiceLatency.add(Date.now() - start);
     
     check(historyRes, {
       'Shopping history fetched': (r) => r.status === 200,
@@ -1011,12 +1105,13 @@ function searchFlow(authToken, marketId) {
     for (let i = 0; i < numSearches; i++) {
       // Randomly choose product or recipe search
       if (Math.random() > 0.4) {
-        // Product search (60%)
+        // Product search (60%) - THIS CAN TRIGGER REWE API CALLS
         const query = randomChoice(PRODUCT_SEARCH_TERMS);
         const encodedQuery = encodeURIComponent(query);
         
-        const searchRes = measureRequest(productSearchLatency, () =>
-          http.get(`${BASE_URL}/shopping/api/v1/markets/search/products?query=${encodedQuery}&marketId=${marketId}`, { headers })
+        const searchRes = measureRequest(productSearchLatency, coreServiceLatency, () =>
+          http.get(`${BASE_URL}/shopping/api/v1/markets/search/products?query=${encodedQuery}&marketId=${marketId}`, { headers }),
+          'shopping/search/products'
         );
         
         check(searchRes, {
@@ -1033,8 +1128,9 @@ function searchFlow(authToken, marketId) {
         const query = randomChoice(RECIPE_SEARCH_TERMS);
         const encodedQuery = encodeURIComponent(query);
         
-        const searchRes = measureRequest(recipeSearchLatency, () =>
-          http.get(`${BASE_URL}/personalization/recipes/search?q=${encodedQuery}`, { headers })
+        const searchRes = measureRequest(recipeSearchLatency, personalizationServiceLatency, () =>
+          http.get(`${BASE_URL}/personalization/recipes/search?q=${encodedQuery}`, { headers }),
+          'personalization/recipes/search'
         );
         
         check(searchRes, {
@@ -1065,7 +1161,7 @@ function updatePreferencesFlow(authToken) {
     
     const prefVector = generatePreferenceVector();
     
-    const prefRes = measureRequest(personalizationLatency, () =>
+    const prefRes = measureRequest(preferencesLatency, personalizationServiceLatency, () =>
       http.post(`${BASE_URL}/personalization/api/v1/user/preferences`, JSON.stringify({
         dietary_restrictions: Math.random() > 0.5 ? ['vegetarian'] : [],
         allergies: Math.random() > 0.7 ? ['gluten'] : [],
@@ -1075,7 +1171,8 @@ function updatePreferencesFlow(authToken) {
         budget: [50, 100, 150, 200, 300][randomInt(0, 4)],
         skill_level: ['beginner', 'intermediate', 'advanced'][randomInt(0, 2)],
         preference_vector: prefVector,
-      }), { headers, timeout: '10s' })
+      }), { headers, timeout: '10s' }),
+      'personalization/preferences'
     );
     
     check(prefRes, {
@@ -1100,8 +1197,9 @@ function changeMarketFlow(authToken, markets) {
     if (markets.length === 0) return null;
     
     // Fetch markets again
-    const marketRes = measureRequest(marketFetchLatency, () =>
-      http.get(`${BASE_URL}/shopping/api/v1/markets?plz=${MARKET_POSTAL_CODE}`, { headers })
+    const marketRes = measureRequest(marketFetchLatency, coreServiceLatency, () =>
+      http.get(`${BASE_URL}/shopping/api/v1/markets?plz=${MARKET_POSTAL_CODE}`, { headers }),
+      'shopping/markets'
     );
     
     if (marketRes.status !== 200) return null;
@@ -1116,10 +1214,11 @@ function changeMarketFlow(authToken, markets) {
       const newMarket = randomChoice(fetchedMarkets);
       const marketId = newMarket.id || newMarket.market_id;
       
-      const selectRes = measureRequest(personalizationLatency, () =>
+      const selectRes = measureRequest(marketSelectLatency, personalizationServiceLatency, () =>
         http.post(`${BASE_URL}/personalization/api/v1/user/market`,
           JSON.stringify({ market_id: String(marketId) }),
-          { headers })
+          { headers }),
+        'personalization/market'
       );
       
       check(selectRes, {
@@ -1307,15 +1406,28 @@ export function teardown(data) {
   console.log('='.repeat(60));
   console.log('Decidish Realistic User Benchmark - Complete');
   console.log('='.repeat(60));
-  console.log(`Total signups: ${signupComplete}`);
-  console.log(`Total logins: ${loginComplete}`);
-  console.log(`Total questionnaires: ${questionnaireComplete}`);
-  console.log(`Total swipe sessions: ${recipeSwipeComplete}`);
-  console.log(`Total shopping lists created: ${shoppingListCreateComplete}`);
-  console.log(`Total recipes added: ${recipesAddedTotal}`);
-  console.log(`Total products selected: ${productsSelectedTotal}`);
-  console.log(`Total searches: ${searchesPerformed}`);
-  console.log(`Total shopping list checks: ${shoppingListChecks}`);
-  console.log(`Rate limit hits: ${rateLimitHits}`);
+  console.log('');
+  console.log('📊 USER FLOW METRICS:');
+  console.log(`  Signups completed: ${signupFlowComplete}`);
+  console.log(`  Logins completed: ${loginFlowComplete}`);
+  console.log(`  Questionnaires completed: ${questionnaireComplete}`);
+  console.log(`  Swipe sessions completed: ${swipeFlowComplete}`);
+  console.log(`  Shopping flows completed: ${shoppingFlowComplete}`);
+  console.log('');
+  console.log('📦 ACTIVITY METRICS:');
+  console.log(`  Recipes added to list: ${recipesAddedTotal}`);
+  console.log(`  Products selected: ${productsSelectedTotal}`);
+  console.log(`  Searches performed: ${searchesPerformed}`);
+  console.log(`  Shopping list checks: ${shoppingListChecks}`);
+  console.log('');
+  console.log('⚠️  RATE LIMIT & ERROR METRICS:');
+  console.log(`  Rate limit hits (429): ${rateLimitHits}`);
+  console.log(`  Gateway timeouts (504): ${gatewayTimeouts}`);
+  console.log(`  Gateway errors (502): ${gatewayErrors}`);
+  console.log(`  Total REWE API errors: ${reweApiErrors}`);
+  console.log(`  Shopping list rate limits: ${shoppingListRateLimits}`);
+  console.log(`  Product search rate limits: ${productSearchRateLimits}`);
+  console.log(`  Failed requests: ${failedRequests}`);
+  console.log('');
   console.log('='.repeat(60));
 }

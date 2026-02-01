@@ -40,6 +40,11 @@ func (service ShoppingListService) AddProductsToShoppingList(ctx *gin.Context) {
 		return
 	}
 
+	if len(cartItems) == 0 {
+		ctx.JSON(http.StatusOK, "No items to add")
+		return
+	}
+
 	tx, err := service.DB.Begin()
 
 	if err != nil {
@@ -49,12 +54,21 @@ func (service ShoppingListService) AddProductsToShoppingList(ctx *gin.Context) {
 
 	defer tx.Rollback()
 
-	for _, item := range cartItems {
-		err := repository.AddItemToShoppingList(tx, userId, item.ProductId, item.Quantity, item.RecipeId)
-		if err != nil {
-			ctx.JSON(http.StatusInternalServerError, err.Error())
-			return
+	// Convert CartItems to repository format
+	items := make([]repository.CartItemInput, len(cartItems))
+	for i, item := range cartItems {
+		items[i] = repository.CartItemInput{
+			ProductId: item.ProductId,
+			Quantity:  item.Quantity,
+			RecipeId:  item.RecipeId,
 		}
+	}
+
+	// Use batch insert for much better performance
+	err = repository.AddItemsToShoppingListBatch(tx, userId, items)
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, err.Error())
+		return
 	}
 
 	if err = tx.Commit(); err != nil {
