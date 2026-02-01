@@ -2,6 +2,7 @@ package decidish.com.core.unit;
 
 import decidish.com.core.service.MarketService;
 import decidish.com.core.service.RecipeService;
+import decidish.com.core.scheduler.WeeklySyncMetrics;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -22,6 +23,9 @@ class SchedulerUT {
 
     @Mock
     private RecipeService recipeService;
+
+    @Mock
+    private WeeklySyncMetrics weeklySyncMetrics;
 
     @InjectMocks
     private Scheduler scheduler;

@@ -3,9 +3,24 @@ spring:
     url: jdbc:postgresql://postgres:5432/decidish
     username: user
     password: 1234
+    hikari:
+      # Pool sizing for high concurrency (100k users target)
+      maximum-pool-size: 50
+      minimum-idle: 10
+      # Connection timeout settings
+      connection-timeout: 10000      # 10 seconds to get a connection
+      idle-timeout: 300000           # 5 minutes idle before removal
+      max-lifetime: 600000           # 10 minutes max connection lifetime
+      leak-detection-threshold: 30000 # Log warning if connection held > 30s
+      pool-name: "HikariPool-Core"
   jpa:
     hibernate:
       ddl-auto: validate
+    properties:
+      hibernate:
+        # Enable slow query logging
+        # generate_statistics: true
+    open-in-view: false  # Disable OSIV to prevent connection holding during view rendering
   session:
      store-type: jdbc
      jdbc:
@@ -13,10 +28,34 @@ spring:
 #    store-type: none
   application:
     name: "shopping-service"
+  # Redis Cache Configuration
+  data:
+    redis:
+      host: ${SPRING_DATA_REDIS_HOST:localhost}
+      port: ${SPRING_DATA_REDIS_PORT:6379}
+      timeout: 2000
+  cache:
+    type: redis
+    redis:
+      time-to-live: 3600000  # 1 hour default TTL
+      cache-null-values: false
+
+# Logging for query performance debugging
+# logging:
+#   level:
+#     org.hibernate.SQL: DEBUG
+#     org.hibernate.stat: DEBUG
+#     com.zaxxer.hikari: DEBUG
+#     com.zaxxer.hikari.HikariConfig: DEBUG
+#     decidish.com.core: DEBUG
 
 cron:
   weekly-sync: "0 0 3 ? * SUN"  # Every Sunday at 3 AM
   quick-sync: "*/30 * * * * *"  # Every 30 seconds (for testing)
+
+# Feature flags for load testing
+shopping:
+  api-fallback-enabled: ${SHOPPING_API_FALLBACK_ENABLED:true}  # Set to false for load testing
   
 # Enable Prometheus metrics endpoint
 management:
