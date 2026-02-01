@@ -94,35 +94,54 @@ INSERT INTO target_markets (market_id) VALUES
 -- Show count
 SELECT COUNT(*) as target_market_count FROM target_markets;
 
--- Step 2b: Insert dummy addresses for markets that don't exist yet
-INSERT INTO addresses (id, street, zip_code, city, latitude, longitude)
-SELECT 
-    tm.market_id as id,  -- Use market_id as address_id for simplicity
-    'Load Test Street 1' as street,
-    '00000' as zip_code,
-    'Load Test City' as city,
-    52.5200 as latitude,
-    13.4050 as longitude
-FROM target_markets tm
-WHERE NOT EXISTS (SELECT 1 FROM addresses a WHERE a.id = tm.market_id)
-ON CONFLICT (id) DO NOTHING;
+-- Step 2b: Fix the address sequence if it's behind the max ID
+-- This ensures new inserts don't conflict with existing IDs
+SELECT setval('addresses_id_seq', GREATEST(
+    (SELECT COALESCE(MAX(id), 0) FROM addresses),
+    (SELECT last_value FROM addresses_id_seq)
+) + 1, false);
 
--- Step 2c: Insert markets that don't exist yet with dummy values
-INSERT INTO markets (id, name, address_id, last_updated)
-SELECT 
-    tm.market_id as id,
-    'REWE Load Test Market ' || tm.market_id as name,
-    tm.market_id as address_id,  -- References the address we just created
-    NOW() as last_updated
-FROM target_markets tm
-WHERE NOT EXISTS (SELECT 1 FROM markets m WHERE m.id = tm.market_id)
-ON CONFLICT (id) DO NOTHING;
+-- Step 2c: Find markets that don't exist yet and create them with addresses
+-- Use a DO block to handle this properly with RETURNING
+DO $$
+DECLARE
+    missing_market RECORD;
+    new_address_id BIGINT;
+BEGIN
+    FOR missing_market IN 
+        SELECT tm.market_id
+        FROM target_markets tm
+        WHERE NOT EXISTS (SELECT 1 FROM markets m WHERE m.id = tm.market_id)
+    LOOP
+        -- Insert address and get its ID
+        INSERT INTO addresses (street, zip_code, city, latitude, longitude)
+        VALUES (
+            'Load Test Street ' || missing_market.market_id,
+            '00000',
+            'Load Test City',
+            52.5200,
+            13.4050
+        )
+        RETURNING id INTO new_address_id;
+        
+        -- Insert market with the new address ID
+        INSERT INTO markets (id, name, address_id, last_updated)
+        VALUES (
+            missing_market.market_id,
+            'REWE Load Test Market ' || missing_market.market_id,
+            new_address_id,
+            NOW()
+        )
+        ON CONFLICT (id) DO NOTHING;
+    END LOOP;
+END $$;
 
 SELECT 'Markets ensured:' as status, COUNT(*) as market_count FROM markets WHERE id IN (SELECT market_id FROM target_markets);
 
--- Step 3: Bulk insert products for all markets
+-- Step 3: Bulk insert products for all markets that exist
 -- Same product (term + variant) has SAME rewe_id across all markets
 -- Each market gets its own row with unique auto-generated id
+-- Only insert for markets that actually exist in the markets table
 INSERT INTO products (
     rewe_id, name, market_id, price, grammage, last_updated, 
     is_organic, is_vegetarian, is_vegan, is_bulky_good, is_dairy_free, 
@@ -133,8 +152,8 @@ SELECT
     -- SAME rewe_id for same product across ALL markets (term + variant only)
     ABS(hashtext(pt.term || pt.suffix)) as rewe_id,
     pt.term || ' ' || pt.suffix || ' 500g' as name,
-    tm.market_id,
-    199 + (ABS(hashtext(pt.term || tm.market_id::text)) % 800) as price, -- 1.99 to 9.99 (price may vary by market)
+    m.id as market_id,
+    199 + (ABS(hashtext(pt.term || m.id::text)) % 800) as price, -- 1.99 to 9.99 (price may vary by market)
     '500g' as grammage,
     NOW() as last_updated,
     pt.is_organic,
@@ -151,9 +170,10 @@ SELECT
     false as is_tobacco
 FROM product_templates pt
 CROSS JOIN target_markets tm
+JOIN markets m ON m.id = tm.market_id  -- Only markets that actually exist
 WHERE NOT EXISTS (
     SELECT 1 FROM products p 
-    WHERE p.market_id = tm.market_id 
+    WHERE p.market_id = m.id 
     AND p.rewe_id = ABS(hashtext(pt.term || pt.suffix))
 );
 
