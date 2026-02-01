@@ -26,10 +26,10 @@ WHERE name IS NOT NULL AND name <> ''
 ORDER BY rewe_id, name;
 
 -- 3. Create indexes on the materialized view
-CREATE UNIQUE INDEX idx_unique_products_rewe_id ON unique_products(rewe_id);
-CREATE INDEX idx_unique_products_name_trgm ON unique_products USING gin(name gin_trgm_ops);
-CREATE INDEX idx_unique_products_normalized_trgm ON unique_products USING gin(normalized_name gin_trgm_ops);
-CREATE INDEX idx_unique_products_name_fts ON unique_products USING gin(name_tsv);
+CREATE UNIQUE INDEX IF NOT EXISTS idx_unique_products_rewe_id ON unique_products(rewe_id);
+CREATE INDEX IF NOT EXISTS idx_unique_products_name_trgm ON unique_products USING gin(name gin_trgm_ops);
+CREATE INDEX IF NOT EXISTS idx_unique_products_normalized_trgm ON unique_products USING gin(normalized_name gin_trgm_ops);
+CREATE INDEX IF NOT EXISTS idx_unique_products_name_fts ON unique_products USING gin(name_tsv);
 
 -- 4. Add normalized column and index to ingredients table for faster matching
 ALTER TABLE ingredients ADD COLUMN IF NOT EXISTS normalized_name TEXT;
