@@ -56,16 +56,16 @@ func (service ShoppingListService) AddProductsToShoppingList(ctx *gin.Context) {
 
 	// Convert CartItems to repository format
 	items := make([]repository.CartItemInput, len(cartItems))
+	// Collect unique recipe IDs to save
+	recipeIds := make([]int, 0)
+	seenRecipes := make(map[int]bool)
+
 	for i, item := range cartItems {
 		items[i] = repository.CartItemInput{
 			ProductId: item.ProductId,
 			Quantity:  item.Quantity,
 			RecipeId:  item.RecipeId,
-    }
-	// Collect unique recipe IDs to save
-	recipeIds := make([]int, 0)
-	seenRecipes := make(map[int]bool)
-
+		}
 
 		// Track unique recipe IDs for auto-saving
 		if item.RecipeId > 0 && !seenRecipes[item.RecipeId] {
