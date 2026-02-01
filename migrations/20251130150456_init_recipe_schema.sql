@@ -20,6 +20,8 @@ CREATE TABLE IF NOT EXISTS allergens (
     name VARCHAR(50) UNIQUE NOT NULL
 );
 
+CREATE INDEX idx_allergen_name ON allergens(name);
+
 CREATE TABLE IF NOT EXISTS ingredients_allergens(
     ingredient_id INT references ingredients(id) ON DELETE CASCADE,
     allergen_id INT references allergens(id) ON DELETE CASCADE,
@@ -55,6 +57,8 @@ CREATE TABLE recipes (
     unsaturated_fat_content VARCHAR(10),
     yields VARCHAR(20)
 );
+
+CREATE INDEX idx_total_time ON recipes(total_time);
 
 INSERT INTO recipes 
 VALUES (

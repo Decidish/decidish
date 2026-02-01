@@ -66,9 +66,10 @@ func GetAdminStats(db *sql.DB) (int, int, int, error) {
 func (repo RecommenderRepository) GetRecommendedRecipesForUser(tx *sql.Tx, userId string) ([]Recipe, error) {
 	querySQL := `
 	WITH recursive user_vec AS (
-        SELECT embedding 
-        FROM user_embeddings 
-        WHERE user_id = $1
+        SELECT ue.embedding, up.max_cooking_time
+        FROM user_embeddings ue
+		JOIN user_preferences up ON ue.user_id = up.user_id
+        WHERE ue.user_id = $1
     ),
 
     candidates AS (
@@ -78,6 +79,7 @@ func (repo RecommenderRepository) GetRecommendedRecipesForUser(tx *sql.Tx, userI
             MIN(rc.category_id) as primary_category_id
         FROM recipe_embeddings re
         CROSS JOIN user_vec uv
+		JOIN recipes r_meta ON re.recipe_id = r_meta.id
         LEFT JOIN recipe_categories rc ON re.recipe_id = rc.recipe_id
         WHERE NOT EXISTS (
             SELECT 1
@@ -86,7 +88,16 @@ func (repo RecommenderRepository) GetRecommendedRecipesForUser(tx *sql.Tx, userI
             AND uh.recipe_id = re.recipe_id
             AND uh.action_timestamp > NOW() - INTERVAL '7 days'
         )
-        GROUP BY re.recipe_id, re.embedding, uv.embedding -- Group to handle multiple categories
+		AND r_meta.total_time <= uv.max_cooking_time
+		AND NOT EXISTS (
+                SELECT 1
+                FROM recipe_ingredients ri
+                JOIN ingredients_allergens ia ON ri.ingredient_id = ia.ingredient_id
+                JOIN user_allergens ua ON ia.allergen_id = ua.allergen_id
+                WHERE ri.recipe_id = re.recipe_id
+                AND ua.user_id = $1
+            )
+        GROUP BY re.recipe_id, re.embedding, uv.embedding
         ORDER BY dist ASC
         LIMIT 100
     ),
@@ -97,8 +108,8 @@ func (repo RecommenderRepository) GetRecommendedRecipesForUser(tx *sql.Tx, userI
                 c.recipe_id,
                 c.dist,
                 c.primary_category_id,
-                ARRAY[c.recipe_id] as visited_ids,      -- Track IDs to prevent duplicates
-                ARRAY[c.primary_category_id] as visited_cats, -- Track Categories for penalty
+                ARRAY[c.recipe_id] as visited_ids,
+                ARRAY[c.primary_category_id] as visited_cats,
                 1 as depth
             FROM candidates c
             ORDER BY c.dist ASC
@@ -110,14 +121,14 @@ func (repo RecommenderRepository) GetRecommendedRecipesForUser(tx *sql.Tx, userI
                 next_c.recipe_id,
                 next_c.dist,
                 next_c.primary_category_id,
-                prev.visited_ids || next_c.recipe_id,     -- Add to visited list
-                prev.visited_cats || next_c.primary_category_id, -- Add to visited categories
+                prev.visited_ids || next_c.recipe_id,
+                prev.visited_cats || next_c.primary_category_id,
                 prev.depth + 1
             FROM recommender_recursion prev
             CROSS JOIN LATERAL (
                 SELECT c.*
                 FROM candidates c
-                WHERE NOT (c.recipe_id = ANY(prev.visited_ids)) -- Exclude already picked
+                WHERE NOT (c.recipe_id = ANY(prev.visited_ids))
                 ORDER BY 
                     -- DYNAMIC PENALTY FORMULA:
                     -- If we already picked a recipe from this category, multiply distance by 2.5

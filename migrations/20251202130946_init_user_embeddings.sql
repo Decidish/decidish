@@ -5,10 +5,16 @@ CREATE TABLE user_preferences (
     market_id VARCHAR(10),
     min_cooking_time INT, -- e.g., 30
     max_cooking_time INT, -- e.g., 45
-    allergies TEXT,
     budget INTEGER,
     skill_level VARCHAR(15),
     preferences_vec vector(35)
+);
+
+CREATE TABLE user_allergens (
+    user_id INT references user_preferences(user_id) ON DELETE CASCADE,
+    allergen_id INT references allergens(id) ON DELETE CASCADE,
+    
+    PRIMARY KEY(user_id, allergen_id)
 );
 
 CREATE TABLE user_embeddings (
