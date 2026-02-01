@@ -2,6 +2,7 @@ package decidish.com.core.unit;
 
 import decidish.com.core.controller.JobController;
 import decidish.com.core.scheduler.Scheduler;
+import decidish.com.core.scheduler.WeeklySyncMetrics;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
@@ -26,6 +27,9 @@ class JobControllerUT {
 
     @MockitoBean
     private Scheduler scheduler;
+
+    @MockitoBean
+    private WeeklySyncMetrics weeklySyncMetrics;
 
     @Test
     @DisplayName("POST /api/v1/jobs/cleanup returns 200 and triggers cleanup")

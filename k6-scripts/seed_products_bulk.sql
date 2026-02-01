@@ -185,6 +185,11 @@ SELECT
 FROM products
 WHERE market_id IN (SELECT market_id FROM target_markets);
 
+-- Step 5: Refresh the unique_products materialized view so matching can use new products
+-- This is CRITICAL for ingredient matching to work with seeded products
+REFRESH MATERIALIZED VIEW unique_products;
+SELECT 'Unique products view refreshed:' as status, COUNT(*) as unique_product_count FROM unique_products;
+
 -- Cleanup
 DROP TABLE product_templates;
 DROP TABLE target_markets;

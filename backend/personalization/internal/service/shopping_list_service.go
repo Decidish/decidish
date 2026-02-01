@@ -40,6 +40,11 @@ func (service ShoppingListService) AddProductsToShoppingList(ctx *gin.Context) {
 		return
 	}
 
+	if len(cartItems) == 0 {
+		ctx.JSON(http.StatusOK, "No items to add")
+		return
+	}
+
 	tx, err := service.DB.Begin()
 
 	if err != nil {
@@ -53,11 +58,17 @@ func (service ShoppingListService) AddProductsToShoppingList(ctx *gin.Context) {
 	recipeIds := make([]int, 0)
 	seenRecipes := make(map[int]bool)
 
-	for _, item := range cartItems {
-		err := repository.AddItemToShoppingList(tx, userId, item.ProductId, item.Quantity, item.RecipeId)
-		if err != nil {
-			ctx.JSON(http.StatusInternalServerError, err.Error())
-			return
+	// Convert CartItems to repository format
+	items := make([]repository.CartItemInput, len(cartItems))
+	// Collect unique recipe IDs to save
+	recipeIds := make([]int, 0)
+	seenRecipes := make(map[int]bool)
+
+	for i, item := range cartItems {
+		items[i] = repository.CartItemInput{
+			ProductId: item.ProductId,
+			Quantity:  item.Quantity,
+			RecipeId:  item.RecipeId,
 		}
 
 		// Track unique recipe IDs for auto-saving
@@ -73,6 +84,14 @@ func (service ShoppingListService) AddProductsToShoppingList(ctx *gin.Context) {
 			log.Printf("Warning: failed to auto-save recipes for user %s: %v", userId, err)
 			// Don't fail the whole operation if saving fails
 		}
+	}
+
+	// Use batch insert for much better performance
+	err = repository.AddItemsToShoppingListBatch(tx, userId, items)
+	if err != nil {
+		log.Printf("[ERROR] AddItemsToShoppingListBatch failed for user %s: %v", userId, err)
+		ctx.JSON(http.StatusInternalServerError, err.Error())
+		return
 	}
 
 	if err = tx.Commit(); err != nil {

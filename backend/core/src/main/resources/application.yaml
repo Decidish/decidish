@@ -19,7 +19,7 @@ spring:
     properties:
       hibernate:
         # Enable slow query logging
-        generate_statistics: true
+        # generate_statistics: true
     open-in-view: false  # Disable OSIV to prevent connection holding during view rendering
   session:
      store-type: jdbc
@@ -41,13 +41,13 @@ spring:
       cache-null-values: false
 
 # Logging for query performance debugging
-logging:
-  level:
-    org.hibernate.SQL: DEBUG
-    org.hibernate.stat: DEBUG
-    com.zaxxer.hikari: DEBUG
-    com.zaxxer.hikari.HikariConfig: DEBUG
-    decidish.com.core: DEBUG
+# logging:
+#   level:
+#     org.hibernate.SQL: DEBUG
+#     org.hibernate.stat: DEBUG
+#     com.zaxxer.hikari: DEBUG
+#     com.zaxxer.hikari.HikariConfig: DEBUG
+#     decidish.com.core: DEBUG
 
 cron:
   weekly-sync: "0 0 3 ? * SUN"  # Every Sunday at 3 AM

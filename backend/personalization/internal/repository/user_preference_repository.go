@@ -4,6 +4,8 @@ import (
 	"database/sql"
 	"encoding/json"
 	"fmt"
+
+	"github.com/lib/pq"
 )
 
 type AdditionalInfo struct {
@@ -27,47 +29,93 @@ func GetUserMarketId(db *sql.DB, userId string) (int64, error) {
 	return marketId, nil
 }
 
-func AddItemToShoppingList(tx *sql.Tx, userId string, productId int, quantity int, recipeId int) error {
-	var listId int
+// CartItemInput represents a single item to add to shopping list
+type CartItemInput struct {
+	ProductId int
+	Quantity  int
+	RecipeId  int
+}
 
+// AddItemsToShoppingListBatch adds multiple items to shopping list in a single efficient batch operation
+// Uses atomic INSERT ON CONFLICT for race-condition-safe get-or-create of shopping list
+func AddItemsToShoppingListBatch(tx *sql.Tx, userId string, items []CartItemInput) error {
+	if len(items) == 0 {
+		return nil
+	}
+
+	// Step 1: Deduplicate items by (productId, recipeId) - sum quantities for duplicates
+	// This is necessary because PostgreSQL ON CONFLICT cannot affect the same row twice in one INSERT
+	type itemKey struct {
+		productId int
+		recipeId  int
+	}
+	deduped := make(map[itemKey]int) // key -> total quantity
+	for _, item := range items {
+		key := itemKey{productId: item.ProductId, recipeId: item.RecipeId}
+		deduped[key] += item.Quantity
+	}
+
+	// Convert back to arrays
+	dedupedItems := make([]CartItemInput, 0, len(deduped))
+	for key, qty := range deduped {
+		dedupedItems = append(dedupedItems, CartItemInput{
+			ProductId: key.productId,
+			Quantity:  qty,
+			RecipeId:  key.recipeId,
+		})
+	}
+
+	// Step 2: Atomic get-or-create the active shopping list using INSERT ON CONFLICT
+	// This uses the partial unique index idx_shopping_lists_active_user (user_id WHERE completed = FALSE)
+	// to handle concurrent requests safely without race conditions
+	var listId int
 	err := tx.QueryRow(`
-        SELECT id 
-        FROM shopping_lists 
-        WHERE user_id = $1 AND completed = FALSE
-        LIMIT 1
-        FOR UPDATE
-    `, userId).Scan(&listId)
+		INSERT INTO shopping_lists (user_id, completed)
+		VALUES ($1, FALSE)
+		ON CONFLICT (user_id) WHERE completed = FALSE
+		DO UPDATE SET user_id = EXCLUDED.user_id
+		RETURNING id
+	`, userId).Scan(&listId)
 
 	if err != nil {
-		if err == sql.ErrNoRows {
-			err = tx.QueryRow(`
-                INSERT INTO shopping_lists (user_id, completed)
-                VALUES ($1, FALSE)
-                RETURNING id
-            `, userId).Scan(&listId)
+		return fmt.Errorf("failed to get or create shopping list: %w", err)
+	}
 
-			if err != nil {
-				return fmt.Errorf("failed to create new shopping list: %w", err)
-			}
-		} else {
-			return fmt.Errorf("failed to query active shopping list: %w", err)
-		}
+	// Step 3: Batch insert all items using a single query with UNNEST
+	// This is much faster than individual inserts
+	productIds := make([]int, len(dedupedItems))
+	quantities := make([]int, len(dedupedItems))
+	recipeIds := make([]int, len(dedupedItems))
+
+	for i, item := range dedupedItems {
+		productIds[i] = item.ProductId
+		quantities[i] = item.Quantity
+		recipeIds[i] = item.RecipeId
 	}
 
 	_, err = tx.Exec(`
-        INSERT INTO shopping_list_items (shopping_list_id, product_id, quantity, recipe_id)
-        VALUES ($1, $2, $3, $4)
-        ON CONFLICT (shopping_list_id, product_id, recipe_id) 
-        DO UPDATE SET 
-            quantity = shopping_list_items.quantity + EXCLUDED.quantity, 
-            checked = FALSE
-    `, listId, productId, quantity, recipeId)
+		INSERT INTO shopping_list_items (shopping_list_id, product_id, quantity, recipe_id)
+		SELECT $1, unnest($2::int[]), unnest($3::int[]), unnest($4::int[])
+		ON CONFLICT (shopping_list_id, product_id, recipe_id) 
+		DO UPDATE SET 
+			quantity = shopping_list_items.quantity + EXCLUDED.quantity, 
+			checked = FALSE
+	`, listId, pq.Array(productIds), pq.Array(quantities), pq.Array(recipeIds))
 
 	if err != nil {
-		return fmt.Errorf("failed to add item to list: %w", err)
+		return fmt.Errorf("failed to batch add items to list: %w", err)
 	}
 
 	return nil
+}
+
+// AddItemToShoppingList adds a single item to shopping list (kept for backwards compatibility)
+func AddItemToShoppingList(tx *sql.Tx, userId string, productId int, quantity int, recipeId int) error {
+	return AddItemsToShoppingListBatch(tx, userId, []CartItemInput{{
+		ProductId: productId,
+		Quantity:  quantity,
+		RecipeId:  recipeId,
+	}})
 }
 
 func UpdateMarketId(tx *sql.Tx, userId string, marketId string) error {
@@ -155,7 +203,6 @@ func AddUserPreference(tx *sql.Tx, userId string, userInfo AdditionalInfo) error
 			return err
 		}
 	}
-	
 
 	if err != nil {
 		return err
