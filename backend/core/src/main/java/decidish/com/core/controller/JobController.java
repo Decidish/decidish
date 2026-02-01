@@ -71,15 +71,6 @@ public class JobController {
      * This job deletes deprecated products and closed markets.
      * Usage: POST /api/v1/jobs/cleanup
      */
-    @GetMapping("/status")
-    public ResponseEntity<Map<String, Object>> getJobStatus() {
-        Map<String, Object> response = new HashMap<>();
-        boolean isRunning = isSyncRunning.get();
-        response.put("status", isRunning ? "running" : "idle");
-        response.put("message", "weekly sync job is currently " + (isRunning ? "running" : "not running"));
-        response.put("metrics", weeklySyncMetrics.snapshot());
-        return ResponseEntity.ok(response);
-    }
     @PostMapping("/cleanup")
     public ResponseEntity<Map<String, String>> triggerCleanup() {
         logger.info("Manual trigger requested for cleanup job");
