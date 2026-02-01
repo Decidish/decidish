@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
+import { authApi } from '@/api/auth/authApi';
 
 export default function Navigation() {
   const [showNavDropdown, setShowNavDropdown] = useState(false);
@@ -16,6 +17,18 @@ export default function Navigation() {
 
   const handleNavigate = (path: string) => {
     navigate(path);
+    setShowNavDropdown(false);
+  };
+
+  const handleLogout = async () => {
+    try {
+      await authApi.logout();
+      navigate('/auth');
+    } catch (error) {
+      console.error('Logout failed:', error);
+      // Navigate to auth page anyway
+      navigate('/auth');
+    }
     setShowNavDropdown(false);
   };
 
@@ -99,11 +112,7 @@ export default function Navigation() {
                         <button
                           key={link.path}
                           onClick={() => handleNavigate(link.path)}
-                          className={`w-full flex items-center gap-3 px-4 py-3 hover:bg-gray-50 transition-colors cursor-pointer text-left ${
-                            index !== navigationLinks.length - 1
-                              ? 'border-b border-gray-100'
-                              : ''
-                          } ${isActive ? 'bg-emerald-50' : ''}`}
+                          className={`w-full flex items-center gap-3 px-4 py-3 hover:bg-gray-50 transition-colors cursor-pointer text-left border-b border-gray-100 ${isActive ? 'bg-emerald-50' : ''}`}
                         >
                           <div className={`w-8 h-8 flex items-center justify-center rounded-lg ${
                             isActive ? 'bg-[#2F855A]' : 'bg-[#2F855A]/10'
@@ -121,6 +130,16 @@ export default function Navigation() {
                         </button>
                       );
                     })}
+                    {/* Logout Button */}
+                    <button
+                      onClick={handleLogout}
+                      className="w-full flex items-center gap-3 px-4 py-3 hover:bg-red-50 transition-colors cursor-pointer text-left"
+                    >
+                      <div className="w-8 h-8 flex items-center justify-center rounded-lg bg-red-500/10">
+                        <i className="ri-logout-box-line text-red-500"></i>
+                      </div>
+                      <span className="text-sm font-medium text-red-600">Log Out</span>
+                    </button>
                   </div>
                 </>
               )}
