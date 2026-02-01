@@ -9,6 +9,13 @@ export const userApi = {
     } catch (error: any) {
         if (error.response && error.response.status === 404) {
             console.warn("User has not selected a market yet.");
+            window.REACT_APP_NAVIGATE('/questionnaire');
+            return null;
+        }
+
+        if (error.response.status === 401) {
+            console.error("Unauthorized access - user may not be logged in.");
+            window.REACT_APP_NAVIGATE('/auth');
             return null;
         }
         console.error("Failed to fetch user market preference:", error);
