@@ -126,6 +126,11 @@ func AddUserPreference(tx *sql.Tx, userId string, userInfo AdditionalInfo) error
 		userInfo.SkillLevel,
 		vectorString)
 
+	_, err = tx.Exec(`DELETE FROM user_allergens WHERE user_id = $1`, userId)
+	if err != nil {
+		return err
+	}
+
 	for allergen := range userInfo.Allergies {
 		// find allergen id from allergens table
 		var allergenId int
