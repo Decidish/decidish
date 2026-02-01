@@ -4,7 +4,6 @@ import (
 	"database/sql"
 	"encoding/json"
 	"fmt"
-	"strings"
 )
 
 type AdditionalInfo struct {
@@ -113,22 +112,50 @@ func AddUserPreference(tx *sql.Tx, userId string, userInfo AdditionalInfo) error
 		user_id, 
 		min_cooking_time, 
         max_cooking_time,
-		allergies,
 	    budget, skill_level, preferences_vec)
-	VALUES ($1, $2, $3, $4, $5, $6, $7)
+	VALUES ($1, $2, $3, $4, $5, $6)
 	ON CONFLICT (user_id) DO UPDATE
 	SET min_cooking_time = EXCLUDED.min_cooking_time,
         max_cooking_time = EXCLUDED.max_cooking_time,
-	    allergies = EXCLUDED.allergies,
 	    budget = EXCLUDED.budget,
 	    skill_level = EXCLUDED.skill_level,
 	    preferences_vec = EXCLUDED.preferences_vec
 	`,
 		userId, userInfo.MinCookingTime, userInfo.MaxCookingTime,
-		strings.Join(userInfo.Allergies, ","),
 		userInfo.Budget,
 		userInfo.SkillLevel,
 		vectorString)
+
+	_, err = tx.Exec(`DELETE FROM user_allergens WHERE user_id = $1`, userId)
+	if err != nil {
+		return err
+	}
+
+	for allergen := range userInfo.Allergies {
+		// find allergen id from allergens table
+		var allergenId int
+		err = tx.QueryRow(`
+		SELECT id
+		FROM allergens
+		WHERE name = $1
+		LIMIT 1
+		`, userInfo.Allergies[allergen]).Scan(&allergenId)
+
+		if err != nil {
+			return err
+		}
+
+		_, err = tx.Exec(`
+		INSERT INTO user_allergens (user_id, allergen_id)
+		VALUES ($1, $2)
+		ON CONFLICT (user_id, allergen_id) DO NOTHING
+		`, userId, allergenId)
+
+		if err != nil {
+			return err
+		}
+	}
+	
 
 	if err != nil {
 		return err
