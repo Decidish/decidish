@@ -1,9 +1,11 @@
 import { useEffect, useState } from 'react';
-import { UIRecipe } from '@/types/recipe';
+import { UIRecipe, SelectedProducts } from '@/types/recipe';
 import RecipeDetailModal from '@/components/recipe/RecipeDetailModal';
-import { productsApi, ShoppingListResponse } from '@/api/recipe-swiper/productsApi';
+import ShoppingFlowModal from '@/components/recipe/ShoppingFlowModal';
+import { productsApi, ShoppingListResponse, Product } from '@/api/recipe-swiper/productsApi';
 import { userApi } from '@/api/search-product/userApi';
 import { savedRecipesApi, SavedRecipeRecord } from '@/api/saved-recipes/savedRecipesApi';
+import { CartItem, shoppingListApi } from '@/api/shopping-list/shoppingCartApi';
 
 export default function MyRecipesPage() {
   const [selectedRecipe, setSelectedRecipe] = useState<UIRecipe | null>(null);
@@ -18,6 +20,7 @@ export default function MyRecipesPage() {
   const [itemsPerPage, setItemsPerPage] = useState(6);
   const [marketId, setMarketId] = useState<number | null>(null);
   const [showRecipeDetailModal, setShowRecipeDetailModal] = useState(false);
+  const [showShoppingFlowModal, setShowShoppingFlowModal] = useState(false);
   const [showSuccessToast, setShowSuccessToast] = useState(false);
   const [successMessage, setSuccessMessage] = useState('');
 
@@ -137,7 +140,45 @@ export default function MyRecipesPage() {
     setTimeout(() => {
       setShowSuccessToast(false);
     }, 3000);
-  };  // Image expansion modal
+  };
+
+  // Start Shopping Flow (from Detail Modal)
+  const handleStartShopping = () => {
+    setShowRecipeDetailModal(false);
+    setShowShoppingFlowModal(true);
+  };
+
+  const handleRecipeUpdate = (updated: UIRecipe) => {
+    setSelectedRecipe(prev => (prev?.id === updated.id ? updated : prev));
+    setRecipes(prev => prev.map(r => (r.id === updated.id ? updated : r)));
+  };
+
+  // Handle Shopping Flow Completion
+  const handleShoppingFlowComplete = async (
+    recipe: UIRecipe,
+    selectedProducts: SelectedProducts,
+    productQuantities: Record<number, number>
+  ) => {
+    const itemsToAdd: CartItem[] = Object.entries(selectedProducts)
+      .filter(([_, product]) => product !== 'already-have')
+      .map(([_, product]) => ({
+        product_id: (product as Product).id,
+        quantity: productQuantities[(product as Product).id] || 1,
+        recipe_id: recipe.id,
+      }));
+
+    try {
+      await shoppingListApi.addItemsToShoppingList(itemsToAdd);
+      showSuccessNotification(recipe.title);
+      setShowShoppingFlowModal(false);
+      setSelectedRecipe(null);
+    } catch (err) {
+      console.error('Failed to add items', err);
+      alert('Failed to add items to shopping list');
+    }
+  };
+
+  // Image expansion modal
   if (expandedImage) {
     return (
       <div 
@@ -324,7 +365,18 @@ export default function MyRecipesPage() {
           setShowRecipeDetailModal(false);
           setSelectedRecipe(null);
         }}
-        showAddToShoppingButton={false}
+        onAddToShoppingList={handleStartShopping}
+        showAddToShoppingButton={true}
+      />
+
+      {/* Shopping Flow Modal */}
+      <ShoppingFlowModal
+        recipe={selectedRecipe}
+        open={showShoppingFlowModal}
+        marketId={marketId || undefined}
+        onClose={() => setShowShoppingFlowModal(false)}
+        onComplete={handleShoppingFlowComplete}
+        onRecipeUpdate={handleRecipeUpdate}
       />
 
       {/* Success Toast */}
