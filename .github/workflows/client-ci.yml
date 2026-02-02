@@ -31,4 +31,4 @@ jobs:
         tags: |
           ${{ env.IMAGE_NAME }}:${{ inputs.environment || 'latest' }}
         build-args: |
-            VITE_BASE_URL=${{ secrets.VITE_BASE_URL }}
+            VITE_BASE_URL=https://backend.decidish.win

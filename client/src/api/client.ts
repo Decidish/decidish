@@ -1,6 +1,6 @@
 import axios from 'axios';
 
-const baseURL = import.meta.env.VITE_BASE_URL ?? 'http://localhost';
+const baseURL = import.meta.env.VITE_BASE_URL ?? 'https://backend.decidish.win';
 
 const apiClient = axios.create({
   baseURL,

@@ -192,11 +192,6 @@ services:
         target: /etc/nginx/nginx.conf
     networks:
       - app-network
-    healthcheck:
-      test: ["CMD", "wget", "-q", "--spider", "http://localhost/health"]
-      interval: 10s
-      timeout: 5s
-      retries: 3
     deploy:
       replicas: 1
       restart_policy:
