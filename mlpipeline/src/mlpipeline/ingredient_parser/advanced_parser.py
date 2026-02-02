@@ -12,7 +12,7 @@ OLLAMA_HOST = "http://localhost:11434"
 
 # MODEL CHOICE
 # We switch to Qwen 2.5 3B. It is 3x faster than Llama 8B and smarter at JSON.
-MODEL = "qwen2.5:7b"
+MODEL = "qwen2.5:3b"
 
 # PERFORMANCE TUNING
 # We process recipes in batches to keep the disk I/O smooth
