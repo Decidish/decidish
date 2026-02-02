@@ -1,8 +1,14 @@
 #!/bin/bash
 
 # Configuration
-URL="http://mlpipeline:8000/finetune_user_adapter"
-MAX_RETRIES=5
+# For Docker Compose: URL defaults to mlpipeline
+# For Docker Swarm: Set STACK_NAME env var (e.g., STACK_NAME=qa)
+if [ -n "$STACK_NAME" ]; then
+    URL="http://${STACK_NAME}_mlpipeline:8000/finetune_user_adapter"
+else
+    URL="${MLPIPELINE_URL:-http://mlpipeline:8000/finetune_user_adapter}"
+fi
+MAX_RETRIES=2
 INITIAL_WAIT=30 # Seconds
 NAME="Finetune Job"
 
@@ -26,6 +32,7 @@ echo "[$(date)] Starting $NAME trigger..."
 
 while [ $retry_count -lt $MAX_RETRIES ]; do
     response_code=$(curl -s -o /dev/null -w "%{http_code}" -X POST "$URL" \
+        -H "Host: localhost" \
         -H "Content-Type: application/json" \
         -d "$DATA")
 

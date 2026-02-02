@@ -162,6 +162,8 @@ services:
 
   olivetin:
     image: ghcr.io/olivetin/olivetin:latest
+    environment:
+      - STACK_NAME=${STACK_NAME}
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
       - ./cron-scripts:/scripts:ro

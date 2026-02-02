@@ -1,7 +1,13 @@
 #!/bin/bash
 
 # Configuration
-URL="http://personalization-server:8082/cleanup"
+# For Docker Compose: URL defaults to personalization-server
+# For Docker Swarm: Set STACK_NAME env var (e.g., STACK_NAME=qa)
+if [ -n "$STACK_NAME" ]; then
+    URL="http://${STACK_NAME}_personalization-server:8082/jobs/cleanup"
+else
+    URL="${PERSONALIZATION_SERVER_URL:-http://personalization-server:8082/jobs/cleanup}"
+fi
 MAX_RETRIES=2
 INITIAL_WAIT=30 # Seconds
 NAME="Weekly Cleanup Job"
@@ -13,6 +19,7 @@ echo "[$(date)] Starting $NAME trigger..."
 
 while [ $retry_count -lt $MAX_RETRIES ]; do
     response_code=$(curl -s -o /dev/null -w "%{http_code}" -X POST "$URL" \
+        -H "Host: localhost" \
         -H "Content-Type: application/json")
 
     if [[ "$response_code" =~ ^2 ]]; then

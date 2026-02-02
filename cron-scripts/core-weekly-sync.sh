@@ -1,7 +1,13 @@
 #!/bin/bash
 
 # Configuration
-URL="http://core-server:8080/weekly-sync"
+# For Docker Compose: URL defaults to core-server
+# For Docker Swarm: Set STACK_NAME env var (e.g., STACK_NAME=qa)
+if [ -n "$STACK_NAME" ]; then
+    URL="http://${STACK_NAME}_core-server:8080/api/v1/jobs/weekly-sync"
+else
+    URL="${CORE_SERVER_URL:-http://core-server:8080/api/v1/jobs/weekly-sync}"
+fi
 MAX_RETRIES=2
 INITIAL_WAIT=30 # Seconds
 NAME="Weekly Sync Job"
@@ -13,6 +19,7 @@ echo "[$(date)] Starting $NAME trigger..."
 
 while [ $retry_count -lt $MAX_RETRIES ]; do
     response_code=$(curl -s -o /dev/null -w "%{http_code}" -X POST "$URL" \
+        -H "Host: localhost" \
         -H "Content-Type: application/json")
 
     if [[ "$response_code" =~ ^2 ]]; then

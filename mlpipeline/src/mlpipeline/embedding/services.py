@@ -13,6 +13,7 @@ from typing import List, Tuple, Dict, Optional
 from collections import defaultdict
 from contextlib import contextmanager
 from psycopg2.extras import execute_values
+from pgvector.psycopg2 import register_vector
 
 # --- Internal Imports ---
 from mlpipeline.pretrain.model import UserEncoder, UserEncoderConfig
@@ -159,6 +160,7 @@ class AdapterService:
     def _get_conn(self):
         """Helper context manager to get a raw psycopg2 connection."""
         conn = psycopg2.connect(self.db_url)
+        register_vector(conn)  # Register pgvector type adapter
         try:
             yield conn
         finally:
