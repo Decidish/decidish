@@ -47,21 +47,6 @@ export default function SearchProducts() {
 
   const formatPrice = (cents: number) => (cents / 100).toFixed(2);
   
-  // useEffect(() => {
-  //   const fetchMarket = async () => {
-  //     const fetchedId = await userApi.getUserMarketId();
-      
-  //     if (fetchedId) {
-  //       setMarketId(fetchedId);
-  //     } else {
-  //       setError("Please select a market in your profile settings.");
-  //       setLoading(false);
-  //     }
-  //   };
-
-  //   fetchMarket();
-  // }, []); // Empty dependency array = runs once on page load
-
   useEffect(() => {
   const fetchMarket = async () => {
     try {
@@ -95,6 +80,16 @@ export default function SearchProducts() {
     setSearchResults([]); 
     setIsMarketLoading(true);
   };
+
+  // Auto-search when typing or changing filters (debounced)
+  useEffect(() => {
+    if (!marketId) return;
+    const handle = setTimeout(() => {
+      void handleSearch(1);
+    }, 250);
+    return () => clearTimeout(handle);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchQuery, filterType, priceSort]);
 
   const handleSearch = async (page: number = 1) => {
     if (!marketId) {
@@ -130,9 +125,7 @@ export default function SearchProducts() {
     }
   };
 
-  const handleKeyPress = (e: React.KeyboardEvent) => {
-    if (e.key === 'Enter') handleSearch(1);
-  };
+
 
   const addToCart = async (product: Product, e?: React.MouseEvent) => {
     if (e) e.stopPropagation();
@@ -266,21 +259,12 @@ export default function SearchProducts() {
                 placeholder={isMarketLoading ? "Loading market..." : "Search products"}
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                onKeyPress={handleKeyPress}
                 className="w-full pl-10 sm:pl-12 pr-4 py-3 border-2 border-gray-200 rounded-xl focus:border-[#2F855A] focus:outline-none text-sm sm:text-base transition-colors"
               />
-            </div>
-            <button
-              onClick={() => handleSearch(1)}
-              disabled={isSearching}
-              className="w-full sm:w-auto px-6 sm:px-8 py-3 bg-gradient-to-r from-[#2F855A] to-emerald-600 text-white rounded-xl font-semibold hover:from-[#276749] hover:to-emerald-700 transition-all shadow-md hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer whitespace-nowrap"
-            >
-              {isSearching ? (
-                <i className="ri-loader-4-line text-xl animate-spin"></i>
-              ) : (
-                'Search'
+              {isSearching && (
+                <i className="ri-loader-4-line absolute right-4 top-1/2 -translate-y-1/2 text-lg text-[#2F855A] animate-spin"></i>
               )}
-            </button>
+            </div>
           </div>
 
           {/* Filters */}
