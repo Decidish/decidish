@@ -70,12 +70,6 @@ services:
       DATABASE_URL: ${DATABASE_URL}
     networks:
       - app-network
-    healthcheck:
-      test: ["CMD", "wget", "-q", "--spider", "http://localhost:8083/health"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 30s
     deploy:
       replicas: 3
       restart_policy:
@@ -97,12 +91,6 @@ services:
       - SHOPPING_API_FALLBACK_ENABLED=${SHOPPING_API_FALLBACK_ENABLED:-true}
     networks:
       - app-network
-    healthcheck:
-      test: ["CMD", "wget", "-q", "--spider", "http://localhost:8080/actuator/health"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 60s
     deploy:
       replicas: 3
       restart_policy:
@@ -120,12 +108,6 @@ services:
       - EMBEDDER_SERVER_URL=http://mlpipeline:8000
     networks:
       - app-network
-    healthcheck:
-      test: ["CMD", "wget", "-q", "--spider", "http://localhost:8082/health"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 30s
     deploy:
       replicas: 3
       restart_policy:
@@ -149,12 +131,6 @@ services:
       - ./ckpts_weekly_user_adapter:/app/models/adapter_checkpoints
     networks:
       - app-network
-    healthcheck:
-      test: ["CMD", "wget", "-q", "--spider", "http://localhost:8000/health"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 45s
     deploy:
       replicas: 1
       restart_policy:
