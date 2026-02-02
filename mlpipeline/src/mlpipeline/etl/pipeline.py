@@ -237,17 +237,9 @@ class Pipeline:
 
         # add allergies to allergies and ingredients_allergies tables
         if allergies:
-            for allergy in allergies.split(","):
-                # preprocess the allergy string  Tree Nuts (depending on the recipe) --> Tree Nuts
-                allergy = allergy.strip()
-                if allergy == "":
-                    continue
+            allergens = allergies.replace(";", ",").split(",")
 
-                # remove parenthetical info
-                if "(" in allergy:
-                    allergy = allergy[:allergy.index("(")].strip()
-
-                # Insert allergy and get allergy_id
+            if len(allergens) >= 3:
                 cursor.execute("""
                     WITH ins AS (
                         INSERT INTO allergens (name) VALUES (%s)
@@ -258,11 +250,39 @@ class Pipeline:
                     UNION ALL
                     SELECT id FROM allergens WHERE name = %s
                     LIMIT 1;
-                """, (allergy, allergy))
+                """, ("None", "None"))
                 allergy_id = cursor.fetchone()[0]
 
                 # Insert into ingredients_allergies later after getting ingredient_id
                 allergyIds.append(allergy_id)
+            else:
+                # accept both commas and semicolons as separators
+                for allergy in allergies.replace(";", ",").split(","):
+                    # preprocess the allergy string  Tree Nuts (depending on the recipe) --> Tree Nuts
+                    allergy = allergy.strip()
+                    if allergy == "":
+                        continue
+
+                    # remove parenthetical info
+                    if "(" in allergy:
+                        allergy = allergy[:allergy.index("(")].strip()
+
+                    # Insert allergy and get allergy_id
+                    cursor.execute("""
+                        WITH ins AS (
+                            INSERT INTO allergens (name) VALUES (%s)
+                            ON CONFLICT (name) DO NOTHING
+                            RETURNING id
+                        )
+                        SELECT id FROM ins
+                        UNION ALL
+                        SELECT id FROM allergens WHERE name = %s
+                        LIMIT 1;
+                    """, (allergy, allergy))
+                    allergy_id = cursor.fetchone()[0]
+
+                    # Insert into ingredients_allergies later after getting ingredient_id
+                    allergyIds.append(allergy_id)
 
         cursor.execute("""
                         WITH ins AS (

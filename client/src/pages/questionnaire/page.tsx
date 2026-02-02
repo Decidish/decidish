@@ -352,7 +352,7 @@ export default function Questionnaire() {
                   Allergies & Intolerances
                 </h3>
                 <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-                  {['Peanuts', 'Tree Nuts', 'Milk', 'Eggs', 'Fish', 'Shellfish', 'Soy', 'Wheat', 'Sesame'].map(allergy => (
+                  {['Nuts', 'Dairy', 'Chocolate', 'Eggs', 'Fish', 'Shellfish', 'Soy', 'Wheat', 'Sesame'].map(allergy => (
                     <button
                       key={allergy}
                       type="button"

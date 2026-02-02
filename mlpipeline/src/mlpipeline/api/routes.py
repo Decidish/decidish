@@ -4,16 +4,9 @@ from fastapi import APIRouter, BackgroundTasks, HTTPException
 from mlpipeline.embedding.services import AdapterService, InferenceService
 from .tasks import run_add_recipe_background_task, run_etl_background_task
 from .schemas import AdapterFinetuneRequest, AdapterFinetuneResponse, AddRecipeRequest, AddReweRecipesRequest, EncodeBatchRequest, EncodeBatchResponse, TuneRequest, TuneResponse
-import logging
 import traceback
 
 # Import our refactored modules
-from .schemas import (
-    EncodeBatchRequest, EncodeBatchResponse,
-    TuneRequest, TuneResponse,
-    AdapterFinetuneRequest, AdapterFinetuneResponse
-)
-
 router = APIRouter()
 
 logging.basicConfig(level=logging.INFO)
@@ -53,7 +46,7 @@ async def encode_users_batch(req: EncodeBatchRequest):
     except ValueError as e:
         logger.warning(f"Bad Request in encode_users_batch: {e}")
         raise HTTPException(status_code=400, detail=str(e))
-    except Exception as e:
+    except Exception as _:
         logger.error(f"Inference Error: {traceback.format_exc()}")
         raise HTTPException(status_code=500, detail="Internal inference error")
 
@@ -109,7 +102,7 @@ def tune(req: TuneRequest):
         return result
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
-    except Exception as e:
+    except Exception as _:
         logger.error(f"Tune Error: {traceback.format_exc()}")
         raise HTTPException(status_code=500, detail="Internal tuning error")
 
@@ -134,6 +127,6 @@ def finetune_user_adapter(req: AdapterFinetuneRequest):
         raise HTTPException(status_code=503, detail="Could not acquire lock or connect to DB. System busy.")
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
-    except Exception as e:
+    except Exception as _:
         logger.error(f"Fine-Tuning Error: {traceback.format_exc()}")
         raise HTTPException(status_code=500, detail="Internal training error")

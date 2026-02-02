@@ -86,7 +86,7 @@ func (repo RecommenderRepository) GetRecommendedRecipesForUser(tx *sql.Tx, userI
             AND uh.recipe_id = re.recipe_id
             AND uh.action_timestamp > NOW() - INTERVAL '7 days'
         )
-		AND (r_meta.total_time <= uv.max_cooking_time OR uv.max_cooking_time IS NULL)
+		AND (r_meta.total_time <= uv.max_cooking_time OR uv.max_cooking_time = 0)
 		AND NOT EXISTS (
                 SELECT 1
                 FROM recipe_ingredients ri
