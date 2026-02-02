@@ -274,10 +274,10 @@ func TestGetUrlHistory_Success(t *testing.T) {
 	router := setupTestRouter(controller)
 
 	createdAt := time.Now()
-	rows := sqlmock.NewRows([]string{"id", "name", "status", "created_at"}).
-		AddRow(1, "https://example.com/recipe1", "completed", createdAt).
-		AddRow(2, "https://example.com/recipe2", "failed", createdAt)
-	mock.ExpectQuery("SELECT id, name, status, created_at FROM jobs WHERE name = 'add_recipe' ORDER BY created_at DESC LIMIT 50").
+	rows := sqlmock.NewRows([]string{"id", "name", "url", "status", "created_at"}).
+		AddRow(1, "add_recipe", "https://example.com/recipe1", "completed", createdAt).
+		AddRow(2, "add_recipe", "https://example.com/recipe2", "failed", createdAt)
+	mock.ExpectQuery("SELECT id, name, url, status, created_at FROM jobs WHERE name = 'add_recipe' ORDER BY created_at DESC LIMIT 50").
 		WillReturnRows(rows)
 
 	req, _ := http.NewRequest("GET", "/recipes/history/url", nil)
@@ -312,8 +312,8 @@ func TestGetUrlHistory_Empty(t *testing.T) {
 	controller := &JobController{DB: db}
 	router := setupTestRouter(controller)
 
-	rows := sqlmock.NewRows([]string{"id", "name", "status", "created_at"})
-	mock.ExpectQuery("SELECT id, name, status, created_at FROM jobs WHERE name = 'add_recipe' ORDER BY created_at DESC LIMIT 50").
+	rows := sqlmock.NewRows([]string{"id", "name", "url", "status", "created_at"})
+	mock.ExpectQuery("SELECT id, name, url, status, created_at FROM jobs WHERE name = 'add_recipe' ORDER BY created_at DESC LIMIT 50").
 		WillReturnRows(rows)
 
 	req, _ := http.NewRequest("GET", "/recipes/history/url", nil)
@@ -344,7 +344,7 @@ func TestGetUrlHistory_DBError(t *testing.T) {
 	controller := &JobController{DB: db}
 	router := setupTestRouter(controller)
 
-	mock.ExpectQuery("SELECT id, name, status, created_at FROM jobs WHERE name = 'add_recipe' ORDER BY created_at DESC LIMIT 50").
+	mock.ExpectQuery("SELECT id, name, url, status, created_at FROM jobs WHERE name = 'add_recipe' ORDER BY created_at DESC LIMIT 50").
 		WillReturnError(sql.ErrConnDone)
 
 	req, _ := http.NewRequest("GET", "/recipes/history/url", nil)
