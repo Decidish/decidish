@@ -172,7 +172,6 @@ graph TB
     CORE -->|"Metrics"| PROM
     
     PERS -->|"SQL + Vectors"| DB_BACKEND
-    PERS -->|"Cache"| REDIS
     PERS -->|"HTTP/REST"| ML
     PERS -->|"Metrics"| PROM
     
