@@ -205,7 +205,7 @@ graph TB
 
 ### Service Communication Patterns
 
-- **Synchronous HTTP/REST**: Client ↔ Services, Service ↔ Service
+- **Sync/Async HTTP/REST**: Client ↔ Services, Service ↔ Service
 - **Reverse Proxy**: Nginx routes requests to backend services
 - **Database**: Shared PostgreSQL with schema boundaries
 - **Caching**: Redis for frequently accessed data
