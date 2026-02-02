@@ -53,5 +53,3 @@ jobs:
           push: true
           tags: |
             ${{ env.IMAGE_NAME }}:${{ inputs.environment || 'latest' }}
-          build-args: |
-            VITE_BASE_URL=${{ secrets.VITE_BASE_URL }}
