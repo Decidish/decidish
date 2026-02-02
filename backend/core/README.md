@@ -16,7 +16,6 @@ This service is optimized for high concurrency (targeting 100k+ users) and imple
 - **Framework**: Spring Boot 3.5.7
 - **Build Tool**: Gradle
 - **Database**: PostgreSQL with materialized views and trigram similarity
-- **Cache**: Redis for DTOs and search results
 - **ORM**: Hibernate/JPA
 - **API**: Spring Web Services HTTP Exchange Client
 - **Metrics**: Prometheus via Spring Boot Actuator
@@ -28,7 +27,6 @@ This service is optimized for high concurrency (targeting 100k+ users) and imple
 ```gradle
 - Spring Boot Starter Web
 - Spring Boot Starter Data JPA
-- Spring Boot Starter Data Redis
 - Spring Boot Starter Batch
 - Spring Boot Starter Quartz (Scheduled Jobs)
 - Spring Boot Actuator (Prometheus Metrics)
@@ -271,11 +269,6 @@ API_FALLBACK_COVERAGE_THRESHOLD = 0.70  // Min pre-match % before API fallback
 4. Save/update markets and create `search_term_market` associations
 5. Return results
 
-**Caching Strategy**:
-- Redis caches `MarketSummaryDto` objects (lightweight DTOs)
-- TTL: 1 hour
-- Prevents lazy loading issues by serializing DTOs instead of entities
-
 #### Get Market by ID
 `GET /api/v1/markets/{id}`
 
@@ -510,42 +503,6 @@ Accept-Encoding: gzip
 
 ---
 
-## Caching Strategy
-
-### Redis Configuration
-
-```yaml
-spring:
-  data:
-    redis:
-      host: localhost
-      port: 6379
-      timeout: 2000
-  cache:
-    type: redis
-    redis:
-      time-to-live: 3600000  # 1 hour
-      cache-null-values: false
-```
-
-### What's Cached
-
-1. **Market DTOs**: `MarketSummaryDto` objects
-   - Key: Market ID or postal code
-   - TTL: 1 hour
-   - Prevents lazy loading exceptions
-
-2. **Search Results**: Product search results
-   - Key: Query hash
-   - TTL: 1 hour
-
-3. **Benefits**:
-   - Reduces database queries
-   - Faster response times
-   - Resilience during high load
-
----
-
 ## Performance & Scalability
 
 ### Connection Pool Configuration
@@ -630,13 +587,6 @@ spring:
     url: jdbc:postgresql://postgres:5432/decidish
     username: user
     password: 1234
-
-# Redis
-spring:
-  data:
-    redis:
-      host: localhost
-      port: 6379
 ```
 
 ### Optional Configuration
@@ -671,7 +621,6 @@ cron:
 #### Prerequisites
 - Java 21+
 - PostgreSQL with `pg_trgm` extension
-- Redis (optional but recommended)
 - Gradle 8+
 
 #### Steps
@@ -732,11 +681,8 @@ core:
     SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/decidish
     SPRING_DATASOURCE_USERNAME: user
     SPRING_DATASOURCE_PASSWORD: 1234
-    SPRING_DATA_REDIS_HOST: redis
-    SPRING_DATA_REDIS_PORT: 6379
   depends_on:
     - postgres
-    - redis
 ```
 
 ---
@@ -855,16 +801,13 @@ Located in `src/test/java/`:
 
 ### Integration Tests
 
-Uses Testcontainers for PostgreSQL and Redis:
+Uses Testcontainers for PostgreSQL:
 ```java
 @Testcontainers
 @SpringBootTest
 class IntegrationTest {
     @Container
     static PostgreSQLContainer<?> postgres = new PostgreSQLContainer<>("postgres:15");
-    
-    @Container
-    static GenericContainer<?> redis = new GenericContainer<>("redis:7-alpine");
 }
 ```
 
@@ -942,14 +885,6 @@ cron:
   - Add retry logic with exponential backoff
   - Process markets in smaller batches
   - Check REWE API status
-
-#### 6. **Redis connection errors**
-- **Cause**: Redis not running or misconfigured
-- **Solution**:
-  - Verify Redis connectivity: `redis-cli ping`
-  - Check `spring.data.redis.host` and `port`
-  - Service can run without Redis (direct DB fallback)
-
 ---
 
 ## Performance Benchmarks
@@ -967,7 +902,6 @@ cron:
 **Optimization Impact**:
 - Thread pool: 7.5x speedup
 - Batch fetching: 10x reduction in queries
-- Redis caching: 40% faster on repeated requests
 
 ### Weekly Sync
 
@@ -1036,7 +970,6 @@ LIMIT 15;  -- Per ingredient
 core
 ├── PostgreSQL (primary database)
 │   └── pg_trgm extension (trigram similarity)
-├── Redis (caching layer)
 ├── MinIO (SSL certificate storage)
 └── REWE API (external grocery data)
 ```
@@ -1044,7 +977,6 @@ core
 ### Port Allocation
 - **8080**: Core service HTTP API
 - **5432**: PostgreSQL
-- **6379**: Redis
 - **9000**: MinIO
 
 ---
