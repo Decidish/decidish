@@ -34,6 +34,9 @@ export default function ShoppingFlowModal({
   const [hasLoadedProducts, setHasLoadedProducts] = useState(false);
   const [productQuantities, setProductQuantities] = useState<Record<number, number>>({});
   
+  // Ingredient product sort state
+  const [ingredientPriceSort, setIngredientPriceSort] = useState<'none' | 'low-high' | 'high-low'>('none');
+  
   // Product search popup state
   const [showSearchPopup, setShowSearchPopup] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
@@ -67,6 +70,7 @@ export default function ShoppingFlowModal({
       setIsEditing(false);
       setLoadingProducts(false);
       setHasLoadedProducts(false);
+      setIngredientPriceSort('none');
       setShowSearchPopup(false);
       setSearchQuery('');
       setSearchResults([]);
@@ -128,9 +132,10 @@ export default function ShoppingFlowModal({
     return group;
   }, [currentIngredientIndex, workingRecipe]);
 
-  // Reset showAllProducts and product quantities when ingredient changes
+  // Reset showAllProducts, product quantities, and sort when ingredient changes
   useEffect(() => {
     setShowAllProducts(false);
+    setIngredientPriceSort('none');
     // Clear quantities for the current ingredient's products to prevent "sticky" quantities
     if (currentIngredientGroup) {
       setProductQuantities((prev) => {
@@ -152,9 +157,38 @@ export default function ShoppingFlowModal({
   }, [currentIngredientIndex, currentIngredientGroup]);
 
   const displayedOptions = currentIngredientGroup?.options || [];
+  
+  // Helper function to find the original ingredient string (with quantity/unit) from recipe.ingredients
+  const getFullIngredientText = (ingredientGroup: IngredientGroup): string => {
+    if (!workingRecipe?.ingredients) {
+      return ingredientGroup.originalIngredientName || ingredientGroup.ingredientName;
+    }
+    // Try to find a matching ingredient string that contains the ingredient name
+    const ingredientName = ingredientGroup.ingredientName.toLowerCase();
+    const originalName = ingredientGroup.originalIngredientName?.toLowerCase() || '';
+    
+    const match = workingRecipe.ingredients.find((ing) => {
+      const ingLower = ing.toLowerCase();
+      return ingLower.includes(ingredientName) || ingLower.includes(originalName);
+    });
+    
+    return match || ingredientGroup.originalIngredientName || ingredientGroup.ingredientName;
+  };
+  
+  // Sort products based on ingredientPriceSort
+  const sortedProducts = useMemo(() => {
+    const products = displayedOptions.map((opt) => opt.product);
+    if (ingredientPriceSort === 'low-high') {
+      return [...products].sort((a, b) => a.price - b.price);
+    } else if (ingredientPriceSort === 'high-low') {
+      return [...products].sort((a, b) => b.price - a.price);
+    }
+    return products;
+  }, [displayedOptions, ingredientPriceSort]);
+  
   const displayedProducts = showAllProducts
-    ? displayedOptions.map((opt) => opt.product)
-    : displayedOptions.slice(0, INITIAL_PRODUCTS_SHOWN).map((opt) => opt.product);
+    ? sortedProducts
+    : sortedProducts.slice(0, INITIAL_PRODUCTS_SHOWN);
   const hasMoreProducts = (currentIngredientGroup?.options?.length || 0) > INITIAL_PRODUCTS_SHOWN;
   const hasNoProducts = displayedOptions.length === 0;
 
@@ -368,10 +402,13 @@ export default function ShoppingFlowModal({
                 </div>
               )}
               <div className="bg-emerald-50 rounded-lg p-2 sm:p-3 border border-emerald-200">
-                <h4 className="text-base sm:text-lg font-bold text-gray-900 mb-0.5 sm:mb-1 line-clamp-2">{currentIngredientGroup.originalIngredientName || currentIngredientGroup.ingredientName}</h4>
-                <p className="text-xs sm:text-sm text-gray-600">
-                   Ingredient: <span className="font-semibold text-[#2F855A]">{currentIngredientGroup.ingredientName}</span>
-                </p>
+                <div className="flex items-center gap-2 mb-1">
+                  <i className="ri-restaurant-line text-[#2F855A]"></i>
+                  <span className="text-xs sm:text-sm font-medium text-gray-500">Recipe calls for:</span>
+                </div>
+                <h4 className="text-base sm:text-lg font-bold text-gray-900 line-clamp-2">
+                  {getFullIngredientText(currentIngredientGroup)}
+                </h4>
               </div>
             </div>
 
@@ -400,11 +437,22 @@ export default function ShoppingFlowModal({
                 </div>
               </div>
 
-              <div className="flex items-center justify-between mb-4">
-                <h5 className="text-sm font-semibold text-gray-700 uppercase tracking-wide">Available products:</h5>
-                {hasMoreProducts && (
-                  <span className="text-xs text-gray-500">{currentIngredientGroup.options.length} options available</span>
-                )}
+              <div className="flex items-center justify-between mb-4 gap-2">
+                <div className="flex items-center gap-2">
+                  <h5 className="text-sm font-semibold text-gray-700 uppercase tracking-wide">Available products:</h5>
+                  {hasMoreProducts && (
+                    <span className="text-xs text-gray-500 hidden sm:inline">({currentIngredientGroup.options.length} options)</span>
+                  )}
+                </div>
+                <select
+                  value={ingredientPriceSort}
+                  onChange={(e) => setIngredientPriceSort(e.target.value as 'none' | 'low-high' | 'high-low')}
+                  className="px-2 sm:px-3 py-1.5 border border-gray-200 rounded-lg focus:border-[#2F855A] focus:outline-none text-xs sm:text-sm cursor-pointer bg-white"
+                >
+                  <option value="none">Featured</option>
+                  <option value="low-high">Price: Low → High</option>
+                  <option value="high-low">Price: High → Low</option>
+                </select>
               </div>
 
               <div className="space-y-3">
@@ -564,7 +612,9 @@ export default function ShoppingFlowModal({
                     >
                       <div className="flex items-start justify-between mb-2 sm:mb-3 gap-2">
                         <div className="flex-1 min-w-0">
-                          <h5 className="font-semibold text-gray-900 mb-0.5 sm:mb-1 text-sm sm:text-base line-clamp-2">{ingredient.originalIngredientName || ingredient.ingredientName}</h5>
+                          <h5 className="font-semibold text-gray-900 mb-0.5 sm:mb-1 text-sm sm:text-base line-clamp-2">
+                            {getFullIngredientText(ingredient)}
+                          </h5>
                           <p className="text-xs text-gray-500 mb-0.5">Ingredient: {ingredient.ingredientName}</p>
                           {!isAlreadyHave && product && (
                             <p className="text-xs sm:text-sm text-gray-600">Qty: {productQuantities[product.id] || 1}</p>
