@@ -190,14 +190,14 @@ public class RecipeService {
                         .toList();
 
                     if (!options.isEmpty()) {
-                        return new IngredientGroup(ingId, ingName, needed, options);
+                        return new IngredientGroup(ingId, ingName, origName, needed, options);
                     }
                 }
 
                 // 4b. API Fallback (only if enabled AND coverage is below threshold)
                 if (!allowApiFallback) {
                     log.debug("API fallback skipped for ingredient '{}': disabled or coverage above threshold", ingName);
-                    return new IngredientGroup(ingId, ingName, needed, List.of());
+                    return new IngredientGroup(ingId, ingName, origName, needed, List.of());
                 }
                 
                 // Log that we're falling back to API (useful for monitoring)
@@ -208,7 +208,7 @@ public class RecipeService {
 
                     List<Product> apiProducts = marketService.getProductsQueryNoSave(marketId, query);
                     if (apiProducts.isEmpty()) {
-                        return new IngredientGroup(ingId, ingName, needed, List.of());
+                        return new IngredientGroup(ingId, ingName, origName, needed, List.of());
                     }
 
                     // Prepare Market reference for new products
@@ -245,7 +245,7 @@ public class RecipeService {
                             .stream()
                             .collect(Collectors.toMap(Product::getReweId, p -> p, (a, b) -> a));
 
-                        return new IngredientGroup(ingId, ingName, needed, 
+                        return new IngredientGroup(ingId, ingName, origName, needed, 
                             newMappings.stream()
                                 .map(m -> createShoppingOption(m, freshApiMap.get(m.getId().getProductId()), needed))
                                 .filter(java.util.Objects::nonNull)
@@ -255,7 +255,7 @@ public class RecipeService {
 
                 } catch (Exception e) {
                     log.error("Failed to fetch API for {}: {}", ingName, e.getMessage());
-                    return new IngredientGroup(ingId, ingName, needed, List.of());
+                    return new IngredientGroup(ingId, ingName, origName, needed, List.of());
                 }
             }, apiExecutor))
             .toList();

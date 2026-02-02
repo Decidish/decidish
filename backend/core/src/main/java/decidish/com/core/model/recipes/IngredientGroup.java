@@ -6,9 +6,9 @@ import java.util.List;
  */
 public record IngredientGroup(
     Integer ingredientId,
-    String ingredientName,
-    Double totalAmountNeeded, // The sum of all recipes (e.g. 500.0)
-    // String unit,              // e.g. "g"
-    List<ShoppingOption> options // The list of products that fulfill this need
+    String ingredientName,           // Normalized ingredient name (from ingredients table)
+    String originalIngredientName,   // Original ingredient text from recipe (from recipe_ingredients.original)
+    Double totalAmountNeeded,        // The sum of all recipes (e.g. 500.0)
+    List<ShoppingOption> options     // The list of products that fulfill this need
 ) {}
 
