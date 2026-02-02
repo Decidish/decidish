@@ -237,7 +237,8 @@ class Pipeline:
 
         # add allergies to allergies and ingredients_allergies tables
         if allergies:
-            for allergy in allergies.split(","):
+            # accept both commas and semicolons as separators
+            for allergy in allergies.replace(";", ",").split(","):
                 # preprocess the allergy string  Tree Nuts (depending on the recipe) --> Tree Nuts
                 allergy = allergy.strip()
                 if allergy == "":
@@ -246,6 +247,8 @@ class Pipeline:
                 # remove parenthetical info
                 if "(" in allergy:
                     allergy = allergy[:allergy.index("(")].strip()
+
+                print(allergy, flush=True)
 
                 # Insert allergy and get allergy_id
                 cursor.execute("""
