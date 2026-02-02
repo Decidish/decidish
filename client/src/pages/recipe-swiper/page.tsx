@@ -473,7 +473,7 @@ export default function RecipeSwiper() {
                       </div>
                       <div className="bg-teal-50 rounded-lg p-1.5 sm:p-3 text-center">
                         <i className="ri-fire-line text-base sm:text-xl text-teal-600"></i>
-                        <div className="text-[10px] sm:text-sm font-semibold text-gray-900">{currentRecipeData.cook_time || currentRecipeData.total_time - (currentRecipeData.prep_time || 10)}m</div>
+                        <div className="text-[10px] sm:text-sm font-semibold text-gray-900">{currentRecipeData.cook_time || Math.max(0, currentRecipeData.total_time - (currentRecipeData.prep_time || 10))}m</div>
                         <div className="text-[8px] sm:text-xs text-gray-600">Cook</div>
                       </div>
                       <div className="bg-green-50 rounded-lg p-1.5 sm:p-3 text-center">

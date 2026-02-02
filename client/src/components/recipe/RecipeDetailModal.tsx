@@ -90,7 +90,7 @@ export default function RecipeDetailModal({
               <i className="ri-fire-line text-xl sm:text-2xl text-teal-600 mb-1 sm:mb-2"></i>
               <div className="text-xs sm:text-sm text-gray-600">Cook</div>
               <div className="text-base sm:text-lg font-bold text-gray-900">
-                {recipe.cook_time || recipe.total_time - (recipe.prep_time || 10)}m
+                {recipe.cook_time || Math.max(0, recipe.total_time - (recipe.prep_time || 10))}m
               </div>
             </div>
             <div className="bg-green-50 rounded-xl p-3 sm:p-4 text-center">
