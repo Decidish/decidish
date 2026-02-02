@@ -5,5 +5,6 @@ datasources:
   - name: Prometheus
     type: prometheus
     access: proxy
-    url: http://prometheus:9090
+    # PROMETHEUS_HOST should be set to "qa-test_prometheus" in Swarm or "prometheus" in Compose
+    url: http://${PROMETHEUS_HOST}:9090
     isDefault: true

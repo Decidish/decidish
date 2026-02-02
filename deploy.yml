@@ -231,6 +231,8 @@ services:
       - "3031:3000"
     environment:
       - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_PASSWORD:-secret}
+      # Set PROMETHEUS_HOST for datasource: "qa-test_prometheus" in Swarm, "prometheus" in Compose
+      - PROMETHEUS_HOST=${STACK_NAME:+${STACK_NAME}_}prometheus
     configs:
       - source: grafana_datasources
         target: /etc/grafana/provisioning/datasources/datasources.yml
