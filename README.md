@@ -97,10 +97,6 @@ Expected output: All services should show `Up` status.
 ### 6. Run Database Migrations
 
 ```bash
-# Run migrations for backend database
-docker compose exec core-server ./gradlew flywayMigrate
-
-# Or manually run migration service
 docker compose up migrations
 ```
 
