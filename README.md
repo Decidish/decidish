@@ -4,7 +4,7 @@
 
 Decidish is a modern, AI-powered recipe recommendation platform that delivers personalized culinary experiences. Using machine learning, vector embeddings, and real-time preference learning, Decidish helps users discover recipes tailored to their dietary needs, cooking skills, and taste preferences.
 
-This repository contains the complete **microservices-based application**, fully containerized using **Docker Compose**. The architecture integrates multiple languages (**Java, Go, Python, React**) with a robust data layer (**PostgreSQL with pgvector**, **Redis**).
+This repository contains the complete **microservices-based application**, fully containerized using **Docker Compose**. The architecture integrates multiple languages (**Java, Go, Python, React**) with a robust data layer (**PostgreSQL with pgvector**).
 
 ---
 
@@ -62,10 +62,6 @@ JWT_SECRET=your_jwt_secret_key_here
 
 # ML Pipeline
 EMBEDDER_SERVER_URL=http://mlpipeline:8000
-
-# Redis
-REDIS_HOST=redis
-REDIS_PORT=6379
 
 ### 3. Start All Services
 
@@ -144,7 +140,6 @@ graph TB
     subgraph "Data Layer"
         DB_BACKEND[("Backend PostgreSQL<br/>Port 5433<br/>+ pgvector")]
         DB_AUTH[("Auth PostgreSQL<br/>Port 5432")]
-        REDIS[("Redis Cache<br/>Port 6379")]
     end
 
     subgraph "Monitoring & Operations"
@@ -167,12 +162,10 @@ graph TB
     AUTH -->|"User Auth"| DB_AUTH
     
     CORE -->|"SQL Queries"| DB_BACKEND
-    CORE -->|"Cache"| REDIS
     CORE -->|"Product API"| REWE
     CORE -->|"Metrics"| PROM
     
     PERS -->|"SQL + Vectors"| DB_BACKEND
-    PERS -->|"Cache"| REDIS
     PERS -->|"HTTP/REST"| ML
     PERS -->|"Metrics"| PROM
     
@@ -186,21 +179,20 @@ graph TB
     OLIVE -.->|"Control"| PERS
     OLIVE -.->|"Control"| ML
 
-    style CLIENT fill:#e1f5ff
-    style NGINX fill:#d0d0d0
-    style AUTH fill:#fff4e1
-    style CORE fill:#e8f5e9
-    style PERS fill:#f3e5f5
-    style ML fill:#ffe0b2
-    style DB_BACKEND fill:#ffebee
-    style DB_AUTH fill:#ffebee
-    style REDIS fill:#fff3e0
-    style PROM fill:#fce4ec
-    style GRAFANA fill:#fce4ec
-    style OLIVE fill:#f3e5f5
-    style K6 fill:#e8eaf6
-    style REWE fill:#f5f5f5
-    style OLLAMA fill:#f5f5f5
+    style CLIENT fill:#e1f5f
+    style NGINX fill:#d0d0d
+    style AUTH fill:#fff4e
+    style CORE fill:#e8f5e
+    style PERS fill:#f3e5f
+    style ML fill:#ffe0b
+    style DB_BACKEND fill:#ffebe
+    style DB_AUTH fill:#ffebe
+    style PROM fill:#fce4e
+    style GRAFANA fill:#fce4e
+    style OLIVE fill:#f3e5f
+    style K6 fill:#e8eaf
+    style REWE fill:#f5f5f
+    style OLLAMA fill:#f5f5f
 ```
 
 ### Service Communication Patterns
@@ -208,7 +200,6 @@ graph TB
 - **Sync/Async HTTP/REST**: Client ↔ Services, Service ↔ Service
 - **Reverse Proxy**: Nginx routes requests to backend services
 - **Database**: Shared PostgreSQL with schema boundaries
-- **Caching**: Redis for frequently accessed data
 - **Authentication**: JWT tokens validated across services
 - **Monitoring**: Prometheus metrics collection, Grafana dashboards
 
@@ -242,7 +233,7 @@ The system is divided into logical tiers: **Client**, **Application**, **Data**,
 | Service | Container Name | Technology | Port | Documentation | Description |
 | :--- | :--- | :--- | :--- | :--- | :--- |
 | **Authorization** | `dev_authorization` | Go 1.25 + Gin | `8083` | [Docs](backend/authorization/README.md) | JWT authentication, user registration/login, HTTP-only cookies, bcrypt password hashing. |
-| **Core** | `dev_core` | Java 21 + Spring Boot 3.5 | `8080` | [Docs](backend/core/README.md) | Recipe search, REWE API integration, fuzzy ingredient matching, shopping list generation, Redis caching. |
+| **Core** | `dev_core` | Java 21 + Spring Boot 3.5 | `8080` | [Docs](backend/core/README.md) | Recipe search, REWE API integration, fuzzy ingredient matching, shopping list generation. |
 | **Personalization** | `dev_personalization` | Go 1.25 + Gin | `8082` | [Docs](backend/personalization/README.md) | Personalized recommendations, user preferences, shopping lists, saved recipes, vector similarity search. |
 | **ML Pipeline** | `dev_mlpipeline` | Python 3.12 + FastAPI | `8000` | [Docs](mlpipeline/README.md) | Recipe embeddings (SentenceTransformers), user encoder, online learning, ingredient parsing (Ollama), weekly adapter training. |
 
@@ -252,7 +243,6 @@ The system is divided into logical tiers: **Client**, **Application**, **Data**,
 | :--- | :--- | :--- | :--- | :--- | :--- |
 | **Backend DB** | `dev_backend_postgres` | PostgreSQL 16 + pgvector | `5433` | `db_backend_data` | Stores recipes, user preferences, embeddings (384-dim vectors), shopping lists, jobs. |
 | **Auth DB** | `dev_auth_postgres` | PostgreSQL 16 Alpine | `5432` | `db_authorisation_data` | Stores user accounts, password hashes, JWT refresh tokens. |
-| **Redis** | `dev_redis` | Redis 7 Alpine | `6379` | - | Caches ingredient mappings, API responses, session data. TTL-based expiration. |
 
 ### 4. Monitoring & Operations
 
@@ -286,7 +276,6 @@ Access services via `localhost` with mapped ports:
 | **OliveTin** | http://localhost:8099 | - |
 | **Backend Database** | `localhost:5433` | user: `user`, pass: `.env` |
 | **Auth Database** | `localhost:5432` | user: `user`, pass: `.env` |
-| **Redis** | `localhost:6379` | - |
 
 ### Service-to-Service Communication
 
@@ -295,7 +284,6 @@ All services communicate internally via the `app-network` Docker network. Servic
 **Internal Service Names**:
 - `db_backend` - Backend PostgreSQL
 - `db_authorisation` - Auth PostgreSQL  
-- `redis` - Redis cache
 - `nginx` - Reverse proxy
 - `core-server` - Core service
 - `personalization-server` - Personalization service
@@ -423,7 +411,6 @@ docker compose exec db_backend psql -U user decidish
 ### Data & Cache
 - **PostgreSQL 16** - Primary database
 - **pgvector** - Vector similarity search
-- **Redis 7** - Caching layer
 
 ### Machine Learning
 - **PyTorch 2.9** - Deep learning framework

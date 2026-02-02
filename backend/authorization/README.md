@@ -943,14 +943,6 @@ rate := limiter.Rate{
 }
 ```
 
-### Token Caching
-
-Consider caching validated tokens in Redis to reduce JWT parsing overhead:
-```go
-// Check Redis cache before parsing JWT
-// Store result with TTL matching token expiration
-```
-
 ---
 
 ### Service Dependencies

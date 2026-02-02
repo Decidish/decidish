@@ -4,6 +4,7 @@ import decidish.com.core.configuration.ApiClientConfig;
 import decidish.com.core.configuration.MinioConfig;
 import decidish.com.core.api.rewe.client.ReweApiClient;
 import decidish.com.core.model.rewe.*;
+import decidish.com.core.scheduler.WeeklySyncMetrics;
 
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -20,7 +21,7 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 
 import java.util.List;
 
-@SpringBootTest(classes = { ApiClientConfig.class, MinioConfig.class })
+@SpringBootTest(classes = { ApiClientConfig.class, MinioConfig.class, WeeklySyncMetrics.class })
 @EnableAutoConfiguration(exclude = {
         // Exclude DB stuff so the test doesn't crash if you don't have Postgres running
         DataSourceAutoConfiguration.class,
