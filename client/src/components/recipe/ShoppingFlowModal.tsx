@@ -41,6 +41,19 @@ export default function ShoppingFlowModal({
   const [isSearching, setIsSearching] = useState(false);
   const [searchCurrentPage, setSearchCurrentPage] = useState(1);
   const [searchTotalPages, setSearchTotalPages] = useState(0);
+  const [searchSelectedProduct, setSearchSelectedProduct] = useState<Product | null>(null);
+  const [searchProductQuantity, setSearchProductQuantity] = useState(0);
+  const [filterType, setFilterType] = useState('all');
+  const [priceSort, setPriceSort] = useState('none');
+  
+  const filterOptions = [
+    { value: 'all', label: 'All Products' },
+    { value: 'is_organic', label: 'Organic (Bio)' },
+    { value: 'is_vegan', label: 'Vegan' },
+    { value: 'is_gluten_free', label: 'Gluten Free' },
+    { value: 'is_regional', label: 'Regional' },
+    { value: 'is_lowest_price', label: 'Sale Items' },
+  ];
 
   useEffect(() => {
     const reset = () => {
@@ -60,6 +73,10 @@ export default function ShoppingFlowModal({
       setIsSearching(false);
       setSearchCurrentPage(1);
       setSearchTotalPages(0);
+      setSearchSelectedProduct(null);
+      setSearchProductQuantity(0);
+      setFilterType('all');
+      setPriceSort('none');
     };
 
     if (!open || !recipe) {
@@ -147,18 +164,23 @@ export default function ShoppingFlowModal({
     setSearchResults([]);
     setSearchCurrentPage(1);
     setSearchTotalPages(0);
+    setSearchSelectedProduct(null);
+    setSearchProductQuantity(0);
+    setFilterType('all');
+    setPriceSort('none');
     setShowSearchPopup(true);
+    // Trigger initial search
+    setTimeout(() => handleSearchProducts(1), 100);
   };
 
   const handleSearchProducts = async (page: number = 1) => {
-    if (!searchQuery.trim()) return;
     setIsSearching(true);
     setSearchCurrentPage(page);
     try {
       const data = await productApi.searchProducts({
         query: searchQuery,
-        filter: 'all',
-        sort: 'none',
+        filter: filterType,
+        sort: priceSort,
         page,
         marketId,
       });
@@ -170,6 +192,16 @@ export default function ShoppingFlowModal({
       setIsSearching(false);
     }
   };
+
+  // Auto-search when typing or changing filters in search popup (debounced)
+  useEffect(() => {
+    if (!showSearchPopup) return;
+    const handle = setTimeout(() => {
+      void handleSearchProducts(1);
+    }, 250);
+    return () => clearTimeout(handle);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchQuery, filterType, priceSort, showSearchPopup]);
 
   const handleSelectSearchProduct = (searchProduct: SearchProduct) => {
     // Convert SearchProduct to Product format
@@ -190,14 +222,31 @@ export default function ShoppingFlowModal({
       },
     };
     
-    // Set quantity to 1 for the selected product
+    // Set as selected product with initial quantity of 1
+    setSearchSelectedProduct(product);
+    setSearchProductQuantity(1);
+  };
+
+  const handleSearchQuantityChange = (change: number) => {
+    setSearchProductQuantity((prev) => Math.max(0, prev + change));
+  };
+
+  const handleConfirmSearchSelection = () => {
+    if (!searchSelectedProduct || searchProductQuantity === 0 || !currentIngredientGroup) return;
+    
+    // Set quantity for the selected product
     setProductQuantities((prev) => ({
       ...prev,
-      [product.id]: 1,
+      [searchSelectedProduct.id]: searchProductQuantity,
     }));
     
     setShowSearchPopup(false);
-    handleSelectProduct(currentIngredientGroup!.ingredientId, product);
+    handleSelectProduct(currentIngredientGroup.ingredientId, searchSelectedProduct);
+  };
+
+  const handleClearSearchSelection = () => {
+    setSearchSelectedProduct(null);
+    setSearchProductQuantity(0);
   };
 
   const handleSelectProduct = (ingredientId: number, product: Product | 'already-have') => {
@@ -605,13 +654,18 @@ export default function ShoppingFlowModal({
           onClick={() => setShowSearchPopup(false)}
         >
           <div 
-            className="bg-white rounded-t-3xl sm:rounded-3xl shadow-2xl w-full sm:max-w-2xl max-h-[85vh] sm:max-h-[90vh] overflow-hidden flex flex-col"
+            className="bg-white rounded-t-3xl sm:rounded-3xl shadow-2xl w-full sm:max-w-3xl max-h-[90vh] sm:max-h-[90vh] overflow-hidden flex flex-col"
             onClick={(e) => e.stopPropagation()}
           >
             {/* Search Header */}
             <div className="sticky top-0 bg-white border-b border-gray-200 p-4 sm:p-6 rounded-t-3xl z-10">
-              <div className="flex items-center justify-between mb-4">
-                <h3 className="text-lg sm:text-xl font-bold text-gray-900">Search Products</h3>
+              <div className="flex items-center justify-between mb-3">
+                <div>
+                  <h3 className="text-lg sm:text-xl font-bold text-gray-900">Search Products</h3>
+                  <p className="text-xs sm:text-sm text-gray-500">
+                    For: <span className="font-medium text-[#2F855A]">{currentIngredientGroup?.ingredientName}</span>
+                  </p>
+                </div>
                 <button
                   onClick={() => setShowSearchPopup(false)}
                   className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-gray-100 transition-colors cursor-pointer"
@@ -621,38 +675,108 @@ export default function ShoppingFlowModal({
               </div>
               
               {/* Search Input */}
-              <div className="flex gap-2">
-                <div className="flex-1 relative">
-                  <i className="ri-search-line absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"></i>
-                  <input
-                    type="text"
-                    placeholder="Search for products..."
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                    onKeyPress={(e) => e.key === 'Enter' && handleSearchProducts(1)}
-                    className="w-full pl-10 pr-4 py-3 border-2 border-gray-200 rounded-xl focus:border-[#2F855A] focus:outline-none text-sm transition-colors"
-                  />
-                </div>
-                <button
-                  onClick={() => handleSearchProducts(1)}
-                  disabled={isSearching}
-                  className="px-4 sm:px-6 py-3 bg-gradient-to-r from-[#2F855A] to-emerald-600 text-white rounded-xl font-semibold hover:from-[#276749] hover:to-emerald-700 transition-all disabled:opacity-50 cursor-pointer"
+              <div className="relative mb-3">
+                <i className="ri-search-line absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"></i>
+                <input
+                  type="text"
+                  placeholder="Search for products..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="w-full pl-10 pr-10 py-3 border-2 border-gray-200 rounded-xl focus:border-[#2F855A] focus:outline-none text-sm transition-colors"
+                />
+                {isSearching && (
+                  <i className="ri-loader-4-line absolute right-3 top-1/2 -translate-y-1/2 text-lg text-[#2F855A] animate-spin"></i>
+                )}
+              </div>
+
+              {/* Filters */}
+              <div className="grid grid-cols-2 gap-2">
+                <select
+                  value={filterType}
+                  onChange={(e) => setFilterType(e.target.value)}
+                  className="px-3 py-2 border-2 border-gray-200 rounded-lg focus:border-[#2F855A] focus:outline-none text-xs sm:text-sm cursor-pointer"
                 >
-                  {isSearching ? (
-                    <i className="ri-loader-4-line text-lg animate-spin"></i>
-                  ) : (
-                    <i className="ri-search-line text-lg"></i>
-                  )}
-                </button>
+                  {filterOptions.map(opt => (
+                    <option key={opt.value} value={opt.value}>{opt.label}</option>
+                  ))}
+                </select>
+                <select
+                  value={priceSort}
+                  onChange={(e) => setPriceSort(e.target.value)}
+                  className="px-3 py-2 border-2 border-gray-200 rounded-lg focus:border-[#2F855A] focus:outline-none text-xs sm:text-sm cursor-pointer"
+                >
+                  <option value="none">Featured</option>
+                  <option value="low-high">Price: Low to High</option>
+                  <option value="high-low">Price: High to Low</option>
+                </select>
               </div>
             </div>
+
+            {/* Selected Product Panel */}
+            {searchSelectedProduct && (
+              <div className="bg-emerald-50 border-b border-emerald-200 p-4">
+                <div className="flex items-start gap-3">
+                  <div className="w-16 h-16 sm:w-20 sm:h-20 flex-shrink-0 bg-white rounded-lg overflow-hidden border border-emerald-200">
+                    <img src={searchSelectedProduct.imageUrl} alt={searchSelectedProduct.name} className="w-full h-full object-cover" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-start justify-between gap-2 mb-1">
+                      <div className="font-semibold text-gray-900 text-sm line-clamp-2">{searchSelectedProduct.grammage}</div>
+                      <button
+                        onClick={handleClearSearchSelection}
+                        className="w-6 h-6 flex items-center justify-center rounded-full hover:bg-red-100 text-gray-400 hover:text-red-500 transition-colors cursor-pointer flex-shrink-0"
+                        title="Remove selection"
+                      >
+                        <i className="ri-close-line"></i>
+                      </button>
+                    </div>
+                    <div className="text-xs text-gray-500 line-clamp-1 mb-2">{searchSelectedProduct.name}</div>
+                    
+                    {/* Quantity Selector */}
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <button
+                          onClick={() => handleSearchQuantityChange(-1)}
+                          disabled={searchProductQuantity <= 1}
+                          className="w-8 h-8 flex items-center justify-center bg-white border-2 border-gray-300 rounded-lg hover:border-[#2F855A] hover:bg-emerald-50 transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
+                          <i className="ri-subtract-line text-gray-700"></i>
+                        </button>
+                        <span className="text-lg font-bold text-gray-900 min-w-[2rem] text-center">
+                          {searchProductQuantity}
+                        </span>
+                        <button
+                          onClick={() => handleSearchQuantityChange(1)}
+                          className="w-8 h-8 flex items-center justify-center bg-white border-2 border-gray-300 rounded-lg hover:border-[#2F855A] hover:bg-emerald-50 transition-all cursor-pointer"
+                        >
+                          <i className="ri-add-line text-gray-700"></i>
+                        </button>
+                      </div>
+                      <div className="text-lg font-bold text-[#2F855A]">
+                        {((searchSelectedProduct.price * searchProductQuantity) / 100).toFixed(2)}€
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                
+                {/* Confirm Button */}
+                <button
+                  onClick={handleConfirmSearchSelection}
+                  disabled={searchProductQuantity === 0}
+                  className="w-full mt-3 py-3 bg-gradient-to-r from-[#2F855A] to-emerald-600 text-white rounded-xl font-semibold hover:from-[#276749] hover:to-emerald-700 transition-all cursor-pointer flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed shadow-md"
+                >
+                  <i className="ri-check-line text-xl"></i>
+                  <span>Confirm Selection</span>
+                </button>
+              </div>
+            )}
 
             {/* Search Results */}
             <div className="flex-1 overflow-y-auto p-4 sm:p-6">
               {searchResults.length === 0 && !isSearching && (
                 <div className="text-center py-8 text-gray-500">
                   <i className="ri-search-line text-4xl mb-2 block"></i>
-                  <p className="text-sm">Enter a search term to find products</p>
+                  <p className="text-sm">No products found. Try a different search term.</p>
                 </div>
               )}
 
@@ -663,27 +787,39 @@ export default function ShoppingFlowModal({
                 </div>
               )}
 
-              <div className="grid grid-cols-2 gap-3">
-                {searchResults.map((product) => (
-                  <div
-                    key={product.id}
-                    onClick={() => handleSelectSearchProduct(product)}
-                    className="bg-white border-2 border-gray-200 rounded-xl p-3 hover:border-[#2F855A] hover:shadow-md transition-all cursor-pointer"
-                  >
-                    <div className="aspect-square bg-gray-100 rounded-lg overflow-hidden mb-2">
-                      {product.imageUrl ? (
-                        <img src={product.imageUrl} alt={product.name} className="w-full h-full object-cover" />
-                      ) : (
-                        <div className="w-full h-full flex items-center justify-center text-gray-300">
-                          <i className="ri-image-line text-2xl"></i>
-                        </div>
-                      )}
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                {searchResults.map((product) => {
+                  const isSelected = searchSelectedProduct?.id === product.id;
+                  return (
+                    <div
+                      key={product.id}
+                      onClick={() => handleSelectSearchProduct(product)}
+                      className={`bg-white border-2 rounded-xl p-3 hover:shadow-md transition-all cursor-pointer ${
+                        isSelected 
+                          ? 'border-[#2F855A] ring-2 ring-emerald-100' 
+                          : 'border-gray-200 hover:border-[#2F855A]'
+                      }`}
+                    >
+                      <div className="aspect-square bg-gray-100 rounded-lg overflow-hidden mb-2 relative">
+                        {product.imageUrl ? (
+                          <img src={product.imageUrl} alt={product.name} className="w-full h-full object-cover" />
+                        ) : (
+                          <div className="w-full h-full flex items-center justify-center text-gray-300">
+                            <i className="ri-image-line text-2xl"></i>
+                          </div>
+                        )}
+                        {isSelected && (
+                          <div className="absolute top-2 right-2 w-6 h-6 bg-[#2F855A] rounded-full flex items-center justify-center">
+                            <i className="ri-check-line text-white text-sm"></i>
+                          </div>
+                        )}
+                      </div>
+                      <div className="font-semibold text-gray-900 text-xs sm:text-sm line-clamp-2 mb-1">{product.grammage}</div>
+                      <div className="text-xs text-gray-500 line-clamp-1 mb-1">{product.name}</div>
+                      <div className="text-sm sm:text-base font-bold text-[#2F855A]">{(product.price / 100).toFixed(2)}€</div>
                     </div>
-                    <div className="font-semibold text-gray-900 text-xs sm:text-sm line-clamp-2 mb-1">{product.grammage}</div>
-                    <div className="text-xs text-gray-500 line-clamp-1 mb-1">{product.name}</div>
-                    <div className="text-sm sm:text-base font-bold text-[#2F855A]">{(product.price / 100).toFixed(2)}€</div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
 
               {/* Pagination */}
