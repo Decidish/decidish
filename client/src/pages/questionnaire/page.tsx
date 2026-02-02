@@ -436,7 +436,7 @@ export default function Questionnaire() {
               className="flex-1 py-4 bg-gradient-to-r from-[#2F855A] to-emerald-600 text-white rounded-xl font-semibold hover:from-[#276749] hover:to-emerald-700 transition-all shadow-lg cursor-pointer whitespace-nowrap"
             >
               <i className="ri-check-line mr-2"></i>
-              Get Recommendations
+              Save Preferences
             </button>
           )}
         </div>
