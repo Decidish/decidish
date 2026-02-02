@@ -49,7 +49,7 @@ class RecipeControllerIT {
 
         // Mock Service Logic (We mock the service layer to avoid DB setup complexity in Controller tests)
         ShoppingListResponse mockResponse = new ShoppingListResponse(
-            List.of(new IngredientGroup(1, "Test Ingredient", 1.0, List.of()))
+            List.of(new IngredientGroup(1, "Test Ingredient", "1 cup test ingredient", 1.0, List.of()))
         );
         when(recipeService.generateShoppingList(eq(marketId), anyList())).thenReturn(mockResponse);
 

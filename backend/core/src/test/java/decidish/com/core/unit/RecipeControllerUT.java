@@ -45,7 +45,7 @@ class RecipeControllerUT {
                 List<Integer> recipeIds = List.of(1, 2, 3);
 
                 // Mock Response
-                IngredientGroup group = new IngredientGroup(10, "Onion", 2.0, List.of());
+                IngredientGroup group = new IngredientGroup(10, "Onion", "1 medium onion, diced", 2.0, List.of());
                 ShoppingListResponse response = new ShoppingListResponse(List.of(group));
 
                 when(recipeService.generateShoppingList(eq(marketId), anyList())).thenReturn(response);

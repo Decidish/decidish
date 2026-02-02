@@ -29,6 +29,7 @@ export interface ShoppingOption {
 export interface IngredientGroup {
   ingredientId: number;
   ingredientName: string;
+  originalIngredientName: string;  // Original ingredient text from recipe
   totalAmountNeeded: number;
   options: ShoppingOption[]; // The list of products for this ingredient
 }

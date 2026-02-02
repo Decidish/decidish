@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { productsApi, IngredientGroup, Product } from '@/api/recipe-swiper/productsApi';
+import { productApi, Product as SearchProduct } from '@/api/search-product/productApi';
 import { SelectedProducts, UIRecipe } from '@/types/recipe';
 
 interface ShoppingFlowModalProps {
@@ -32,6 +33,30 @@ export default function ShoppingFlowModal({
   const [loadingProducts, setLoadingProducts] = useState(false);
   const [hasLoadedProducts, setHasLoadedProducts] = useState(false);
   const [productQuantities, setProductQuantities] = useState<Record<number, number>>({});
+  
+  // Ingredient product sort state
+  const [ingredientPriceSort, setIngredientPriceSort] = useState<'none' | 'low-high' | 'high-low'>('none');
+  
+  // Product search popup state
+  const [showSearchPopup, setShowSearchPopup] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [searchResults, setSearchResults] = useState<SearchProduct[]>([]);
+  const [isSearching, setIsSearching] = useState(false);
+  const [searchCurrentPage, setSearchCurrentPage] = useState(1);
+  const [searchTotalPages, setSearchTotalPages] = useState(0);
+  const [searchSelectedProduct, setSearchSelectedProduct] = useState<Product | null>(null);
+  const [searchProductQuantity, setSearchProductQuantity] = useState(0);
+  const [filterType, setFilterType] = useState('all');
+  const [priceSort, setPriceSort] = useState('none');
+  
+  const filterOptions = [
+    { value: 'all', label: 'All Products' },
+    { value: 'is_organic', label: 'Organic (Bio)' },
+    { value: 'is_vegan', label: 'Vegan' },
+    { value: 'is_gluten_free', label: 'Gluten Free' },
+    { value: 'is_regional', label: 'Regional' },
+    { value: 'is_lowest_price', label: 'Sale Items' },
+  ];
 
   useEffect(() => {
     const reset = () => {
@@ -45,6 +70,17 @@ export default function ShoppingFlowModal({
       setIsEditing(false);
       setLoadingProducts(false);
       setHasLoadedProducts(false);
+      setIngredientPriceSort('none');
+      setShowSearchPopup(false);
+      setSearchQuery('');
+      setSearchResults([]);
+      setIsSearching(false);
+      setSearchCurrentPage(1);
+      setSearchTotalPages(0);
+      setSearchSelectedProduct(null);
+      setSearchProductQuantity(0);
+      setFilterType('all');
+      setPriceSort('none');
     };
 
     if (!open || !recipe) {
@@ -96,9 +132,10 @@ export default function ShoppingFlowModal({
     return group;
   }, [currentIngredientIndex, workingRecipe]);
 
-  // Reset showAllProducts and product quantities when ingredient changes
+  // Reset showAllProducts, product quantities, and sort when ingredient changes
   useEffect(() => {
     setShowAllProducts(false);
+    setIngredientPriceSort('none');
     // Clear quantities for the current ingredient's products to prevent "sticky" quantities
     if (currentIngredientGroup) {
       setProductQuantities((prev) => {
@@ -120,10 +157,131 @@ export default function ShoppingFlowModal({
   }, [currentIngredientIndex, currentIngredientGroup]);
 
   const displayedOptions = currentIngredientGroup?.options || [];
+  
+  // Helper function to find the original ingredient string (with quantity/unit) from recipe.ingredients
+  const getFullIngredientText = (ingredientGroup: IngredientGroup): string => {
+    if (!workingRecipe?.ingredients) {
+      return ingredientGroup.originalIngredientName || ingredientGroup.ingredientName;
+    }
+    // Try to find a matching ingredient string that contains the ingredient name
+    const ingredientName = ingredientGroup.ingredientName.toLowerCase();
+    const originalName = ingredientGroup.originalIngredientName?.toLowerCase() || '';
+    
+    const match = workingRecipe.ingredients.find((ing) => {
+      const ingLower = ing.toLowerCase();
+      return ingLower.includes(ingredientName) || ingLower.includes(originalName);
+    });
+    
+    return match || ingredientGroup.originalIngredientName || ingredientGroup.ingredientName;
+  };
+  
+  // Sort products based on ingredientPriceSort
+  const sortedProducts = useMemo(() => {
+    const products = displayedOptions.map((opt) => opt.product);
+    if (ingredientPriceSort === 'low-high') {
+      return [...products].sort((a, b) => a.price - b.price);
+    } else if (ingredientPriceSort === 'high-low') {
+      return [...products].sort((a, b) => b.price - a.price);
+    }
+    return products;
+  }, [displayedOptions, ingredientPriceSort]);
+  
   const displayedProducts = showAllProducts
-    ? displayedOptions.map((opt) => opt.product)
-    : displayedOptions.slice(0, INITIAL_PRODUCTS_SHOWN).map((opt) => opt.product);
+    ? sortedProducts
+    : sortedProducts.slice(0, INITIAL_PRODUCTS_SHOWN);
   const hasMoreProducts = (currentIngredientGroup?.options?.length || 0) > INITIAL_PRODUCTS_SHOWN;
+  const hasNoProducts = displayedOptions.length === 0;
+
+  // Product search handlers
+  const handleOpenSearch = () => {
+    setSearchQuery(currentIngredientGroup?.ingredientName || '');
+    setSearchResults([]);
+    setSearchCurrentPage(1);
+    setSearchTotalPages(0);
+    setSearchSelectedProduct(null);
+    setSearchProductQuantity(0);
+    setFilterType('all');
+    setPriceSort('none');
+    setShowSearchPopup(true);
+    // Trigger initial search
+    setTimeout(() => handleSearchProducts(1), 100);
+  };
+
+  const handleSearchProducts = async (page: number = 1) => {
+    setIsSearching(true);
+    setSearchCurrentPage(page);
+    try {
+      const data = await productApi.searchProducts({
+        query: searchQuery,
+        filter: filterType,
+        sort: priceSort,
+        page,
+        marketId,
+      });
+      setSearchResults(data.content);
+      setSearchTotalPages(data.totalPages);
+    } catch (error) {
+      console.error('Failed to search products:', error);
+    } finally {
+      setIsSearching(false);
+    }
+  };
+
+  // Auto-search when typing or changing filters in search popup (debounced)
+  useEffect(() => {
+    if (!showSearchPopup) return;
+    const handle = setTimeout(() => {
+      void handleSearchProducts(1);
+    }, 250);
+    return () => clearTimeout(handle);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchQuery, filterType, priceSort, showSearchPopup]);
+
+  const handleSelectSearchProduct = (searchProduct: SearchProduct) => {
+    // Convert SearchProduct to Product format
+    const product: Product = {
+      id: searchProduct.id,
+      reweId: searchProduct.id, // Using id as reweId since it's from search
+      name: searchProduct.name,
+      price: searchProduct.price,
+      imageUrl: searchProduct.imageUrl,
+      grammage: searchProduct.grammage,
+      normalizedAmount: 1,
+      attributes: {
+        isOrganic: searchProduct.attributes?.isOrganic ?? false,
+        isVegan: searchProduct.attributes?.isVegan ?? false,
+        isVegetarian: false, // Not available in search results
+        isGlutenFree: searchProduct.attributes?.isGlutenFree ?? false,
+        isLowestPrice: searchProduct.attributes?.isLowestPrice ?? false,
+      },
+    };
+    
+    // Set as selected product with initial quantity of 1
+    setSearchSelectedProduct(product);
+    setSearchProductQuantity(1);
+  };
+
+  const handleSearchQuantityChange = (change: number) => {
+    setSearchProductQuantity((prev) => Math.max(0, prev + change));
+  };
+
+  const handleConfirmSearchSelection = () => {
+    if (!searchSelectedProduct || searchProductQuantity === 0 || !currentIngredientGroup) return;
+    
+    // Set quantity for the selected product
+    setProductQuantities((prev) => ({
+      ...prev,
+      [searchSelectedProduct.id]: searchProductQuantity,
+    }));
+    
+    setShowSearchPopup(false);
+    handleSelectProduct(currentIngredientGroup.ingredientId, searchSelectedProduct);
+  };
+
+  const handleClearSearchSelection = () => {
+    setSearchSelectedProduct(null);
+    setSearchProductQuantity(0);
+  };
 
   const handleSelectProduct = (ingredientId: number, product: Product | 'already-have') => {
     setSelectedProducts((prev) => ({
@@ -244,10 +402,13 @@ export default function ShoppingFlowModal({
                 </div>
               )}
               <div className="bg-emerald-50 rounded-lg p-2 sm:p-3 border border-emerald-200">
-                <h4 className="text-base sm:text-lg font-bold text-gray-900 mb-0.5 sm:mb-1 line-clamp-2">{currentIngredientGroup.ingredientName}</h4>
-                <p className="text-xs sm:text-sm text-gray-600">
-                   Ingredient: <span className="font-semibold text-[#2F855A]">{currentIngredientGroup.ingredientName}</span>
-                </p>
+                <div className="flex items-center gap-2 mb-1">
+                  <i className="ri-restaurant-line text-[#2F855A]"></i>
+                  <span className="text-xs sm:text-sm font-medium text-gray-500">Recipe calls for:</span>
+                </div>
+                <h4 className="text-base sm:text-lg font-bold text-gray-900 line-clamp-2">
+                  {getFullIngredientText(currentIngredientGroup)}
+                </h4>
               </div>
             </div>
 
@@ -276,11 +437,22 @@ export default function ShoppingFlowModal({
                 </div>
               </div>
 
-              <div className="flex items-center justify-between mb-4">
-                <h5 className="text-sm font-semibold text-gray-700 uppercase tracking-wide">Available products:</h5>
-                {hasMoreProducts && (
-                  <span className="text-xs text-gray-500">{currentIngredientGroup.options.length} options available</span>
-                )}
+              <div className="flex items-center justify-between mb-4 gap-2">
+                <div className="flex items-center gap-2">
+                  <h5 className="text-sm font-semibold text-gray-700 uppercase tracking-wide">Available products:</h5>
+                  {hasMoreProducts && (
+                    <span className="text-xs text-gray-500 hidden sm:inline">({currentIngredientGroup.options.length} options)</span>
+                  )}
+                </div>
+                <select
+                  value={ingredientPriceSort}
+                  onChange={(e) => setIngredientPriceSort(e.target.value as 'none' | 'low-high' | 'high-low')}
+                  className="px-2 sm:px-3 py-1.5 border border-gray-200 rounded-lg focus:border-[#2F855A] focus:outline-none text-xs sm:text-sm cursor-pointer bg-white"
+                >
+                  <option value="none">Featured</option>
+                  <option value="low-high">Price: Low → High</option>
+                  <option value="high-low">Price: High → Low</option>
+                </select>
               </div>
 
               <div className="space-y-3">
@@ -296,9 +468,9 @@ export default function ShoppingFlowModal({
                         <img src={product.imageUrl} alt={product.name} className="w-full h-full object-cover" />
                       </div>
                       <div className="flex-1 min-w-0">
-                        <div className="font-semibold text-gray-900 mb-1 text-sm sm:text-base line-clamp-2">{product.name}</div>
+                        <div className="font-semibold text-gray-900 mb-1 text-sm sm:text-base line-clamp-2">{product.grammage}</div>
+                        <div className="text-xs text-gray-500 mb-1 line-clamp-1">{product.name}</div>
                         <div className="flex items-center gap-2 sm:gap-3 flex-wrap">
-                          <span className="text-xs sm:text-sm font-medium text-gray-700">{product.grammage}</span>
                           <span className="text-base sm:text-lg font-bold text-[#2F855A]">{(product.price / 100).toFixed(2)}€</span>
                         </div>
                       </div>
@@ -340,6 +512,26 @@ export default function ShoppingFlowModal({
                   );
                 })}
               </div>
+
+              {/* No products found - show search button */}
+              {hasNoProducts && !loadingProducts && (
+                <div className="text-center py-6 sm:py-8">
+                  <div className="w-16 h-16 sm:w-20 sm:h-20 mx-auto mb-4 bg-gray-100 rounded-full flex items-center justify-center">
+                    <i className="ri-search-line text-2xl sm:text-3xl text-gray-400"></i>
+                  </div>
+                  <h4 className="text-base sm:text-lg font-semibold text-gray-900 mb-2">No matching products found</h4>
+                  <p className="text-xs sm:text-sm text-gray-600 mb-4">
+                    We couldn't find products for this ingredient. Try searching manually.
+                  </p>
+                  <button
+                    onClick={handleOpenSearch}
+                    className="px-6 py-3 bg-gradient-to-r from-blue-500 to-blue-600 text-white rounded-xl font-semibold hover:from-blue-600 hover:to-blue-700 transition-all cursor-pointer shadow-md flex items-center justify-center gap-2 mx-auto"
+                  >
+                    <i className="ri-search-line text-lg"></i>
+                    <span>Search Products</span>
+                  </button>
+                </div>
+              )}
 
               {hasMoreProducts && !showAllProducts && (
                 <button
@@ -420,7 +612,10 @@ export default function ShoppingFlowModal({
                     >
                       <div className="flex items-start justify-between mb-2 sm:mb-3 gap-2">
                         <div className="flex-1 min-w-0">
-                          <h5 className="font-semibold text-gray-900 mb-0.5 sm:mb-1 text-sm sm:text-base line-clamp-2">{ingredient.ingredientName}</h5>
+                          <h5 className="font-semibold text-gray-900 mb-0.5 sm:mb-1 text-sm sm:text-base line-clamp-2">
+                            {getFullIngredientText(ingredient)}
+                          </h5>
+                          <p className="text-xs text-gray-500 mb-0.5">Ingredient: {ingredient.ingredientName}</p>
                           {!isAlreadyHave && product && (
                             <p className="text-xs sm:text-sm text-gray-600">Qty: {productQuantities[product.id] || 1}</p>
                           )}
@@ -497,6 +692,208 @@ export default function ShoppingFlowModal({
                   <span>Add to List</span>
                 </button>
               </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Product Search Popup */}
+      {showSearchPopup && (
+        <div 
+          className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-end sm:items-center justify-center sm:p-4 z-[60]"
+          onClick={() => setShowSearchPopup(false)}
+        >
+          <div 
+            className="bg-white rounded-t-3xl sm:rounded-3xl shadow-2xl w-full sm:max-w-3xl max-h-[90vh] sm:max-h-[90vh] overflow-hidden flex flex-col"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Search Header */}
+            <div className="sticky top-0 bg-white border-b border-gray-200 p-4 sm:p-6 rounded-t-3xl z-10">
+              <div className="flex items-center justify-between mb-3">
+                <div>
+                  <h3 className="text-lg sm:text-xl font-bold text-gray-900">Search Products</h3>
+                  <p className="text-xs sm:text-sm text-gray-500">
+                    For: <span className="font-medium text-[#2F855A]">{currentIngredientGroup?.ingredientName}</span>
+                  </p>
+                </div>
+                <button
+                  onClick={() => setShowSearchPopup(false)}
+                  className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-gray-100 transition-colors cursor-pointer"
+                >
+                  <i className="ri-close-line text-xl text-gray-600"></i>
+                </button>
+              </div>
+              
+              {/* Search Input */}
+              <div className="relative mb-3">
+                <i className="ri-search-line absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"></i>
+                <input
+                  type="text"
+                  placeholder="Search for products..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="w-full pl-10 pr-10 py-3 border-2 border-gray-200 rounded-xl focus:border-[#2F855A] focus:outline-none text-sm transition-colors"
+                />
+                {isSearching && (
+                  <i className="ri-loader-4-line absolute right-3 top-1/2 -translate-y-1/2 text-lg text-[#2F855A] animate-spin"></i>
+                )}
+              </div>
+
+              {/* Filters */}
+              <div className="grid grid-cols-2 gap-2">
+                <select
+                  value={filterType}
+                  onChange={(e) => setFilterType(e.target.value)}
+                  className="px-3 py-2 border-2 border-gray-200 rounded-lg focus:border-[#2F855A] focus:outline-none text-xs sm:text-sm cursor-pointer"
+                >
+                  {filterOptions.map(opt => (
+                    <option key={opt.value} value={opt.value}>{opt.label}</option>
+                  ))}
+                </select>
+                <select
+                  value={priceSort}
+                  onChange={(e) => setPriceSort(e.target.value)}
+                  className="px-3 py-2 border-2 border-gray-200 rounded-lg focus:border-[#2F855A] focus:outline-none text-xs sm:text-sm cursor-pointer"
+                >
+                  <option value="none">Featured</option>
+                  <option value="low-high">Price: Low to High</option>
+                  <option value="high-low">Price: High to Low</option>
+                </select>
+              </div>
+            </div>
+
+            {/* Selected Product Panel */}
+            {searchSelectedProduct && (
+              <div className="bg-emerald-50 border-b border-emerald-200 p-4">
+                <div className="flex items-start gap-3">
+                  <div className="w-16 h-16 sm:w-20 sm:h-20 flex-shrink-0 bg-white rounded-lg overflow-hidden border border-emerald-200">
+                    <img src={searchSelectedProduct.imageUrl} alt={searchSelectedProduct.name} className="w-full h-full object-cover" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-start justify-between gap-2 mb-1">
+                      <div className="font-semibold text-gray-900 text-sm line-clamp-2">{searchSelectedProduct.grammage}</div>
+                      <button
+                        onClick={handleClearSearchSelection}
+                        className="w-6 h-6 flex items-center justify-center rounded-full hover:bg-red-100 text-gray-400 hover:text-red-500 transition-colors cursor-pointer flex-shrink-0"
+                        title="Remove selection"
+                      >
+                        <i className="ri-close-line"></i>
+                      </button>
+                    </div>
+                    <div className="text-xs text-gray-500 line-clamp-1 mb-2">{searchSelectedProduct.name}</div>
+                    
+                    {/* Quantity Selector */}
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <button
+                          onClick={() => handleSearchQuantityChange(-1)}
+                          disabled={searchProductQuantity <= 1}
+                          className="w-8 h-8 flex items-center justify-center bg-white border-2 border-gray-300 rounded-lg hover:border-[#2F855A] hover:bg-emerald-50 transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
+                          <i className="ri-subtract-line text-gray-700"></i>
+                        </button>
+                        <span className="text-lg font-bold text-gray-900 min-w-[2rem] text-center">
+                          {searchProductQuantity}
+                        </span>
+                        <button
+                          onClick={() => handleSearchQuantityChange(1)}
+                          className="w-8 h-8 flex items-center justify-center bg-white border-2 border-gray-300 rounded-lg hover:border-[#2F855A] hover:bg-emerald-50 transition-all cursor-pointer"
+                        >
+                          <i className="ri-add-line text-gray-700"></i>
+                        </button>
+                      </div>
+                      <div className="text-lg font-bold text-[#2F855A]">
+                        {((searchSelectedProduct.price * searchProductQuantity) / 100).toFixed(2)}€
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                
+                {/* Confirm Button */}
+                <button
+                  onClick={handleConfirmSearchSelection}
+                  disabled={searchProductQuantity === 0}
+                  className="w-full mt-3 py-3 bg-gradient-to-r from-[#2F855A] to-emerald-600 text-white rounded-xl font-semibold hover:from-[#276749] hover:to-emerald-700 transition-all cursor-pointer flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed shadow-md"
+                >
+                  <i className="ri-check-line text-xl"></i>
+                  <span>Confirm Selection</span>
+                </button>
+              </div>
+            )}
+
+            {/* Search Results */}
+            <div className="flex-1 overflow-y-auto p-4 sm:p-6">
+              {searchResults.length === 0 && !isSearching && (
+                <div className="text-center py-8 text-gray-500">
+                  <i className="ri-search-line text-4xl mb-2 block"></i>
+                  <p className="text-sm">No products found. Try a different search term.</p>
+                </div>
+              )}
+
+              {isSearching && (
+                <div className="text-center py-8">
+                  <i className="ri-loader-4-line text-3xl text-[#2F855A] animate-spin"></i>
+                  <p className="text-sm text-gray-600 mt-2">Searching...</p>
+                </div>
+              )}
+
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                {searchResults.map((product) => {
+                  const isSelected = searchSelectedProduct?.id === product.id;
+                  return (
+                    <div
+                      key={product.id}
+                      onClick={() => handleSelectSearchProduct(product)}
+                      className={`bg-white border-2 rounded-xl p-3 hover:shadow-md transition-all cursor-pointer ${
+                        isSelected 
+                          ? 'border-[#2F855A] ring-2 ring-emerald-100' 
+                          : 'border-gray-200 hover:border-[#2F855A]'
+                      }`}
+                    >
+                      <div className="aspect-square bg-gray-100 rounded-lg overflow-hidden mb-2 relative">
+                        {product.imageUrl ? (
+                          <img src={product.imageUrl} alt={product.name} className="w-full h-full object-cover" />
+                        ) : (
+                          <div className="w-full h-full flex items-center justify-center text-gray-300">
+                            <i className="ri-image-line text-2xl"></i>
+                          </div>
+                        )}
+                        {isSelected && (
+                          <div className="absolute top-2 right-2 w-6 h-6 bg-[#2F855A] rounded-full flex items-center justify-center">
+                            <i className="ri-check-line text-white text-sm"></i>
+                          </div>
+                        )}
+                      </div>
+                      <div className="font-semibold text-gray-900 text-xs sm:text-sm line-clamp-2 mb-1">{product.grammage}</div>
+                      <div className="text-xs text-gray-500 line-clamp-1 mb-1">{product.name}</div>
+                      <div className="text-sm sm:text-base font-bold text-[#2F855A]">{(product.price / 100).toFixed(2)}€</div>
+                    </div>
+                  );
+                })}
+              </div>
+
+              {/* Pagination */}
+              {searchTotalPages > 1 && (
+                <div className="flex justify-center gap-2 mt-4 pt-4 border-t border-gray-200">
+                  <button
+                    onClick={() => handleSearchProducts(searchCurrentPage - 1)}
+                    disabled={searchCurrentPage === 1 || isSearching}
+                    className="w-8 h-8 flex items-center justify-center rounded-lg border border-gray-200 hover:bg-gray-50 disabled:opacity-50 cursor-pointer"
+                  >
+                    <i className="ri-arrow-left-s-line"></i>
+                  </button>
+                  <span className="flex items-center px-3 text-sm text-gray-600">
+                    {searchCurrentPage} / {searchTotalPages}
+                  </span>
+                  <button
+                    onClick={() => handleSearchProducts(searchCurrentPage + 1)}
+                    disabled={searchCurrentPage === searchTotalPages || isSearching}
+                    className="w-8 h-8 flex items-center justify-center rounded-lg border border-gray-200 hover:bg-gray-50 disabled:opacity-50 cursor-pointer"
+                  >
+                    <i className="ri-arrow-right-s-line"></i>
+                  </button>
+                </div>
+              )}
             </div>
           </div>
         </div>
