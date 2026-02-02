@@ -78,19 +78,12 @@ export default function RecipeDetailModal({
             </div>
           )}
           {/* Quick Stats */}
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-4 mb-4 sm:mb-6">
-            <div className="bg-emerald-50 rounded-xl p-3 sm:p-4 text-center">
-              <i className="ri-time-line text-xl sm:text-2xl text-[#2F855A] mb-1 sm:mb-2"></i>
-              <div className="text-xs sm:text-sm text-gray-600">Prep</div>
-              <div className="text-base sm:text-lg font-bold text-gray-900">
-                {recipe.prep_time || 10}m
-              </div>
-            </div>
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 sm:gap-4 mb-4 sm:mb-6">
             <div className="bg-teal-50 rounded-xl p-3 sm:p-4 text-center">
               <i className="ri-fire-line text-xl sm:text-2xl text-teal-600 mb-1 sm:mb-2"></i>
               <div className="text-xs sm:text-sm text-gray-600">Cook</div>
               <div className="text-base sm:text-lg font-bold text-gray-900">
-                {recipe.cook_time || Math.max(0, recipe.total_time - (recipe.prep_time || 10))}m
+                {recipe.total_time || Math.max(0, (recipe.cook_time || 0) + (recipe.prep_time || 0))}m
               </div>
             </div>
             <div className="bg-green-50 rounded-xl p-3 sm:p-4 text-center">
