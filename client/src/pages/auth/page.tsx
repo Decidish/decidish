@@ -52,16 +52,22 @@ export default function Auth() {
     } catch (err: any) {
       console.error(err);
       const message = err.response?.data?.error || err.message || "Authentication failed. Please try again.";
-      setError(message);
+      if(isLogin) {
+        if(message.toLowerCase().includes("invalid username or password")) {
+          setError("Invalid email or password. Please try again.");
+        } else {
+          setError("Authentication failed. Please try again.");
+        }
+      }else{
+        if(message.toLowerCase().includes("duplicate key value violates unique constraint")) {
+          setError("This email is already registered. Please use a different email or sign in.");
+        } else {
+          setError("Authentication failed. Please try again.");
+        }
+      }
     } finally {
       setIsLoading(false);
     }
-    // if (isLogin) {
-    //   await authApi.login(formData.email, formData.password);
-    // } else {
-    //   await authApi.register(formData.email, formData.password);
-    // }
-    // window.REACT_APP_NAVIGATE('/questionnaire');
   };
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
