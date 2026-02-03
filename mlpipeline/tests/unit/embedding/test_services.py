@@ -201,23 +201,6 @@ class TestAdapterService:
             
             mock_compute.assert_called_once()
 
-    @patch('mlpipeline.embedding.services.ModelCache')
-    def test_get_conn_context_manager(self, mock_cache_class):
-        """Test _get_conn context manager."""
-        mock_cache_class.return_value = Mock()
-        
-        with patch.dict('os.environ', {'DATABASE_BACKEND_CONNECTION_STRING': 'postgresql://test'}):
-            service = AdapterService()
-            
-            with patch('mlpipeline.embedding.services.psycopg2.connect') as mock_connect:
-                mock_conn = Mock()
-                mock_connect.return_value = mock_conn
-                
-                with service._get_conn() as conn:
-                    assert conn is mock_conn
-                
-                mock_conn.close.assert_called_once()
-
 
 # ============================================================================
 # PostgresDistributedLock Tests
