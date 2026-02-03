@@ -83,7 +83,6 @@ func (s *RecipeService) SearchRecipes(ctx *gin.Context) {
 				}
 			}
 		}
-		fmt.Printf("DEBUG Service: Got categories from query array (parsed CSV): %v\n", categories)
 	} else if csv := ctx.Query("categories"); csv != "" {
 		// Fallback: single query parameter
 		for _, c := range strings.Split(csv, ",") {
@@ -92,7 +91,6 @@ func (s *RecipeService) SearchRecipes(ctx *gin.Context) {
 				categories = append(categories, t)
 			}
 		}
-		fmt.Printf("DEBUG Service: Got categories from single CSV: %v (original: %q)\n", categories, csv)
 	}
 
 	// Parse keywords similarly (CSV or repeated params)
@@ -105,7 +103,6 @@ func (s *RecipeService) SearchRecipes(ctx *gin.Context) {
 				}
 			}
 		}
-		fmt.Printf("DEBUG Service: Got keywords from query array (parsed CSV): %v\n", keywords)
 	} else if csv := ctx.Query("keywords"); csv != "" {
 		for _, k := range strings.Split(csv, ",") {
 			t := strings.TrimSpace(k)
@@ -113,7 +110,6 @@ func (s *RecipeService) SearchRecipes(ctx *gin.Context) {
 				keywords = append(keywords, t)
 			}
 		}
-		fmt.Printf("DEBUG Service: Got keywords from single CSV: %v (original: %q)\n", keywords, csv)
 	}
 
 	params := repository.SearchParams{
@@ -126,8 +122,6 @@ func (s *RecipeService) SearchRecipes(ctx *gin.Context) {
 		Page:        page,
 		Limit:       limit,
 	}
-
-	fmt.Printf("DEBUG Service: SearchParams = %+v\n", params)
 
 	result, err := s.Repo.SearchRecipes(params)
 	if err != nil {
