@@ -464,7 +464,7 @@ function questionnaireFlow(authToken) {
     sleep(randomInt(2, 5) * 0.1); // Think time
     
     const prefVector = generatePreferenceVector();
-    const allergies = Math.random() > 0.7 ? ['peanuts', 'shellfish'] : [];
+    const allergies = Math.random() > 0.7 ? ['Dairy', 'Eggs'] : [];
     const dietary = Math.random() > 0.8 ? ['vegetarian'] : [];
     
     const prefRes = measureRequest(personalizationLatency, () =>
@@ -892,30 +892,30 @@ function shoppingListManagementFlow(authToken) {
 function searchFlow(authToken, marketId) {
   const headers = getAuthHeaders(authToken);
   
-  group('Product Search', () => {
-    const query = randomChoice(PRODUCT_SEARCH_TERMS);
-    const encodedQuery = encodeURIComponent(query);
+  // group('Product Search', () => {
+  //   const query = randomChoice(PRODUCT_SEARCH_TERMS);
+  //   const encodedQuery = encodeURIComponent(query);
     
-    if (isDebugEnabled('search')) {
-      console.log(`[Search DEBUG] Searching products for: ${query}, market: ${marketId}`);
-    }
+  //   if (isDebugEnabled('search')) {
+  //     console.log(`[Search DEBUG] Searching products for: ${query}, market: ${marketId}`);
+  //   }
     
-    const searchRes = measureRequest(productSearchLatency, () =>
-      http.get(`${BASE_URL}/shopping/api/v1/markets/search/products?query=${encodedQuery}&marketId=${marketId}`, { headers })
-    );
+  //   const searchRes = measureRequest(productSearchLatency, () =>
+  //     http.get(`${BASE_URL}/shopping/api/v1/markets/search/products?query=${encodedQuery}&marketId=${marketId}`, { headers })
+  //   );
     
-    const success = check(searchRes, {
-      'Product search successful': (r) => r.status === 200,
-    });
+  //   const success = check(searchRes, {
+  //     'Product search successful': (r) => r.status === 200,
+  //   });
     
-    if (!success) {
-      console.error(`[Search ERROR] Product search failed for '${query}' - Status: ${searchRes.status}, Body: ${searchRes.body ? searchRes.body.substring(0, 200) : 'empty'}`);
-    } else if (isDebugEnabled('search')) {
-      console.log(`[Search DEBUG] Product search returned: ${searchRes.body ? searchRes.body.substring(0, 100) : 'empty'}`);
-    }
+  //   if (!success) {
+  //     console.error(`[Search ERROR] Product search failed for '${query}' - Status: ${searchRes.status}, Body: ${searchRes.body ? searchRes.body.substring(0, 200) : 'empty'}`);
+  //   } else if (isDebugEnabled('search')) {
+  //     console.log(`[Search DEBUG] Product search returned: ${searchRes.body ? searchRes.body.substring(0, 100) : 'empty'}`);
+  //   }
     
-    sleep(0.3);
-  });
+  //   sleep(0.3);
+  // });
   
   group('Recipe Search', () => {
     const query = randomChoice(RECIPE_SEARCH_TERMS);
@@ -1063,7 +1063,7 @@ export default function (data) {
       // - history: 5% (viewing history)
       // - profile: 3% (updating preferences)
       const activities = ['swipe', 'shopping', 'search', 'manage', 'history', 'profile'];
-      const weights = [40, 25, 15, 12, 5, 3];
+      const weights = [40, 25, 0, 12, 5, 3];
       const activity = weightedRandomChoice(activities, weights);
       
       if (isDebugEnabled('flow')) {

@@ -121,8 +121,6 @@ jobs:
         DATABASE_BACKEND_CONNECTION_STRING: ${{ secrets.DATABASE_BACKEND_CONNECTION_STRING }}
         EMBEDDER_SERVER_URL: ${{ secrets.EMBEDDER_SERVER_URL }}
         VITE_BASE_URL: ${{ secrets.VITE_BASE_URL }}
-        STACK_NAME: qa
         IMAGE_TAG: qa
       run: |
-        docker compose -f deploy.yml pull
-        docker stack deploy -c deploy.yml $STACK_NAME --with-registry-auth
+        docker compose -f docker-deploy.yml up -d
