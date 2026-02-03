@@ -305,50 +305,86 @@ public class RecipeService {
         }
     }
 
-    // /**
-    //  * Pre-process fuzzy matching for all ingredients in the database.
-    //  * @return List of all generated IngredientProduct mappings.
-    //  */
+    // Batch size for processing ingredients in fuzzy matching
+    // Smaller batches prevent connection timeout/leak issues
+    private static final int FUZZY_MATCHING_BATCH_SIZE = 200;
+
+    /**
+     * Pre-process fuzzy matching for all ingredients in the database.
+     * Uses batched processing to avoid connection leak issues with long-running queries.
+     * @return List of all generated IngredientProduct mappings.
+     */
     public List<IngredientProduct> fuzzyMatchingPreProcessing() {
         // 0. Refresh the unique_products materialized view (must be done after product sync)
         log.info("Refreshing unique_products materialized view...");
-        ingredientProductRepository.refreshUniqueProductsView();
+        transactionTemplate.execute(status -> {
+            ingredientProductRepository.refreshUniqueProductsView();
+            return null;
+        });
         log.info("Materialized view refreshed.");
 
-        // 1. Get Projections using multi-tier matching
-        log.info("Running multi-tier ingredient-product matching...");
-        List<IngredientMatchProjection> projections = ingredientProductRepository.findGenericMatches(   
-            ingredientProductRepository.findAllIngredientsIds(),
-            FUZZY_MATCHING_THRESHOLD,
-            FUZZY_MATCHING_LIMIT
+        // 1. Get all ingredient IDs first (quick query)
+        List<Integer> allIngredientIds = transactionTemplate.execute(status -> 
+            ingredientProductRepository.findAllIngredientsIds()
         );
-        log.info("Found {} ingredient-product matches.", projections.size());
+        
+        if (allIngredientIds == null || allIngredientIds.isEmpty()) {
+            log.warn("No ingredients found for fuzzy matching.");
+            return List.of();
+        }
+        
+        log.info("Found {} ingredients to process.", allIngredientIds.size());
 
-        // 2. Clear table
-        ingredientProductRepository.deleteAllInBatch();
-        ingredientProductRepository.flush();
-
-        // 3. Pre-fetch Products by REWE ID
-        // We need the actual entities because we are joining on a non-PK column
-        // List<Long> reweIds = projections.stream().map(p -> p.getProductId()).distinct().toList();
-        // Map<Long, Product> productMap = productRepository.findAllByReweIdIn(reweIds).stream()
-        //         .collect(Collectors.toMap(Product::getReweId, p -> p, (a, b) -> a));
-
-        // 4. Map Projections to Entities
-        List<IngredientProduct> entities = projections.stream().map(p -> {
-            // p.getProductId() should be the REWE ID (Long) from your Match Projection
-            IngredientProductId id = new IngredientProductId(p.getIngredientId(), p.getProductId());
+        // 2. Process in batches to avoid connection timeout
+        List<IngredientMatchProjection> allProjections = new ArrayList<>();
+        int totalBatches = (int) Math.ceil((double) allIngredientIds.size() / FUZZY_MATCHING_BATCH_SIZE);
+        
+        for (int batchNum = 0; batchNum < totalBatches; batchNum++) {
+            int fromIndex = batchNum * FUZZY_MATCHING_BATCH_SIZE;
+            int toIndex = Math.min(fromIndex + FUZZY_MATCHING_BATCH_SIZE, allIngredientIds.size());
+            List<Integer> batchIds = allIngredientIds.subList(fromIndex, toIndex);
             
-            IngredientProduct ip = new IngredientProduct();
-            ip.setId(id);
-            ip.setConfidence(p.getConfidence());
+            log.info("Processing batch {}/{} ({} ingredients)...", batchNum + 1, totalBatches, batchIds.size());
             
-            // Crucial: Set the objects so Hibernate can validate the relationship
-            ip.setIngredient(entityManager.getReference(Ingredient.class, p.getIngredientId()));
+            // Each batch runs in its own transaction with its own connection
+            List<IngredientMatchProjection> batchProjections = transactionTemplate.execute(status -> 
+                ingredientProductRepository.findGenericMatches(
+                    batchIds,
+                    FUZZY_MATCHING_THRESHOLD,
+                    FUZZY_MATCHING_LIMIT
+                )
+            );
             
-            return ip;
-        }).toList();
+            if (batchProjections != null) {
+                allProjections.addAll(batchProjections);
+            }
+        }
+        
+        log.info("Found {} total ingredient-product matches.", allProjections.size());
 
-        return ingredientProductRepository.saveAll(entities);
+        // 3. Clear table and save all mappings in a single transaction
+        final List<IngredientMatchProjection> projections = allProjections;
+        
+        return transactionTemplate.execute(status -> {
+            // Clear existing mappings
+            ingredientProductRepository.deleteAllInBatch();
+            ingredientProductRepository.flush();
+            
+            // Map Projections to Entities
+            List<IngredientProduct> entities = projections.stream().map(p -> {
+                IngredientProductId id = new IngredientProductId(p.getIngredientId(), p.getProductId());
+                
+                IngredientProduct ip = new IngredientProduct();
+                ip.setId(id);
+                ip.setConfidence(p.getConfidence());
+                
+                // Set the reference so Hibernate can validate the relationship
+                ip.setIngredient(entityManager.getReference(Ingredient.class, p.getIngredientId()));
+                
+                return ip;
+            }).toList();
+
+            return ingredientProductRepository.saveAll(entities);
+        });
     }
 }
