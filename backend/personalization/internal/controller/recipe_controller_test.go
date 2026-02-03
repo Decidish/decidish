@@ -364,7 +364,11 @@ func TestRecipeController_SearchRecipes_Success(t *testing.T) {
 	countRows := sqlmock.NewRows([]string{"count"}).AddRow(1)
 	mock.ExpectQuery("SELECT COUNT").WillReturnRows(countRows)
 
-	// Mock search query
+	// Mock IDs query (new step in optimized search)
+	idsRows := sqlmock.NewRows([]string{"id"}).AddRow(1)
+	mock.ExpectQuery("SELECT re.id FROM recipes re").WillReturnRows(idsRows)
+
+	// Mock full data query with CTEs
 	searchRows := sqlmock.NewRows([]string{
 		"id", "title", "description", "instructions", "image",
 		"cook_time", "prep_time", "total_time", "rating",
@@ -374,7 +378,7 @@ func TestRecipeController_SearchRecipes_Success(t *testing.T) {
 		AddRow(1, "Test Recipe", "A test recipe", "Cook it...", "http://img.com/test.jpg",
 			15, 5, 20, 4.5, "300", "2 servings", "2 portions",
 			"ingredient1, ingredient2", "keyword1, keyword2", "allergen1")
-	mock.ExpectQuery("WITH RecipeIngredients AS").WillReturnRows(searchRows)
+	mock.ExpectQuery("WITH SelectedRecipes AS").WillReturnRows(searchRows)
 
 	req, _ := http.NewRequest("GET", "/recipes/search", nil)
 	w := httptest.NewRecorder()
@@ -413,7 +417,11 @@ func TestRecipeController_SearchRecipes_WithQueryParam(t *testing.T) {
 	countRows := sqlmock.NewRows([]string{"count"}).AddRow(1)
 	mock.ExpectQuery("SELECT COUNT").WithArgs("%pasta%").WillReturnRows(countRows)
 
-	// Mock search query
+	// Mock IDs query (new step in optimized search)
+	idsRows := sqlmock.NewRows([]string{"id"}).AddRow(1)
+	mock.ExpectQuery("SELECT re.id FROM recipes re").WithArgs("%pasta%").WillReturnRows(idsRows)
+
+	// Mock full data query with CTEs - only 1 arg since there's only 1 recipe ID
 	searchRows := sqlmock.NewRows([]string{
 		"id", "title", "description", "instructions", "image",
 		"cook_time", "prep_time", "total_time", "rating",
@@ -423,7 +431,7 @@ func TestRecipeController_SearchRecipes_WithQueryParam(t *testing.T) {
 		AddRow(1, "Pasta", "Pasta dish", "Cook pasta...", "http://img.com/pasta.jpg",
 			20, 10, 30, 4.5, "400", "2 servings", "4 portions",
 			"pasta, tomato", "italian", "gluten")
-	mock.ExpectQuery("WITH RecipeIngredients AS").WillReturnRows(searchRows)
+	mock.ExpectQuery("WITH SelectedRecipes AS").WithArgs(1).WillReturnRows(searchRows)
 
 	req, _ := http.NewRequest("GET", "/recipes/search?q=pasta", nil)
 	w := httptest.NewRecorder()
@@ -563,7 +571,11 @@ func TestRecipeController_SearchRecipes_WithPagination(t *testing.T) {
 	countRows := sqlmock.NewRows([]string{"count"}).AddRow(50)
 	mock.ExpectQuery("SELECT COUNT").WillReturnRows(countRows)
 
-	// Mock search query - page 2 with limit 10
+	// Mock IDs query - page 2 with limit 10
+	idsRows := sqlmock.NewRows([]string{"id"}).AddRow(11)
+	mock.ExpectQuery("SELECT re.id FROM recipes re").WillReturnRows(idsRows)
+
+	// Mock full data query with CTEs - only 1 arg since there's only 1 recipe ID
 	searchRows := sqlmock.NewRows([]string{
 		"id", "title", "description", "instructions", "image",
 		"cook_time", "prep_time", "total_time", "rating",
@@ -573,7 +585,7 @@ func TestRecipeController_SearchRecipes_WithPagination(t *testing.T) {
 		AddRow(11, "Recipe 11", "Description", "Instructions", "http://img.com/11.jpg",
 			15, 5, 20, 4.0, "300", "2 servings", "2 portions",
 			"ingredient", "keyword", "allergen")
-	mock.ExpectQuery("WITH RecipeIngredients AS").WillReturnRows(searchRows)
+	mock.ExpectQuery("WITH SelectedRecipes AS").WithArgs(11).WillReturnRows(searchRows)
 
 	req, _ := http.NewRequest("GET", "/recipes/search?page=2&limit=10", nil)
 	w := httptest.NewRecorder()
