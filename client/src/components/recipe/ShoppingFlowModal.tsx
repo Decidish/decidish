@@ -468,8 +468,8 @@ export default function ShoppingFlowModal({
                         <img src={product.imageUrl} alt={product.name} className="w-full h-full object-cover" />
                       </div>
                       <div className="flex-1 min-w-0">
-                        <div className="font-semibold text-gray-900 mb-1 text-sm sm:text-base line-clamp-2">{product.grammage}</div>
-                        <div className="text-xs text-gray-500 mb-1 line-clamp-1">{product.name}</div>
+                        <div className="font-semibold text-gray-900 mb-1 text-sm sm:text-base line-clamp-2">{product.name}</div>
+                        <div className="text-xs text-gray-500 mb-1 line-clamp-1">{product.grammage}</div>
                         <div className="flex items-center gap-2 sm:gap-3 flex-wrap">
                           <span className="text-base sm:text-lg font-bold text-[#2F855A]">{(product.price / 100).toFixed(2)}€</span>
                         </div>
