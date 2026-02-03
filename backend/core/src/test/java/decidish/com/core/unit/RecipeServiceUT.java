@@ -378,7 +378,12 @@ class RecipeServiceUT {
         @Test
         @DisplayName("fuzzyMatchingPreProcessing: Should process matches and save mappings")
         void testFuzzyMatchingPreProcessing() {
-                // Arrange
+                // Arrange - Mock transactionTemplate to execute the callback
+                when(transactionTemplate.execute(any())).thenAnswer(invocation -> {
+                        TransactionCallback<?> callback = invocation.getArgument(0);
+                        return callback.doInTransaction(null);
+                });
+
                 List<Integer> ingredientIds = List.of(1, 2);
                 when(ingredientProductRepository.findAllIngredientsIds()).thenReturn(ingredientIds);
 

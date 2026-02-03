@@ -60,9 +60,14 @@ export default function MarketSelection({ onComplete }: MarketSelectionProps) {
       if (results.length > 0) {
         setMapCenter([results[0].address.latitude, results[0].address.longitude]);
       }
-    } catch (err) {
+    } catch (err: any) {
       console.error(err);
-      setError("Failed to fetch markets. Is the backend running?");
+      // Check if it's an axios error with a response
+      if (err?.response?.status === 400) {
+        setError("Invalid postal code. Please enter a valid German postal code.");
+      } else {
+        setError("Failed to fetch markets. Please try again later.");
+      }
     } finally {
       setIsLoading(false);
     }

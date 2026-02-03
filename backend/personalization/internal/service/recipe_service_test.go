@@ -498,7 +498,11 @@ func TestSearchRecipes_Success(t *testing.T) {
 	countRows := sqlmock.NewRows([]string{"count"}).AddRow(2)
 	mock.ExpectQuery("SELECT COUNT").WillReturnRows(countRows)
 
-	// Mock search query
+	// Mock IDs query (new step in optimized search)
+	idsRows := sqlmock.NewRows([]string{"id"}).AddRow(1).AddRow(2)
+	mock.ExpectQuery("SELECT re.id FROM recipes re").WillReturnRows(idsRows)
+
+	// Mock full data query with CTEs
 	searchRows := sqlmock.NewRows([]string{
 		"id", "title", "description", "instructions", "image",
 		"cook_time", "prep_time", "total_time", "rating",
@@ -511,7 +515,7 @@ func TestSearchRecipes_Success(t *testing.T) {
 		AddRow(2, "Tacos", "Mexican tacos", "Prepare filling...", "http://img.com/tacos.jpg",
 			15, 10, 25, 4.8, "400", "2 servings", "4 portions",
 			"tortilla, beef, salsa", "mexican, quick", "gluten")
-	mock.ExpectQuery("WITH RecipeIngredients AS").WillReturnRows(searchRows)
+	mock.ExpectQuery("WITH SelectedRecipes AS").WillReturnRows(searchRows)
 
 	ctx, w := setupTestContext("GET", "/recipes/search", "")
 	service.SearchRecipes(ctx)
